@@ -2371,6 +2371,7 @@ bool SendMessages(CNode* pto, CConnman& connman, std::atomic<bool>& interruptMsg
                     vGetData.clear();
                 }
             }
+            pto->setAskFor.erase(inv.hash);
             pto->mapAskFor.erase(pto->mapAskFor.begin());
         }
         if (!vGetData.empty())
