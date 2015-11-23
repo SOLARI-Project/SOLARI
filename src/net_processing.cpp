@@ -1508,6 +1508,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         bool fMissingInputs = false;
         CValidationState state;
 
+        pfrom->setAskFor.erase(inv.hash);
         mapAlreadyAskedFor.erase(inv);
 
         if (ptx->ContainsZerocoins()) {
@@ -2370,8 +2371,10 @@ bool SendMessages(CNode* pto, CConnman& connman, std::atomic<bool>& interruptMsg
                     connman.PushMessage(pto, msgMaker.Make(NetMsgType::GETDATA, vGetData));
                     vGetData.clear();
                 }
+            } else {
+                //If we're not going to ask, don't expect a response.
+                pto->setAskFor.erase(inv.hash);
             }
-            pto->setAskFor.erase(inv.hash);
             pto->mapAskFor.erase(pto->mapAskFor.begin());
         }
         if (!vGetData.empty())
