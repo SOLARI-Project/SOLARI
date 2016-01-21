@@ -86,7 +86,6 @@ const char* GetTxnOutputType(txnouttype t);
  * @return                     True if script matches standard template
  */
 bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::vector<unsigned char> >& vSolutionsRet);
-int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned char> >& vSolutions);
 
 /**
  * Parse a standard scriptPubKey for the destination address. Assigns result to
