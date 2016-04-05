@@ -140,15 +140,16 @@ CMutableTransaction BuildSpendingTransaction(const CScript& scriptSig, const CMu
     return txSpend;
 }
 
-void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, int flags, bool expect, const std::string& message, int scriptError)
+void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, int flags, const std::string& message, int scriptError)
 {
+    bool expect = (scriptError == SCRIPT_ERR_OK);
     ScriptError err;
     CMutableTransaction tx = BuildSpendingTransaction(scriptSig, BuildCreditingTransaction(scriptPubKey));
     CMutableTransaction tx2 = tx;
     static const CAmount amountZero = 0;
     BOOST_CHECK_MESSAGE(VerifyScript(scriptSig, scriptPubKey, flags,
             MutableTransactionSignatureChecker(&tx, 0, amountZero), tx.GetRequiredSigVersion(), &err) == expect, message);
-    BOOST_CHECK_MESSAGE(scriptError == -1 || err == scriptError, std::string(FormatScriptError(err)) + " where " + std::string(FormatScriptError((ScriptError_t)scriptError)) + " expected: " + message);
+    BOOST_CHECK_MESSAGE(err == scriptError, std::string(FormatScriptError(err)) + " where " + std::string(FormatScriptError((ScriptError_t)scriptError)) + " expected: " + message);
 #if defined(HAVE_CONSENSUS_LIB)
     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
     stream << tx2;
@@ -346,11 +347,11 @@ public:
         return *this;
     }
 
-    TestBuilder& Test(bool expect)
+    TestBuilder& Test()
     {
         TestBuilder copy = *this; // Make a copy so we can rollback the push.
         DoPush();
-        DoTest(creditTx->vout[0].scriptPubKey, spendTx.vin[0].scriptSig, flags, expect, comment, expect ? SCRIPT_ERR_OK : scriptError);
+        DoTest(creditTx->vout[0].scriptPubKey, spendTx.vin[0].scriptSig, flags, comment, scriptError);
         *this = copy;
         return *this;
     }
@@ -677,7 +678,7 @@ BOOST_AUTO_TEST_CASE(script_build)
     std::string strBad;
 
     for (TestBuilder& test : good) {
-        test.Test(true);
+        test.Test();
         std::string str = JSONPrettyPrint(test.GetJSON());
 #ifndef UPDATE_JSON_TESTS
         if (tests_good.count(str) == 0) {
@@ -687,7 +688,7 @@ BOOST_AUTO_TEST_CASE(script_build)
         strGood += str + ",\n";
     }
     for (TestBuilder& test : bad) {
-        test.Test(false);
+        test.Test();
         std::string str = JSONPrettyPrint(test.GetJSON());
 #ifndef UPDATE_JSON_TESTS
         if (tests_bad.count(str) == 0) {
@@ -733,7 +734,7 @@ BOOST_AUTO_TEST_CASE(script_valid)
         unsigned int scriptflags = ParseScriptFlags(test[2].get_str());
         BOOST_CHECK_EQUAL(test[3].get_str(), "OK");
 
-        DoTest(scriptPubKey, scriptSig, scriptflags, true, strTest, SCRIPT_ERR_OK);
+        DoTest(scriptPubKey, scriptSig, scriptflags, strTest, SCRIPT_ERR_OK);
     }
 }
 
@@ -758,7 +759,7 @@ BOOST_AUTO_TEST_CASE(script_invalid)
         unsigned int scriptflags = ParseScriptFlags(test[2].get_str());
         int scriptError = ParseScriptError(test[3].get_str());
 
-        DoTest(scriptPubKey, scriptSig, scriptflags, false, strTest, scriptError);
+        DoTest(scriptPubKey, scriptSig, scriptflags, strTest, scriptError);
     }
 }
 
