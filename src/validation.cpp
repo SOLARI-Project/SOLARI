@@ -1586,8 +1586,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         }
 
         if (tx.HasZerocoinSpendInputs()) {
-            int nHeightTx = 0;
-            uint256 txid = tx.GetHash();
+            const uint256& txid = tx.GetHash();
             vSpendsInBlock.emplace_back(txid);
 
             //Check for double spending of serial #'s
@@ -3119,7 +3118,7 @@ bool AcceptBlockHeader(const CBlock& block, CValidationState& state, CBlockIndex
     return true;
 }
 
-bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppindex, FlatFilePos* dbp)
+static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppindex, const FlatFilePos* dbp)
 {
     AssertLockHeld(cs_main);
 
@@ -3349,15 +3348,15 @@ bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppi
     try {
         unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
         FlatFilePos blockPos;
-        if (dbp != NULL)
+        if (dbp != nullptr)
             blockPos = *dbp;
-        if (!FindBlockPos(state, blockPos, nBlockSize + 8, nHeight, block.GetBlockTime(), dbp != NULL))
-            return error("AcceptBlock() : FindBlockPos failed");
-        if (dbp == NULL)
+        if (!FindBlockPos(state, blockPos, nBlockSize + 8, nHeight, block.GetBlockTime(), dbp != nullptr))
+            return error("%s : FindBlockPos failed", __func__);
+        if (dbp == nullptr)
             if (!WriteBlockToDisk(block, blockPos))
                 return AbortNode(state, "Failed to write block");
         if (!ReceivedBlockTransactions(block, state, pindex, blockPos))
-            return error("AcceptBlock() : ReceivedBlockTransactions failed");
+            return error("%s : ReceivedBlockTransactions failed", __func__);
     } catch (const std::runtime_error& e) {
         return AbortNode(state, std::string("System error: ") + e.what());
     }
@@ -3365,7 +3364,7 @@ bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppi
     return true;
 }
 
-bool ProcessNewBlock(CValidationState& state, const std::shared_ptr<const CBlock> pblock, FlatFilePos* dbp, bool* fAccepted)
+bool ProcessNewBlock(CValidationState& state, const std::shared_ptr<const CBlock> pblock, const FlatFilePos* dbp, bool* fAccepted)
 {
     AssertLockNotHeld(cs_main);
 
