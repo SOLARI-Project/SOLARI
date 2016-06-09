@@ -1026,7 +1026,7 @@ void InitLogging()
 #else
     version_string += " (release build)";
 #endif
-    LogPrintf("PIVX version %s (%s)\n", version_string, CLIENT_DATE);
+    LogPrintf("PIVX version %s\n", version_string);
 }
 
 bool AppInitParameterInteraction()
