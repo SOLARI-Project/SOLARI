@@ -139,8 +139,8 @@ private:
     // A convenience pointer that always refers to the CBlock in pblocktemplate
     CBlock* pblock{nullptr};
 
-    // Configuration parameters for the block size
-    unsigned int nBlockMaxSize{0}, nBlockMinSize{0};
+    // Configuration parameters for the block max size
+    unsigned int nBlockMaxSize{0};
 
     // Information on the current status of the block
     uint64_t nBlockSize{0};
