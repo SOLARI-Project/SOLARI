@@ -2022,7 +2022,7 @@ void CWallet::ReacceptWalletTransactions(bool fFirstLoad)
         CWalletTx& wtx = *(item.second);
 
         CValidationState state;
-        bool fSuccess = wtx.AcceptToMemoryPool(state, false);
+        bool fSuccess = wtx.AcceptToMemoryPool(state);
         if (!fSuccess && fFirstLoad && GetTime() - wtx.GetTxTime() > 12*60*60) {
             //First load of wallet, failed to accept to mempool, and older than 12 hours... not likely to ever
             //make it in to mempool
@@ -3440,7 +3440,7 @@ CWallet::CommitResult CWallet::CommitTransaction(CTransactionRef tx, CReserveKey
 
         // Try ATMP. This must not fail. The transaction has already been signed and recorded.
         CValidationState state;
-        if (!wtx.AcceptToMemoryPool(state, true, true, false)) {
+        if (!wtx.AcceptToMemoryPool(state)) {
             res.state = state;
             // Abandon the transaction
             if (AbandonTransaction(res.hashTx)) {
@@ -4346,7 +4346,7 @@ bool CWalletTx::IsInMainChainImmature() const
 }
 
 
-bool CWalletTx::AcceptToMemoryPool(CValidationState& state, bool fLimitFree, bool fRejectInsaneFee, bool ignoreFees)
+bool CWalletTx::AcceptToMemoryPool(CValidationState& state)
 {
     // Quick check to avoid re-setting fInMempool to false
     if (mempool.exists(tx->GetHash())) {
@@ -4358,7 +4358,7 @@ bool CWalletTx::AcceptToMemoryPool(CValidationState& state, bool fLimitFree, boo
     // user could call sendmoney in a loop and hit spurious out of funds errors
     // because we think that the transaction they just generated's change is
     // unavailable as we're not yet aware its in mempool.
-    bool fAccepted = ::AcceptToMemoryPool(mempool, state, tx, fLimitFree, nullptr, false, fRejectInsaneFee, ignoreFees);
+    bool fAccepted = ::AcceptToMemoryPool(mempool, state, tx, true, nullptr, false, true, false);
     fInMempool = fAccepted;
     if (!fAccepted)
         LogPrintf("%s : %s\n", __func__, state.GetRejectReason());

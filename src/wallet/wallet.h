@@ -562,7 +562,7 @@ public:
     bool IsCoinStake() const { return tx->IsCoinStake(); }
 
     /** Pass this transaction to the mempool. Fails if absolute fee exceeds absurd fee. */
-    bool AcceptToMemoryPool(CValidationState& state, bool fLimitFree = true, bool fRejectInsaneFee = true, bool ignoreFees = false);
+    bool AcceptToMemoryPool(CValidationState& state);
 };
 
 
