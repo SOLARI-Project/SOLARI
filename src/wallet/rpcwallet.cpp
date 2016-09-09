@@ -34,8 +34,7 @@
 
 #include <univalue.h>
 
-int64_t nWalletUnlockTime;
-static RecursiveMutex cs_nWalletUnlockTime;
+
 
 CWallet* GetWalletForJSONRPCRequest(const JSONRPCRequest& request)
 {
@@ -3352,8 +3351,8 @@ UniValue keypoolrefill(const JSONRPCRequest& request)
 
 static void LockWallet(CWallet* pWallet)
 {
-    LOCK(cs_nWalletUnlockTime);
-    nWalletUnlockTime = 0;
+    LOCK(pWallet->cs_wallet);
+    pWallet->nRelockTime = 0;
     pWallet->fWalletUnlockStaking = false;
     pWallet->Lock();
 }
@@ -3429,7 +3428,7 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
     pwallet->TopUpKeyPool();
 
     if (nSleepTime > 0) {
-        nWalletUnlockTime = GetTime () + nSleepTime;
+        pwallet->nRelockTime = GetTime () + nSleepTime;
         RPCRunLater ("lockwallet", std::bind (LockWallet, pwallet), nSleepTime);
     }
 
@@ -3520,11 +3519,8 @@ UniValue walletlock(const JSONRPCRequest& request)
     if (!pwallet->IsCrypted())
         throw JSONRPCError(RPC_WALLET_WRONG_ENC_STATE, "Error: running with an unencrypted wallet, but walletlock was called.");
 
-    {
-        LOCK(cs_nWalletUnlockTime);
-        pwallet->Lock();
-        nWalletUnlockTime = 0;
-    }
+    pwallet->Lock();
+    pwallet->nRelockTime = 0;
 
     return NullUniValue;
 }
@@ -4058,8 +4054,8 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     }
 
     if (pwallet->IsCrypted())
-        obj.pushKV("unlocked_until", nWalletUnlockTime);
-    obj.pushKV("paytxfee",      ValueFromAmount(payTxFee.GetFeePerK()));
+        obj.pushKV("unlocked_until", pwallet->nRelockTime);
+    obj.pushKV("paytxfee", ValueFromAmount(payTxFee.GetFeePerK()));
     obj.pushKV("last_processed_block", pwallet->GetLastBlockHeight());
     return obj;
 }

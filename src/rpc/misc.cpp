@@ -143,7 +143,7 @@ UniValue getinfo(const JSONRPCRequest& request)
         obj.pushKV("keypoolsize", (int64_t)kpExternalSize);
     }
     if (pwallet && pwallet->IsCrypted())
-        obj.pushKV("unlocked_until", nWalletUnlockTime);
+        obj.pushKV("unlocked_until", pwallet->nRelockTime);
     obj.pushKV("paytxfee", ValueFromAmount(payTxFee.GetFeePerK()));
 #endif
     obj.pushKV("relayfee", ValueFromAmount(::minRelayTxFee.GetFeePerK()));
