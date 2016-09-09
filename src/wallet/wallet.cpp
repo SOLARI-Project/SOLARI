@@ -4348,19 +4348,29 @@ bool CWallet::InitLoadWallet()
         return true;
     }
 
-    std::string walletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
+    gArgs.SoftSetArg("-wallet", DEFAULT_WALLET_DAT);
 
-    if (walletFile.find_first_of("/\\") != std::string::npos) {
-        return UIError(_("-wallet parameter must only specify a filename (not a path)"));
-    } else if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
-        return UIError(_("Invalid characters in -wallet filename"));
+    for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
+        if (fs::path(walletFile).filename() != walletFile) {
+            return UIError(_("-wallet parameter must only specify a filename (not a path)"));
+        } else if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
+            return UIError(_("Invalid characters in -wallet filename"));
+        }
+
+        // automatic backups
+        std::string strWarning, strError;
+        if(!AutoBackupWallet(walletFile, strWarning, strError)) {
+            if (!strWarning.empty()) UIWarning(strWarning);
+            if (!strError.empty()) return UIError(strError);
+        }
+
+        CWallet * const pwallet = CreateWalletFromFile(walletFile);
+        if (!pwallet) {
+            return false;
+        }
+        vpwallets.emplace_back(pwallet);
     }
 
-    CWallet * const pwallet = CreateWalletFromFile(walletFile);
-    if (!pwallet) {
-        return false;
-    }
-    vpwallets.emplace_back(pwallet);
     return true;
 }
 
@@ -4885,19 +4895,3 @@ CStakeableOutput::CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn,
                                    const CBlockIndex*& _pindex) : COutput(txIn, iIn, nDepthIn, fSpendableIn, fSolvableIn),
                                                                 pindex(_pindex) {}
 
-bool InitAutoBackupWallet()
-{
-    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
-        return true;
-    }
-
-    std::string strWalletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
-
-    std::string strWarning, strError;
-    if(!AutoBackupWallet(strWalletFile, strWarning, strError)) {
-        if (!strWarning.empty()) UIWarning(strWarning);
-        if (!strError.empty()) return UIError(strError);
-    }
-
-    return true;
-}

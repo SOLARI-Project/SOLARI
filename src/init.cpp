@@ -1337,11 +1337,8 @@ bool AppInitMain()
         }
     }
 
-// ********************************************************* Step 5: Backup wallet and verify wallet database integrity
+// ********************************************************* Step 5: Verify wallet database integrity
 #ifdef ENABLE_WALLET
-    if (!InitAutoBackupWallet()) {
-        return false;
-    }
     if (!CWallet::Verify()) {
         return false;
     }
@@ -1729,7 +1726,7 @@ bool AppInitMain()
         mempool.ReadFeeEstimates(est_filein);
     fFeeEstimatesInitialized = true;
 
-// ********************************************************* Step 8: load wallet
+// ********************************************************* Step 8: Backup and Load wallet
 #ifdef ENABLE_WALLET
     if (!CWallet::InitLoadWallet())
         return false;

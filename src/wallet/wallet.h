@@ -1276,7 +1276,4 @@ public:
     }
 };
 
-// !TODO: move to wallet/init.*
-bool InitAutoBackupWallet();
-
 #endif // PIVX_WALLET_H
