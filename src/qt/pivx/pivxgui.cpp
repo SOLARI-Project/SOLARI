@@ -59,7 +59,7 @@ PIVXGUI::PIVXGUI(const NetworkStyle* networkStyle, QWidget* parent) :
 
 #ifdef ENABLE_WALLET
     /* if compiled with wallet support, -disablewallet can still disable the wallet */
-    enableWallet = !gArgs.GetBoolArg("-disablewallet", false);
+    enableWallet = !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
 #else
     enableWallet = false;
 #endif // ENABLE_WALLET
