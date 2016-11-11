@@ -550,7 +550,9 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
             }
         }
 
-        CTxMemPoolEntry entry(_tx, nFees, nAcceptTime, dPriority, chainHeight, pool.HasNoInputsOf(tx), inChainInputValue, fSpendsCoinbaseOrCoinstake, nSigOps);
+        CTxMemPoolEntry entry(_tx, nFees, nAcceptTime, dPriority, chainHeight,
+                              !IsInitialBlockDownload() && pool.HasNoInputsOf(tx),
+                              inChainInputValue, fSpendsCoinbaseOrCoinstake, nSigOps);
         unsigned int nSize = entry.GetTxSize();
 
         // Don't accept it if it can't get into a block
