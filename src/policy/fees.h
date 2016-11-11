@@ -211,7 +211,7 @@ public:
     void processBlockTx(unsigned int nBlockHeight, const CTxMemPoolEntry& entry);
 
     /** Process a transaction accepted to the mempool*/
-    void processTransaction(const CTxMemPoolEntry& entry, bool fCurrentEstimate);
+    void processTransaction(const CTxMemPoolEntry& entry, bool validFeeEstimate);
 
     /** Remove a transaction from the mempool tracking stats*/
     bool removeTx(const uint256& hash);
