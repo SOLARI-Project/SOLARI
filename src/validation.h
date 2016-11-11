@@ -109,12 +109,12 @@ static const unsigned int AVG_LOCAL_ADDRESS_BROADCAST_INTERVAL = 24 * 24 * 60;
 static const unsigned int AVG_ADDRESS_BROADCAST_INTERVAL = 30;
 /** Default multiplier used in the computation for shielded txes min fee */
 static const unsigned int DEFAULT_SHIELDEDTXFEE_K = 100;
-
 /** Enable bloom filter */
  static const bool DEFAULT_PEERBLOOMFILTERS = true;
-
 /** If the tip is older than this (in seconds), the node is considered to be in initial block download. */
 static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;
+/** Maximum age of our tip for us to be considered current for fee estimation */
+static const int64_t MAX_FEE_ESTIMATION_TIP_AGE = 3 * 60 * 60;
 
 struct BlockHasher {
     size_t operator()(const uint256& hash) const { return hash.GetCheapHash(); }
