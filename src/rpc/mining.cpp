@@ -84,12 +84,12 @@ UniValue generate(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 1)
         throw std::runtime_error(
-            "generate numblocks\n"
+            "generate nblocks\n"
             "\nMine blocks immediately (before the RPC call returns)\n"
             "\nNote: this function can only be used on the regtest network\n"
 
             "\nArguments:\n"
-            "1. numblocks    (numeric, required) How many blocks to generate.\n"
+            "1. nblocks    (numeric, required) How many blocks to generate.\n"
 
             "\nResult\n"
             "[ blockhashes ]     (array) hashes of blocks generated\n"
@@ -155,10 +155,10 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
-                "generatetoaddress numblocks \"address\"\n"
+                "generatetoaddress nblocks \"address\"\n"
                 "\nMine blocks immediately to a specified address (before the RPC call returns)\n"
                 "\nArguments:\n"
-                "1. numblocks    (numeric, required) How many blocks are generated immediately.\n"
+                "1. nblocks          (numeric, required) How many blocks are generated immediately.\n"
                 "2. \"address\"      (string, required) The address to send the newly generated bitcoin to.\n"
                 "\nResult\n"
                 "[ blockhashes ]     (array) hashes of blocks generated\n"
@@ -244,13 +244,13 @@ UniValue getnetworkhashps(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 2)
         throw std::runtime_error(
-            "getnetworkhashps ( blocks height )\n"
+            "getnetworkhashps ( nblocks height )\n"
             "\nReturns the estimated network hashes per second based on the last n blocks.\n"
             "Pass in [blocks] to override # of blocks, -1 specifies since last difficulty change.\n"
             "Pass in [height] to estimate the network speed at the time when a certain block was found.\n"
 
             "\nArguments:\n"
-            "1. blocks     (numeric, optional, default=120) The number of blocks, or -1 for blocks since last difficulty change.\n"
+            "1. nblocks     (numeric, optional, default=120) The number of blocks, or -1 for blocks since last difficulty change.\n"
             "2. height     (numeric, optional, default=-1) To estimate at the time of the given height.\n"
 
             "\nResult:\n"
@@ -456,13 +456,13 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-            "getblocktemplate ( \"jsonrequestobject\" )\n"
+            "getblocktemplate ( \"template_request\" )\n"
             "\nIf the request parameters include a 'mode' key, that is used to explicitly select between the default 'template' request or a 'proposal'.\n"
             "It returns data needed to construct a block to work on.\n"
             "See https://en.bitcoin.it/wiki/BIP_0022 for full specification.\n"
 
             "\nArguments:\n"
-            "1. \"jsonrequestobject\"       (string, optional) A json object in the following spec\n"
+            "1. template_request         (json object, optional) A json object in the following spec\n"
             "     {\n"
             "       \"mode\":\"template\"    (string, optional) This must be set to \"template\" or omitted\n"
             "       \"capabilities\":[       (array, optional) A list of strings\n"
@@ -753,7 +753,7 @@ UniValue submitblock(const JSONRPCRequest& request)
 
             "\nArguments\n"
             "1. \"hexdata\"    (string, required) the hex-encoded block data to submit\n"
-            "2. \"jsonparametersobject\"     (string, optional) object of optional parameters\n"
+            "2. \"parameters\"     (string, optional) object of optional parameters\n"
             "    {\n"
             "      \"workid\" : \"id\"    (string, optional) if the server provided a workid, it MUST be included with submissions\n"
             "    }\n"
@@ -877,26 +877,26 @@ UniValue estimatesmartfee(const JSONRPCRequest& request)
 }
 
 static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         okSafeMode
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "mining",             "prioritisetransaction",  &prioritisetransaction,  true  },
-    { "util",               "estimatefee",            &estimatefee,            true  },
-    { "util",               "estimatesmartfee",       &estimatesmartfee,       true  },
+{ //  category              name                      actor (function)         okSafe argNames
+  //  --------------------- ------------------------  -----------------------  ------ --------
+    { "mining",             "prioritisetransaction",  &prioritisetransaction,  true,  {"txid","priority_delta","fee_delta"} },
+    { "util",               "estimatefee",            &estimatefee,            true,  {"nblocks"} },
+    { "util",               "estimatesmartfee",       &estimatesmartfee,       true,  {"nblocks"} },
 
     /* Not shown in help */
 #ifdef ENABLE_WALLET
-    { "hidden",             "generate",               &generate,               true  },
-    { "hidden",             "generatetoaddress",      &generatetoaddress,      true  },
+    { "hidden",             "generate",               &generate,               true,  {"nblocks"} },
+    { "hidden",             "generatetoaddress",      &generatetoaddress,      true,  {"nblocks","address"} },
 #endif
-    { "hidden",             "submitblock",            &submitblock,            true  },
+    { "hidden",             "submitblock",            &submitblock,            true,  {"hexdata","parameters"} },
 #ifdef ENABLE_MINING_RPC
-    { "hidden",             "getblocktemplate",       &getblocktemplate,       true  },
-    { "hidden",             "getnetworkhashps",       &getnetworkhashps,       true  },
-    { "hidden",             "getmininginfo",          &getmininginfo,          true  },
+    { "hidden",             "getblocktemplate",       &getblocktemplate,       true,  {"template_request"} },
+    { "hidden",             "getnetworkhashps",       &getnetworkhashps,       true,  {"nblocks","height"} },
+    { "hidden",             "getmininginfo",          &getmininginfo,          true,  {} },
 #ifdef ENABLE_WALLET
-    { "hidden",             "getgenerate",            &getgenerate,            true  },
-    { "hidden",             "gethashespersec",        &gethashespersec,        true  },
-    { "hidden",             "setgenerate",            &setgenerate,            true  },
+    { "hidden",             "getgenerate",            &getgenerate,            true,  {} },
+    { "hidden",             "gethashespersec",        &gethashespersec,        true,  {} },
+    { "hidden",             "setgenerate",            &setgenerate,            true,  {"generate","genproclimit"} },
 #endif // ENABLE_WALLET
 #endif // ENABLE_MINING_RPC
 
