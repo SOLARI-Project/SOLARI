@@ -1489,9 +1489,9 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint>* pvNoSpends
 
 bool CTxMemPool::TransactionWithinChainLimit(const uint256& txid, size_t chainLimit) const {
     LOCK(cs);
-    if (exists(txid) && std::max(mapTx.find(txid)->GetCountWithAncestors(), mapTx.find(txid)->GetCountWithDescendants()) >= chainLimit)
-        return false;
-    return true;
+    auto it = mapTx.find(txid);
+    return it == mapTx.end() || (it->GetCountWithAncestors() < chainLimit &&
+       it->GetCountWithDescendants() < chainLimit);
 }
 
 bool CTxMemPool::IsLoaded() const
