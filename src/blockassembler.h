@@ -153,10 +153,6 @@ private:
     int nHeight{0};
     const CChainParams& chainparams;
 
-    // Variables used for addScoreTxs and addPriorityTxs
-    int lastFewTxs{0};
-    bool blockFinished{false};
-
     // Keep track of block space used for shield txes
     unsigned int nSizeShielded{0};
 
@@ -180,20 +176,10 @@ private:
     void AddToBlock(CTxMemPool::txiter iter);
 
     // Methods for how to add transactions to a block.
-    /** Add transactions based on modified feerate */
-    void addScoreTxs();
-    /** Add transactions based on tx "priority" */
-    void addPriorityTxs();
     /** Add transactions based on feerate including unconfirmed ancestors */
     void addPackageTxs();
     /** Add the tip updated incremental merkle tree to the header */
     void appendSaplingTreeRoot();
-
-    // helper function for addScoreTxs and addPriorityTxs
-    /** Test if tx will still "fit" in the block */
-    bool TestForBlock(CTxMemPool::txiter iter);
-    /** Test if tx still has unconfirmed parents not yet in block */
-    bool isStillDependent(CTxMemPool::txiter iter);
 
     // helper functions for addPackageTxs()
     /** Remove confirmed (inBlock) entries from given set */

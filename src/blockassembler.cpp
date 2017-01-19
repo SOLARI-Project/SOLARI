@@ -163,9 +163,6 @@ void BlockAssembler::resetBlock()
     // These counters do not include coinbase tx
     nBlockTx = 0;
     nFees = 0;
-
-    lastFewTxs = 0;
-    blockFinished = false;
 }
 
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn,
@@ -204,7 +201,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (!fNoMempoolTx) {
         // Add transactions from mempool
         LOCK2(cs_main,mempool.cs);
-        //addPriorityTxs();     !TODO: remove
         addPackageTxs();
     }
 
@@ -252,16 +248,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     return std::move(pblocktemplate);
 }
 
-bool BlockAssembler::isStillDependent(CTxMemPool::txiter iter)
-{
-    for (CTxMemPool::txiter parent : mempool.GetMemPoolParents(iter)) {
-        if (!inBlock.count(parent)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
 {
     for (CTxMemPool::setEntries::iterator iit = testSet.begin(); iit != testSet.end(); ) {
@@ -295,59 +281,6 @@ bool BlockAssembler::TestPackageFinality(const CTxMemPool::setEntries& package)
     return true;
 }
 
-bool BlockAssembler::TestForBlock(CTxMemPool::txiter iter)
-{
-    // Legacy zerocoin transactions are disabled forever.
-    assert(!iter->GetSharedTx()->ContainsZerocoins());
-
-    // Don't add shielded transactions if Sapling isn't active
-    const bool isShielded = iter->IsShielded();
-    if(isShielded && sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE)) {
-        return false;
-    }
-
-    unsigned int nTxSize = iter->GetTxSize();
-    if (nBlockSize + nTxSize >= nBlockMaxSize) {
-        // If the block is so close to full that no more txs will fit
-        // or if we've tried more than 50 times to fill remaining space
-        // then flag that the block is finished
-        if (nBlockSize >  nBlockMaxSize - 100 || lastFewTxs > 50) {
-            blockFinished = true;
-            return false;
-        }
-        // Once we're within 1000 bytes of a full block, only look at 50 more txs
-        // to try to fill the remaining space.
-        if (nBlockSize > nBlockMaxSize - 1000) {
-            lastFewTxs++;
-        }
-        return false;
-    }
-
-    if (isShielded && nSizeShielded + nTxSize > MAX_BLOCK_SHIELDED_TXES_SIZE) {
-        return false;
-    }
-
-    if (nBlockSigOps + iter->GetSigOpCount() >= MAX_BLOCK_SIGOPS_CURRENT) {
-        // If the block has room for no more sig ops then
-        // flag that the block is finished
-        if (nBlockSigOps > MAX_BLOCK_SIGOPS_CURRENT - 2) {
-            blockFinished = true;
-            return false;
-        }
-        // Otherwise attempt to find another tx with fewer sigops
-        // to put in the block.
-        return false;
-    }
-
-    // Must check that lock times are still valid
-    // This can be removed once MTP is always enforced
-    // as long as reorgs keep the mempool consistent.
-    if (!IsFinalTx(iter->GetSharedTx(), nHeight))
-        return false;
-
-    return true;
-}
-
 void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
 {
     pblock->vtx.emplace_back(iter->GetSharedTx());
@@ -368,60 +301,6 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
                   dPriority,
                   CFeeRate(iter->GetModifiedFee(), iter->GetTxSize()).ToString(),
                   iter->GetTx().GetHash().ToString());
-    }
-}
-
-void BlockAssembler::addScoreTxs()
-{
-    std::priority_queue<CTxMemPool::txiter, std::vector<CTxMemPool::txiter>, ScoreCompare> clearedTxs;
-    CTxMemPool::setEntries waitSet;
-    CTxMemPool::indexed_transaction_set::index<mining_score>::type::iterator mi = mempool.mapTx.get<mining_score>().begin();
-    CTxMemPool::txiter iter;
-    while (!blockFinished && (mi != mempool.mapTx.get<mining_score>().end() || !clearedTxs.empty())) {
-        // If no txs that were previously postponed are available to try
-        // again, then try the next highest score tx
-        if (clearedTxs.empty()) {
-            iter = mempool.mapTx.project<0>(mi);
-            mi++;
-        }
-        // If a previously postponed tx is available to try again, then it
-        // has higher score than all untried so far txs
-        else {
-            iter = clearedTxs.top();
-            clearedTxs.pop();
-        }
-
-        // If tx already in block, skip  (added by addPriorityTxs)
-        if (inBlock.count(iter)) {
-            continue;
-        }
-
-        // If tx is dependent on other mempool txs which haven't yet been included
-        // then put it in the waitSet
-        if (isStillDependent(iter)) {
-            waitSet.insert(iter);
-            continue;
-        }
-
-        // If the fee rate is below the min fee rate for mining, then we're done
-        // adding txs based on score (fee rate)
-        if (iter->GetModifiedFee() < ::minRelayTxFee.GetFee(iter->GetTxSize()) && nBlockSize >= nBlockMinSize) {
-            return;
-        }
-
-        // If this tx fits in the block add it, otherwise keep looping
-        if (TestForBlock(iter)) {
-            AddToBlock(iter);
-
-            // This tx was successfully added, so
-            // add transactions that depend on this one to the priority queue to try again
-            for (CTxMemPool::txiter child : mempool.GetMemPoolChildren(iter)) {
-                if (waitSet.count(child)) {
-                    clearedTxs.push(child);
-                    waitSet.erase(child);
-                }
-            }
-        }
     }
 }
 
@@ -607,78 +486,6 @@ void BlockAssembler::addPackageTxs()
 
         // Update transactions that depend on each of these
         UpdatePackagesForAdded(ancestors, mapModifiedTx);
-    }
-}
-
-void BlockAssembler::addPriorityTxs()
-{
-    // How much of the block should be dedicated to high-priority transactions,
-    // included regardless of the fees they pay
-    unsigned int nBlockPrioritySize = gArgs.GetArg("-blockprioritysize", DEFAULT_BLOCK_PRIORITY_SIZE);
-    nBlockPrioritySize = std::min(nBlockMaxSize, nBlockPrioritySize);
-
-    if (nBlockPrioritySize == 0) {
-        return;
-    }
-
-    // This vector will be sorted into a priority queue:
-    std::vector<TxCoinAgePriority> vecPriority;
-    TxCoinAgePriorityCompare pricomparer;
-    std::map<CTxMemPool::txiter, double, CTxMemPool::CompareIteratorByHash> waitPriMap;
-    typedef std::map<CTxMemPool::txiter, double, CTxMemPool::CompareIteratorByHash>::iterator waitPriIter;
-    double actualPriority = -1;
-
-    vecPriority.reserve(mempool.mapTx.size());
-    for (CTxMemPool::indexed_transaction_set::iterator mi = mempool.mapTx.begin();
-         mi != mempool.mapTx.end(); ++mi) {
-        double dPriority = mi->GetPriority(nHeight);
-        CAmount dummy{0};
-        mempool.ApplyDeltas(mi->GetSharedTx()->GetHash(), dPriority, dummy);
-        vecPriority.emplace_back(TxCoinAgePriority(dPriority, mi));
-    }
-    std::make_heap(vecPriority.begin(), vecPriority.end(), pricomparer);
-
-    CTxMemPool::txiter iter;
-    while (!vecPriority.empty() && !blockFinished) { // add a tx from priority queue to fill the blockprioritysize
-        iter = vecPriority.front().second;
-        actualPriority = vecPriority.front().first;
-        std::pop_heap(vecPriority.begin(), vecPriority.end(), pricomparer);
-        vecPriority.pop_back();
-
-        // If tx already in block, skip
-        if (inBlock.count(iter)) {
-            assert(false); // shouldn't happen for priority txs
-            continue;
-        }
-
-        // If tx is dependent on other mempool txs which haven't yet been included
-        // then put it in the waitSet
-        if (isStillDependent(iter)) {
-            waitPriMap.insert(std::make_pair(iter, actualPriority));
-            continue;
-        }
-
-        // If this tx fits in the block add it, otherwise keep looping
-        if (TestForBlock(iter)) {
-            AddToBlock(iter);
-
-            // If now that this txs is added we've surpassed our desired priority size
-            // or have dropped below the AllowFreeThreshold, then we're done adding priority txs
-            if (nBlockSize >= nBlockPrioritySize || !AllowFree(actualPriority)) {
-                return;
-            }
-
-            // This tx was successfully added, so
-            // add transactions that depend on this one to the priority queue to try again
-            for (CTxMemPool::txiter child : mempool.GetMemPoolChildren(iter)) {
-                waitPriIter wpiter = waitPriMap.find(child);
-                if (wpiter != waitPriMap.end()) {
-                    vecPriority.emplace_back(TxCoinAgePriority(wpiter->second,child));
-                    std::push_heap(vecPriority.begin(), vecPriority.end(), pricomparer);
-                    waitPriMap.erase(wpiter);
-                }
-            }
-        }
     }
 }
 

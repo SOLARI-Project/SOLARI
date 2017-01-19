@@ -302,10 +302,7 @@ CAmount GetMinRelayFee(unsigned int nBytes, bool fAllowFree)
 
     if (fAllowFree) {
         // There is a free transaction area in blocks created by most miners,
-        // * If we are relaying we allow transactions up to DEFAULT_BLOCK_PRIORITY_SIZE - 1000
-        //   to be considered to fall into this category. We don't want to encourage sending
-        //   multiple transactions instead of one big transaction to avoid fees.
-        if (nBytes < (DEFAULT_BLOCK_PRIORITY_SIZE - 1000))
+        // !TODO: remove
             nMinFee = 0;
     }
 
