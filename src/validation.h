@@ -67,10 +67,6 @@ static const unsigned int DEFAULT_MEMPOOL_EXPIRY = 72;
 /** Default for -txindex */
 static const bool DEFAULT_TXINDEX = true;
 static const bool DEFAULT_CHECKPOINTS_ENABLED = true;
-/** Default for -relaypriority */
-static const bool DEFAULT_RELAYPRIORITY = true;
-/** Default for -limitfeerelay */
-static const unsigned int DEFAULT_LIMITFREERELAY = 30;
 /** The maximum size for transactions we're willing to relay/mine */
 static const unsigned int MAX_STANDARD_TX_SIZE = 100000;
 static const unsigned int MAX_ZEROCOIN_TX_SIZE = 150000;

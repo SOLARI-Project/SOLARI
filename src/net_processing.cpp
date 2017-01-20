@@ -1547,7 +1547,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
                             LogPrint(BCLog::MEMPOOL, "   invalid orphan tx %s\n", orphanHash.ToString());
                         }
                         // Has inputs but not accepted to mempool
-                        // Probably non-standard or insufficient fee/priority
+                        // Probably non-standard or insufficient fee
                         LogPrint(BCLog::MEMPOOL, "   removed orphan tx %s\n", orphanHash.ToString());
                         vEraseQueue.push_back(orphanHash);
                         assert(recentRejects);

@@ -559,8 +559,6 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-logtimemicros", strprintf("Add microsecond precision to debug timestamps (default: %u)", DEFAULT_LOGTIMEMICROS));
     if (showDebug) {
         strUsage += HelpMessageOpt("-mocktime=<n>", "Replace actual time with <n> seconds since epoch (default: 0)");
-        strUsage += HelpMessageOpt("-limitfreerelay=<n>", strprintf(_("Continuously rate-limit free transactions to <n>*1000 bytes per minute (default:%u)"), DEFAULT_LIMITFREERELAY));
-        strUsage += HelpMessageOpt("-relaypriority", strprintf(_("Require high priority for relaying free or low-fee transactions (default:%u)"), DEFAULT_RELAYPRIORITY));
         strUsage += HelpMessageOpt("-maxsigcachesize=<n>", strprintf(_("Limit size of signature cache to <n> MiB (default: %u)"), DEFAULT_MAX_SIG_CACHE_SIZE));
     }
     strUsage += HelpMessageOpt("-maxtipage=<n>", strprintf("Maximum tip age in seconds to consider node in initial block download (default: %u)", DEFAULT_MAX_TIP_AGE));
@@ -1146,7 +1144,7 @@ bool AppInitParameterInteraction()
     if (nConnectTimeout <= 0)
         nConnectTimeout = DEFAULT_CONNECT_TIMEOUT;
 
-    // Fee-per-kilobyte amount considered the same as "free"
+    // Fee-per-kilobyte amount required for mempool acceptance and relay
     // If you are mining, be careful setting this:
     // if you set it to zero then
     // a transaction spammer can cheaply fill blocks using

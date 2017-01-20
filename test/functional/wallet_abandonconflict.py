@@ -88,7 +88,6 @@ class AbandonConflictTest(PivxTestFramework):
 
         # Restart the node with a higher min relay fee so the parent tx is no longer in mempool
         # TODO: redo with eviction
-        # Note had to make sure tx did not have AllowFree priority
         self.stop_node(0)
         self.start_node(0, extra_args=["-minrelaytxfee=0.0001"])
 

@@ -556,35 +556,14 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         // Don't accept it if it can't get into a block
         if (!ignoreFees) {
             const CAmount txMinFee = GetMinRelayFee(tx, pool, nSize);
-            if (fLimitFree && nFees < txMinFee)
+            if (fLimitFree && nFees < txMinFee) {
                 return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient fee", false,
                     strprintf("%d < %d", nFees, txMinFee));
-
-            // Require that free transactions have sufficient priority to be mined in the next block.
-            if (gArgs.GetBoolArg("-relaypriority", DEFAULT_RELAYPRIORITY) && nFees < ::minRelayTxFee.GetFee(nSize) && !AllowFree(entry.GetPriority(chainHeight + 1))) {
-                return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient priority");
             }
 
-            // Continuously rate-limit free (really, very-low-fee) transactions
-            // This mitigates 'penny-flooding' -- sending thousands of free transactions just to
-            // be annoying or make others' transactions take longer to confirm.
+            // No transactions are allowed below minRelayTxFee except from disconnected blocks
             if (fLimitFree && nFees < ::minRelayTxFee.GetFee(nSize)) {
-                static RecursiveMutex csFreeLimiter;
-                static double dFreeCount;
-                static int64_t nLastTime;
-                int64_t nNow = GetTime();
-
-                LOCK(csFreeLimiter);
-
-                // Use an exponentially decaying ~10-minute window:
-                dFreeCount *= pow(1.0 - 1.0 / 600.0, (double)(nNow - nLastTime));
-                nLastTime = nNow;
-                // -limitfreerelay unit is thousand-bytes-per-minute
-                // At default rate it would take over a month to fill 1GB
-                if (dFreeCount >= gArgs.GetArg("-limitfreerelay", DEFAULT_LIMITFREERELAY) * 10 * 1000)
-                    return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "rate limited free transaction");
-                LogPrint(BCLog::MEMPOOL, "Rate limit dFreeCount: %g => %g\n", dFreeCount, dFreeCount + nSize);
-                dFreeCount += nSize;
+                return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min relay fee not met");
             }
         }
 
@@ -594,14 +573,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
             if (nFees > nMaxFee)
                 return state.Invalid(false, REJECT_HIGHFEE, "absurdly-high-fee",
                                      strprintf("%d > %d", nFees, nMaxFee));
-        }
-
-        // As zero fee transactions are not going to be accepted in the near future (4.0) and the code will be fully refactored soon.
-        // This is just a quick inline towards that goal, the mempool by default will not accept them. Blocking
-        // any subsequent network relay.
-        if (!Params().IsRegTestNet() && nFees == 0) {
-            return error("%s : zero fees not accepted %s, %d > %d",
-                    __func__, hash.ToString(), nFees, ::minRelayTxFee.GetFee(nSize) * 10000);
         }
 
         // Calculate in-mempool ancestors, up to a limit.
