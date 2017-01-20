@@ -202,14 +202,16 @@ TestChainSetup::~TestChainSetup()
 {
 }
 
-CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(CMutableTransaction &tx, CTxMemPool *pool) {
-    const CTransactionRef txn = MakeTransactionRef(tx); // todo: move to the caller side..
-    bool hasNoDependencies = pool ? pool->HasNoInputsOf(tx) : hadNoDependencies;
-    // Hack to assume either its completely dependent on other mempool txs or not at all
-    CAmount inChainValue = hasNoDependencies ? txn->GetValueOut() : 0;
+CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(const CMutableTransaction& tx)
+{
+    CTransaction txn(tx);
+    return FromTx(txn);
+}
 
-    return CTxMemPoolEntry(txn, nFee, nTime, dPriority, nHeight,
-                           hasNoDependencies, inChainValue, spendsCoinbaseOrCoinstake, sigOpCount);
+CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(const CTransaction& txn)
+{
+    return CTxMemPoolEntry(MakeTransactionRef(txn), nFee, nTime, 0.0, nHeight, false,
+                           0, spendsCoinbaseOrCoinstake, sigOpCount);
 }
 
 [[noreturn]] void Shutdown(void* parg)

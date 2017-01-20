@@ -190,7 +190,6 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     uint256 hash;
     TestMemPoolEntryHelper entry;
     entry.nFee = 11;
-    entry.dPriority = 111.0;
     entry.nHeight = 11;
 
     Checkpoints::fEnabled = false;
@@ -282,7 +281,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     BOOST_CHECK_EXCEPTION(pblocktemplate = BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptPubKey, pwalletMain.get(), false), std::runtime_error, HasReason("bad-txns-inputs-missingorspent"));
     mempool.clear();
 
-    // child with higher priority than parent
+    // child with higher feerate than parent
     tx.vin[0].scriptSig = CScript() << OP_1;
     tx.vin[0].prevout.hash = txFirst[1]->GetHash();
     tx.vout[0].nValue = 4900000000LL;
