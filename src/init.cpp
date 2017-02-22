@@ -1543,9 +1543,6 @@ bool AppInitMain()
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
 
-    // Create blocks directory if it doesn't already exist
-    fs::create_directories(GetBlocksDir());
-
     // cache size calculations
     int64_t nTotalCache = (gArgs.GetArg("-dbcache", nDefaultDbCache) << 20);
     nTotalCache = std::max(nTotalCache, nMinDbCache << 20); // total cache cannot be less than nMinDbCache

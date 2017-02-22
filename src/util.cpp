@@ -309,7 +309,7 @@ fs::path GetDefaultDataDir()
 #ifdef MAC_OSX
     // Mac
     pathRet /= "Library/Application Support";
-    TryCreateDirectory(pathRet);
+    TryCreateDirectories(pathRet);
     return pathRet / "PIVX";
 #else
     // Unix
@@ -344,7 +344,7 @@ static fs::path ZC_GetBaseParamsDir()
 #ifdef MAC_OSX
     // Mac
     pathRet /= "Library/Application Support";
-    TryCreateDirectory(pathRet);
+    TryCreateDirectories(pathRet);
     return pathRet / "PIVXParams";
 #else
     // Unix
@@ -597,20 +597,20 @@ bool RenameOver(fs::path src, fs::path dest)
 }
 
 /**
- * Ignores exceptions thrown by Boost's create_directory if the requested directory exists.
+ * Ignores exceptions thrown by Boost's create_directories if the requested directory exists.
  * Specifically handles case where path p exists, but it wasn't possible for the user to
  * write to the parent directory.
  */
-bool TryCreateDirectory(const fs::path& p)
+bool TryCreateDirectories(const fs::path& p)
 {
     try {
-        return fs::create_directory(p);
+        return fs::create_directories(p);
     } catch (const fs::filesystem_error&) {
         if (!fs::exists(p) || !fs::is_directory(p))
             throw;
     }
 
-    // create_directory didn't create the directory, it had to have existed already
+    // create_directories didn't create the directory, it had to have existed already
     return false;
 }
 
