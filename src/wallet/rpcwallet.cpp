@@ -3591,9 +3591,9 @@ UniValue listunspent(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() > 5)
+    if (request.fHelp || request.params.size() > 6)
         throw std::runtime_error(
-                "listunspent ( minconf maxconf  [\"address\",...] watchonly_config [query_options])\n"
+                "listunspent ( minconf maxconf  [\"address\",...] watchonly_config [query_options] include_unsafe)\n"
                 "\nReturns array of unspent transaction outputs\n"
                 "with between minconf and maxconf (inclusive) confirmations.\n"
                 "Optionally filter to only include txouts paid to specified addresses.\n"
@@ -3616,6 +3616,9 @@ UniValue listunspent(const JSONRPCRequest& request)
                 "      \"maximumCount\"     (numeric or string, default=unlimited) Maximum number of UTXOs\n"
                 "      \"minimumSumAmount\" (numeric or string, default=unlimited) Minimum sum value of all UTXOs in " + CURRENCY_UNIT + "\n"
                 "    }\n"
+                "6. include_unsafe   (bool, optional, default=true) Include outputs that are not safe to spend\n"
+                "                        See description of \"safe\" attribute below.\n"
+
                 "\nResult\n"
                 "[                   (array of json object)\n"
                 "  {\n"
@@ -3629,7 +3632,10 @@ UniValue listunspent(const JSONRPCRequest& request)
                 "    \"amount\" : x.xxx,         (numeric) the transaction amount in PIV\n"
                 "    \"confirmations\" : n,      (numeric) The number of confirmations\n"
                 "    \"spendable\" : true|false  (boolean) Whether we have the private keys to spend this output\n"
-                "    \"solvable\" : xxx          (bool) Whether we know how to spend this output, ignoring the lack of keys\n"
+                "    \"solvable\" : xxx          (boolean) Whether we know how to spend this output, ignoring the lack of keys\n"
+                "    \"safe\" : xxx              (boolean) Whether this output is considered safe to spend. Unconfirmed transactions\n"
+                "                              from outside keys and unconfirmed replacement transactions are considered unsafe\n"
+                "                              and are not eligible for spending by fundrawtransaction and sendtoaddress.\n"
                 "  }\n"
                 "  ,...\n"
                 "]\n"
@@ -3638,6 +3644,7 @@ UniValue listunspent(const JSONRPCRequest& request)
                 HelpExampleCli("listunspent", "") + HelpExampleCli("listunspent", "6 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
                 + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
                 + HelpExampleCli("listunspent", "6 9999999 '[]' 1 '{ \"minimumAmount\": 0.005 }'")
+                + HelpExampleCli("listunspent", "6 9999999 '[]' 1 '{ \"minimumAmount\": 0.005 }' false")
                 + HelpExampleRpc("listunspent", "6, 9999999, [] , 1, { \"minimumAmount\": 0.005 } ")
                 );
 
@@ -3713,7 +3720,8 @@ UniValue listunspent(const JSONRPCRequest& request)
     CCoinControl coinControl;
     coinControl.fAllowWatchOnly = nWatchonlyConfig == 2;
 
-    coinFilter.fOnlySafe = false;
+    bool include_unsafe = request.params.size() < 6 || request.params[5].get_bool();
+    coinFilter.fOnlySafe = !include_unsafe;
 
     UniValue results(UniValue::VARR);
     std::vector<COutput> vecOutputs;
@@ -3760,6 +3768,7 @@ UniValue listunspent(const JSONRPCRequest& request)
         entry.pushKV("confirmations", out.nDepth);
         entry.pushKV("spendable", out.fSpendable);
         entry.pushKV("solvable", out.fSolvable);
+        entry.pushKV("safe", out.fSafe);
         results.push_back(entry);
     }
 
@@ -4492,7 +4501,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "listreceivedbyaddress",    &listreceivedbyaddress,    false, {"minconf","include_empty","include_watchonly","filter"} },
     { "wallet",             "listsinceblock",           &listsinceblock,           false, {"blockhash","target_confirmations","include_watchonly"} },
     { "wallet",             "listtransactions",         &listtransactions,         false, {"dummy","count","from","include_watchonly","include_delegated","include_cold"} },
-    { "wallet",             "listunspent",              &listunspent,              false, {"minconf","maxconf","addresses","watchonly_config" } },
+    { "wallet",             "listunspent",              &listunspent,              false, {"minconf","maxconf","addresses","watchonly_config","query_options","include_unsafe" } },
     { "wallet",             "lockunspent",              &lockunspent,              true,  {"unlock","transactions"} },
     { "wallet",             "rawdelegatestake",         &rawdelegatestake,         false, {"staking_addr","amount","owner_addr","ext_owner","include_delegated","from_shield","force"} },
     { "wallet",             "sendmany",                 &sendmany,                 false, {"dummy","amounts","minconf","comment","include_delegated"} },
