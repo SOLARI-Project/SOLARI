@@ -139,12 +139,7 @@ UniValue importprivkey(const JSONRPCRequest& request)
         pwalletMain->nTimeFirstKey = 1; // 0 would be considered 'no value'
 
         if (fRescan) {
-            CBlockIndex *pindex = chainActive.Genesis();
-            if (fStakingAddress && !Params().IsRegTestNet()) {
-                // cold staking was activated after nBlockTimeProtocolV2 (PIVX v4.0). No need to scan the whole chain
-                pindex = chainActive[Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V4_0].nActivationHeight];
-            }
-            pwalletMain->ScanForWalletTransactions(pindex, nullptr, true);
+            pwalletMain->RescanFromTime(TIMESTAMP_MIN, true /* update */);
         }
     }
 
@@ -246,13 +241,12 @@ UniValue importaddress(const JSONRPCRequest& request)
     } else if (IsHex(request.params[0].get_str())) {
         std::vector<unsigned char> data(ParseHex(request.params[0].get_str()));
         ImportScript(CScript(data.begin(), data.end()), strLabel, fP2SH);
-
     } else {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid PIVX address or script");
     }
 
     if (fRescan) {
-        pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, true);
+        pwalletMain->RescanFromTime(TIMESTAMP_MIN, true /* update */);
         pwalletMain->ReacceptWalletTransactions();
     }
 
@@ -296,7 +290,7 @@ UniValue importpubkey(const JSONRPCRequest& request)
     ImportScript(GetScriptForRawPubKey(pubKey), strLabel, false);
 
     if (fRescan) {
-        pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, true);
+        pwalletMain->RescanFromTime(TIMESTAMP_MIN, true /* update */);
         pwalletMain->ReacceptWalletTransactions();
     }
 
@@ -411,16 +405,8 @@ UniValue importwallet(const JSONRPCRequest& request)
     }
     file.close();
     pwalletMain->ShowProgress("", 100); // hide progress dialog in GUI
-
-    CBlockIndex* pindex = chainActive.Tip();
-    while (pindex && pindex->pprev && pindex->GetBlockTime() > nTimeBegin - TIMESTAMP_WINDOW)
-        pindex = pindex->pprev;
-
-    if (!pwalletMain->nTimeFirstKey || nTimeBegin < pwalletMain->nTimeFirstKey)
-        pwalletMain->nTimeFirstKey = nTimeBegin;
-
-    LogPrintf("Rescanning last %i blocks\n", chainActive.Height() - pindex->nHeight + 1);
-    pwalletMain->ScanForWalletTransactions(pindex);
+    pwalletMain->UpdateTimeFirstKey(nTimeBegin);
+    pwalletMain->RescanFromTime(nTimeBegin - TIMESTAMP_WINDOW, false /* update */);
     pwalletMain->MarkDirty();
 
     if (!fGood)
@@ -1027,17 +1013,12 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
         }
     }
 
-    if (fRescan && fRunScan && requests.size() && nLowestTimestamp <= chainActive.Tip()->GetBlockTimeMax()) {
-        CBlockIndex* pindex = nLowestTimestamp > minimumTimestamp ? chainActive.FindEarliestAtLeast(std::max<int64_t>(nLowestTimestamp - TIMESTAMP_WINDOW, 0))
-                                                                  : chainActive.Genesis();
-        CBlockIndex* scanFailed = nullptr;
-        if (pindex) {
-            scanFailed = pwalletMain->ScanForWalletTransactions(pindex, nullptr, true);
-            pwalletMain->ReacceptWalletTransactions();
-        }
+    if (fRescan && fRunScan && requests.size()) {
+        int64_t scannedTime = pwalletMain->RescanFromTime(nLowestTimestamp - TIMESTAMP_WINDOW, true /* update */);
+        pwalletMain->ReacceptWalletTransactions();
 
-        if (scanFailed) {
-            const std::vector<UniValue>& results = response.getValues();
+        if (scannedTime > nLowestTimestamp - TIMESTAMP_WINDOW) {
+            std::vector<UniValue> results = response.getValues();
             response.clear();
             response.setArray();
             size_t i = 0;
@@ -1046,7 +1027,7 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
                 // range, or if the import result already has an error set, let
                 // the result stand unmodified. Otherwise replace the result
                 // with an error message.
-                if (GetImportTimestamp(request, now) - TIMESTAMP_WINDOW >= scanFailed->GetBlockTimeMax() || results.at(i).exists("error")) {
+                if (scannedTime <= GetImportTimestamp(request, now) - TIMESTAMP_WINDOW || results.at(i).exists("error")) {
                     response.push_back(results.at(i));
                 } else {
                     UniValue result = UniValue(UniValue::VOBJ);
@@ -1059,7 +1040,7 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
                                                           "caused by pruning or data corruption (see pivxd log for details) and could "
                                                           "be dealt with by downloading and rescanning the relevant blocks (see -reindex "
                                                           "and -rescan options).",
-                                                          GetImportTimestamp(request, now), scanFailed->GetBlockTimeMax(), TIMESTAMP_WINDOW)));
+                                                          GetImportTimestamp(request, now), scannedTime - 1, TIMESTAMP_WINDOW)));
                     response.push_back(std::move(result));
                 }
                 ++i;

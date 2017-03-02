@@ -85,6 +85,7 @@ static const unsigned int DEFAULT_CREATEWALLETBACKUPS = 10;
 static const bool DEFAULT_DISABLE_WALLET = false;
 
 extern const char * DEFAULT_WALLET_DAT;
+static const int64_t TIMESTAMP_MIN = 0;
 
 class CAddressBookIterator;
 class CCoinControl;
@@ -906,6 +907,7 @@ public:
     bool LoadKeyMetadata(const CPubKey& pubkey, const CKeyMetadata& metadata);
 
     bool LoadMinVersion(int nVersion);
+    void UpdateTimeFirstKey(int64_t nCreateTime);
 
     //! Adds an encrypted key to the store, and saves it to disk.
     bool AddCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret) override;
@@ -958,6 +960,7 @@ public:
     bool Upgrade(std::string& error, const int& prevVersion);
     bool ActivateSaplingWallet(bool memOnly = false);
 
+    int64_t RescanFromTime(int64_t startTime, bool update);
     CBlockIndex* ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop = nullptr, bool fUpdate = false, bool fromStartup = false);
     void TransactionRemovedFromMempool(const CTransactionRef &ptx) override;
     void ReacceptWalletTransactions(bool fFirstLoad = false);
