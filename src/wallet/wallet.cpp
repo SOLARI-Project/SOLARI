@@ -2080,39 +2080,43 @@ bool CWallet::Verify()
         return true;
     }
 
-    uiInterface.InitMessage(_("Verifying wallet..."));
-    std::string walletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
-    std::string strDataDir = GetDataDir().string();
+    gArgs.SoftSetArg("-wallet", DEFAULT_WALLET_DAT);
+    uiInterface.InitMessage(_("Verifying wallet(s)..."));
 
-    std::string strError;
-    if (!CWalletDB::VerifyEnvironment(walletFile, GetDataDir().string(), strError))
-        return UIError(strError);
+    for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
+        if (fs::path(walletFile).filename() != walletFile) {
+            return UIError(_("-wallet parameter must only specify a filename (not a path)"));
+        } else if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
+            return UIError(_("Invalid characters in -wallet filename"));
+        }
 
-    if (gArgs.GetBoolArg("-salvagewallet", false)) {
-        // Recover readable keypairs:
-        CWallet dummyWallet;
-        // Even if we don't use this lock in this function, we want to preserve
-        // lock order in LoadToWallet if query of chain state is needed to know
-        // tx status. If lock can't be taken, tx confirmation status may be not
-        // reliable.
-        LOCK(cs_main);
-        if (!CWalletDB::Recover(walletFile, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter))
-            return false;
+        std::string strError;
+        if (!CWalletDB::VerifyEnvironment(walletFile, GetDataDir().string(), strError))
+            return UIError(strError);
+
+        if (gArgs.GetBoolArg("-salvagewallet", false)) {
+            // Recover readable keypairs:
+            CWallet dummyWallet;
+            // Even if we don't use this lock in this function, we want to preserve
+            // lock order in LoadToWallet if query of chain state is needed to know
+            // tx status. If lock can't be taken, tx confirmation status may be not
+            // reliable.
+            LOCK(cs_main);
+            if (!CWalletDB::Recover(walletFile, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter))
+                return false;
+        }
+
+        std::string strWarning;
+        bool dbV = CWalletDB::VerifyDatabaseFile(walletFile, GetDataDir().string(), strWarning, strError);
+        if (!strWarning.empty())
+            UIWarning(strWarning);
+        if (!dbV) {
+            return UIError(strError);
+        }
     }
 
-    std::string strWarning;
-    bool dbV = CWalletDB::VerifyDatabaseFile(walletFile, GetDataDir().string(), strWarning, strError);
-    if (!strWarning.empty()) {
-        UIWarning(strWarning);
-    }
-    if (!dbV) {
-        UIError(strError);
-        return false;
-    }
     return true;
 }
-
-
 
 void CWallet::ResendWalletTransactions(CConnman* connman)
 {
@@ -4348,15 +4352,7 @@ bool CWallet::InitLoadWallet()
         return true;
     }
 
-    gArgs.SoftSetArg("-wallet", DEFAULT_WALLET_DAT);
-
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
-        if (fs::path(walletFile).filename() != walletFile) {
-            return UIError(_("-wallet parameter must only specify a filename (not a path)"));
-        } else if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
-            return UIError(_("Invalid characters in -wallet filename"));
-        }
-
         // automatic backups
         std::string strWarning, strError;
         if(!AutoBackupWallet(walletFile, strWarning, strError)) {
