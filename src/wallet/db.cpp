@@ -428,6 +428,16 @@ void CDB::Flush()
     env->dbenv->txn_checkpoint(nMinutes ? gArgs.GetArg("-dblogsize", 100) * 1024 : 0, nMinutes, 0);
 }
 
+void CWalletDBWrapper::IncrementUpdateCounter()
+{
+    ++nUpdateCounter;
+}
+
+unsigned int CWalletDBWrapper::GetUpdateCounter()
+{
+    return nUpdateCounter.load();
+}
+
 void CDB::Close()
 {
     if (!pdb)
