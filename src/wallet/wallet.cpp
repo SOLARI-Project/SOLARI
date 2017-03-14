@@ -4552,6 +4552,7 @@ void CWallet::SetNull()
     nNextResend = 0;
     nLastResend = 0;
     nTimeFirstKey = 0;
+    nRelockTime = 0;
     fAbortRescan = false;
     fScanningWallet = false;
     fWalletUnlockStaking = false;
