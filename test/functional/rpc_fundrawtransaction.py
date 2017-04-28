@@ -76,6 +76,12 @@ class RawTransactionsTest(PivxTestFramework):
         self.nodes[0].generate(121)
         self.sync_all()
 
+        # ensure that setting changePosition in fundraw with an exact match is handled properly
+        out_no_change = 250.0 - 0.0000374     # one coinbase input minus min fee
+        rawmatch = self.nodes[0].createrawtransaction([], {self.nodes[2].getnewaddress(): DecimalAmt(out_no_change)})
+        rawmatch = self.nodes[0].fundrawtransaction(rawmatch, {"changePosition": 1})
+        assert_equal(rawmatch["changepos"], -1)
+
         watchonly_address = self.nodes[0].getnewaddress()
         watchonly_pubkey = self.nodes[0].validateaddress(watchonly_address)["pubkey"]
         self.watchonly_amount = DecimalAmt(200.0)
