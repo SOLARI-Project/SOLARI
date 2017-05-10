@@ -35,6 +35,11 @@ void SetMockTime(int64_t nMockTimeIn)
     nMockTime.store(nMockTimeIn, std::memory_order_relaxed);
 }
 
+int64_t GetMockTime()
+{
+    return nMockTime.load(std::memory_order_relaxed);
+}
+
 int64_t GetTimeMillis()
 {
     int64_t now = (boost::posix_time::microsec_clock::universal_time() -
