@@ -3732,8 +3732,8 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
 
     {
         LOCK(cs_wallet);
-        for (std::pair<uint256, CWalletTx> walletEntry : mapWallet) {
-            CWalletTx* pcoin = &walletEntry.second;
+        for (const auto& walletEntry : mapWallet) {
+            const CWalletTx* pcoin = &walletEntry.second;
 
             if (!IsFinalTx(pcoin->tx, m_last_block_processed_height) || !pcoin->IsTrusted())
                 continue;
@@ -3774,8 +3774,8 @@ std::set<std::set<CTxDestination> > CWallet::GetAddressGroupings()
     std::set<std::set<CTxDestination> > groupings;
     std::set<CTxDestination> grouping;
 
-    for (std::pair<uint256, CWalletTx> walletEntry : mapWallet) {
-        CWalletTx* pcoin = &walletEntry.second;
+    for (const auto& walletEntry : mapWallet) {
+        const CWalletTx* pcoin = &walletEntry.second;
 
         if (pcoin->tx->vin.size() > 0) {
             bool any_mine = false;
