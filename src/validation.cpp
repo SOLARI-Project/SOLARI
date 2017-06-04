@@ -3948,8 +3948,8 @@ void static CheckBlockIndex()
 
     // Build forward-pointing map of the entire block tree.
     std::multimap<CBlockIndex*, CBlockIndex*> forward;
-    for (BlockMap::iterator it = mapBlockIndex.begin(); it != mapBlockIndex.end(); it++) {
-        forward.emplace(it->second->pprev, it->second);
+    for (auto& entry : mapBlockIndex) {
+        forward.emplace(entry.second->pprev, entry.second);
     }
 
     assert(forward.size() == mapBlockIndex.size());
