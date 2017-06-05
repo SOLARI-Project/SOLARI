@@ -2097,12 +2097,13 @@ bool CWallet::Verify()
         if (gArgs.GetBoolArg("-salvagewallet", false)) {
             // Recover readable keypairs:
             CWallet dummyWallet;
+            std::string backup_filename;
             // Even if we don't use this lock in this function, we want to preserve
             // lock order in LoadToWallet if query of chain state is needed to know
             // tx status. If lock can't be taken, tx confirmation status may be not
             // reliable.
             LOCK(cs_main);
-            if (!CWalletDB::Recover(walletFile, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter))
+            if (!CWalletDB::Recover(walletFile, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter, backup_filename))
                 return false;
         }
 
