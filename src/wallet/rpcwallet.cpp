@@ -4010,6 +4010,7 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
 
             "\nResult:\n"
             "{\n"
+            "  \"walletname\": xxxxx,                     (string) the wallet name\n"
             "  \"walletversion\": xxxxx,                  (numeric) the wallet version\n"
             "  \"balance\": xxxxxxx,                      (numeric) the total PIV balance of the wallet (cold balance excluded)\n"
             "  \"delegated_balance\": xxxxx,              (numeric) the PIV balance held in P2CS (cold staking) contracts\n"
@@ -4041,6 +4042,7 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     LOCK2(cs_main, pwallet->cs_wallet);
 
     UniValue obj(UniValue::VOBJ);
+    obj.pushKV("walletname", pwallet->GetName());
     obj.pushKV("walletversion", pwallet->GetVersion());
     obj.pushKV("balance", ValueFromAmount(pwallet->GetAvailableBalance()));
     obj.pushKV("delegated_balance", ValueFromAmount(pwallet->GetDelegatedBalance()));
