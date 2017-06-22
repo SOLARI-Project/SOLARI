@@ -406,7 +406,7 @@ UniValue importwallet(const JSONRPCRequest& request)
     file.close();
     pwalletMain->ShowProgress("", 100); // hide progress dialog in GUI
     pwalletMain->UpdateTimeFirstKey(nTimeBegin);
-    pwalletMain->RescanFromTime(nTimeBegin - TIMESTAMP_WINDOW, false /* update */);
+    pwalletMain->RescanFromTime(nTimeBegin, false /* update */);
     pwalletMain->MarkDirty();
 
     if (!fGood)
@@ -1014,10 +1014,10 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
     }
 
     if (fRescan && fRunScan && requests.size()) {
-        int64_t scannedTime = pwalletMain->RescanFromTime(nLowestTimestamp - TIMESTAMP_WINDOW, true /* update */);
+        int64_t scannedTime = pwalletMain->RescanFromTime(nLowestTimestamp, true /* update */);
         pwalletMain->ReacceptWalletTransactions();
 
-        if (scannedTime > nLowestTimestamp - TIMESTAMP_WINDOW) {
+        if (scannedTime > nLowestTimestamp) {
             std::vector<UniValue> results = response.getValues();
             response.clear();
             response.setArray();
@@ -1027,7 +1027,7 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
                 // range, or if the import result already has an error set, let
                 // the result stand unmodified. Otherwise replace the result
                 // with an error message.
-                if (scannedTime <= GetImportTimestamp(request, now) - TIMESTAMP_WINDOW || results.at(i).exists("error")) {
+                if (scannedTime <= GetImportTimestamp(request, now) || results.at(i).exists("error")) {
                     response.push_back(results.at(i));
                 } else {
                     UniValue result = UniValue(UniValue::VOBJ);
@@ -1037,10 +1037,10 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
                                                           "block from time %d, which is after or within %d seconds of key creation, and "
                                                           "could contain transactions pertaining to the key. As a result, transactions "
                                                           "and coins using this key may not appear in the wallet. This error could be "
-                                                          "caused by pruning or data corruption (see pivxd log for details) and could "
+                                                          "caused by pruning or data corruption (see bitcoind log for details) and could "
                                                           "be dealt with by downloading and rescanning the relevant blocks (see -reindex "
                                                           "and -rescan options).",
-                                                          GetImportTimestamp(request, now), scannedTime - 1, TIMESTAMP_WINDOW)));
+                                                          GetImportTimestamp(request, now), scannedTime - TIMESTAMP_WINDOW - 1, TIMESTAMP_WINDOW)));
                     response.push_back(std::move(result));
                 }
                 ++i;
