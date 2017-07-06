@@ -427,7 +427,7 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<con
 
 } // anon namespace
 
-void PeerLogicValidation::InitializeNode(CNode *pnode, CConnman* connman) {
+void PeerLogicValidation::InitializeNode(CNode *pnode) {
     CAddress addr = pnode->addr;
     std::string addrName = pnode->GetAddrName();
     NodeId nodeid = pnode->GetId();
@@ -1950,7 +1950,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
 }
 
 
-bool PeerLogicValidation::ProcessMessages(CNode* pfrom, CConnman* connman, std::atomic<bool>& interruptMsgProc)
+bool PeerLogicValidation::ProcessMessages(CNode* pfrom, std::atomic<bool>& interruptMsgProc)
 {
     // Message format
     //  (4) message start
@@ -2066,7 +2066,7 @@ public:
     }
 };
 
-bool PeerLogicValidation::SendMessages(CNode* pto, CConnman* connman, std::atomic<bool>& interruptMsgProc)
+bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptMsgProc)
 {
     {
         // Don't send anything until the version handshake is complete
