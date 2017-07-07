@@ -45,15 +45,7 @@ public:
         nCreateTime = nCreateTimeIn;
     }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(nVersion);
-        READWRITE(nCreateTime);
-        READWRITE(nBanUntil);
-        READWRITE(banReason);
-    }
+    SERIALIZE_METHODS(CBanEntry, obj) { READWRITE(obj.nVersion, obj.nCreateTime, obj.nBanUntil, obj.banReason); }
 
     void SetNull()
     {
