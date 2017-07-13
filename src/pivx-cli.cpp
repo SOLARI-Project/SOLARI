@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2015 The Bitcoin developers
+// Copyright (c) 2009-2021 The Bitcoin developers
 // Copyright (c) 2009-2015 The Dash developers
-// Copyright (c) 2015-2019 The PIVX developers
+// Copyright (c) 2015-2021 The PIVX developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -42,7 +42,8 @@ std::string HelpMessageCli()
     strUsage += HelpMessageOpt("-rpcwait", _("Wait for RPC server to start"));
     strUsage += HelpMessageOpt("-rpcuser=<user>", _("Username for JSON-RPC connections"));
     strUsage += HelpMessageOpt("-rpcpassword=<pw>", _("Password for JSON-RPC connections"));
-    strUsage += HelpMessageOpt("-rpcclienttimeout=<n>", strprintf(_("Timeout during HTTP requests (default: %d)"), DEFAULT_HTTP_CLIENT_TIMEOUT));
+    strUsage += HelpMessageOpt("-rpcclienttimeout=<n>", strprintf(_("Timeout in seconds during HTTP requests, or 0 for no timeout. (default: %d)"), DEFAULT_HTTP_CLIENT_TIMEOUT));
+    strUsage += HelpMessageOpt("-usewallet=<walletname>", _("Send RPC for non-default wallet on RPC server (argument is wallet filename in pivxd directory, required if pivxd/-Qt runs with multiple wallets)"));
 
     return strUsage;
 }
@@ -190,7 +191,19 @@ UniValue CallRPC(const std::string& strMethod, const UniValue& params)
     assert(output_buffer);
     evbuffer_add(output_buffer, strRequest.data(), strRequest.size());
 
-    int r = evhttp_make_request(evcon, req, EVHTTP_REQ_POST, "/");
+    // check if we should use a special wallet endpoint
+    std::string endpoint = "/";
+    std::string walletName = gArgs.GetArg("-usewallet", "");
+    if (!walletName.empty()) {
+        char* encodedURI = evhttp_uriencode(walletName.c_str(), walletName.size(), false);
+        if (encodedURI) {
+            endpoint = "/wallet/"+ std::string(encodedURI);
+            free(encodedURI);
+        } else {
+            throw CConnectionFailed("uri-encode failed");
+        }
+    }
+    int r = evhttp_make_request(evcon, req, EVHTTP_REQ_POST, endpoint.c_str());
     if (r != 0) {
         evhttp_connection_free(evcon);
         event_base_free(base);
