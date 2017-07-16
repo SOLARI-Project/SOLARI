@@ -1736,7 +1736,7 @@ CAmount CWalletTx::GetLockedCredit() const
     return nCredit;
 }
 
-CAmount CWalletTx::GetImmatureWatchOnlyCredit(const bool& fUseCache) const
+CAmount CWalletTx::GetImmatureWatchOnlyCredit(const bool fUseCache) const
 {
     if (IsInMainChainImmature()) {
         return GetCachableAmount(IMMATURE_CREDIT, ISMINE_WATCH_ONLY, !fUseCache);
@@ -1745,7 +1745,7 @@ CAmount CWalletTx::GetImmatureWatchOnlyCredit(const bool& fUseCache) const
     return 0;
 }
 
-CAmount CWalletTx::GetAvailableWatchOnlyCredit(const bool& fUseCache) const
+CAmount CWalletTx::GetAvailableWatchOnlyCredit(const bool fUseCache) const
 {
     return GetAvailableCredit(fUseCache, ISMINE_WATCH_ONLY);
 }
@@ -1820,7 +1820,7 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
     }
 }
 
-bool CWallet::Upgrade(std::string& error, const int& prevVersion)
+bool CWallet::Upgrade(std::string& error, const int prevVersion)
 {
     LOCK2(cs_wallet, cs_KeyStore);
 
@@ -3611,7 +3611,7 @@ void CWallet::KeepKey(int64_t nIndex)
     m_spk_man->KeepDestination(nIndex);
 }
 
-void CWallet::ReturnKey(int64_t nIndex, const bool& internal, const bool& staking)
+void CWallet::ReturnKey(int64_t nIndex, const bool internal, const bool staking)
 {
     // Return to key pool
     CTxDestination address; // This is not needed for now.
