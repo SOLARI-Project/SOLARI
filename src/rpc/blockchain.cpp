@@ -24,6 +24,7 @@
 #include "hash.h"
 #include "validationinterface.h"
 #include "wallet/wallet.h"
+#include "warnings.h"
 
 #include <stdint.h>
 #include <univalue.h>
@@ -1010,6 +1011,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             "        \"info\": \"xxxx\",        (string) additional information about upgrade\n"
             "     }, ...\n"
             "}\n"
+            "  \"warnings\" : \"...\",         (string) any network and blockchain errors.\n"
 
             "\nExamples:\n" +
             HelpExampleCli("getblockchaininfo", "") + HelpExampleRpc("getblockchaininfo", ""));
@@ -1039,7 +1041,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
         NetworkUpgradeDescPushBack(upgrades, consensusParams, Consensus::UpgradeIndex(i), nTipHeight);
     }
     obj.pushKV("upgrades", upgrades);
-
+    obj.pushKV("warnings", GetWarnings("statusbar"));
     return obj;
 }
 
