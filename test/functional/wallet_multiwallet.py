@@ -101,15 +101,10 @@ class MultiWalletTest(PivxTestFramework):
         w1.generate(1)
 
         # accessing invalid wallet fails
-        assert_raises_rpc_error(-8, "Requested wallet does not exist or is not loaded", wallet_bad.getwalletinfo)
+        assert_raises_rpc_error(-18, "Requested wallet does not exist or is not loaded", wallet_bad.getwalletinfo)
 
         # accessing wallet RPC without using wallet endpoint fails
-        assert_raises_rpc_error(-32601, "Method not found", self.nodes[0].getwalletinfo)
-        # !TODO: backport bitcoin#11970
-        #assert_raises_rpc_error(-19, "Wallet file not specified", node.getwalletinfo)
-
-        # !TODO: backport bitcoin#11473
-        # to un-comment wallet-name checks
+        assert_raises_rpc_error(-19, "Wallet file not specified", node.getwalletinfo)
 
         # check w1 wallet balance
         w1_info = w1.getwalletinfo()

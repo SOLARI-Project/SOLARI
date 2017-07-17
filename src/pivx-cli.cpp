@@ -276,6 +276,18 @@ int CommandLineRPC(int argc, char* argv[])
                         throw CConnectionFailed("server in warmup");
                     strPrint = "error: " + error.write();
                     nRet = abs(code);
+                    if (error.isObject()) {
+                        UniValue errCode = find_value(error, "code");
+                        UniValue errMsg  = find_value(error, "message");
+                        strPrint = errCode.isNull() ? "" : "error code: "+errCode.getValStr()+"\n";
+
+                        if (errMsg.isStr())
+                            strPrint += "error message:\n"+errMsg.get_str();
+
+                        if (errCode.isNum() && errCode.get_int() == RPC_WALLET_NOT_SPECIFIED) {
+                            strPrint += "\nTry adding \"-rpcwallet=<filename>\" option to pivx-cli command line.";
+                        }
+                    }
                 } else {
                     // Result
                     if (result.isNull())
