@@ -2134,6 +2134,10 @@ bool CWallet::Verify()
 
         fs::path wallet_path = fs::absolute(walletFile, GetDataDir());
 
+        if (fs::exists(wallet_path) && (!fs::is_regular_file(wallet_path) || fs::is_symlink(wallet_path))) {
+            return UIError(_("Invalid -wallet file"));
+        }
+
         if (!wallet_paths.insert(wallet_path).second) {
             return UIError(strprintf(_("Duplicate %s filename"), "-wallet"));
         }
