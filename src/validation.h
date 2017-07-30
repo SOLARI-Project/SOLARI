@@ -285,8 +285,7 @@ Optional<int> GetUTXOHeight(const COutPoint& outpoint);
 class CScriptCheck
 {
 private:
-    CScript scriptPubKey;
-    CAmount amount;
+    CTxOut out;
     const CTransaction* ptxTo;
     unsigned int nIn;
     unsigned int nFlags;
@@ -295,10 +294,9 @@ private:
     PrecomputedTransactionData *precomTxData;
 
 public:
-    CScriptCheck() : amount(0), ptxTo(0), nIn(0), nFlags(0), cacheStore(false), error(SCRIPT_ERR_UNKNOWN_ERROR), precomTxData(nullptr) {}
-    CScriptCheck(const CScript& scriptPubKeyIn, const CAmount amountIn, const CTransaction& txToIn, unsigned int nInIn, unsigned int nFlagsIn, bool cacheIn, PrecomputedTransactionData* cachedHashesIn) :
-        scriptPubKey(scriptPubKeyIn),
-        amount(amountIn),
+    CScriptCheck() : ptxTo(0), nIn(0), nFlags(0), cacheStore(false), error(SCRIPT_ERR_UNKNOWN_ERROR), precomTxData(nullptr) {}
+    CScriptCheck(const CTxOut& outIn, const CTransaction& txToIn, unsigned int nInIn, unsigned int nFlagsIn, bool cacheIn, PrecomputedTransactionData* cachedHashesIn) :
+        out(outIn),
         ptxTo(&txToIn),
         nIn(nInIn),
         nFlags(nFlagsIn),
@@ -310,9 +308,8 @@ public:
 
     void swap(CScriptCheck& check)
     {
-        scriptPubKey.swap(check.scriptPubKey);
         std::swap(ptxTo, check.ptxTo);
-        std::swap(amount, check.amount);
+        std::swap(out, check.out);
         std::swap(nIn, check.nIn);
         std::swap(nFlags, check.nFlags);
         std::swap(cacheStore, check.cacheStore);
