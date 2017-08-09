@@ -355,7 +355,7 @@ private:
     /** Services this instance cares about */
     ServiceFlags nRelevantServices{NODE_NONE};
 
-    CSemaphore *semOutbound{nullptr};
+    std::unique_ptr<CSemaphore> semOutbound;
     int nMaxConnections{0};
     int nMaxOutbound{0};
     int nMaxFeeler{0};
