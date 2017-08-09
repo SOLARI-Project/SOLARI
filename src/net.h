@@ -570,7 +570,7 @@ public:
     bool fRelayTxes; //protected by cs_filter
     CSemaphoreGrant grantOutbound;
     RecursiveMutex cs_filter;
-    CBloomFilter* pfilter;
+    std::unique_ptr<CBloomFilter> pfilter;
     std::atomic<int> nRefCount;
     const NodeId id;
 
