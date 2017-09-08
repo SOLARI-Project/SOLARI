@@ -86,9 +86,8 @@ UniValue importprivkey(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
         throw std::runtime_error(
             "importprivkey \"privkey\" ( \"label\" rescan is_staking_address )\n"
-            "\nAdds a private key (as returned by dumpprivkey) to your wallet.\n" +
+            "\nAdds a private key (as returned by dumpprivkey) to your wallet. Requires a new wallet backup.\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
-
             "\nArguments:\n"
             "1. \"privkey\"          (string, required) The private key (see dumpprivkey)\n"
             "2. \"label\"            (string, optional, default=\"\") An optional label\n"
@@ -215,8 +214,7 @@ UniValue importaddress(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
         throw std::runtime_error(
             "importaddress \"script\" ( \"label\" rescan )\n"
-            "\nAdds a script (in hex), or address, that can be watched as if it were in your wallet but cannot be used to spend.\n"
-
+            "\nAdds a script (in hex), or address, that can be watched as if it were in your wallet but cannot be used to spend. Requires a new wallet backup.\n"
             "\nArguments:\n"
             "1. \"script\"           (string, required) hex-encoded script (or address)\n"
             "2. \"label\"            (string, optional, default=\"\") An optional label\n"
@@ -282,7 +280,7 @@ UniValue importpubkey(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
         throw std::runtime_error(
             "importpubkey \"pubkey\" ( \"label\" rescan )\n"
-            "\nAdds a public key (in hex) that can be watched as if it were in your wallet but cannot be used to spend.\n"
+            "\nAdds a public key (in hex) that can be watched as if it were in your wallet but cannot be used to spend. Requires a new wallet backup.\n"
             "\nArguments:\n"
             "1. \"pubkey\"           (string, required) The hex-encoded public key\n"
             "2. \"label\"            (string, optional, default=\"\") An optional label\n"
@@ -339,9 +337,8 @@ UniValue importwallet(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "importwallet \"filename\"\n"
-            "\nImports keys from a wallet dump file (see dumpwallet).\n" +
+            "\nImports keys from a wallet dump file (see dumpwallet). Requires a new wallet backup.\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
-
             "\nArguments:\n"
             "1. \"filename\"    (string, required) The wallet file\n"
 
@@ -506,9 +503,9 @@ UniValue dumpwallet(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "dumpwallet \"filename\"\n"
-            "\nDumps all wallet keys in a human-readable format to a server-side file. This does not allow overwriting existing files.\n" +
+            "\nDumps all wallet keys in a human-readable format to a server-side file. This does not allow overwriting existing files.\n"
+            "Note that if your wallet contains keys which are not derived from your HD seed (e.g. imported keys), these are not covered by only backing up the seed itself, and must be backed up too (e.g. ensure you back up the whole dumpfile).\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
-
             "\nArguments:\n"
             "1. \"filename\"    (string, required) The filename\n"
 
@@ -967,7 +964,7 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
     if (mainRequest.fHelp || mainRequest.params.size() < 1 || mainRequest.params.size() > 2)
         throw std::runtime_error(
             "importmulti \"requests\" ( \"options\" )\n"
-            "\nImport addresses/scripts (with private or public keys, redeem script (P2SH)), rescanning all addresses in one-shot-only (rescan can be disabled via options).\n" +
+            "\nImport addresses/scripts (with private or public keys, redeem script (P2SH)), rescanning all addresses in one-shot-only (rescan can be disabled via options). Requires a new wallet backup.\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"

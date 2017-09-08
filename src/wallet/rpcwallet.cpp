@@ -2408,7 +2408,7 @@ UniValue addmultisigaddress(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
         throw std::runtime_error(
             "addmultisigaddress nrequired [\"key\",...] ( \"label\" )\n"
-            "\nAdd a nrequired-to-sign multisignature address to the wallet.\n"
+            "\nAdd a nrequired-to-sign multisignature address to the wallet. Requires a new wallet backup.\n"
             "Each key is a PIVX address or hex-encoded public key.\n"
             "If 'label' is specified, assign address to that label.\n"
 
