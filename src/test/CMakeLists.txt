@@ -138,6 +138,7 @@ set(BITCOIN_TESTS
         ${CMAKE_CURRENT_SOURCE_DIR}/mnpayments_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/mempool_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/merkle_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/merkleblock_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/miner_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/multisig_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/net_tests.cpp

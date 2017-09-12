@@ -22,6 +22,7 @@
 #include "pow.h"
 #include "script/sigcache.h"
 #include "sporkdb.h"
+#include "streams.h"
 #include "txmempool.h"
 #include "validation.h"
 
