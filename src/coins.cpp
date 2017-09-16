@@ -244,8 +244,12 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap& mapCoins,
                                  CAnchorsSaplingMap& mapSaplingAnchors,
                                  CNullifiersMap& mapSaplingNullifiers)
 {
-    for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end();) {
-        if (it->second.flags & CCoinsCacheEntry::DIRTY) { // Ignore non-dirty entries (optimization).
+    for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end(); it = mapCoins.erase(it)) {
+        // Ignore non-dirty entries (optimization).
+        if (!(it->second.flags & CCoinsCacheEntry::DIRTY)) {
+            continue;
+        }
+        // indent fixed in the following commit
             CCoinsMap::iterator itUs = cacheCoins.find(it->first);
             if (itUs == cacheCoins.end()) {
                 // The parent cache does not have an entry, while the child does
@@ -260,16 +264,18 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap& mapCoins,
                     // We can mark it FRESH in the parent if it was FRESH in the child
                     // Otherwise it might have just been flushed from the parent's cache
                     // and already exist in the grandparent
-                    if (it->second.flags & CCoinsCacheEntry::FRESH)
+                    if (it->second.flags & CCoinsCacheEntry::FRESH) {
                         entry.flags |= CCoinsCacheEntry::FRESH;
+                    }
                 }
             } else {
                 // Assert that the child cache entry was not marked FRESH if the
                 // parent cache entry has unspent outputs. If this ever happens,
                 // it means the FRESH flag was misapplied and there is a logic
                 // error in the calling code.
-                if ((it->second.flags & CCoinsCacheEntry::FRESH) && !itUs->second.coin.IsSpent())
+                if ((it->second.flags & CCoinsCacheEntry::FRESH) && !itUs->second.coin.IsSpent()) {
                     throw std::logic_error("FRESH flag misapplied to cache entry for base transaction with spendable outputs");
+                }
 
                 // Found the entry in the parent cache
                 if ((itUs->second.flags & CCoinsCacheEntry::FRESH) && it->second.coin.IsSpent()) {
@@ -291,9 +297,6 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap& mapCoins,
                     // grandparent.
                 }
             }
-        }
-        CCoinsMap::iterator itOld = it++;
-        mapCoins.erase(itOld);
     }
 
     // Sapling
