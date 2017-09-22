@@ -285,7 +285,7 @@ Optional<int> GetUTXOHeight(const COutPoint& outpoint);
 class CScriptCheck
 {
 private:
-    CTxOut out;
+    CTxOut m_tx_out;
     const CTransaction* ptxTo;
     unsigned int nIn;
     unsigned int nFlags;
@@ -296,7 +296,7 @@ private:
 public:
     CScriptCheck() : ptxTo(0), nIn(0), nFlags(0), cacheStore(false), error(SCRIPT_ERR_UNKNOWN_ERROR), precomTxData(nullptr) {}
     CScriptCheck(const CTxOut& outIn, const CTransaction& txToIn, unsigned int nInIn, unsigned int nFlagsIn, bool cacheIn, PrecomputedTransactionData* cachedHashesIn) :
-        out(outIn),
+        m_tx_out(outIn),
         ptxTo(&txToIn),
         nIn(nInIn),
         nFlags(nFlagsIn),
@@ -309,7 +309,7 @@ public:
     void swap(CScriptCheck& check)
     {
         std::swap(ptxTo, check.ptxTo);
-        std::swap(out, check.out);
+        std::swap(m_tx_out, check.m_tx_out);
         std::swap(nIn, check.nIn);
         std::swap(nFlags, check.nFlags);
         std::swap(cacheStore, check.cacheStore);

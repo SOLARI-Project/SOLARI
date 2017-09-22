@@ -1071,7 +1071,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache &inputs, int nHeight, b
 bool CScriptCheck::operator()()
 {
     const CScript& scriptSig = ptxTo->vin[nIn].scriptSig;
-    return VerifyScript(scriptSig, out.scriptPubKey, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, out.nValue, cacheStore, *precomTxData), ptxTo->GetRequiredSigVersion(), &error);
+    return VerifyScript(scriptSig, m_tx_out.scriptPubKey, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *precomTxData), ptxTo->GetRequiredSigVersion(), &error);
 }
 
 int GetSpendHeight(const CCoinsViewCache& inputs)
