@@ -372,7 +372,8 @@ UniValue getmininginfo(const JSONRPCRequest& request)
             "  \"pooledtx\": n              (numeric) The size of the mem pool\n"
             "  \"testnet\": true|false      (boolean) If using testnet or not\n"
             "  \"chain\": \"xxxx\",         (string) current network name (main, test, regtest)\n"
-            "  \"errors\": \"...\"            (string) (string) any network and blockchain warnings\n"
+            "  \"warnings\": \"...\"        (string) any network and blockchain warnings\n"
+            "  \"errors\": \"...\"          (string) DEPRECATED. Same as warnings. Only shown when bitcoind is started with -deprecatedrpc=getmininginfo\n"
             "}\n"
 
             "\nExamples:\n" +
@@ -391,6 +392,11 @@ UniValue getmininginfo(const JSONRPCRequest& request)
     obj.pushKV("testnet", Params().IsTestnet());
     obj.pushKV("chain", Params().NetworkIDString());
     obj.pushKV("errors", GetWarnings("statusbar"));
+    if (IsDeprecatedRPCEnabled("getmininginfo")) {
+        obj.pushKV("errors", GetWarnings("statusbar"));
+    } else {
+        obj.pushKV("warnings", GetWarnings("statusbar"));
+    }
 #ifdef ENABLE_WALLET
     obj.pushKV("generate", getgenerate(request));
     obj.pushKV("hashespersec", gethashespersec(request));
