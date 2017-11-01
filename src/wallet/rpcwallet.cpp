@@ -3375,7 +3375,7 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (pwallet->IsCrypted() && (request.fHelp || request.params.size() < 2 || request.params.size() > 3))
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3) {
         throw std::runtime_error(
             "walletpassphrase \"passphrase\" timeout ( staking_only )\n"
             "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
@@ -3399,6 +3399,7 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
             HelpExampleCli("walletlock", "") +
             "\nAs json rpc call\n" +
             HelpExampleRpc("walletpassphrase", "\"my pass phrase\", 60"));
+    }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -3454,7 +3455,7 @@ UniValue walletpassphrasechange(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (pwallet->IsCrypted() && (request.fHelp || request.params.size() != 2))
+    if (request.fHelp || request.params.size() != 2) {
         throw std::runtime_error(
             "walletpassphrasechange \"oldpassphrase\" \"newpassphrase\"\n"
             "\nChanges the wallet passphrase from 'oldpassphrase' to 'newpassphrase'.\n"
@@ -3465,6 +3466,7 @@ UniValue walletpassphrasechange(const JSONRPCRequest& request)
 
             "\nExamples:\n" +
             HelpExampleCli("walletpassphrasechange", "\"old one\" \"new one\"") + HelpExampleRpc("walletpassphrasechange", "\"old one\", \"new one\""));
+    }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -3502,7 +3504,7 @@ UniValue walletlock(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (pwallet->IsCrypted() && (request.fHelp || request.params.size() != 0))
+    if (request.fHelp || !request.params.empty()) {
         throw std::runtime_error(
             "walletlock\n"
             "\nRemoves the wallet encryption key from memory, locking the wallet.\n"
@@ -3518,6 +3520,7 @@ UniValue walletlock(const JSONRPCRequest& request)
             HelpExampleCli("walletlock", "") +
             "\nAs json rpc call\n" +
             HelpExampleRpc("walletlock", ""));
+    }
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -3544,7 +3547,7 @@ UniValue encryptwallet(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (!pwallet->IsCrypted() && (request.fHelp || request.params.size() != 1))
+    if (request.fHelp || request.params.size() != 1) {
         throw std::runtime_error(
             "encryptwallet \"passphrase\"\n"
             "\nEncrypts the wallet with 'passphrase'. This is for first time encryption.\n"
@@ -3568,6 +3571,7 @@ UniValue encryptwallet(const JSONRPCRequest& request)
             HelpExampleCli("walletlock", "") +
             "\nAs a json rpc call\n" +
             HelpExampleRpc("encryptwallet", "\"my pass phrase\""));
+    }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
