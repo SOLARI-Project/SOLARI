@@ -1119,13 +1119,7 @@ bool AppInitParameterInteraction()
 
     setvbuf(stdout, NULL, _IOLBF, 0); /// ***TODO*** do we still need this after -printtoconsole is gone?
 
-    RegisterAllCoreRPCCommands(tableRPC);
-
-    // Staking needs a CWallet instance, so make sure wallet is enabled
-#ifdef ENABLE_WALLET
-    // Register wallet RPC commands
-    RegisterWalletRPCCommands(tableRPC);
-#else
+#ifndef ENABLE_WALLET
     if (gArgs.SoftSetBoolArg("-staking", false))
         LogPrintf("AppInit2 : parameter interaction: wallet functionality not enabled -> setting -staking=0\n");
 #endif
@@ -1281,6 +1275,14 @@ bool AppInitMain()
 
     // Initialize Sapling circuit parameters
     LoadSaplingParams();
+
+    /* Register RPC commands regardless of -server setting so they will be
+     * available in the GUI RPC console even if external calls are disabled.
+     */
+    RegisterAllCoreRPCCommands(tableRPC);
+#ifdef ENABLE_WALLET
+    RegisterWalletRPCCommands(tableRPC);
+#endif
 
     /* Start the RPC server already.  It will be started in "warmup" mode
      * and not really process calls already (but it will signify connections
