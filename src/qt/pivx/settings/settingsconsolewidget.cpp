@@ -179,6 +179,7 @@ void SettingsConsoleWidget::loadClientModel()
             wordList << ("help " + commandList[i]).c_str();
         }
 
+        wordList << "help-console";
         wordList.sort();
         autoCompleter = new QCompleter(wordList, this);
         autoCompleter->setModelSorting(QCompleter::CaseSensitivelySortedModel);
@@ -224,7 +225,8 @@ void SettingsConsoleWidget::clear(bool clearHistory)
 
     messageInternal(RPCExecutor::CMD_REPLY, (tr("Welcome to the PIVX RPC console.") + "<br>" +
                         tr("Use up and down arrows to navigate history, and %1 to clear screen.").arg("<b>"+clsKey+"</b>") + "<br>" +
-                        tr("Type <b>help</b> for an overview of available commands.") +
+                        tr("Type %1 for an overview of available commands.").arg("<b>help</b>") + "<br>" +
+                        tr("For more information on using this console type %1.").arg("<b>help-console</b>") +
                         "<br><span class=\"secwarning\"><br>" +
                         tr("WARNING: Scammers have been active, telling users to type commands here, stealing their wallet contents. Do not use this console without fully understanding the ramifications of a command.") +
                         "</span>"),
