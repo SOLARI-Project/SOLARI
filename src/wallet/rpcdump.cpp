@@ -221,6 +221,12 @@ UniValue importaddress(const JSONRPCRequest& request)
     const std::string strLabel = (request.params.size() > 1 ? request.params[1].get_str() : "");
     // Whether to perform rescan after import
     const bool fRescan = (request.params.size() > 2 ? request.params[2].get_bool() : true);
+
+    WalletRescanReserver reserver(pwalletMain);
+    if (fRescan && !reserver.reserve()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
+    }
+
     // Whether to import a p2sh version, too
     const bool fP2SH = (request.params.size() > 3 ? request.params[3].get_bool() : false);
 
@@ -276,6 +282,11 @@ UniValue importpubkey(const JSONRPCRequest& request)
     // Whether to perform rescan after import
     const bool fRescan = (request.params.size() > 2 ? request.params[2].get_bool() : true);
 
+    WalletRescanReserver reserver(pwalletMain);
+    if (fRescan && !reserver.reserve()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
+    }
+
     if (!IsHex(request.params[0].get_str()))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pubkey must be a hex string");
     std::vector<unsigned char> data(ParseHex(request.params[0].get_str()));
@@ -317,19 +328,23 @@ UniValue importwallet(const JSONRPCRequest& request)
             "\nImport using the json rpc call\n" +
             HelpExampleRpc("importwallet", "\"test\""));
 
-
     std::ifstream file;
     file.open(request.params[0].get_str().c_str(), std::ios::in | std::ios::ate);
     if (!file.is_open())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open wallet dump file");
 
-    int64_t nTimeBegin = chainActive.Tip()->GetBlockTime();
+    WalletRescanReserver reserver(pwalletMain);
+    if (!reserver.reserve()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
+    }
 
+    int64_t nTimeBegin = 0;
     bool fGood = true;
     {
         LOCK2(cs_main, pwalletMain->cs_wallet);
         EnsureWalletIsUnlocked();
 
+        nTimeBegin = chainActive.Tip()->GetBlockTime();
         int64_t nFilesize = std::max((int64_t)1, (int64_t)file.tellg());
         file.seekg(0, file.beg);
 
@@ -971,6 +986,11 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
         if (options.exists("rescan")) {
             fRescan = options["rescan"].get_bool();
         }
+    }
+
+    WalletRescanReserver reserver(pwalletMain);
+    if (fRescan && !reserver.reserve()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
     }
 
     int64_t now = 0;
