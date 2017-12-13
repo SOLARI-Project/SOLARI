@@ -1905,8 +1905,7 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
             }
 
             CBlock block;
-            bool readRet = WITH_LOCK(cs_main, return ReadBlockFromDisk(block, pindex); );
-            if (readRet) {
+            if (ReadBlockFromDisk(block, pindex)) {
                 LOCK2(cs_main, cs_wallet);
                 if (pindex && !chainActive.Contains(pindex)) {
                      // Abort scan if current block is no longer active, to prevent
