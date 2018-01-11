@@ -130,8 +130,8 @@ static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUserna
     boost::trim(strUserPass64);
     std::string strUserPass = DecodeBase64(strUserPass64);
 
-    if (strUserPass.find(":") != std::string::npos)
-        strAuthUsernameOut = strUserPass.substr(0, strUserPass.find(":"));
+    if (strUserPass.find(':') != std::string::npos)
+        strAuthUsernameOut = strUserPass.substr(0, strUserPass.find(':'));
 
     //Check if authorized under single-user field
     if (TimingResistantEqual(strUserPass, strRPCUserColonPass)) {
