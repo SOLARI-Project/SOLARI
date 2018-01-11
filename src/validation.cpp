@@ -2420,6 +2420,8 @@ bool ReconsiderBlock(CValidationState& state, CBlockIndex* pindex)
 
 CBlockIndex* AddToBlockIndex(const CBlock& block)
 {
+    AssertLockHeld(cs_main);
+
     // Check for duplicate
     uint256 hash = block.GetHash();
     BlockMap::iterator it = mapBlockIndex.find(hash);
@@ -3457,6 +3459,8 @@ fs::path GetBlockPosFilename(const FlatFilePos &pos)
 
 CBlockIndex* InsertBlockIndex(uint256 hash)
 {
+    AssertLockHeld(cs_main);
+
     if (hash.IsNull())
         return NULL;
 
@@ -3582,6 +3586,8 @@ bool static LoadBlockIndexDB(std::string& strError)
 
 bool LoadChainTip(const CChainParams& chainparams)
 {
+    AssertLockHeld(cs_main);
+
     if (chainActive.Tip() && chainActive.Tip()->GetBlockHash() == pcoinsTip->GetBestBlock()) return true;
 
     if (pcoinsTip->GetBestBlock().IsNull() && mapBlockIndex.size() == 1) {
