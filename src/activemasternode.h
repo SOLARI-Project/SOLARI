@@ -12,17 +12,66 @@
 #include "net.h"
 #include "operationresult.h"
 #include "sync.h"
+#include "validationinterface.h"
 #include "wallet/wallet.h"
+
+struct CActiveMasternodeInfo;
+class CActiveDeterministicMasternodeManager;
 
 #define ACTIVE_MASTERNODE_INITIAL 0 // initial state
 #define ACTIVE_MASTERNODE_SYNC_IN_PROCESS 1
 #define ACTIVE_MASTERNODE_NOT_CAPABLE 3
 #define ACTIVE_MASTERNODE_STARTED 4
 
+extern CActiveMasternodeInfo activeMasternodeInfo;
+extern CActiveDeterministicMasternodeManager* activeMasternodeManager;
+
+struct CActiveMasternodeInfo {
+    // Keys for the active Masternode
+    CKeyID keyIDOperator;
+    CKey keyOperator;
+    // Initialized while registering Masternode
+    uint256 proTxHash;
+    COutPoint outpoint;
+    CService service;
+    void SetNullProTx() { proTxHash = UINT256_ZERO; outpoint.SetNull(); }
+};
+
+class CActiveDeterministicMasternodeManager : public CValidationInterface
+{
+public:
+    enum masternode_state_t {
+        MASTERNODE_WAITING_FOR_PROTX,
+        MASTERNODE_POSE_BANNED,
+        MASTERNODE_REMOVED,
+        MASTERNODE_OPERATOR_KEY_CHANGED,
+        MASTERNODE_PROTX_IP_CHANGED,
+        MASTERNODE_READY,
+        MASTERNODE_ERROR,
+    };
+
+private:
+    masternode_state_t state{MASTERNODE_WAITING_FOR_PROTX};
+    std::string strError;
+
+public:
+    virtual void UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload);
+
+    void Init();
+
+    std::string GetStateString() const;
+    std::string GetStatus() const;
+
+    static bool IsValidNetAddr(const CService& addrIn);
+
+private:
+    bool GetLocalAddress(CService& addrRet);
+};
+
 // Responsible for initializing the masternode
 OperationResult initMasternode(const std::string& strMasterNodePrivKey, const std::string& strMasterNodeAddr, bool isFromInit);
 
-// Responsible for activating the Masternode and pinging the network
+// Responsible for activating the Masternode and pinging the network (legacy MN list)
 class CActiveMasternode
 {
 private:

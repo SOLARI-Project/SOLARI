@@ -316,6 +316,10 @@ void PrepareShutdown()
         pEvoNotificationInterface = nullptr;
     }
 
+    if (fMasterNode) {
+        UnregisterValidationInterface(activeMasternodeManager);
+    }
+
 #if ENABLE_ZMQ
     if (pzmqNotificationInterface) {
         UnregisterValidationInterface(pzmqNotificationInterface);
@@ -1894,6 +1898,11 @@ bool AppInitMain()
 
     if (fMasterNode) {
         LogPrintf("IS MASTER NODE\n");
+
+        // init and register activeMasternodeManager
+        activeMasternodeManager = new CActiveDeterministicMasternodeManager();
+        RegisterValidationInterface(activeMasternodeManager);
+
         auto res = initMasternode(gArgs.GetArg("-masternodeprivkey", ""), gArgs.GetArg("-masternodeaddr", ""), true);
         if (!res) { return UIError(res.getError()); }
     }
@@ -1932,6 +1941,11 @@ bool AppInitMain()
         return false;
     }
 
+    if (fMasterNode) {
+        assert(activeMasternodeManager);
+        activeMasternodeManager->Init();
+    }
+
     // ********************************************************* Step 11: start node
 
     if (!strErrors.str().empty())
@@ -1940,6 +1954,7 @@ bool AppInitMain()
     //// debug print
     LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
     LogPrintf("chainActive.Height() = %d\n", chainActive.Height());
+
 #ifdef ENABLE_WALLET
     {
         if (pwalletMain) {
