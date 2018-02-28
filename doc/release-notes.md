@@ -71,6 +71,11 @@ It is now possible for a single configuration file to set different options for 
 The `addnode=`, `connect=`, `port=`, `bind=`, `rpcport=`, `rpcbind=`, and `wallet=` options will only apply to mainnet when specified in the configuration file, unless a network is specified.
 
 
+#### Logging
+
+The log timestamp format is now ISO 8601 (e.g. "2021-02-28T12:34:56Z").
+
+
 *version* Change log
 ==============
 

@@ -27,11 +27,6 @@
 #include <univalue.h>
 
 
-std::string static EncodeDumpTime(int64_t nTime)
-{
-    return DateTimeStrFormat("%Y-%m-%dT%H:%M:%SZ", nTime);
-}
-
 int64_t static DecodeDumpTime(const std::string& str)
 {
     static const boost::posix_time::ptime epoch = boost::posix_time::from_time_t(0);
@@ -538,11 +533,11 @@ UniValue dumpwallet(const JSONRPCRequest& request)
     CBlockIndex* tip = chainActive.Tip();
     // produce output
     file << strprintf("# Wallet dump created by PIVX %s (%s)\n", CLIENT_BUILD, CLIENT_DATE);
-    file << strprintf("# * Created on %s\n", EncodeDumpTime(GetTime()));
+    file << strprintf("# * Created on %s\n", FormatISO8601DateTime(GetTime()));
     if (tip) {
         file << strprintf("# * Best block at time of backup was %i (%s),\n", tip->nHeight,
                           tip->GetBlockHash().ToString());
-        file << strprintf("#   mined on %s\n", EncodeDumpTime(tip->GetBlockTime()));
+        file << strprintf("#   mined on %s\n", FormatISO8601DateTime(tip->GetBlockTime()));
     } else {
         file << "# Missing tip information\n";
     }
@@ -563,7 +558,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
 
     for (std::vector<std::pair<int64_t, CKeyID> >::const_iterator it = vKeyBirth.begin(); it != vKeyBirth.end(); it++) {
         const CKeyID& keyid = it->second;
-        std::string strTime = EncodeDumpTime(it->first);
+        std::string strTime = FormatISO8601DateTime(it->first);
         CKey key;
         if (pwalletMain->GetKey(keyid, key)) {
             const CKeyMetadata& metadata = pwalletMain->mapKeyMetadata[keyid];
@@ -596,7 +591,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
         if (pwalletMain->GetSaplingExtendedSpendingKey(addr, extsk)) {
             auto ivk = extsk.expsk.full_viewing_key().in_viewing_key();
             CKeyMetadata keyMeta = pwalletMain->GetSaplingScriptPubKeyMan()->mapSaplingZKeyMetadata[ivk];
-            std::string strTime = EncodeDumpTime(keyMeta.nCreateTime);
+            std::string strTime = FormatISO8601DateTime(keyMeta.nCreateTime);
             // Keys imported with importsaplingkey do not have key origin metadata
             file << strprintf("%s %s # shielded_addr=%s%s\n",
                     KeyIO::EncodeSpendingKey(extsk),
