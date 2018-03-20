@@ -179,7 +179,7 @@ bool WalletBatch::WriteSaplingCommonOVK(const uint256& ovk)
 
 bool WalletBatch::ReadSaplingCommonOVK(uint256& ovkRet)
 {
-    return batch.Read(std::string(DBKeys::SAP_COMMON_OVK), ovkRet);
+    return m_batch.Read(std::string(DBKeys::SAP_COMMON_OVK), ovkRet);
 }
 
 bool WalletBatch::WriteWitnessCacheSize(int64_t nWitnessCacheSize)
@@ -215,10 +215,10 @@ bool WalletBatch::WriteBestBlock(const CBlockLocator& locator)
 
 bool WalletBatch::ReadBestBlock(CBlockLocator& locator)
 {
-    if (batch.Read(std::string(DBKeys::BESTBLOCK), locator) && !locator.vHave.empty()) {
+    if (m_batch.Read(std::string(DBKeys::BESTBLOCK), locator) && !locator.vHave.empty()) {
         return true;
     }
-    return batch.Read(std::string(DBKeys::BESTBLOCK_NOMERKLE), locator);
+    return m_batch.Read(std::string(DBKeys::BESTBLOCK_NOMERKLE), locator);
 }
 
 bool WalletBatch::WriteOrderPosNext(int64_t nOrderPosNext)
@@ -251,7 +251,7 @@ bool WalletBatch::WriteAutoCombineSettings(bool fEnable, CAmount nCombineThresho
 
 bool WalletBatch::ReadPool(int64_t nPool, CKeyPool& keypool)
 {
-    return batch.Read(std::make_pair(std::string(DBKeys::POOL), nPool), keypool);
+    return m_batch.Read(std::make_pair(std::string(DBKeys::POOL), nPool), keypool);
 }
 
 bool WalletBatch::WritePool(int64_t nPool, const CKeyPool& keypool)
@@ -630,7 +630,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
     LOCK(pwallet->cs_wallet);
     try {
         int nMinVersion = 0;
-        if (batch.Read((std::string) DBKeys::MINVERSION, nMinVersion)) {
+        if (m_batch.Read((std::string) DBKeys::MINVERSION, nMinVersion)) {
             if (nMinVersion > CLIENT_VERSION) {
                 return DB_TOO_NEW;
             }
@@ -638,7 +638,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
         }
 
         // Get cursor
-        Dbc* pcursor = batch.GetCursor();
+        Dbc* pcursor = m_batch.GetCursor();
         if (!pcursor) {
             LogPrintf("Error getting wallet database cursor\n");
             return DB_CORRUPT;
@@ -648,7 +648,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
             // Read next record
             CDataStream ssKey(SER_DISK, CLIENT_VERSION);
             CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-            int ret = batch.ReadAtCursor(pcursor, ssKey, ssValue);
+            int ret = m_batch.ReadAtCursor(pcursor, ssKey, ssValue);
             if (ret == DB_NOTFOUND) {
                 break;
             } else if (ret != 0) {
@@ -729,7 +729,7 @@ DBErrors WalletBatch::FindWalletTx(CWallet* pwallet, std::vector<uint256>& vTxHa
     try {
         LOCK(pwallet->cs_wallet);
         int nMinVersion = 0;
-        if (batch.Read((std::string) DBKeys::MINVERSION, nMinVersion)) {
+        if (m_batch.Read((std::string) DBKeys::MINVERSION, nMinVersion)) {
             if (nMinVersion > CLIENT_VERSION) {
                 return DB_TOO_NEW;
             }
@@ -737,7 +737,7 @@ DBErrors WalletBatch::FindWalletTx(CWallet* pwallet, std::vector<uint256>& vTxHa
         }
 
         // Get cursor
-        Dbc* pcursor = batch.GetCursor();
+        Dbc* pcursor = m_batch.GetCursor();
         if (!pcursor) {
             LogPrintf("Error getting wallet database cursor\n");
             return DB_CORRUPT;
@@ -747,7 +747,7 @@ DBErrors WalletBatch::FindWalletTx(CWallet* pwallet, std::vector<uint256>& vTxHa
             // Read next record
             CDataStream ssKey(SER_DISK, CLIENT_VERSION);
             CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-            int ret = batch.ReadAtCursor(pcursor, ssKey, ssValue);
+            int ret = m_batch.ReadAtCursor(pcursor, ssKey, ssValue);
             if (ret == DB_NOTFOUND) {
                 break;
             } else if (ret != 0) {
@@ -957,25 +957,25 @@ bool WalletBatch::EraseDestData(const std::string& address, const std::string& k
 
 bool WalletBatch::TxnBegin()
 {
-    return batch.TxnBegin();
+    return m_batch.TxnBegin();
 }
 
 bool WalletBatch::TxnCommit()
 {
-    return batch.TxnCommit();
+    return m_batch.TxnCommit();
 }
 
 bool WalletBatch::TxnAbort()
 {
-    return batch.TxnAbort();
+    return m_batch.TxnAbort();
 }
 
 bool WalletBatch::ReadVersion(int& nVersion)
 {
-    return batch.ReadVersion(nVersion);
+    return m_batch.ReadVersion(nVersion);
 }
 
 bool WalletBatch::WriteVersion(int nVersion)
 {
-    return batch.WriteVersion(nVersion);
+    return m_batch.WriteVersion(nVersion);
 }
