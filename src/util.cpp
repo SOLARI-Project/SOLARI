@@ -500,24 +500,18 @@ fs::path GetMasternodeConfigFile()
     return AbsPathForConfigVal(pathConfigFile);
 }
 
-void ArgsManager::ReadConfigFile(const std::string& confPath)
+void ArgsManager::ReadConfigStream(std::istream& stream)
 {
-    fs::ifstream streamConfig(GetConfigFile(confPath));
-    if (!streamConfig.good()) {
-        // Create empty pivx.conf if it does not exist
-        FILE* configFile = fsbridge::fopen(GetConfigFile(confPath), "a");
-        if (configFile != NULL)
-            fclose(configFile);
-        return; // Nothing to read, so just return
-    }
+    if (!stream.good())
+        return; // No pivx.conf file is OK
 
     {
         LOCK(cs_args);
         std::set<std::string> setOptions;
         setOptions.insert("*");
 
-        for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it) {
-            // Don't overwrite existing settings so command line settings override pivx.conf
+        for (boost::program_options::detail::config_file_iterator it(stream, setOptions), end; it != end; ++it) {
+            // Don't overwrite existing settings so command line settings override bitcoin.conf
             std::string strKey = std::string("-") + it->string_key;
             std::string strValue = it->value[0];
             InterpretNegatedOption(strKey, strValue);
@@ -526,6 +520,13 @@ void ArgsManager::ReadConfigFile(const std::string& confPath)
             mapMultiArgs[strKey].push_back(strValue);
         }
     }
+}
+
+void ArgsManager::ReadConfigFile(const std::string& confPath)
+{
+    fs::ifstream stream(GetConfigFile(confPath));
+    ReadConfigStream(stream);
+
     // If datadir is changed in .conf file:
     ClearDatadirCache();
     if (!fs::is_directory(GetDataDir(false))) {
