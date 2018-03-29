@@ -202,6 +202,12 @@ public:
     // Forces a arg setting, used only in testing
     void ForceSetArg(const std::string& strArg, const std::string& strValue);
 
+    /**
+     * Looks for -regtest, -testnet and returns the appropriate BIP70 chain name.
+     * @return CBaseChainParams::MAIN by default; raises runtime error if an invalid combination is given.
+     */
+    std::string GetChainName() const;
+
 private:
 
     // Munge -nofoo into -foo=0 and track the value as negated.
