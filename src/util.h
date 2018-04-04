@@ -27,6 +27,8 @@
 #include <atomic>
 #include <exception>
 #include <map>
+#include <memory>
+#include <set>
 #include <stdint.h>
 #include <string>
 #include <unordered_set>
@@ -126,10 +128,13 @@ protected:
     std::map<std::string, std::vector<std::string>> m_override_args;
     std::map<std::string, std::vector<std::string>> m_config_args;
     std::string m_network;
+    std::set<std::string> m_network_only_args;
 
     void ReadConfigStream(std::istream& stream);
 
 public:
+    ArgsManager();
+
     /**
      * Select the network in use
      */
