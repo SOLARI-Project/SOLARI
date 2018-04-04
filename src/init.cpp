@@ -1522,6 +1522,11 @@ bool AppInitMain()
             return UIError(ResolveErrMsg("externalip", strAddr));
     }
 
+    // Warn if network-specific options (-addnode, -connect, etc) are
+    // specified in default section of config file, but not overridden
+    // on the command line or in this network's section of the config file.
+    gArgs.WarnForSectionOnlyArgs();
+
     if (gArgs.IsArgSet("-seednode")) {
         for (const std::string& strDest : gArgs.GetArgs("-seednode"))
             connman.AddOneShot(strDest);
