@@ -62,6 +62,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "getshieldbalance", 2, "include_watchonly" },
     { "getnetworkhashps", 0, "nblocks" },
     { "getnetworkhashps", 1, "height" },
+    { "getnodeaddresses", 0, "count" },
     { "getrawmempool", 0, "verbose" },
     { "getrawtransaction", 1, "verbose" },
     { "getreceivedbyaddress", 1, "minconf" },
