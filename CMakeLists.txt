@@ -385,6 +385,7 @@ set(COMMON_SOURCES
         ./src/coins.cpp
         ./src/key_io.cpp
         ./src/compressor.cpp
+        ./src/evo/evodb.cpp
         ./src/evo/specialtx.cpp
         ./src/consensus/merkle.cpp
         ./src/consensus/zerocoin_verify.cpp

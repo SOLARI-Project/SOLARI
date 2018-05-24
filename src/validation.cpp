@@ -43,6 +43,7 @@
 #include "script/sigcache.h"
 #include "spork.h"
 #include "sporkdb.h"
+#include "evo/evodb.h"
 #include "txdb.h"
 #include "txmempool.h"
 #include "undo.h"
@@ -1954,11 +1955,16 @@ bool static DisconnectTip(CValidationState& state, const CChainParams& chainpara
     const uint256& saplingAnchorBeforeDisconnect = pcoinsTip->GetBestAnchor();
     int64_t nStart = GetTimeMicros();
     {
+        auto dbTx = evoDb->BeginTransaction();
+
         CCoinsViewCache view(pcoinsTip);
         assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip() : DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
-        assert(view.Flush());
+        bool flushed = view.Flush();
+        assert(flushed);
+        bool committed = dbTx->Commit();
+        assert(committed);
     }
     LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * 0.001);
     const uint256& saplingAnchorAfterDisconnect = pcoinsTip->GetBestAnchor();
@@ -2103,6 +2109,8 @@ bool static ConnectTip(CValidationState& state, CBlockIndex* pindexNew, const st
     int64_t nTime3;
     LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * 0.001, nTimeReadFromDisk * 0.000001);
     {
+        auto dbTx = evoDb->BeginTransaction();
+
         CCoinsViewCache view(pcoinsTip);
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, false);
         GetMainSignals().BlockChecked(blockConnecting, state);
@@ -2114,7 +2122,10 @@ bool static ConnectTip(CValidationState& state, CBlockIndex* pindexNew, const st
         nTime3 = GetTimeMicros();
         nTimeConnectTotal += nTime3 - nTime2;
         LogPrint(BCLog::BENCH, "  - Connect total: %.2fms [%.2fs]\n", (nTime3 - nTime2) * 0.001, nTimeConnectTotal * 0.000001);
-        assert(view.Flush());
+        bool flushed = view.Flush();
+        assert(flushed);
+        bool committed = dbTx->Commit();
+        assert(committed);
     }
     int64_t nTime4 = GetTimeMicros();
     nTimeFlush += nTime4 - nTime3;
@@ -3415,6 +3426,9 @@ bool TestBlockValidity(CValidationState& state, const CBlock& block, CBlockIndex
     indexDummy.pprev = pindexPrev;
     indexDummy.nHeight = pindexPrev->nHeight + 1;
 
+    // begin tx and let it rollback
+    auto dbTx = evoDb->BeginTransaction();
+
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!ContextualCheckBlockHeader(block, state, pindexPrev))
         return error("%s: ContextualCheckBlockHeader failed: %s", __func__, FormatStateMessage(state));
@@ -3654,6 +3668,10 @@ bool CVerifyDB::VerifyDB(CCoinsView* coinsview, int nCheckLevel, int nCheckDepth
         return true;
 
     const int chainHeight = chainActive.Height();
+
+    // begin tx and let it rollback
+    auto dbTx = evoDb->BeginTransaction();
+
     // Verify blocks in the best chain
     if (nCheckDepth <= 0)
         nCheckDepth = 1000000000; // suffices until the year 19000

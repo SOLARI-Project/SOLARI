@@ -44,6 +44,7 @@
 #include "scheduler.h"
 #include "spork.h"
 #include "sporkdb.h"
+#include "evo/evodb.h"
 #include "txdb.h"
 #include "torcontrol.h"
 #include "guiinterface.h"
@@ -297,6 +298,8 @@ void PrepareShutdown()
         zerocoinDB = NULL;
         delete pSporkDB;
         pSporkDB = NULL;
+        delete evoDb;
+        evoDb = nullptr;
     }
 #ifdef ENABLE_WALLET
     if (pwalletMain)
@@ -1547,6 +1550,7 @@ bool AppInitMain()
     int64_t nCoinDBCache = std::min(nTotalCache / 2, (nTotalCache / 4) + (1 << 23)); // use 25%-50% of the remainder for disk cache
     nTotalCache -= nCoinDBCache;
     nCoinCacheUsage = nTotalCache; // the rest goes to in-memory cache
+    int64_t nEvoDbCache = 1024 * 1024 * 16; // TODO
     LogPrintf("Cache configuration:\n");
     LogPrintf("* Using %.1fMiB for block index database\n", nBlockTreeDBCache * (1.0 / 1024 / 1024));
     LogPrintf("* Using %.1fMiB for chain state database\n", nCoinDBCache * (1.0 / 1024 / 1024));
@@ -1571,10 +1575,12 @@ bool AppInitMain()
                 delete pblocktree;
                 delete zerocoinDB;
                 delete pSporkDB;
+                delete evoDb;
 
                 //PIVX specific: zerocoin and spork DB's
                 zerocoinDB = new CZerocoinDB(0, false, fReindex);
                 pSporkDB = new CSporkDB(0, false, false);
+                evoDb = new CEvoDB(nEvoDbCache, false, fReindex);
 
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
 
