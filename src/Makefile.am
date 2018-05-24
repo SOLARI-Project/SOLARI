@@ -162,6 +162,7 @@ BITCOIN_CORE_H = \
   bip38.h \
   bloom.h \
   blocksignature.h \
+  bls/bls_ies.h \
   bls/bls_wrapper.h \
   chain.h \
   chainparams.h \
@@ -339,6 +340,7 @@ libbitcoin_server_a_SOURCES = \
   addrman.cpp \
   bloom.cpp \
   blocksignature.cpp \
+  bls/bls_ies.cpp \
   bls/bls_wrapper.cpp \
   chain.cpp \
   checkpoints.cpp \
