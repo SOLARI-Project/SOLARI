@@ -796,6 +796,7 @@ void CWalletDBWrapper::Flush(bool shutdown)
 {
     if (!IsDummy()) {
         env->Flush(shutdown);
+        if (shutdown) env = nullptr;
     }
 }
 
