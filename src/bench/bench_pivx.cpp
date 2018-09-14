@@ -17,6 +17,7 @@ void CleanupBLSDkgTests();
 int main(int argc, char** argv)
 {
     ECC_Start();
+    ECCVerifyHandle globalVerifyHandle;
     RandomInit();
     BLSInit();
     InitBLSTests();

@@ -26,6 +26,7 @@ bench_bench_pivx_SOURCES = \
   bench/data.cpp \
   bench/chacha20.cpp \
   bench/crypto_hash.cpp \
+  bench/ecdsa.cpp \
   bench/lockedpool.cpp \
   bench/perf.cpp \
   bench/perf.h \
