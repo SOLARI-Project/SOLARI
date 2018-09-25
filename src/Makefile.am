@@ -147,6 +147,7 @@ BITCOIN_CORE_H = \
   activemasternode.h \
   addrdb.h \
   addrman.h \
+  attributes.h \
   arith_uint256.h \
   amount.h \
   base58.h \
