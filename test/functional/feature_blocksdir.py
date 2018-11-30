@@ -17,8 +17,9 @@ class BlocksdirTest(PivxTestFramework):
 
     def run_test(self):
         self.stop_node(0)
-        node0path = os.path.join(self.options.tmpdir, "node0")
-        shutil.rmtree(node0path)
+        assert os.path.isdir(os.path.join(self.nodes[0].datadir, "regtest", "blocks"))
+        assert not os.path.isdir(os.path.join(self.nodes[0].datadir, "blocks"))
+        shutil.rmtree(self.nodes[0].datadir)
         initialize_datadir(self.options.tmpdir, 0)
         self.log.info("Starting with nonexistent blocksdir ...")
         self.assert_start_raises_init_error(0, ["-blocksdir="+self.options.tmpdir+ "/blocksdir"], "Specified blocks director")
