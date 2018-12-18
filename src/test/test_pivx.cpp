@@ -12,7 +12,6 @@
 #include "evo/evodb.h"
 #include "miner.h"
 #include "net_processing.h"
-#include "random.h"
 #include "rpc/server.h"
 #include "rpc/register.h"
 #include "script/sigcache.h"
@@ -40,7 +39,6 @@ std::ostream& operator<<(std::ostream& os, const uint256& num)
 
 BasicTestingSetup::BasicTestingSetup()
 {
-        RandomInit();
         ECC_Start();
         SetupEnvironment();
         InitSignatureCache();
