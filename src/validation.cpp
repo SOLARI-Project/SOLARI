@@ -3472,29 +3472,6 @@ bool TestBlockValidity(CValidationState& state, const CBlock& block, CBlockIndex
     return true;
 }
 
-FILE* OpenDiskFile(const CDiskBlockPos& pos, const char* prefix, bool fReadOnly)
-{
-    if (pos.IsNull())
-        return NULL;
-    fs::path path = GetBlockPosFilename(pos, prefix);
-    fs::create_directories(path.parent_path());
-    FILE* file = fsbridge::fopen(path, "rb+");
-    if (!file && !fReadOnly)
-        file = fsbridge::fopen(path, "wb+");
-    if (!file) {
-        LogPrintf("Unable to open file %s\n", path.string());
-        return NULL;
-    }
-    if (pos.nPos) {
-        if (fseek(file, pos.nPos, SEEK_SET)) {
-            LogPrintf("Unable to seek to position %u of %s\n", pos.nPos, path.string());
-            fclose(file);
-            return NULL;
-        }
-    }
-    return file;
-}
-
 static FlatFileSeq BlockFileSeq()
 {
     return FlatFileSeq(GetBlocksDir(), "blk", BLOCKFILE_CHUNK_SIZE);
@@ -3507,12 +3484,12 @@ static FlatFileSeq UndoFileSeq()
 
 FILE* OpenBlockFile(const CDiskBlockPos& pos, bool fReadOnly)
 {
-    return OpenDiskFile(pos, "blk", fReadOnly);
+    return BlockFileSeq().Open(pos, fReadOnly);
 }
 
 FILE* OpenUndoFile(const CDiskBlockPos& pos, bool fReadOnly)
 {
-    return OpenDiskFile(pos, "rev", fReadOnly);
+    return UndoFileSeq().Open(pos, fReadOnly);
 }
 
 fs::path GetBlockPosFilename(const CDiskBlockPos &pos)
