@@ -83,6 +83,8 @@ Note that while multi-wallet is now fully supported, the RPC multi-wallet interf
 GUI changes
 -----------
 
+- The launch-on-startup option is no longer available on macOS
+
 ### Settings
 
 A new checkbox has been added to the wallet settings UI to enable or disable automatic port mapping with NAT-PMP.
