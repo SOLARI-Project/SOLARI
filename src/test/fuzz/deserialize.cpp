@@ -147,10 +147,6 @@ void test_one_input(std::vector<uint8_t> buffer)
                 ds >> toc;
             } catch (const std::ios_base::failure& e) {return;}
 #else
-    std::vector<uint8_t> buffer;
-    if (!read_stdin(buffer)) {
-        return 0;
-    }
-    test_one_input(buffer);
+#error Need at least one fuzz target to compile
 #endif
 }
