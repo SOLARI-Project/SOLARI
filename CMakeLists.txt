@@ -403,6 +403,7 @@ set(COMMON_SOURCES
         ./src/policy/feerate.cpp
         ./src/protocol.cpp
         ./src/pubkey.cpp
+        ./src/saltedhasher.cpp
         ./src/scheduler.cpp
         ./src/script/interpreter.cpp
         ./src/script/script.cpp
