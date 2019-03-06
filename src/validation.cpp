@@ -1881,6 +1881,9 @@ bool static FlushStateToDisk(CValidationState& state, FlushStateMode mode)
             // Flush the chainstate (which may refer to block index entries).
             if (!pcoinsTip->Flush())
                 return AbortNode(state, "Failed to write to coin database");
+            if (!evoDb->CommitRootTransaction()) {
+                return AbortNode(state, "Failed to commit EvoDB");
+            }
             nLastFlush = nNow;
             // Update money supply on memory, reading data from disk
             if (!ShutdownRequested() && !IsInitialBlockDownload()) {
