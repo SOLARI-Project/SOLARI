@@ -69,7 +69,6 @@ public:
     template <typename K, typename V>
     void Write(const K& key, const V& value)
     {
-        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
         ssKey.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
         ssKey << key;
         Write(ssKey, value);
@@ -102,7 +101,6 @@ public:
     template <typename K>
     void Erase(const K& key)
     {
-        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
         ssKey.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
         ssKey << key;
         Erase(ssKey);
@@ -157,14 +155,18 @@ public:
     void Next();
 
     template<typename K> bool GetKey(K& key) {
-        leveldb::Slice slKey = piter->key();
         try {
-            CDataStream ssKey(slKey.data(), slKey.data() + slKey.size(), SER_DISK, CLIENT_VERSION);
+            CDataStream ssKey = GetKey();
             ssKey >> key;
         } catch(const std::exception& e) {
             return false;
         }
         return true;
+    }
+
+    CDataStream GetKey() {
+        leveldb::Slice slKey = piter->key();
+        return CDataStream(slKey.data(), slKey.data() + slKey.size(), SER_DISK, CLIENT_VERSION);
     }
 
     unsigned int GetKeySize() {
@@ -243,11 +245,8 @@ public:
             LogPrintf("LevelDB read failure: %s\n", status.ToString());
             dbwrapper_private::HandleError(status);
         }
-        try {
-            CDataStream ssValue(strValue.data(), strValue.data() + strValue.size(), SER_DISK, CLIENT_VERSION);
-        } catch (const std::exception&) {
-            return false;
-        }
+        CDataStream ssValueTmp(strValue.data(), strValue.data() + strValue.size(), SER_DISK, CLIENT_VERSION);
+        ssValue = std::move(ssValueTmp);
         return true;
     }
 
@@ -356,17 +355,186 @@ public:
         return size;
     }
 
+    /**
+     * Compact a certain range of keys in the database.
+     */
+    template<typename K>
+    void CompactRange(const K& key_begin, const K& key_end) const
+    {
+        CDataStream ssKey1(SER_DISK, CLIENT_VERSION), ssKey2(SER_DISK, CLIENT_VERSION);
+        ssKey1.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
+        ssKey2.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
+        ssKey1 << key_begin;
+        ssKey2 << key_end;
+        leveldb::Slice slKey1(ssKey1.data(), ssKey1.size());
+        leveldb::Slice slKey2(ssKey2.data(), ssKey2.size());
+        pdb->CompactRange(&slKey1, &slKey2);
+    }
+
+    void CompactFull() const
+    {
+        pdb->CompactRange(nullptr, nullptr);
+    }
+
+};
+
+template<typename CDBTransaction>
+class CDBTransactionIterator
+{
+private:
+    CDBTransaction& transaction;
+
+    typedef typename std::remove_pointer<decltype(transaction.parent.NewIterator())>::type ParentIterator;
+
+    // We maintain 2 iterators, one for the transaction and one for the parent
+    // At all times, only one of both provides the current value. The decision is made by comparing the current keys
+    // of both iterators, so that always the smaller key is the current one. On Next(), the previously chosen iterator
+    // is advanced.
+    typename CDBTransaction::WritesMap::iterator transactionIt;
+    std::unique_ptr<ParentIterator> parentIt;
+    CDataStream parentKey;
+    bool curIsParent{false};
+
+public:
+    CDBTransactionIterator(CDBTransaction& _transaction) :
+            transaction(_transaction),
+            parentKey(SER_DISK, CLIENT_VERSION)
+    {
+        transactionIt = transaction.writes.end();
+        parentIt = std::unique_ptr<ParentIterator>(transaction.parent.NewIterator());
+    }
+
+    void SeekToFirst() {
+        transactionIt = transaction.writes.begin();
+        parentIt->SeekToFirst();
+        SkipDeletedAndOverwritten();
+        DecideCur();
+    }
+
+    template<typename K>
+    void Seek(const K& key) {
+        Seek(CDBTransaction::KeyToDataStream(key));
+    }
+
+    void Seek(const CDataStream& ssKey) {
+        transactionIt = transaction.writes.lower_bound(ssKey);
+        parentIt->Seek(ssKey);
+        SkipDeletedAndOverwritten();
+        DecideCur();
+    }
+
+    bool Valid() {
+        return transactionIt != transaction.writes.end() || parentIt->Valid();
+    }
+
+    void Next() {
+        if (transactionIt == transaction.writes.end() && !parentIt->Valid()) {
+            return;
+        }
+        if (curIsParent) {
+            assert(parentIt->Valid());
+            parentIt->Next();
+            SkipDeletedAndOverwritten();
+        } else {
+            assert(transactionIt != transaction.writes.end());
+            ++transactionIt;
+        }
+        DecideCur();
+    }
+
+    template<typename K>
+    bool GetKey(K& key) {
+        if (!Valid()) {
+            return false;
+        }
+
+        if (curIsParent) {
+            return parentIt->GetKey(key);
+        } else {
+            try {
+                // TODO try to avoid this copy (we need a stream that allows reading from external buffers)
+                CDataStream ssKey = transactionIt->first;
+                ssKey >> key;
+            } catch (const std::exception&) {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    CDataStream GetKey() {
+        if (!Valid()) {
+            return CDataStream(SER_DISK, CLIENT_VERSION);
+        }
+        if (curIsParent) {
+            return parentIt->GetKey();
+        } else {
+            return transactionIt->first;
+        }
+    }
+
+    unsigned int GetKeySize() {
+        if (!Valid()) {
+            return 0;
+        }
+        if (curIsParent) {
+            return parentIt->GetKeySize();
+        } else {
+            return transactionIt->first.vKey.size();
+        }
+    }
+
+    template<typename V>
+    bool GetValue(V& value) {
+        if (!Valid()) {
+            return false;
+        }
+        if (curIsParent) {
+            return transaction.Read(parentKey, value);
+        } else {
+            return transaction.Read(transactionIt->first, value);
+        }
+    };
+
+private:
+    void SkipDeletedAndOverwritten() {
+        while (parentIt->Valid()) {
+            parentKey = parentIt->GetKey();
+            if (!transaction.deletes.count(parentKey) && !transaction.writes.count(parentKey)) {
+                break;
+            }
+            parentIt->Next();
+        }
+    }
+
+    void DecideCur() {
+        if (transactionIt != transaction.writes.end() && !parentIt->Valid()) {
+            curIsParent = false;
+        } else if (transactionIt == transaction.writes.end() && parentIt->Valid()) {
+            curIsParent = true;
+        } else if (transactionIt != transaction.writes.end() && parentIt->Valid()) {
+            if (CDBTransaction::DataStreamCmp::less(transactionIt->first, parentKey)) {
+                curIsParent = false;
+            } else {
+                curIsParent = true;
+            }
+        }
+    }
 };
 
 template<typename Parent, typename CommitTarget>
 class CDBTransaction {
+    friend class CDBTransactionIterator<CDBTransaction>;
+
 protected:
     Parent &parent;
     CommitTarget &commitTarget;
 
     struct DataStreamCmp {
         static bool less(const CDataStream& a, const CDataStream& b) {
-            return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+            return std::lexicographical_compare(
+                    (const uint8_t*)a.data(), (const uint8_t*)a.data() + a.size(),
+                    (const uint8_t*)b.data(), (const uint8_t*)b.data() + b.size());
         }
         bool operator()(const CDataStream& a, const CDataStream& b) const {
             return less(a, b);
@@ -488,6 +656,13 @@ public:
 
     bool IsClean() {
         return writes.empty() && deletes.empty();
+    }
+
+    CDBTransactionIterator<CDBTransaction>* NewIterator() {
+        return new CDBTransactionIterator<CDBTransaction>(*this);
+    }
+    std::unique_ptr<CDBTransactionIterator<CDBTransaction>> NewIteratorUniquePtr() {
+        return std::make_unique<CDBTransactionIterator<CDBTransaction>>(*this);
     }
 };
 
