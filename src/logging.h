@@ -65,6 +65,7 @@ namespace BCLog {
         LEGACYZC    = (1 << 25),
         SAPLING     = (1 << 26),
         SPORKS      = (1 << 27),
+        VALIDATION  = (1 << 28),
         ALL         = ~(uint32_t)0,
     };
 
