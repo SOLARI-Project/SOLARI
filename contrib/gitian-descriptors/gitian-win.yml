@@ -22,7 +22,6 @@ packages:
 - "zip"
 - "ca-certificates"
 - "python3"
-- "rename"
 remotes:
 - "url": "https://github.com/pivx-project/pivx.git"
   "dir": "pivx"
@@ -146,8 +145,10 @@ script: |
     make ${MAKEOPTS} -C src check-security
     make deploy
     make install DESTDIR=${INSTALLPATH}
-    rename 's/-setup\.exe$/-setup-unsigned.exe/' *-setup.exe
-    cp -f pivx-*setup*.exe $OUTDIR/
+    (
+      SETUP_EXE="$(basename "$(echo ./*-setup.exe)")"
+      cp -f "$SETUP_EXE" "${OUTDIR}/${SETUP_EXE/%-setup.exe/-setup-unsigned.exe}"
+    )
     cd installed
     # mv ${DISTNAME}/bin/*.dll ${DISTNAME}/lib/ # temporarily disabled for Zerocoin
     # find . -name "lib*.la" -delete            # temporarily disabled for Zerocoin
