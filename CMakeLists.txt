@@ -74,7 +74,7 @@ if(BerkeleyDB_FOUND)
     endif()
 endif()
 
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL COMPONENTS Crypto REQUIRED)
 if(OPENSSL_FOUND)
     message(STATUS "Found OpenSSL (${OPENSSL_VERSION}): ${OPENSSL_LIBRARIES}")
     if(OPENSSL_VERSION VERSION_GREATER_EQUAL 1.1)
