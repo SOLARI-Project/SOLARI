@@ -522,10 +522,6 @@ static void SeedSlow(CSHA512& hasher, RNGState& rng) noexcept
     GetOSRand(buffer);
     hasher.Write(buffer, sizeof(buffer));
 
-    // OpenSSL RNG (for now)
-    RAND_bytes(buffer, sizeof(buffer));
-    hasher.Write(buffer, sizeof(buffer));
-
     // Add the events hasher into the mix
     rng.SeedEvents(hasher);
 
