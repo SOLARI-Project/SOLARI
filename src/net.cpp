@@ -21,6 +21,7 @@
 #include "netbase.h"
 #include "netmessagemaker.h"
 #include "primitives/transaction.h"
+#include "random.h"
 #include "scheduler.h"
 #include "validation.h"
 
@@ -378,6 +379,9 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char* pszDest, bool fCo
         CNode* pnode = new CNode(id, nLocalServices, GetBestHeight(), hSocket, addrConnect, CalculateKeyedNetGroup(addrConnect), nonce, pszDest ? pszDest : "", false);
         pnode->nServicesExpected = ServiceFlags(addrConnect.nServices & nRelevantServices);
         pnode->AddRef();
+
+        // We're making a new connection, harvest entropy from the time (and our peer count)
+        RandAddEvent((uint32_t)id);
 
         return pnode;
     } else if (!proxyConnectionFailed) {
@@ -1067,6 +1071,9 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
     }
+
+    // We received a new connection, harvest entropy from the time (and our peer count)
+    RandAddEvent((uint32_t)id);
 }
 
 void CConnman::ThreadSocketHandler()
