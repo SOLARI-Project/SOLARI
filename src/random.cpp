@@ -371,6 +371,9 @@ class RNGState {
     bool m_strongly_seeded GUARDED_BY(m_mutex) = false;
     std::unique_ptr<Mutex[]> m_mutex_openssl;
 
+    Mutex m_events_mutex;
+    CSHA256 m_events_hasher GUARDED_BY(m_events_mutex);
+
 public:
     RNGState() noexcept
     {
@@ -394,6 +397,35 @@ public:
         RAND_cleanup();
         // Shutdown OpenSSL library multithreading support
         CRYPTO_set_locking_callback(nullptr);
+    }
+
+    void AddEvent(uint32_t event_info) noexcept
+    {
+        LOCK(m_events_mutex);
+
+        m_events_hasher.Write((const unsigned char *)&event_info, sizeof(event_info));
+        // Get the low four bytes of the performance counter. This translates to roughly the
+        // subsecond part.
+        uint32_t perfcounter = (GetPerformanceCounter() & 0xffffffff);
+        m_events_hasher.Write((const unsigned char*)&perfcounter, sizeof(perfcounter));
+    }
+
+    /**
+     * Feed (the hash of) all events added through AddEvent() to hasher.
+     */
+    void SeedEvents(CSHA512& hasher) noexcept
+    {
+        // We use only SHA256 for the events hashing to get the ASM speedups we have for SHA256,
+        // since we want it to be fast as network peers may be able to trigger it repeatedly.
+        LOCK(m_events_mutex);
+
+        unsigned char events_hash[32];
+        m_events_hasher.Finalize(events_hash);
+        hasher.Write(events_hash, 32);
+
+        // Re-initialize the hasher with the finalized state to use later.
+        m_events_hasher.Reset();
+        m_events_hasher.Write(events_hash, 32);
     }
 
     /** Extract up to 32 bytes of entropy from the RNG state, mixing in new entropy from hasher.
@@ -479,24 +511,7 @@ static void SeedFast(CSHA512& hasher) noexcept
     SeedTimestamp(hasher);
 }
 
-// We use only SHA256 for the events hashing to get the ASM speedups we have for SHA256,
-// since we want it to be fast as network peers may be able to trigger it repeatedly.
-static Mutex events_mutex;
-static CSHA256 events_hasher;
-static void SeedEvents(CSHA512& hasher)
-{
-    LOCK(events_mutex);
-
-    unsigned char events_hash[32];
-    events_hasher.Finalize(events_hash);
-    hasher.Write(events_hash, 32);
-
-    // Re-initialize the hasher with the finalized state to use later.
-    events_hasher.Reset();
-    events_hasher.Write(events_hash, 32);
-}
-
-static void SeedSlow(CSHA512& hasher) noexcept
+static void SeedSlow(CSHA512& hasher, RNGState& rng) noexcept
 {
     unsigned char buffer[32];
 
@@ -512,7 +527,7 @@ static void SeedSlow(CSHA512& hasher) noexcept
     hasher.Write(buffer, sizeof(buffer));
 
     // Add the events hasher into the mix
-    SeedEvents(hasher);
+    rng.SeedEvents(hasher);
 
     // High-precision timestamp.
     //
@@ -540,7 +555,7 @@ static void SeedPeriodic(CSHA512& hasher, RNGState& rng) noexcept
     SeedTimestamp(hasher);
 
     // Add the events hasher into the mix
-    SeedEvents(hasher);
+    rng.SeedEvents(hasher);
 
     // Dynamic environment data (performance monitoring, ...)
     RandAddDynamicEnv(hasher);
@@ -555,7 +570,7 @@ static void SeedStartup(CSHA512& hasher, RNGState& rng) noexcept
     SeedHardwareSlow(hasher);
 
     // Everything that the 'slow' seeder includes.
-    SeedSlow(hasher);
+    SeedSlow(hasher, rng);
 
     // Dynamic environment data (performance monitoring, ...)
     RandAddDynamicEnv(hasher);
@@ -573,7 +588,7 @@ enum class RNGLevel {
     PERIODIC, //!< Called by RandAddPeriodic()
 };
 
-static void ProcRand(unsigned char* out, int num, RNGLevel level)
+static void ProcRand(unsigned char* out, int num, RNGLevel level) noexcept
 {
     // Make sure the RNG is initialized first (as all Seed* function possibly need hwrand to be available).
     RNGState& rng = GetRNGState();
@@ -586,7 +601,7 @@ static void ProcRand(unsigned char* out, int num, RNGLevel level)
         SeedFast(hasher);
         break;
     case RNGLevel::SLOW:
-        SeedSlow(hasher);
+        SeedSlow(hasher, rng);
         break;
     case RNGLevel::PERIODIC:
         SeedPeriodic(hasher, rng);
@@ -613,15 +628,7 @@ static void ProcRand(unsigned char* out, int num, RNGLevel level)
 void GetRandBytes(unsigned char* buf, int num) noexcept { ProcRand(buf, num, RNGLevel::FAST); }
 void GetStrongRandBytes(unsigned char* buf, int num) noexcept { ProcRand(buf, num, RNGLevel::SLOW); }
 void RandAddPeriodic() noexcept { ProcRand(nullptr, 0, RNGLevel::PERIODIC); }
-
-void RandAddEvent(const uint32_t event_info) {
-    LOCK(events_mutex);
-    events_hasher.Write((const unsigned char *)&event_info, sizeof(event_info));
-    // Get the low four bytes of the performance counter. This translates to roughly the
-    // subsecond part.
-    uint32_t perfcounter = (GetPerformanceCounter() & 0xffffffff);
-    events_hasher.Write((const unsigned char*)&perfcounter, sizeof(perfcounter));
-}
+void RandAddEvent(const uint32_t event_info) noexcept { GetRNGState().AddEvent(event_info); }
 
 bool g_mock_deterministic_tests{false};
 
