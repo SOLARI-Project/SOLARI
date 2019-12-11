@@ -6,6 +6,7 @@
 #include "base58.h"
 
 #include "hash.h"
+#include "util/string.h"
 
 #include "uint256.h"
 
@@ -131,6 +132,9 @@ std::string EncodeBase58(const std::vector<unsigned char>& vch)
 
 bool DecodeBase58(const std::string& str, std::vector<unsigned char>& vchRet, int max_ret_len)
 {
+    if (!ValidAsCString(str)) {
+        return false;
+    }
     return DecodeBase58(str.c_str(), vchRet, max_ret_len);
 }
 
@@ -162,5 +166,8 @@ bool DecodeBase58Check(const char* psz, std::vector<unsigned char>& vchRet, int 
 
 bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRet, int max_ret)
 {
+    if (!ValidAsCString(str)) {
+        return false;
+    }
     return DecodeBase58Check(str.c_str(), vchRet, max_ret);
 }
