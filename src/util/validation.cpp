@@ -12,6 +12,10 @@
 /** Convert CValidationState to a human-readable message for logging */
 std::string FormatStateMessage(const CValidationState& state)
 {
+    if (state.IsValid()) {
+        return "Valid";
+    }
+
     return strprintf("%s%s (code %i)",
         state.GetRejectReason(),
         state.GetDebugMessage().empty() ? "" : ", "+state.GetDebugMessage(),
