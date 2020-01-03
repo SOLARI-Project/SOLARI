@@ -16,10 +16,12 @@ std::string FormatStateMessage(const CValidationState& state)
         return "Valid";
     }
 
-    return strprintf("%s%s (code %i)",
-        state.GetRejectReason(),
-        state.GetDebugMessage().empty() ? "" : ", "+state.GetDebugMessage(),
-        state.GetRejectCode());
+    const std::string& debug_message = state.GetDebugMessage();
+    if (!debug_message.empty()) {
+        return strprintf("%s, %s", state.GetRejectReason(), debug_message);
+    }
+
+    return state.GetRejectReason();
 }
 
 const std::string strMessageMagic = "DarkNet Signed Message:\n";
