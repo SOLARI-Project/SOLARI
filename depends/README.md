@@ -61,21 +61,36 @@ RISC-V known issue: gcc-7.3.0 and gcc-7.3.1 result in a broken `test_pivx` execu
 this is apparently fixed in gcc-8.1.0.
 
 ### Dependency Options
-The following can be set when running make: make FOO=bar
+The following can be set when running make: `make FOO=bar`
 
-    SOURCES_PATH: downloaded sources will be placed here
-    BASE_CACHE: built packages will be placed here
-    SDK_PATH: Path where sdk's can be found (used by macOS)
-    FALLBACK_DOWNLOAD_PATH: If a source file can't be fetched, try here before giving up
-    NO_QT: Don't download/build/cache qt and its dependencies
-    NO_ZMQ: Don't download/build/cache packages needed for enabling zeromq
-    NO_WALLET: Don't download/build/cache libs needed to enable the wallet
-    NO_UPNP: Don't download/build/cache packages needed for enabling upnp
-    NO_RUST: Don't download/build/cache rust packages (including librustzcash)
-    DEBUG: disable some optimizations and enable more runtime checking
-    LIBRUSTZCASH_OVERRIDE: Path to a local librustzcash repository
-    HOST_ID_SALT: Optional salt to use when generating host package ids
-    BUILD_ID_SALT: Optional salt to use when generating build package ids
+<dl>
+<dt>SOURCES_PATH</dt>
+<dd>downloaded sources will be placed here</dd>
+<dt>BASE_CACHE</dt>
+<dd>built packages will be placed here</dd>
+<dt>SDK_PATH</dt>
+<dd>Path where sdk's can be found (used by macOS)</dd>
+<dt>FALLBACK_DOWNLOAD_PATH</dt>
+<dd>If a source file can't be fetched, try here before giving up</dd>
+<dt>NO_QT</dt>
+<dd>Don't download/build/cache qt and its dependencies</dd>
+<dt>NO_ZMQ</dt>
+<dd>Don't download/build/cache packages needed for enabling zeromq</dd>
+<dt>NO_WALLET</dt>
+<dd>Don't download/build/cache libs needed to enable the wallet</dd>
+<dt>NO_UPNP</dt>
+<dd>Don't download/build/cache packages needed for enabling upnp</dd>
+<dt>NO_RUST</dt>
+<dd>Don't download/build/cache rust packages (including librustzcash)</dd>
+<dt>DEBUG</dt>
+<dd>disable some optimizations and enable more runtime checking</dd>
+<dt>LIBRUSTZCASH_OVERRIDE</dt>
+<dd>Path to a local librustzcash repository</dd>
+<dt>HOST_ID_SALT</dt>
+<dd>Optional salt to use when generating host package ids</dd>
+<dt>BUILD_ID_SALT</dt>
+<dd>Optional salt to use when generating build package ids</dd>
+</dl>
 
 If some packages are not built, for example `make NO_WALLET=1`, the appropriate
 options will be passed to bitcoin's configure. In this case, `--disable-wallet`.
