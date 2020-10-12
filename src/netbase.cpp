@@ -50,15 +50,17 @@ enum Network ParseNetwork(std::string net)
 std::string GetNetworkName(enum Network net)
 {
     switch (net) {
-    case NET_IPV4:
-        return "ipv4";
-    case NET_IPV6:
-        return "ipv6";
-    case NET_ONION:
-        return "onion";
-    default:
-        return "";
-    }
+        case NET_UNROUTABLE: return "unroutable";
+        case NET_IPV4: return "ipv4";
+        case NET_IPV6: return "ipv6";
+        case NET_ONION: return "onion";
+        case NET_I2P: return "i2p";
+        case NET_CJDNS: return "cjdns";
+        case NET_INTERNAL: return "internal";
+        case NET_MAX: assert(false);
+    } // no default case, so the compiler can warn about missing cases
+
+    assert(false);
 }
 
 void SplitHostPort(std::string in, int& portOut, std::string& hostOut)
