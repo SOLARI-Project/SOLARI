@@ -18,7 +18,7 @@ These are the dependencies currently used by PIVX Core. You can find instruction
 | libjpeg |  |  |  |  | [Yes](https://github.com/pivx-project/pivx/blob/master/depends/packages/qt.mk#L65) |
 | libpng |  |  |  |  | [Yes](https://github.com/pivx-project/pivx/blob/master/depends/packages/qt.mk#L64) |
 | librsvg | |  |  |  |  |
-| MiniUPnPc | [2.0.20180203](http://miniupnp.free.fr/files) |  | No |  |  |
+| MiniUPnPc | [2.2.2](https://miniupnp.tuxfamily.org/files) |  | No |  |  |
 | OpenSSL | [1.0.1k](https://www.openssl.org/source) |  | Yes |  |  |
 | GMP | [6.1.2](https://gmplib.org/) | | No | | |
 | PCRE |  |  |  |  | [Yes](https://github.com/pivx-project/pivx/blob/master/depends/packages/qt.mk#L66) |
