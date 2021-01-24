@@ -183,6 +183,7 @@ BITCOIN_CORE_H = \
   crypter.h \
   cyclingvector.h \
   evo/evodb.h \
+  evo/providertx.h \
   evo/specialtx.h \
   pairresult.h \
   addressbook.h \
@@ -326,6 +327,7 @@ libbitcoin_server_a_SOURCES = \
   consensus/tx_verify.cpp \
   consensus/zerocoin_verify.cpp \
   evo/evodb.cpp \
+  evo/providertx.cpp \
   evo/specialtx.cpp \
   httprpc.cpp \
   httpserver.cpp \

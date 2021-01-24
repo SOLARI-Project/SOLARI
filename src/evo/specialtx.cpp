@@ -9,6 +9,8 @@
 #include "chainparams.h"
 #include "clientversion.h"
 #include "consensus/validation.h"
+#include "evo/providertx.h"
+#include "primitives/transaction.h"
 #include "primitives/block.h"
 
 // Basic non-contextual checks for all tx types
@@ -66,7 +68,10 @@ bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state)
             // nothing to check
             return true;
         }
-        // !TODO
+        case CTransaction::TxType::PROREG: {
+            // provider-register
+            return CheckProRegTx(tx, nullptr, state);
+        }
     }
 
     return state.DoS(10, error("%s: special tx %s with invalid type %d", __func__, tx.GetHash().ToString(), tx.nType),
@@ -95,7 +100,10 @@ bool CheckSpecialTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CVali
 
     // contextual and non-contextual per-type checks
     switch (tx.nType) {
-        // !TODO
+        case CTransaction::TxType::PROREG: {
+            // provider-register
+            return CheckProRegTx(tx, pindexPrev, state);
+        }
     }
 
     return state.DoS(10, error("%s: special tx %s with invalid type %d", __func__, tx.GetHash().ToString(), tx.nType),
@@ -121,3 +129,11 @@ bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex)
     return true;
 }
 
+uint256 CalcTxInputsHash(const CTransaction& tx)
+{
+    CHashWriter hw(CLIENT_VERSION, SER_GETHASH);
+    for (const auto& in : tx.vin) {
+        hw << in.prevout;
+    }
+    return hw.GetHash();
+}

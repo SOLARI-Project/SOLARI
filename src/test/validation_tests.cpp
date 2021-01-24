@@ -18,36 +18,37 @@ BOOST_AUTO_TEST_CASE(special_tx_validation_test)
     CValidationState state;
 
     // v1 can only be Type=0
-    mtx.nType = 1;
+    mtx.nType = CTransaction::TxType::PROREG;
     mtx.nVersion = CTransaction::TxVersion::LEGACY;
     BOOST_CHECK(!CheckSpecialTxNoContext(CTransaction(mtx), state));
-    BOOST_CHECK(state.GetRejectReason().find("not supported with version 0"));
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-type-version");
 
     // version >= Sapling, type = 0, payload != null.
     mtx.nType = CTransaction::TxType::NORMAL;
     mtx.extraPayload = std::vector<uint8_t>(10, 1);
     mtx.nVersion = CTransaction::TxVersion::SAPLING;
     BOOST_CHECK(!CheckSpecialTxNoContext(CTransaction(mtx), state));
-    BOOST_CHECK(state.GetRejectReason().find("doesn't support extra payload"));
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-type-payload");
 
     // version >= Sapling, type = 0, payload == null --> pass
     mtx.extraPayload = nullopt;
     BOOST_CHECK(CheckSpecialTxNoContext(CTransaction(mtx), state));
 
     // nVersion>=2 and nType!=0 without extrapayload
-    mtx.nType = 1;
+    mtx.nType = CTransaction::TxType::PROREG;
     BOOST_CHECK(!CheckSpecialTxNoContext(CTransaction(mtx), state));
     BOOST_CHECK(state.GetRejectReason().find("without extra payload"));
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-payload-empty");
 
     // Size limits
     mtx.extraPayload = std::vector<uint8_t>(MAX_SPECIALTX_EXTRAPAYLOAD + 1, 1);
     BOOST_CHECK(!CheckSpecialTxNoContext(CTransaction(mtx), state));
-    BOOST_CHECK(state.GetRejectReason().find("Special tx payload oversize"));
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-payload-oversize");
 
     // Remove one element, so now it passes the size check
     mtx.extraPayload->pop_back();
     BOOST_CHECK(!CheckSpecialTxNoContext(CTransaction(mtx), state));
-    BOOST_CHECK(state.GetRejectReason().find("with invalid type"));
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-payload");
 }
 
 void test_simple_sapling_invalidity(CMutableTransaction& tx)

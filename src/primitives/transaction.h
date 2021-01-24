@@ -272,6 +272,7 @@ public:
     /** Transaction types */
     enum TxType: int16_t {
         NORMAL = 0,
+        PROREG = 1,
     };
 
     static const int16_t CURRENT_VERSION = TxVersion::LEGACY;
@@ -452,6 +453,11 @@ struct CMutableTransaction
      * fly, as opposed to GetHash() in CTransaction, which uses a cached result.
      */
     uint256 GetHash() const;
+
+    bool hasExtraPayload() const
+    {
+        return extraPayload != nullopt && !extraPayload->empty();
+    }
 
     // Ensure that special and sapling fields are signed
     SigVersion GetRequiredSigVersion() const
