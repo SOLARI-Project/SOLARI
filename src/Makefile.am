@@ -735,7 +735,10 @@ CTAES_DIST += crypto/ctaes/ctaes.h
 CTAES_DIST += crypto/ctaes/README.md
 CTAES_DIST += crypto/ctaes/test.c
 
+IMMER_DIST = immer
+
 EXTRA_DIST = $(CTAES_DIST) rust
+EXTRA_DIST += $(IMMER_DIST)
 
 
 config/pivx-config.h: config/stamp-h1
