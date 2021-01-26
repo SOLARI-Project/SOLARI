@@ -44,6 +44,7 @@
 #include "scheduler.h"
 #include "spork.h"
 #include "sporkdb.h"
+#include "evo/deterministicmns.h"
 #include "evo/evodb.h"
 #include "txdb.h"
 #include "torcontrol.h"
@@ -298,6 +299,7 @@ void PrepareShutdown()
         zerocoinDB = NULL;
         delete pSporkDB;
         pSporkDB = NULL;
+        deterministicMNManager.reset();
         evoDb.reset();
     }
 #ifdef ENABLE_WALLET
@@ -1582,8 +1584,10 @@ bool AppInitMain()
                 zerocoinDB = new CZerocoinDB(0, false, fReindex);
                 pSporkDB = new CSporkDB(0, false, false);
 
+                deterministicMNManager.reset();
                 evoDb.reset();
                 evoDb.reset(new CEvoDB(nEvoDbCache, false, fReindex));
+                deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
 
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
 

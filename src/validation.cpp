@@ -23,6 +23,7 @@
 #include "consensus/validation.h"
 #include "consensus/zerocoin_verify.h"
 #include "evo/specialtx.h"
+#include "evo/deterministicmns.h"
 #include "fs.h"
 #include "guiinterface.h"
 #include "init.h"
