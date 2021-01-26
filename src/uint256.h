@@ -141,4 +141,15 @@ const uint256 UINT256_ZERO = uint256();
 const uint256 UINT256_ONE = uint256("0000000000000000000000000000000000000000000000000000000000000001");
 const uint256 UINT256_MAX = uint256("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
+namespace std {
+    template <>
+    struct hash<uint256>
+    {
+        std::size_t operator()(const uint256& k) const
+        {
+            return (std::size_t)k.GetCheapHash();
+        }
+    };
+}
+
 #endif // PIVX_UINT256_H
