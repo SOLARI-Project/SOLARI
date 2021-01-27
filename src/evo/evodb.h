@@ -60,6 +60,6 @@ public:
     }
 };
 
-extern CEvoDB* evoDb;
+extern std::unique_ptr<CEvoDB> evoDb;
 
 #endif//PIVX_EVODB_H

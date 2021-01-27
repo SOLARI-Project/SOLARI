@@ -5,7 +5,7 @@
 
 #include "evodb.h"
 
-CEvoDB* evoDb;
+std::unique_ptr<CEvoDB> evoDb;
 
 CEvoDB::CEvoDB(size_t nCacheSize, bool fMemory, bool fWipe) :
         db(GetDataDir() / "evodb", nCacheSize, fMemory, fWipe),

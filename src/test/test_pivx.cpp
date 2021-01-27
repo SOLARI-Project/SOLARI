@@ -47,11 +47,13 @@ BasicTestingSetup::BasicTestingSetup()
         InitSignatureCache();
         fCheckBlockIndex = true;
         SelectParams(CBaseChainParams::MAIN);
+        evoDb.reset(new CEvoDB(1 << 20, true, true));
 }
 BasicTestingSetup::~BasicTestingSetup()
 {
         ECC_Stop();
         g_connman.reset();
+        evoDb.reset();
 }
 
 TestingSetup::TestingSetup()
@@ -76,7 +78,6 @@ TestingSetup::TestingSetup()
         RegisterAllCoreRPCCommands(tableRPC);
         zerocoinDB = new CZerocoinDB(0, true);
         pSporkDB = new CSporkDB(0, true);
-        evoDb = new CEvoDB(1 << 20, true, true);
         pblocktree = new CBlockTreeDB(1 << 20, true);
         pcoinsdbview = new CCoinsViewDB(1 << 23, true);
         pcoinsTip = new CCoinsViewCache(pcoinsdbview);
@@ -111,7 +112,6 @@ TestingSetup::~TestingSetup()
         delete pblocktree;
         delete zerocoinDB;
         delete pSporkDB;
-        delete evoDb;
         fs::remove_all(pathTemp);
 }
 

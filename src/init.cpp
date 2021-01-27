@@ -298,8 +298,7 @@ void PrepareShutdown()
         zerocoinDB = NULL;
         delete pSporkDB;
         pSporkDB = NULL;
-        delete evoDb;
-        evoDb = nullptr;
+        evoDb.reset();
     }
 #ifdef ENABLE_WALLET
     if (pwalletMain)
@@ -1575,12 +1574,13 @@ bool AppInitMain()
                 delete pblocktree;
                 delete zerocoinDB;
                 delete pSporkDB;
-                delete evoDb;
 
                 //PIVX specific: zerocoin and spork DB's
                 zerocoinDB = new CZerocoinDB(0, false, fReindex);
                 pSporkDB = new CSporkDB(0, false, false);
-                evoDb = new CEvoDB(nEvoDbCache, false, fReindex);
+
+                evoDb.reset();
+                evoDb.reset(new CEvoDB(nEvoDbCache, false, fReindex));
 
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
 
