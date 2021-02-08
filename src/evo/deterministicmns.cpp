@@ -12,6 +12,7 @@
 #include "guiinterface.h"
 #include "masternode.h" // for MN_COLL_AMT, MasternodeCollateralMinConf
 #include "script/standard.h"
+#include "spork.h"
 #include "sync.h"
 #include "validation.h"
 #include "validationinterface.h"
@@ -503,7 +504,10 @@ CDeterministicMNManager::CDeterministicMNManager(CEvoDB& _evoDb) :
 bool CDeterministicMNManager::ProcessBlock(const CBlock& block, const CBlockIndex* pindex, CValidationState& _state, bool fJustCheck)
 {
     int nHeight = pindex->nHeight;
-    // !TODO: exit early if enforcement not active
+    if (!IsDIP3Enforced(nHeight)) {
+        // nothing to do
+        return true;
+    }
 
     CDeterministicMNList oldList, newList;
     CDeterministicMNListDiff diff;
@@ -558,8 +562,12 @@ bool CDeterministicMNManager::ProcessBlock(const CBlock& block, const CBlockInde
 
 bool CDeterministicMNManager::UndoBlock(const CBlock& block, const CBlockIndex* pindex)
 {
-    // !TODO: exit early if enforcement not active
-    uint256 blockHash = block.GetHash();
+    if (!IsDIP3Enforced(pindex->nHeight)) {
+        // nothing to do
+        return true;
+    }
+
+    const uint256& blockHash = block.GetHash();
 
     CDeterministicMNList curList;
     CDeterministicMNList prevList;
@@ -810,6 +818,28 @@ CDeterministicMNList CDeterministicMNManager::GetListAtChainTip()
         return {};
     }
     return GetListForBlock(tipIndex);
+}
+
+bool CDeterministicMNManager::IsDIP3Enforced(int nHeight) const
+{
+    return Params().GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0);
+}
+
+bool CDeterministicMNManager::IsDIP3Enforced() const
+{
+    int tipHeight = WITH_LOCK(cs, return tipIndex ? tipIndex->nHeight : -1;);
+    return IsDIP3Enforced(tipHeight);
+}
+
+bool CDeterministicMNManager::LegacyMNObsolete(int nHeight) const
+{
+    return nHeight > sporkManager.GetSporkValue(SPORK_21_LEGACY_MNS_MAX_HEIGHT);
+}
+
+bool CDeterministicMNManager::LegacyMNObsolete() const
+{
+    int tipHeight = WITH_LOCK(cs, return tipIndex ? tipIndex->nHeight : -1;);
+    return LegacyMNObsolete(tipHeight);
 }
 
 void CDeterministicMNManager::CleanupCache(int nHeight)

@@ -589,6 +589,14 @@ public:
     CDeterministicMNList GetListForBlock(const CBlockIndex* pindex);
     CDeterministicMNList GetListAtChainTip();
 
+    // Whether DMNs are enforced at provided height, or at the chain-tip
+    bool IsDIP3Enforced(int nHeight) const;
+    bool IsDIP3Enforced() const;
+
+    // Whether Legacy MNs are disabled at provided height, or at the chain-tip
+    bool LegacyMNObsolete(int nHeight) const;
+    bool LegacyMNObsolete() const;
+
 private:
     void CleanupCache(int nHeight);
 };
