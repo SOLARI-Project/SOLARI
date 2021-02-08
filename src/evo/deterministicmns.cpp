@@ -9,6 +9,7 @@
 #include "chainparams.h"
 #include "core_io.h"
 #include "evo/specialtx.h"
+#include "guiinterface.h"
 #include "masternode.h" // for MN_COLL_AMT, MasternodeCollateralMinConf
 #include "script/standard.h"
 #include "sync.h"
@@ -543,7 +544,11 @@ bool CDeterministicMNManager::ProcessBlock(const CBlock& block, const CBlockInde
         return _state.DoS(100, false, REJECT_INVALID, "failed-dmn-block");
     }
 
-    // !TODO: notify listeners that the mn list has changed
+    // Don't hold cs while calling signals
+    if (diff.HasChanges()) {
+        GetMainSignals().NotifyMasternodeListChanged(false, oldList, diff);
+        uiInterface.NotifyMasternodeListChanged(newList);
+    }
 
     LOCK(cs);
     CleanupCache(nHeight);
@@ -575,7 +580,8 @@ bool CDeterministicMNManager::UndoBlock(const CBlock& block, const CBlockIndex* 
 
     if (diff.HasChanges()) {
         auto inversedDiff = curList.BuildDiff(prevList);
-        // !TODO: notify listeners that the masternode list has changed
+        GetMainSignals().NotifyMasternodeListChanged(true, curList, inversedDiff);
+        uiInterface.NotifyMasternodeListChanged(prevList);
     }
 
     return true;

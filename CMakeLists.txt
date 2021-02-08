@@ -385,6 +385,7 @@ set(COMMON_SOURCES
         ./src/key_io.cpp
         ./src/compressor.cpp
         ./src/evo/deterministicmns.cpp
+        ./src/evo/evonotificationinterface.cpp
         ./src/evo/evodb.cpp
         ./src/evo/providertx.cpp
         ./src/evo/specialtx.cpp

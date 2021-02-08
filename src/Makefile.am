@@ -184,6 +184,7 @@ BITCOIN_CORE_H = \
   cyclingvector.h \
   evo/deterministicmns.h \
   evo/evodb.h \
+  evo/evonotificationinterface.h \
   evo/providertx.h \
   evo/specialtx.h \
   pairresult.h \
@@ -330,6 +331,7 @@ libbitcoin_server_a_SOURCES = \
   consensus/zerocoin_verify.cpp \
   evo/deterministicmns.cpp \
   evo/evodb.cpp \
+  evo/evonotificationinterface.cpp \
   evo/providertx.cpp \
   evo/specialtx.cpp \
   httprpc.cpp \

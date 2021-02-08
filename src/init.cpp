@@ -22,6 +22,7 @@
 #include "checkpoints.h"
 #include "compat/sanity.h"
 #include "consensus/upgrades.h"
+#include "evo/evonotificationinterface.h"
 #include "fs.h"
 #include "httpserver.h"
 #include "httprpc.h"
@@ -104,6 +105,8 @@ std::unique_ptr<PeerLogicValidation> peerLogic;
 #if ENABLE_ZMQ
 static CZMQNotificationInterface* pzmqNotificationInterface = NULL;
 #endif
+
+static EvoNotificationInterface* pEvoNotificationInterface = nullptr;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -307,11 +310,17 @@ void PrepareShutdown()
         bitdb.Flush(true);
 #endif
 
+    if (pEvoNotificationInterface) {
+        UnregisterValidationInterface(pEvoNotificationInterface);
+        delete pEvoNotificationInterface;
+        pEvoNotificationInterface = nullptr;
+    }
+
 #if ENABLE_ZMQ
     if (pzmqNotificationInterface) {
         UnregisterValidationInterface(pzmqNotificationInterface);
         delete pzmqNotificationInterface;
-        pzmqNotificationInterface = NULL;
+        pzmqNotificationInterface = nullptr;
     }
 #endif
 
@@ -718,6 +727,10 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
         LogPrintf("Stopping after block import\n");
         StartShutdown();
     }
+
+    // force UpdatedBlockTip to initialize nCachedBlockHeight for DS, MN payments and budgets
+    // but don't call it directly to prevent triggering of other listeners like zmq etc.
+    pEvoNotificationInterface->InitializeCurrentBlockTip();
 
     if (gArgs.GetBoolArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         LoadMempool(::mempool);
@@ -1535,6 +1548,9 @@ bool AppInitMain()
         RegisterValidationInterface(pzmqNotificationInterface);
     }
 #endif
+
+    pEvoNotificationInterface = new EvoNotificationInterface(connman);
+    RegisterValidationInterface(pEvoNotificationInterface);
 
     // ********************************************************* Step 7: load block chain
 

@@ -2415,9 +2415,6 @@ bool ActivateBestChain(CValidationState& state, std::shared_ptr<const CBlock> pb
                 // Notify ValidationInterface subscribers
                 GetMainSignals().UpdatedBlockTip(pindexNewTip, pindexFork, fInitialDownload);
 
-                // TODO: move to notification interface
-                deterministicMNManager->UpdatedBlockTip(pindexNewTip);
-
                 // Always notify the UI if a new block tip was connected
                 uiInterface.NotifyBlockTip(fInitialDownload, pindexNewTip);
             }
