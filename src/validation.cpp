@@ -22,8 +22,8 @@
 #include "consensus/tx_verify.h"
 #include "consensus/validation.h"
 #include "consensus/zerocoin_verify.h"
-#include "evo/specialtx.h"
 #include "evo/deterministicmns.h"
+#include "evo/specialtx.h"
 #include "fs.h"
 #include "guiinterface.h"
 #include "init.h"
@@ -1347,6 +1347,10 @@ DisconnectResult DisconnectBlock(CBlock& block, const CBlockIndex* pindex, CCoin
         return DISCONNECT_FAILED;
     }
 
+    if (!UndoSpecialTxsInBlock(block, pindex)) {
+        return DISCONNECT_FAILED;
+    }
+
     // undo transactions in reverse order
     for (int i = block.vtx.size() - 1; i >= 0; i--) {
         const CTransaction& tx = *block.vtx[i];
@@ -2410,6 +2414,9 @@ bool ActivateBestChain(CValidationState& state, std::shared_ptr<const CBlock> pb
             if (pindexFork != pindexNewTip) {
                 // Notify ValidationInterface subscribers
                 GetMainSignals().UpdatedBlockTip(pindexNewTip, pindexFork, fInitialDownload);
+
+                // TODO: move to notification interface
+                deterministicMNManager->UpdatedBlockTip(pindexNewTip);
 
                 // Always notify the UI if a new block tip was connected
                 uiInterface.NotifyBlockTip(fInitialDownload, pindexNewTip);

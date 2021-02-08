@@ -205,8 +205,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         deterministicMNManager->UpdatedBlockTip(chainActive.Tip());
 
         BOOST_CHECK_EQUAL(chainActive.Height(), nHeight + 1);
-        // check list after connecting deterministicMNManager->ProcessBlock();
-        //BOOST_CHECK(deterministicMNManager->GetListAtChainTip().HasMN(txid));
+        BOOST_CHECK(deterministicMNManager->GetListAtChainTip().HasMN(txid));
 
         nHeight++;
     }

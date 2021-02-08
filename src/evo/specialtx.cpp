@@ -9,6 +9,7 @@
 #include "chainparams.h"
 #include "clientversion.h"
 #include "consensus/validation.h"
+#include "evo/deterministicmns.h"
 #include "evo/providertx.h"
 #include "primitives/transaction.h"
 #include "primitives/block.h"
@@ -119,13 +120,22 @@ bool ProcessSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex, CV
             return false;
         }
     }
-    // !TODO: Process batch of special txes in deterministic manager
+
+    if (!deterministicMNManager->ProcessBlock(block, pindex, state, fJustCheck)) {
+        // pass the state returned by the function above
+        return false;
+    }
+
+    // !TODO: ProcessBlock llmq quorum block processor
     return true;
 }
 
 bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex)
 {
-    /* undo special txes in batches */
+    if (!deterministicMNManager->UndoBlock(block, pindex)) {
+        return false;
+    }
+    // !TODO: UndoBlock llmq quorum block processor
     return true;
 }
 
