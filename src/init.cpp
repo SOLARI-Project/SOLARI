@@ -316,7 +316,7 @@ void PrepareShutdown()
         pEvoNotificationInterface = nullptr;
     }
 
-    if (fMasterNode) {
+    if (activeMasternodeManager) {
         UnregisterValidationInterface(activeMasternodeManager);
     }
 
@@ -571,6 +571,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-masternodeprivkey=<n>", _("Set the masternode private key"));
     strUsage += HelpMessageOpt("-masternodeaddr=<n>", strprintf(_("Set external address:port to get to this masternode (example: %s)"), "128.127.106.235:51472"));
     strUsage += HelpMessageOpt("-budgetvotemode=<mode>", _("Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)"));
+    strUsage += HelpMessageOpt("-mnoperatorprivatekey=<WIF>", _("Set the masternode operator private key. Only valid with -masternode=1. When set, the masternode acts as a deterministic masternode."));
 
     strUsage += HelpMessageGroup(_("Node relay options:"));
     strUsage += HelpMessageOpt("-datacarrier", strprintf(_("Relay and mine data carrier transactions (default: %u)"), DEFAULT_ACCEPT_DATACARRIER));
@@ -1897,14 +1898,34 @@ bool AppInitMain()
     }
 
     if (fMasterNode) {
-        LogPrintf("IS MASTER NODE\n");
+        const std::string& mnoperatorkeyStr = gArgs.GetArg("-mnoperatorprivatekey", "");
+        const bool fDeterministic = !mnoperatorkeyStr.empty();
+        LogPrintf("IS %sMASTERNODE\n", (fDeterministic ? "DETERMINISTIC " : ""));
 
-        // init and register activeMasternodeManager
-        activeMasternodeManager = new CActiveDeterministicMasternodeManager();
-        RegisterValidationInterface(activeMasternodeManager);
-
-        auto res = initMasternode(gArgs.GetArg("-masternodeprivkey", ""), gArgs.GetArg("-masternodeaddr", ""), true);
-        if (!res) { return UIError(res.getError()); }
+        if (fDeterministic) {
+            // Check enforcement
+            if (!deterministicMNManager->IsDIP3Enforced()) {
+                const std::string strError = "Cannot start deterministic masternode before enforcement. Remove -mnoperatorprivatekey to start as legacy masternode";
+                LogPrintf("-- ERROR: %s\n", strError);
+                return UIError(_(strError.c_str()));
+            }
+            // Create and register activeMasternodeManager
+            activeMasternodeManager = new CActiveDeterministicMasternodeManager();
+            auto res = activeMasternodeManager->SetOperatorKey(mnoperatorkeyStr);
+            if (!res) { return UIError(res.getError()); }
+            RegisterValidationInterface(activeMasternodeManager);
+            // Init active masternode
+            activeMasternodeManager->Init();
+        } else {
+            // Check enforcement
+            if (deterministicMNManager->LegacyMNObsolete()) {
+                const std::string strError = "Legacy masternode system disabled. Use -mnoperatorprivatekey to start as deterministic masternode";
+                LogPrintf("-- ERROR: %s\n", strError);
+                return UIError(_(strError.c_str()));
+            }
+            auto res = initMasternode(gArgs.GetArg("-masternodeprivkey", ""), gArgs.GetArg("-masternodeaddr", ""), true);
+            if (!res) { return UIError(res.getError()); }
+        }
     }
 
     //get the mode of budget voting for this masternode
@@ -1939,11 +1960,6 @@ bool AppInitMain()
     if (ShutdownRequested()) {
         LogPrintf("Shutdown requested. Exiting.\n");
         return false;
-    }
-
-    if (fMasterNode) {
-        assert(activeMasternodeManager);
-        activeMasternodeManager->Init();
     }
 
     // ********************************************************* Step 11: start node

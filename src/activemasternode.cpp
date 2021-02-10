@@ -61,11 +61,9 @@ OperationResult CActiveDeterministicMasternodeManager::SetOperatorKey(const std:
     if (strMNOperatorPrivKey.empty()) {
         return errorOut("ERROR: Masternode operator priv key cannot be empty.");
     }
-    CPubKey pubkey;
-    if (!CMessageSigner::GetKeysFromSecret(strMNOperatorPrivKey, info.keyOperator, pubkey)) {
+    if (!CMessageSigner::GetKeysFromSecret(strMNOperatorPrivKey, info.keyOperator, info.keyIDOperator)) {
         return errorOut(_("Invalid mnoperatorprivatekey. Please see the documentation."));
     }
-    info.keyIDOperator = pubkey.GetID();
     return OperationResult(true);
 }
 
