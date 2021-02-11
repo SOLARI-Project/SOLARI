@@ -486,6 +486,12 @@ void CBudgetManager::VoteOnFinalizedBudgets()
         return;
     }
 
+    // check that the active masternode is enabled
+    if (activeMasternode.GetStatus() != ACTIVE_MASTERNODE_STARTED) {
+        LogPrint(BCLog::MNBUDGET,"%s: MN not enabled (%s)\n", __func__, activeMasternode.GetStatusMessage());
+        return;
+    }
+
     std::vector<CBudgetProposal> vBudget = GetBudget();
     if (vBudget.empty()) {
         LogPrint(BCLog::MNBUDGET,"%s: No proposal can be finalized\n", __func__);
