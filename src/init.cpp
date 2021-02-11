@@ -318,6 +318,8 @@ void PrepareShutdown()
 
     if (activeMasternodeManager) {
         UnregisterValidationInterface(activeMasternodeManager);
+        delete activeMasternodeManager;
+        activeMasternodeManager = nullptr;
     }
 
 #if ENABLE_ZMQ

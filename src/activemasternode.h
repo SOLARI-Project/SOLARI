@@ -53,6 +53,7 @@ private:
     CActiveMasternodeInfo info;
 
 public:
+    virtual ~CActiveDeterministicMasternodeManager() = default;
     virtual void UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload);
 
     void Init();
