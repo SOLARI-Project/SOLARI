@@ -267,9 +267,9 @@ static UniValue voteProposal(const uint256& propHash, const CBudgetVote::VoteDir
             failed++;
             continue;
         }
-        std::string strError;
-        if (!g_budgetman.AddAndRelayProposalVote(vote, strError)) {
-            resultsObj.push_back(packErrorRetStatus(k.mnAlias, strError));
+        CValidationState state;
+        if (!g_budgetman.ProcessProposalVote(vote, nullptr, state)) {
+            resultsObj.push_back(packErrorRetStatus(k.mnAlias, FormatStateMessage(state)));
             failed++;
             continue;
         }
@@ -291,14 +291,12 @@ static UniValue voteFinalBudget(const uint256& budgetHash,
             failed++;
             continue;
         }
-        std::string strError = "";
-        if (!g_budgetman.UpdateFinalizedBudget(vote, nullptr, strError)) {
-            resultsObj.push_back(packErrorRetStatus(k.mnAlias, strError));
+        CValidationState state;
+        if (!g_budgetman.ProcessFinalizedBudgetVote(vote, nullptr, state)) {
+            resultsObj.push_back(packErrorRetStatus(k.mnAlias, FormatStateMessage(state)));
             failed++;
             continue;
         }
-        g_budgetman.AddSeenFinalizedBudgetVote(vote);
-        vote.Relay();
         resultsObj.push_back(packRetStatus(k.mnAlias, "success", ""));
         success++;
     }
