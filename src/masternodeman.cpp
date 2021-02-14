@@ -720,12 +720,6 @@ int CMasternodeMan::ProcessMNPing(CNode* pfrom, CMasternodePing& mnp)
 
 int CMasternodeMan::ProcessGetMNList(CNode* pfrom, CTxIn& vin)
 {
-    // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
-    if (deterministicMNManager->LegacyMNObsolete()) {
-        LogPrint(BCLog::MASTERNODE, "dseg - skip obsolete message\n");
-        return 0;
-    }
-
     if (vin.IsNull()) { //only should ask for this once
         //local network
         bool isLocal = (pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal());
