@@ -15,7 +15,6 @@
 #include "validationinterface.h"
 #include "wallet/wallet.h"
 
-struct CActiveMasternodeInfo;
 class CActiveDeterministicMasternodeManager;
 
 #define ACTIVE_MASTERNODE_INITIAL 0 // initial state
@@ -23,18 +22,16 @@ class CActiveDeterministicMasternodeManager;
 #define ACTIVE_MASTERNODE_NOT_CAPABLE 3
 #define ACTIVE_MASTERNODE_STARTED 4
 
-extern CActiveMasternodeInfo activeMasternodeInfo;
 extern CActiveDeterministicMasternodeManager* activeMasternodeManager;
 
-struct CActiveMasternodeInfo {
+struct CActiveMasternodeInfo
+{
     // Keys for the active Masternode
     CKeyID keyIDOperator;
     CKey keyOperator;
     // Initialized while registering Masternode
-    uint256 proTxHash;
-    COutPoint outpoint;
+    uint256 proTxHash{UINT256_ZERO};
     CService service;
-    void SetNullProTx() { proTxHash = UINT256_ZERO; outpoint.SetNull(); }
 };
 
 class CActiveDeterministicMasternodeManager : public CValidationInterface
@@ -53,14 +50,21 @@ public:
 private:
     masternode_state_t state{MASTERNODE_WAITING_FOR_PROTX};
     std::string strError;
+    CActiveMasternodeInfo info;
 
 public:
     virtual void UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload);
 
     void Init();
+    void Reset(masternode_state_t _state);
+    // Sets the Deterministic Masternode Operator's private/public key
+    OperationResult SetOperatorKey(const std::string& strMNOperatorPrivKey);
+    void SetNullProTx() { info.proTxHash = UINT256_ZERO; }
 
-    std::string GetStateString() const;
+    const CActiveMasternodeInfo* GetInfo() const { return &info; }
+    masternode_state_t GetState() const { return state; }
     std::string GetStatus() const;
+    bool IsReady() const { return state == MASTERNODE_READY; }
 
     static bool IsValidNetAddr(const CService& addrIn);
 
