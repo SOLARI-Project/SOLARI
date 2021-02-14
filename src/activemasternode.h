@@ -67,13 +67,11 @@ public:
     bool IsReady() const { return state == MASTERNODE_READY; }
 
     static bool IsValidNetAddr(const CService& addrIn);
-
-private:
-    bool GetLocalAddress(CService& addrRet);
 };
 
 // Responsible for initializing the masternode
 OperationResult initMasternode(const std::string& strMasterNodePrivKey, const std::string& strMasterNodeAddr, bool isFromInit);
+
 
 // Responsible for activating the Masternode and pinging the network (legacy MN list)
 class CActiveMasternode

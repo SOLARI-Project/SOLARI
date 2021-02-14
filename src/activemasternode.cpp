@@ -19,6 +19,26 @@
 // Keep track of the active Masternode
 CActiveDeterministicMasternodeManager* activeMasternodeManager{nullptr};
 
+static bool GetLocalAddress(CService& addrRet)
+{
+    // First try to find whatever local address is specified by externalip option
+    bool fFound = GetLocal(addrRet) && CActiveDeterministicMasternodeManager::IsValidNetAddr(addrRet);
+    if (!fFound && Params().IsRegTestNet()) {
+        if (Lookup("127.0.0.1", addrRet, GetListenPort(), false)) {
+            fFound = true;
+        }
+    }
+    if(!fFound) {
+        // If we have some peers, let's try to find our local address from one of them
+        g_connman->ForEachNodeContinueIf([&fFound, &addrRet](CNode* pnode) {
+            if (pnode->addr.IsIPv4())
+                fFound = GetLocal(addrRet, &pnode->addr) && CActiveDeterministicMasternodeManager::IsValidNetAddr(addrRet);
+            return !fFound;
+        });
+    }
+    return fFound;
+}
+
 std::string CActiveDeterministicMasternodeManager::GetStatus() const
 {
     switch (state) {
@@ -67,6 +87,8 @@ void CActiveDeterministicMasternodeManager::Init()
 
     if (!GetLocalAddress(info.service)) {
         state = MASTERNODE_ERROR;
+        strError = "Can't detect valid external address. Please consider using the externalip configuration option if problem persists. Make sure to use IPv4 address only.";
+        LogPrintf("%s -- ERROR: %s\n", __func__, strError);
         return;
     }
 
@@ -159,31 +181,6 @@ void CActiveDeterministicMasternodeManager::UpdatedBlockTip(const CBlockIndex* p
         // and figured out our local address
         Init();
     }
-}
-
-bool CActiveDeterministicMasternodeManager::GetLocalAddress(CService& addrRet)
-{
-    // First try to find whatever local address is specified by externalip option
-    bool fFound = GetLocal(addrRet) && IsValidNetAddr(addrRet);
-    if (!fFound && Params().IsRegTestNet()) {
-        if (Lookup("127.0.0.1", addrRet, GetListenPort(), false)) {
-            fFound = true;
-        }
-    }
-    if(!fFound) {
-        // If we have some peers, let's try to find our local address from one of them
-        g_connman->ForEachNodeContinueIf([&fFound, &addrRet](CNode* pnode) {
-            if (pnode->addr.IsIPv4())
-                fFound = GetLocal(addrRet, &pnode->addr) && IsValidNetAddr(addrRet);
-            return !fFound;
-        });
-        if (!fFound) {
-            strError = "Can't detect valid external address. Please consider using the externalip configuration option if problem persists. Make sure to use IPv4 address only.";
-            LogPrintf("%s -- ERROR: %s\n", __func__, strError);
-            return false;
-        }
-    }
-    return true;
 }
 
 bool CActiveDeterministicMasternodeManager::IsValidNetAddr(const CService& addrIn)
