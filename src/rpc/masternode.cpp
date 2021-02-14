@@ -5,6 +5,7 @@
 
 #include "activemasternode.h"
 #include "db.h"
+#include "evo/deterministicmns.h"
 #include "init.h"
 #include "masternode-payments.h"
 #include "masternode-sync.h"
@@ -315,8 +316,13 @@ void SerializeMNB(UniValue& statusObjRet, const CMasternodeBroadcast& mnb, const
     return SerializeMNB(statusObjRet, mnb, fSuccess, successful, failed);
 }
 
-UniValue startmasternode (const JSONRPCRequest& request)
+UniValue startmasternode(const JSONRPCRequest& request)
 {
+    // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
+    if (deterministicMNManager->LegacyMNObsolete()) {
+        throw JSONRPCError(RPC_MISC_ERROR, "startmasternode is not supported when deterministic masternode list is active (DIP3)");
+    }
+
     std::string strCommand;
     if (request.params.size() >= 1) {
         strCommand = request.params[0].get_str();
