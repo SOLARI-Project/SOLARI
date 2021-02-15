@@ -506,8 +506,9 @@ UniValue startmasternode(const JSONRPCRequest& request)
             pwallet->Lock();
 
         if(!found) {
-            statusObj.pushKV("success", false);
-            statusObj.pushKV("error_message", "Could not find alias in config. Verify with listmasternodeconf.");
+            statusObj.pushKV("alias", alias);
+            statusObj.pushKV("result", "failed");
+            statusObj.pushKV("error", "Could not find alias in config. Verify with listmasternodeconf.");
         }
 
         return statusObj;
