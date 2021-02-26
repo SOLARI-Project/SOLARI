@@ -46,10 +46,9 @@ bool CPivStake::GetTxOutFrom(CTxOut& out) const
     return true;
 }
 
-bool CPivStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
+CTxIn CPivStake::GetTxIn() const
 {
-    txIn = CTxIn(outpointFrom.hash, outpointFrom.n);
-    return true;
+    return CTxIn(outpointFrom.hash, outpointFrom.n);
 }
 
 CAmount CPivStake::GetValue() const

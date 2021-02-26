@@ -3296,24 +3296,16 @@ bool CWallet::CreateCoinStake(
         // put the remaining on the last output (which all into the first if only one output)
         txNew.vout[outputs].nValue += nRemaining;
 
-        // Limit size
-        unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
-        if (nBytes >= DEFAULT_BLOCK_MAX_SIZE / 5)
-            return error("%s : exceeded coinstake size limit", __func__);
+        // Set coinstake input
+        txNew.vin.emplace_back(stakeInput.GetTxIn());
 
         // Masternode payment
         FillBlockPayee(txNew, pindexPrev->nHeight + 1, true);
 
-        const uint256& hashTxOut = txNew.GetHash();
-        CTxIn in;
-        if (!stakeInput.CreateTxIn(this, in, hashTxOut)) {
-            LogPrintf("%s : failed to create TxIn\n", __func__);
-            txNew.vin.clear();
-            txNew.vout.clear();
-            it++;
-            continue;
-        }
-        txNew.vin.emplace_back(in);
+        // Limit size
+        unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
+        if (nBytes >= DEFAULT_BLOCK_MAX_SIZE / 5)
+            return error("%s : exceeded coinstake size limit", __func__);
 
         break;
     }
