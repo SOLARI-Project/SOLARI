@@ -1032,12 +1032,12 @@ public:
     };
     CWallet::CommitResult CommitTransaction(CTransactionRef tx, CReserveKey& opReservekey, CConnman* connman);
     CWallet::CommitResult CommitTransaction(CTransactionRef tx, CReserveKey* reservekey, CConnman* connman);
-    bool CreateCoinStake(const CKeyStore& keystore,
-                         const CBlockIndex* pindexPrev,
+    bool CreateCoinStake(const CBlockIndex* pindexPrev,
                          unsigned int nBits,
                          CMutableTransaction& txNew,
                          int64_t& nTxNewTime,
-                         std::vector<CStakeableOutput>* availableCoins);
+                         std::vector<CStakeableOutput>* availableCoins) const;
+    bool SignCoinStake(CMutableTransaction& txNew) const;
     void AutoCombineDust(CConnman* connman);
 
     // Shielded balances

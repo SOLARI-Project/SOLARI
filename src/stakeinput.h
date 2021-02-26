@@ -25,7 +25,6 @@ public:
     virtual const CBlockIndex* GetIndexFrom() const = 0;
     virtual bool GetTxOutFrom(CTxOut& out) const = 0;
     virtual CAmount GetValue() const = 0;
-    virtual bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) = 0;
     virtual bool IsZPIV() const = 0;
     virtual CDataStream GetUniqueness() const = 0;
     virtual bool ContextCheck(int nHeight, uint32_t nTime) = 0;
@@ -50,7 +49,7 @@ public:
     CAmount GetValue() const override;
     CDataStream GetUniqueness() const override;
     CTxIn GetTxIn() const;
-    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) override;
+    bool CreateTxOuts(const CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) const;
     bool IsZPIV() const override { return false; }
     bool ContextCheck(int nHeight, uint32_t nTime) override;
 };
