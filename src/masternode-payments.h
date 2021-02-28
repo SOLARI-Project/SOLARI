@@ -27,7 +27,7 @@ void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDa
 bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight);
 std::string GetRequiredPaymentsString(int nBlockHeight);
 bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted);
-void FillBlockPayee(CMutableTransaction& txNew, const int nHeight, bool fProofOfStake);
+void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake);
 
 void DumpMasternodePayments();
 
@@ -116,12 +116,12 @@ public:
         vecPayments.push_back(c);
     }
 
-    bool GetPayee(CScript& payee)
+    bool GetPayee(CScript& payee) const
     {
         LOCK(cs_vecPayments);
 
         int nVotes = -1;
-        for (CMasternodePayee& p : vecPayments) {
+        for (const CMasternodePayee& p : vecPayments) {
             if (p.nVotes > nVotes) {
                 payee = p.scriptPubKey;
                 nVotes = p.nVotes;
@@ -253,7 +253,7 @@ public:
     void Sync(CNode* node, int nCountNeeded);
     void CleanPaymentList(int mnCount, int nHeight);
 
-    bool GetBlockPayee(int nBlockHeight, CScript& payee);
+    bool GetBlockPayee(int nBlockHeight, CScript& payee) const;
     bool IsTransactionValid(const CTransaction& txNew, int nBlockHeight);
     bool IsScheduled(const CMasternode& mn, int nNotBlockHeight);
 
@@ -274,7 +274,7 @@ public:
 
     void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     std::string GetRequiredPaymentsString(int nBlockHeight);
-    void FillBlockPayee(CMutableTransaction& txNew, const int nHeight, bool fProofOfStake);
+    void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake) const;
     std::string ToString() const;
 
     ADD_SERIALIZE_METHODS;

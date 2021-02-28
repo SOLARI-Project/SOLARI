@@ -284,14 +284,15 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight)
 }
 
 
-void FillBlockPayee(CMutableTransaction& txNew, const int nHeight, bool fProofOfStake)
+void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake)
 {
     if (nHeight == 0) return;
 
     if (!sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS) ||           // if superblocks are not enabled
-            !g_budgetman.FillBlockPayee(txNew, nHeight, fProofOfStake) ) {    // or this is not a superblock,
+            // ... or this is not a superblock
+            !g_budgetman.FillBlockPayee(txCoinbase, txCoinstake, nHeight, fProofOfStake) ) {
         // ... or there's no budget with enough votes, then pay a masternode
-        masternodePayments.FillBlockPayee(txNew, nHeight, fProofOfStake);
+        masternodePayments.FillBlockPayee(txCoinbase, txCoinstake, nHeight, fProofOfStake);
     }
 }
 
@@ -304,7 +305,7 @@ std::string GetRequiredPaymentsString(int nBlockHeight)
     }
 }
 
-void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, const int nHeight, bool fProofOfStake)
+void CMasternodePayments::FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake) const
 {
     if (nHeight == 0) return;
 
@@ -312,7 +313,7 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, const int n
     CScript payee;
 
     //spork
-    if (!masternodePayments.GetBlockPayee(nHeight, payee)) {
+    if (!GetBlockPayee(nHeight, payee)) {
         //no masternode detected
         const CMasternode* winningNode = mnodeman.GetCurrentMasterNode(1);
         if (winningNode) {
@@ -331,33 +332,33 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txNew, const int n
              * use vout.size() to align with several different cases.
              * An additional output is appended as the masternode payment
              */
-            unsigned int i = txNew.vout.size();
-            txNew.vout.resize(i + 1);
-            txNew.vout[i].scriptPubKey = payee;
-            txNew.vout[i].nValue = masternodePayment;
+            unsigned int i = txCoinstake.vout.size();
+            txCoinstake.vout.resize(i + 1);
+            txCoinstake.vout[i].scriptPubKey = payee;
+            txCoinstake.vout[i].nValue = masternodePayment;
 
             //subtract mn payment from the stake reward
-            if (!txNew.vout[1].IsZerocoinMint()) {
+            if (!txCoinstake.vout[1].IsZerocoinMint()) {
                 if (i == 2) {
                     // Majority of cases; do it quick and move on
-                    txNew.vout[i - 1].nValue -= masternodePayment;
+                    txCoinstake.vout[i - 1].nValue -= masternodePayment;
                 } else if (i > 2) {
                     // special case, stake is split between (i-1) outputs
                     unsigned int outputs = i-1;
                     CAmount mnPaymentSplit = masternodePayment / outputs;
                     CAmount mnPaymentRemainder = masternodePayment - (mnPaymentSplit * outputs);
                     for (unsigned int j=1; j<=outputs; j++) {
-                        txNew.vout[j].nValue -= mnPaymentSplit;
+                        txCoinstake.vout[j].nValue -= mnPaymentSplit;
                     }
                     // in case it's not an even division, take the last bit of dust from the last one
-                    txNew.vout[outputs].nValue -= mnPaymentRemainder;
+                    txCoinstake.vout[outputs].nValue -= mnPaymentRemainder;
                 }
             }
         } else {
-            txNew.vout.resize(2);
-            txNew.vout[1].scriptPubKey = payee;
-            txNew.vout[1].nValue = masternodePayment;
-            txNew.vout[0].nValue = GetBlockValue(nHeight) - masternodePayment;
+            txCoinbase.vout.resize(2);
+            txCoinbase.vout[1].scriptPubKey = payee;
+            txCoinbase.vout[1].nValue = masternodePayment;
+            txCoinbase.vout[0].nValue = GetBlockValue(nHeight) - masternodePayment;
         }
 
         CTxDestination address1;
@@ -454,10 +455,11 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
     }
 }
 
-bool CMasternodePayments::GetBlockPayee(int nBlockHeight, CScript& payee)
+bool CMasternodePayments::GetBlockPayee(int nBlockHeight, CScript& payee) const
 {
-    if (mapMasternodeBlocks.count(nBlockHeight)) {
-        return mapMasternodeBlocks[nBlockHeight].GetPayee(payee);
+    const auto it = mapMasternodeBlocks.find(nBlockHeight);
+    if (it != mapMasternodeBlocks.end()) {
+        return it->second.GetPayee(payee);
     }
 
     return false;
