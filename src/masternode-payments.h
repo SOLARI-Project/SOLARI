@@ -26,8 +26,14 @@ extern CMasternodePayments masternodePayments;
 void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
 bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight);
 std::string GetRequiredPaymentsString(int nBlockHeight);
-bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted);
+bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CAmount& nBudgetAmt);
 void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake);
+
+/**
+ * Check coinbase output value for blocks v10+.
+ * It must pay the masternode for regular blocks and a proposal during superblocks.
+ */
+bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt);
 
 void DumpMasternodePayments();
 

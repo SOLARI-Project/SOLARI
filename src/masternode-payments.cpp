@@ -211,7 +211,7 @@ void DumpMasternodePayments()
     LogPrint(BCLog::MASTERNODE,"Budget dump finished  %dms\n", GetTimeMillis() - nStart);
 }
 
-bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted)
+bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CAmount& nBudgetAmt)
 {
     if (!masternodeSync.IsSynced()) {
         //there is no budget data to use to check anything
@@ -227,9 +227,8 @@ bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted)
         // if the superblock spork is enabled
         if (sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS)) {
             // add current payee amount to the expected block value
-            CAmount expectedPayAmount;
-            if (g_budgetman.GetExpectedPayeeAmount(nHeight, expectedPayAmount)) {
-                nExpectedValue += expectedPayAmount;
+            if (g_budgetman.GetExpectedPayeeAmount(nHeight, nBudgetAmt)) {
+                nExpectedValue += nBudgetAmt;
             }
         }
     }
@@ -725,4 +724,31 @@ std::string CMasternodePayments::ToString() const
     info << "Votes: " << (int)mapMasternodePayeeVotes.size() << ", Blocks: " << (int)mapMasternodeBlocks.size();
 
     return info.str();
+}
+
+bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt)
+{
+    assert(tx->IsCoinBase());
+    if (masternodeSync.IsSynced()) {
+        const CAmount nCBaseOutAmt = tx->GetValueOut();
+        if (nBudgetAmt > 0) {
+            // Superblock
+            if (nCBaseOutAmt != nBudgetAmt) {
+                return error("%s: invalid coinbase payment for budget (%s vs expected=%s)",
+                             __func__, FormatMoney(nCBaseOutAmt), FormatMoney(nBudgetAmt));
+            }
+            return true;
+        } else {
+            // regular block
+            CAmount nMnAmt = GetMasternodePayment();
+            // if enforcement is disabled, there could be no masternode payment
+            bool sporkEnforced = sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT);
+            if ((sporkEnforced && nCBaseOutAmt != nMnAmt) || (!sporkEnforced && nCBaseOutAmt > nMnAmt)) {
+                return error("%s: invalid coinbase payment for masternode (%s vs expected=%s)",
+                             __func__, FormatMoney(nCBaseOutAmt), FormatMoney(nMnAmt));
+            }
+            return true;
+        }
+    }
+    return true;
 }

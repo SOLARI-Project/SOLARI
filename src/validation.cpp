@@ -1740,10 +1740,16 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         nExpectedMint += nFees;
 
     //Check that the block does not overmint
-    if (!IsBlockValueValid(pindex->nHeight, nExpectedMint, nMint)) {
-        return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
-                                    FormatMoney(nMint), FormatMoney(nExpectedMint)),
-                         REJECT_INVALID, "bad-cb-amount");
+    CAmount nBudgetAmt = 0;     // If this is a superblock, amount to be paid to the winning proposal, otherwise 0
+    if (!IsBlockValueValid(pindex->nHeight, nExpectedMint, nMint, nBudgetAmt)) {
+        return state.DoS(100, error("%s: reward pays too much (actual=%s vs limit=%s)",
+                                    __func__, FormatMoney(nMint), FormatMoney(nExpectedMint)),
+                         REJECT_INVALID, "bad-blk-amount");
+    }
+
+    // For blocks v10+: Check that the coinbase pays the exact amount
+    if (isPoSActive && pindex->nVersion >= 10 && !IsCoinbaseValueValid(block.vtx[0], nBudgetAmt)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-cb-amount");
     }
 
     if (!control.Wait())
