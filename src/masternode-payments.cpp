@@ -246,8 +246,9 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight)
         return true;
     }
 
-    const bool isPoSActive = Params().GetConsensus().NetworkUpgradeActive(nBlockHeight, Consensus::UPGRADE_POS);
-    const CTransaction& txNew = *(isPoSActive ? block.vtx[1] : block.vtx[0]);
+    const bool fPayCoinstake = Params().GetConsensus().NetworkUpgradeActive(nBlockHeight, Consensus::UPGRADE_POS) &&
+                               !Params().GetConsensus().NetworkUpgradeActive(nBlockHeight, Consensus::UPGRADE_V6_0);
+    const CTransaction& txNew = *(fPayCoinstake ? block.vtx[1] : block.vtx[0]);
 
     //check if it's a budget block
     if (sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS)) {
@@ -287,7 +288,6 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight)
 void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake)
 {
     if (nHeight == 0) return;
-
     if (!sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS) ||           // if superblocks are not enabled
             // ... or this is not a superblock
             !g_budgetman.FillBlockPayee(txCoinbase, txCoinstake, nHeight, fProofOfStake) ) {
@@ -327,15 +327,22 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txCoinbase, CMutab
     if (hasPayment) {
         CAmount masternodePayment = GetMasternodePayment();
         if (fProofOfStake) {
+            // Starting from PIVX v6.0 masternode and budgets are paid in the coinbase tx (block v10)
+            bool fPayCoinstake = !Params().GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0);
             /**For Proof Of Stake vout[0] must be null
              * Stake reward can be split into many different outputs, so we must
              * use vout.size() to align with several different cases.
              * An additional output is appended as the masternode payment
              */
+            const CTxOut mnOut(masternodePayment, payee);
             unsigned int i = txCoinstake.vout.size();
-            txCoinstake.vout.resize(i + 1);
-            txCoinstake.vout[i].scriptPubKey = payee;
-            txCoinstake.vout[i].nValue = masternodePayment;
+            if (fPayCoinstake) {
+                txCoinstake.vout.resize(i + 1);
+                txCoinstake.vout[i] = mnOut;
+            } else {
+                txCoinbase.vout.resize(1);
+                txCoinbase.vout[0] = mnOut;
+            }
 
             //subtract mn payment from the stake reward
             if (i == 2) {

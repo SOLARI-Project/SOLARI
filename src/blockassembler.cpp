@@ -504,8 +504,10 @@ void IncrementExtraNonce(std::shared_ptr<CBlock>& pblock, const CBlockIndex* pin
 
 int32_t ComputeBlockVersion(const Consensus::Params& consensus, int nHeight)
 {
-    if (NetworkUpgradeActive(nHeight, consensus, Consensus::UPGRADE_V5_0)) {
-        return CBlockHeader::CURRENT_VERSION;    // v9
+    if (NetworkUpgradeActive(nHeight, consensus, Consensus::UPGRADE_V6_0)) {
+        return CBlockHeader::CURRENT_VERSION;    // v10
+    } else if (NetworkUpgradeActive(nHeight, consensus, Consensus::UPGRADE_V5_0)) {
+        return 9;
     } else if (consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V4_0)) {
         return 7;
     } else if (consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V3_4)) {
