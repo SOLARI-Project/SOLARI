@@ -338,21 +338,19 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txCoinbase, CMutab
             txCoinstake.vout[i].nValue = masternodePayment;
 
             //subtract mn payment from the stake reward
-            if (!txCoinstake.vout[1].IsZerocoinMint()) {
-                if (i == 2) {
-                    // Majority of cases; do it quick and move on
-                    txCoinstake.vout[i - 1].nValue -= masternodePayment;
-                } else if (i > 2) {
-                    // special case, stake is split between (i-1) outputs
-                    unsigned int outputs = i-1;
-                    CAmount mnPaymentSplit = masternodePayment / outputs;
-                    CAmount mnPaymentRemainder = masternodePayment - (mnPaymentSplit * outputs);
-                    for (unsigned int j=1; j<=outputs; j++) {
-                        txCoinstake.vout[j].nValue -= mnPaymentSplit;
-                    }
-                    // in case it's not an even division, take the last bit of dust from the last one
-                    txCoinstake.vout[outputs].nValue -= mnPaymentRemainder;
+            if (i == 2) {
+                // Majority of cases; do it quick and move on
+                txCoinstake.vout[i - 1].nValue -= masternodePayment;
+            } else if (i > 2) {
+                // special case, stake is split between (i-1) outputs
+                unsigned int outputs = i-1;
+                CAmount mnPaymentSplit = masternodePayment / outputs;
+                CAmount mnPaymentRemainder = masternodePayment - (mnPaymentSplit * outputs);
+                for (unsigned int j=1; j<=outputs; j++) {
+                    txCoinstake.vout[j].nValue -= mnPaymentSplit;
                 }
+                // in case it's not an even division, take the last bit of dust from the last one
+                txCoinstake.vout[outputs].nValue -= mnPaymentRemainder;
             }
         } else {
             txCoinbase.vout.resize(2);
