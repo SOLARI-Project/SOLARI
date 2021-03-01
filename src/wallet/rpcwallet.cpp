@@ -2335,25 +2335,29 @@ UniValue ListReceived(const UniValue& params, bool by_label, int nBlockHeight)
     for (std::map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it) {
         const CWalletTx& wtx = (*it).second;
 
-        if (wtx.IsCoinBase() || !IsFinalTx(wtx.tx, nBlockHeight))
+        if (!IsFinalTx(wtx.tx, nBlockHeight)) {
             continue;
+        }
 
         int nDepth = wtx.GetDepthInMainChain();
-        if (nDepth < nMinDepth)
+        if (nDepth < nMinDepth) {
             continue;
+        }
 
         for (const CTxOut& txout : wtx.tx->vout) {
             CTxDestination address;
-            if (!ExtractDestination(txout.scriptPubKey, address))
+            if (!ExtractDestination(txout.scriptPubKey, address)) {
                 continue;
+            }
 
             if (has_filtered_address && !(filtered_address == address)) {
                 continue;
             }
 
             isminefilter mine = IsMine(*pwalletMain, address);
-            if (!(mine & filter))
+            if (!(mine & filter)) {
                 continue;
+            }
 
             tallyitem& item = mapTally[address];
             item.nAmount += txout.nValue;
