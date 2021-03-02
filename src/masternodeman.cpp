@@ -226,14 +226,14 @@ void CMasternodeMan::AskForMN(CNode* pnode, const CTxIn& vin)
 
 int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
 {
-    LOCK(cs);
-
     // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
     if (deterministicMNManager->LegacyMNObsolete()) {
         LogPrint(BCLog::MASTERNODE, "Removing all legacy mn due to SPORK 21\n");
         Clear();
         return 0;
     }
+
+    LOCK(cs);
 
     //remove inactive and outdated (or replaced by DMN)
     auto it = mapMasternodes.begin();
@@ -838,7 +838,7 @@ void CMasternodeMan::UpdateMasternodeList(CMasternodeBroadcast& mnb)
     mapSeenMasternodeBroadcast.emplace(mnb.GetHash(), mnb);
     masternodeSync.AddedMasternodeList(mnb.GetHash());
 
-    LogPrint(BCLog::MASTERNODE,"CMasternodeMan::UpdateMasternodeList() -- masternode=%s\n", mnb.vin.prevout.ToString());
+    LogPrint(BCLog::MASTERNODE,"%s -- masternode=%s\n", __func__, mnb.vin.prevout.ToString());
 
     CMasternode* pmn = Find(mnb.vin.prevout);
     if (pmn == NULL) {
