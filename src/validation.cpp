@@ -2841,14 +2841,16 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     // masternode payments / budgets
     CBlockIndex* pindexPrev = chainActive.Tip();
     int nHeight = 0;
-    if (pindexPrev != NULL) {
-        if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
-            nHeight = pindexPrev->nHeight + 1;
-        } else { //out of order
-            BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-            if (mi != mapBlockIndex.end() && (*mi).second)
-                nHeight = (*mi).second->nHeight + 1;
+    if (pindexPrev != nullptr && block.hashPrevBlock != UINT256_ZERO) {
+        if (pindexPrev->GetBlockHash() != block.hashPrevBlock) {
+            //out of order
+            auto mi = mapBlockIndex.find(block.hashPrevBlock);
+            if (mi == mapBlockIndex.end()) {
+                return false;
+            }
+            pindexPrev = mi->second;
         }
+        nHeight = pindexPrev->nHeight + 1;
 
         // PIVX
         // It is entierly possible that we don't have enough data and this could fail
@@ -2867,7 +2869,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
             fColdStakingActive = !sporkManager.IsSporkActive(SPORK_19_COLDSTAKING_MAINTENANCE);
 
             // check masternode/budget payment
-            if (!IsBlockPayeeValid(block, nHeight)) {
+            // !TODO: after transition to DMN is complete, check this also during IBD
+            if (!IsBlockPayeeValid(block, pindexPrev)) {
                 mapRejectedBlocks.emplace(block.GetHash(), GetTime());
                 return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee", false, "Couldn't find masternode/budget payment");
             }

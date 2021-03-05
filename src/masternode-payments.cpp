@@ -6,6 +6,7 @@
 #include "masternode-payments.h"
 #include "addrman.h"
 #include "chainparams.h"
+#include "evo/deterministicmns.h"
 #include "fs.h"
 #include "budget/budgetmanager.h"
 #include "masternode-sync.h"
@@ -236,8 +237,9 @@ bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CA
     return nMinted <= nExpectedValue;
 }
 
-bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight)
+bool IsBlockPayeeValid(const CBlock& block, const CBlockIndex* pindexPrev)
 {
+    int nBlockHeight = pindexPrev->nHeight + 1;
     TrxValidationStatus transactionStatus = TrxValidationStatus::InValid;
 
     if (!masternodeSync.IsSynced()) { //there is no budget data to use to check anything -- find the longest chain
@@ -273,7 +275,7 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight)
     // In all cases a masternode will get the payment for this block
 
     //check for masternode payee
-    if (masternodePayments.IsTransactionValid(txNew, nBlockHeight))
+    if (masternodePayments.IsTransactionValid(txNew, pindexPrev))
         return true;
     LogPrint(BCLog::MASTERNODE,"Invalid mn payment detected %s\n", txNew.ToString().c_str());
 
@@ -284,14 +286,13 @@ bool IsBlockPayeeValid(const CBlock& block, int nBlockHeight)
 }
 
 
-void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake)
+void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const CBlockIndex* pindexPrev, bool fProofOfStake)
 {
-    if (nHeight == 0) return;
     if (!sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS) ||           // if superblocks are not enabled
             // ... or this is not a superblock
-            !g_budgetman.FillBlockPayee(txCoinbase, txCoinstake, nHeight, fProofOfStake) ) {
+            !g_budgetman.FillBlockPayee(txCoinbase, txCoinstake, pindexPrev->nHeight + 1, fProofOfStake) ) {
         // ... or there's no budget with enough votes, then pay a masternode
-        masternodePayments.FillBlockPayee(txCoinbase, txCoinstake, nHeight, fProofOfStake);
+        masternodePayments.FillBlockPayee(txCoinbase, txCoinstake, pindexPrev, fProofOfStake);
     }
 }
 
@@ -304,14 +305,23 @@ std::string GetRequiredPaymentsString(int nBlockHeight)
     }
 }
 
-void CMasternodePayments::FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake) const
+bool CMasternodePayments::GetMasternodeTxOuts(const CBlockIndex* pindexPrev, std::vector<CTxOut>& voutMasternodePaymentsRet) const
 {
-    if (nHeight == 0) return;
+    if (deterministicMNManager->LegacyMNObsolete(pindexPrev->nHeight + 1)) {
+        // New payment logic (!TODO)
+        return false;
+    }
 
-    bool hasPayment = true;
+    // Legacy payment logic. !TODO: remove when transition to DMN is complete
+    return GetLegacyMasternodeTxOut(pindexPrev->nHeight + 1, voutMasternodePaymentsRet);
+}
+
+bool CMasternodePayments::GetLegacyMasternodeTxOut(int nHeight, std::vector<CTxOut>& voutMasternodePaymentsRet) const
+{
+    if (nHeight == 0) return false;
+    voutMasternodePaymentsRet.clear();
+
     CScript payee;
-
-    //spork
     if (!GetBlockPayee(nHeight, payee)) {
         //no masternode detected
         const CMasternode* winningNode = mnodeman.GetCurrentMasterNode(1);
@@ -319,56 +329,68 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txCoinbase, CMutab
             payee = GetScriptForDestination(winningNode->pubKeyCollateralAddress.GetID());
         } else {
             LogPrint(BCLog::MASTERNODE,"CreateNewBlock: Failed to detect masternode to pay\n");
-            hasPayment = false;
+            return false;
         }
     }
+    voutMasternodePaymentsRet.emplace_back(GetMasternodePayment(), payee);
+    return true;
+}
 
-    if (hasPayment) {
-        CAmount masternodePayment = GetMasternodePayment();
-        if (fProofOfStake) {
-            // Starting from PIVX v6.0 masternode and budgets are paid in the coinbase tx (block v10)
-            bool fPayCoinstake = !Params().GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0);
-            /**For Proof Of Stake vout[0] must be null
-             * Stake reward can be split into many different outputs, so we must
-             * use vout.size() to align with several different cases.
-             * An additional output is appended as the masternode payment
-             */
-            const CTxOut mnOut(masternodePayment, payee);
-            unsigned int i = txCoinstake.vout.size();
-            if (fPayCoinstake) {
-                txCoinstake.vout.resize(i + 1);
-                txCoinstake.vout[i] = mnOut;
-            } else {
-                txCoinbase.vout.resize(1);
-                txCoinbase.vout[0] = mnOut;
-            }
-
-            //subtract mn payment from the stake reward
-            if (i == 2) {
-                // Majority of cases; do it quick and move on
-                txCoinstake.vout[i - 1].nValue -= masternodePayment;
-            } else if (i > 2) {
-                // special case, stake is split between (i-1) outputs
-                unsigned int outputs = i-1;
-                CAmount mnPaymentSplit = masternodePayment / outputs;
-                CAmount mnPaymentRemainder = masternodePayment - (mnPaymentSplit * outputs);
-                for (unsigned int j=1; j<=outputs; j++) {
-                    txCoinstake.vout[j].nValue -= mnPaymentSplit;
-                }
-                // in case it's not an even division, take the last bit of dust from the last one
-                txCoinstake.vout[outputs].nValue -= mnPaymentRemainder;
-            }
-        } else {
-            txCoinbase.vout.resize(2);
-            txCoinbase.vout[1].scriptPubKey = payee;
-            txCoinbase.vout[1].nValue = masternodePayment;
-            txCoinbase.vout[0].nValue = GetBlockValue(nHeight) - masternodePayment;
+static void SubtractMnPaymentFromCoinstake(CMutableTransaction& txCoinstake, CAmount masternodePayment, int stakerOuts)
+{
+    assert (stakerOuts >= 2);
+    //subtract mn payment from the stake reward
+    if (stakerOuts == 2) {
+        // Majority of cases; do it quick and move on
+        txCoinstake.vout[1].nValue -= masternodePayment;
+    } else {
+        // special case, stake is split between (stakerOuts-1) outputs
+        unsigned int outputs = stakerOuts-1;
+        CAmount mnPaymentSplit = masternodePayment / outputs;
+        CAmount mnPaymentRemainder = masternodePayment - (mnPaymentSplit * outputs);
+        for (unsigned int j=1; j<=outputs; j++) {
+            txCoinstake.vout[j].nValue -= mnPaymentSplit;
         }
+        // in case it's not an even division, take the last bit of dust from the last one
+        txCoinstake.vout[outputs].nValue -= mnPaymentRemainder;
+    }
+}
 
-        CTxDestination address1;
-        ExtractDestination(payee, address1);
+void CMasternodePayments::FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const CBlockIndex* pindexPrev, bool fProofOfStake) const
+{
+    std::vector<CTxOut> vecMnOuts;
+    if (!GetMasternodeTxOuts(pindexPrev, vecMnOuts)) {
+        return;
+    }
 
-        LogPrint(BCLog::MASTERNODE,"Masternode payment of %s to %s\n", FormatMoney(masternodePayment).c_str(), EncodeDestination(address1).c_str());
+    // Starting from PIVX v6.0 masternode and budgets are paid in the coinbase tx (block v10)
+    const int nHeight = pindexPrev->nHeight + 1;
+    bool fPayCoinstake = fProofOfStake && !Params().GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0);
+
+    // if PoS block pays the coinbase, clear it first
+    if (fProofOfStake && !fPayCoinstake) txCoinbase.vout.clear();
+
+    const int initial_cstake_outs = txCoinstake.vout.size();
+
+    CAmount masternodePayment{0};
+    for (const CTxOut& mnOut: vecMnOuts) {
+        // Add the mn payment to the coinstake/coinbase tx
+        if (fPayCoinstake) {
+            txCoinstake.vout.emplace_back(mnOut);
+        } else {
+            txCoinbase.vout.emplace_back(mnOut);
+        }
+        masternodePayment += mnOut.nValue;
+        CTxDestination payeeDest;
+        ExtractDestination(mnOut.scriptPubKey, payeeDest);
+        LogPrint(BCLog::MASTERNODE,"Masternode payment of %s to %s\n", FormatMoney(mnOut.nValue), EncodeDestination(payeeDest));
+    }
+
+    // Subtract mn payment value from the block reward
+    if (fProofOfStake) {
+        SubtractMnPaymentFromCoinstake(txCoinstake, masternodePayment, initial_cstake_outs);
+    } else {
+        txCoinbase.vout[0].nValue = GetBlockValue(nHeight) - masternodePayment;
     }
 }
 
@@ -596,8 +618,15 @@ std::string CMasternodePayments::GetRequiredPaymentsString(int nBlockHeight)
     return "Unknown";
 }
 
-bool CMasternodePayments::IsTransactionValid(const CTransaction& txNew, int nBlockHeight)
+bool CMasternodePayments::IsTransactionValid(const CTransaction& txNew, const CBlockIndex* pindexPrev)
 {
+    const int nBlockHeight = pindexPrev->nHeight + 1;
+    if (deterministicMNManager->LegacyMNObsolete(nBlockHeight)) {
+        // !TODO
+        return false;
+    }
+
+    // Legacy payment logic. !TODO: remove when transition to DMN is complete
     LOCK(cs_mapMasternodeBlocks);
 
     if (mapMasternodeBlocks.count(nBlockHeight)) {

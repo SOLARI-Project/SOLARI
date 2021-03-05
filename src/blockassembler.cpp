@@ -82,7 +82,6 @@ bool SolveProofOfStake(CBlock* pblock, CBlockIndex* pindexPrev, CWallet* pwallet
     boost::this_thread::interruption_point();
 
     assert(pindexPrev);
-    const int nHeight = pindexPrev->nHeight + 1;
     pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
 
     // Sync wallet before create coinstake
@@ -97,8 +96,8 @@ bool SolveProofOfStake(CBlock* pblock, CBlockIndex* pindexPrev, CWallet* pwallet
     // Stake found
 
     // Create coinbase tx and add masternode/budget payments
-    CMutableTransaction txCoinbase = NewCoinbase(nHeight);
-    FillBlockPayee(txCoinbase, txCoinStake, nHeight, true);
+    CMutableTransaction txCoinbase = NewCoinbase(pindexPrev->nHeight + 1);
+    FillBlockPayee(txCoinbase, txCoinStake, pindexPrev, true);
 
     // Sign coinstake
     if (!pwallet->SignCoinStake(txCoinStake)) {
@@ -122,7 +121,7 @@ bool CreateCoinbaseTx(CBlock* pblock, const CScript& scriptPubKeyIn, CBlockIndex
 
     //Masternode and general budget payments
     CMutableTransaction txDummy;    // POW blocks have no coinstake
-    FillBlockPayee(txCoinbase, txDummy, nHeight, false);
+    FillBlockPayee(txCoinbase, txDummy, pindexPrev, false);
 
     // If no payee was detected, then the whole block value goes to the first output.
     if (txCoinbase.vout.size() == 1) {
