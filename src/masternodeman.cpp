@@ -26,25 +26,10 @@ CMasternodeMan mnodeman;
 /** Keep track of the active Masternode */
 CActiveMasternode activeMasternode;
 
-struct CompareLastPaid {
-    bool operator()(const std::pair<int64_t, CTxIn>& t1,
-        const std::pair<int64_t, CTxIn>& t2) const
-    {
-        return t1.first < t2.first;
-    }
-};
-
-struct CompareScoreTxIn {
-    bool operator()(const std::pair<int64_t, CTxIn>& t1,
-        const std::pair<int64_t, CTxIn>& t2) const
-    {
-        return t1.first < t2.first;
-    }
-};
-
 struct CompareScoreMN {
-    bool operator()(const std::pair<int64_t, MasternodeRef>& t1,
-        const std::pair<int64_t, MasternodeRef>& t2) const
+    template <typename T>
+    bool operator()(const std::pair<int64_t, T>& t1,
+        const std::pair<int64_t, T>& t2) const
     {
         return t1.first < t2.first;
     }
@@ -338,8 +323,6 @@ int CMasternodeMan::stable_size() const
 {
     int nStable_size = 0;
     int nMinProtocol = ActiveProtocol();
-    int64_t nMasternode_Min_Age = MN_WINNER_MINIMUM_AGE;
-    int64_t nMasternode_Age = 0;
 
     for (const auto& it : mapMasternodes) {
         const MasternodeRef& mn = it.second;
@@ -347,8 +330,7 @@ int CMasternodeMan::stable_size() const
             continue; // Skip obsolete versions
         }
         if (sporkManager.IsSporkActive (SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)) {
-            nMasternode_Age = GetAdjustedTime() - mn->sigTime;
-            if ((nMasternode_Age) < nMasternode_Min_Age) {
+            if (GetAdjustedTime() - mn->sigTime < MN_WINNER_MINIMUM_AGE) {
                 continue; // Skip masternodes younger than (default) 8000 sec (MUST be > MASTERNODE_REMOVAL_SECONDS)
             }
         }
@@ -462,41 +444,50 @@ void CMasternodeMan::CheckSpentCollaterals(const std::vector<CTransactionRef>& v
     }
 }
 
+static bool canScheduleMN(bool fFilterSigTime, const MasternodeRef& mn, int minProtocol,
+                          int nMnCount, int nBlockHeight)
+{
+    // check protocol version
+    if (mn->protocolVersion < minProtocol) return false;
+
+    // it's in the list (up to 8 entries ahead of current block to allow propagation) -- so let's skip it
+    if (masternodePayments.IsScheduled(*mn, nBlockHeight)) return false;
+
+    // it's too new, wait for a cycle
+    if (fFilterSigTime && mn->sigTime + (nMnCount * 2.6 * 60) > GetAdjustedTime()) return false;
+
+    // make sure it has as many confirmations as there are masternodes
+    if (pcoinsTip->GetCoinDepthAtHeight(mn->vin.prevout, nBlockHeight) < nMnCount) return false;
+
+    return true;
+}
+
 //
 // Deterministically select the oldest/best masternode to pay on the network
 //
-const CMasternode* CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount, const CBlockIndex* pChainTip) const
+MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount, const CBlockIndex* pChainTip) const
 {
     AssertLockNotHeld(cs_main);
     const CBlockIndex* BlockReading = (pChainTip == nullptr ? GetChainTip() : pChainTip);
     if (!BlockReading) return nullptr;
-    LOCK(cs);
 
-    const CMasternode* pBestMasternode = nullptr;
-    std::vector<std::pair<int64_t, CTxIn> > vecMasternodeLastPaid;
+    MasternodeRef pBestMasternode = nullptr;
+    std::vector<std::pair<int64_t, MasternodeRef> > vecMasternodeLastPaid;
 
     /*
         Make a vector with all of the last paid times
     */
-
-    int nMnCount = CountEnabled();
-    for (const auto& it : mapMasternodes) {
-        const MasternodeRef& mn = it.second;
-        if (!mn->IsEnabled()) continue;
-
-        // //check protocol version
-        if (mn->protocolVersion < ActiveProtocol()) continue;
-
-        //it's in the list (up to 8 entries ahead of current block to allow propagation) -- so let's skip it
-        if (masternodePayments.IsScheduled(*mn, nBlockHeight)) continue;
-
-        //it's too new, wait for a cycle
-        if (fFilterSigTime && mn->sigTime + (nMnCount * 2.6 * 60) > GetAdjustedTime()) continue;
-
-        //make sure it has as many confirmations as there are masternodes
-        if (pcoinsTip->GetCoinDepthAtHeight(mn->vin.prevout, nBlockHeight) < nMnCount) continue;
-
-        vecMasternodeLastPaid.emplace_back(SecondsSincePayment(mn, BlockReading), mn->vin);
+    int minProtocol = ActiveProtocol();
+    int nMnCount{0};
+    {
+        LOCK(cs);
+        nMnCount = CountEnabled();
+        for (const auto& it : mapMasternodes) {
+            if (!it.second->IsEnabled()) continue;
+            if (canScheduleMN(fFilterSigTime, it.second, minProtocol, nMnCount, nBlockHeight)) {
+                vecMasternodeLastPaid.emplace_back(SecondsSincePayment(it.second, BlockReading), it.second);
+            }
+        }
     }
 
     nCount = (int)vecMasternodeLastPaid.size();
@@ -505,18 +496,18 @@ const CMasternode* CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlock
     if (fFilterSigTime && nCount < nMnCount / 3) return GetNextMasternodeInQueueForPayment(nBlockHeight, false, nCount, BlockReading);
 
     // Sort them high to low
-    sort(vecMasternodeLastPaid.rbegin(), vecMasternodeLastPaid.rend(), CompareLastPaid());
+    sort(vecMasternodeLastPaid.rbegin(), vecMasternodeLastPaid.rend(), CompareScoreMN());
 
     // Look at 1/10 of the oldest nodes (by last payment), calculate their scores and pay the best one
     //  -- This doesn't look at who is being paid in the +8-10 blocks, allowing for double payments very rarely
     //  -- 1/100 payments should be a double payment on mainnet - (1/(3000/10))*2
     //  -- (chance per block * chances before IsScheduled will fire)
-    int nTenthNetwork = CountEnabled() / 10;
+    int nTenthNetwork = nMnCount / 10;
     int nCountTenth = 0;
     uint256 nHigh;
     const uint256& hash = GetHashAtHeight(nBlockHeight - 101);
-    for (std::pair<int64_t, CTxIn> & s : vecMasternodeLastPaid) {
-        const CMasternode* pmn = Find(s.second.prevout);
+    for (const auto& s: vecMasternodeLastPaid) {
+        const MasternodeRef pmn = s.second;
         if (!pmn) break;
 
         const uint256& n = pmn->CalculateScore(hash);
@@ -530,25 +521,22 @@ const CMasternode* CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlock
     return pBestMasternode;
 }
 
-const CMasternode* CMasternodeMan::GetCurrentMasterNode(int mod, int64_t nBlockHeight, int minProtocol) const
+MasternodeRef CMasternodeMan::GetCurrentMasterNode(int nHeight, const uint256& hash) const
 {
+    int minProtocol = ActiveProtocol();
     int64_t score = 0;
-    const CMasternode* winner = nullptr;
-    const uint256& hash = GetHashAtHeight(nBlockHeight - 1);
+    MasternodeRef winner = nullptr;
 
     // scan for winner
     for (const auto& it : mapMasternodes) {
         const MasternodeRef& mn = it.second;
         if (mn->protocolVersion < minProtocol || !mn->IsEnabled()) continue;
-
-        // calculate the score for each Masternode
-        uint256 n = mn->CalculateScore(hash);
-        int64_t n2 = n.GetCompact(false);
-
+        // calculate the score of the masternode
+        const int64_t n = mn->CalculateScore(hash).GetCompact(false);
         // determine the winner
-        if (n2 > score) {
-            score = n2;
-            winner = mn.get();
+        if (n > score) {
+            score = n;
+            winner = mn;
         }
     }
 
@@ -563,57 +551,43 @@ std::vector<std::pair<MasternodeRef, int>> CMasternodeMan::GetMnScores(int nLast
 
     for (int nHeight = nChainHeight - nLast; nHeight < nChainHeight + 20; nHeight++) {
         const uint256& hash = GetHashAtHeight(nHeight - 101);
-        uint256 nHigh = UINT256_ZERO;
-        MasternodeRef pBestMasternode;
-        for (const auto& it : mapMasternodes) {
-            const uint256& n = it.second->CalculateScore(hash);
-            if (n > nHigh) {
-                nHigh = n;
-                pBestMasternode = it.second;
-            }
-        }
-        if (nHigh > UINT256_ZERO) {
-            ret.emplace_back(pBestMasternode, nHeight);
+        MasternodeRef winner = GetCurrentMasterNode(nHeight, hash);
+        if (winner) {
+            ret.emplace_back(winner, nHeight);
         }
     }
     return ret;
 }
 
-int CMasternodeMan::GetMasternodeRank(const CTxIn& vin, int64_t nBlockHeight, int minProtocol, bool fOnlyActive) const
+int CMasternodeMan::GetMasternodeRank(const CTxIn& vin, int64_t nBlockHeight) const
 {
-    std::vector<std::pair<int64_t, CTxIn> > vecMasternodeScores;
-    int64_t nMasternode_Min_Age = MN_WINNER_MINIMUM_AGE;
-    int64_t nMasternode_Age = 0;
-
     const uint256& hash = GetHashAtHeight(nBlockHeight - 1);
     // height outside range
     if (!hash) return -1;
 
     // scan for winner
-    for (const auto& it : mapMasternodes) {
-        const MasternodeRef& mn = it.second;
-        if (mn->protocolVersion < minProtocol) {
-            LogPrint(BCLog::MASTERNODE,"Skipping Masternode with obsolete version %d\n", mn->protocolVersion);
-            continue;                                                       // Skip obsolete versions
-        }
-
-        if (sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)) {
-            nMasternode_Age = GetAdjustedTime() - mn->sigTime;
-            if ((nMasternode_Age) < nMasternode_Min_Age) {
-                LogPrint(BCLog::MASTERNODE,"Skipping just activated Masternode. Age: %ld\n", nMasternode_Age);
-                continue;                                                   // Skip masternodes younger than (default) 1 hour
+    int minProtocol = ActiveProtocol();
+    std::vector<std::pair<int64_t, CTxIn> > vecMasternodeScores;
+    {
+        LOCK(cs);
+        for (const auto& it : mapMasternodes) {
+            const MasternodeRef& mn = it.second;
+            if (!mn->IsEnabled()) {
+                continue; // Skip not enabled
             }
+            if (mn->protocolVersion < minProtocol) {
+                LogPrint(BCLog::MASTERNODE,"Skipping Masternode with obsolete version %d\n", mn->protocolVersion);
+                continue; // Skip obsolete versions
+            }
+            if (sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT) &&
+                    GetAdjustedTime() - mn->sigTime < MN_WINNER_MINIMUM_AGE) {
+                continue; // Skip masternodes younger than (default) 1 hour
+            }
+            vecMasternodeScores.emplace_back(mn->CalculateScore(hash).GetCompact(false), mn->vin);
         }
-        if (fOnlyActive) {
-            if (!mn->IsEnabled()) continue;
-        }
-        uint256 n = mn->CalculateScore(hash);
-        int64_t n2 = n.GetCompact(false);
-
-        vecMasternodeScores.emplace_back(n2, mn->vin);
     }
 
-    sort(vecMasternodeScores.rbegin(), vecMasternodeScores.rend(), CompareScoreTxIn());
+    sort(vecMasternodeScores.rbegin(), vecMasternodeScores.rend(), CompareScoreMN());
 
     int rank = 0;
     for (std::pair<int64_t, CTxIn> & s : vecMasternodeScores) {
@@ -636,14 +610,12 @@ std::vector<std::pair<int64_t, MasternodeRef>> CMasternodeMan::GetMasternodeRank
         LOCK(cs);
         // scan for winner
         for (const auto& it : mapMasternodes) {
-            const MasternodeRef& mn = it.second;
+            const MasternodeRef mn = it.second;
             if (!mn->IsEnabled()) {
                 vecMasternodeScores.emplace_back(9999, mn);
-                continue;
+            } else {
+                vecMasternodeScores.emplace_back(mn->CalculateScore(hash).GetCompact(false), mn);
             }
-
-            int64_t n2 = mn->CalculateScore(hash).GetCompact(false);
-            vecMasternodeScores.emplace_back(n2, mn);
         }
     }
     sort(vecMasternodeScores.rbegin(), vecMasternodeScores.rend(), CompareScoreMN());
