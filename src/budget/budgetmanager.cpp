@@ -476,29 +476,6 @@ void CBudgetManager::VoteOnFinalizedBudgets()
         return;
     }
 
-    CKey mnKey; CKeyID mnKeyID; CTxIn mnVin;
-    if (activeMasternodeManager != nullptr) {
-        // deterministic mn
-        CDeterministicMNCPtr dmn;
-        auto res = activeMasternodeManager->GetOperatorKey(mnKey, mnKeyID, dmn);
-        if (!res) {
-            LogPrint(BCLog::MNBUDGET,"%s: %s\n", __func__, res.getError());
-            return;
-        }
-        mnVin = CTxIn(dmn->collateralOutpoint);
-
-    } else {
-        // legacy mn
-        if (activeMasternode.vin == nullopt) {
-            LogPrint(BCLog::MNBUDGET,"%s: Active Masternode not initialized\n", __func__);
-            return;
-        }
-        CPubKey mnPubKey;
-        activeMasternode.GetKeys(mnKey, mnPubKey);
-        mnKeyID = mnPubKey.GetID();
-        mnVin = *activeMasternode.vin;
-    }
-
     // Do this 1 in 4 blocks -- spread out the voting activity
     // -- this function is only called every fourteenth block, so this is really 1 in 56 blocks
     if (GetRandInt(4) != 0) {
@@ -506,9 +483,9 @@ void CBudgetManager::VoteOnFinalizedBudgets()
         return;
     }
 
-    // check that the active masternode is enabled
-    if (activeMasternode.GetStatus() != ACTIVE_MASTERNODE_STARTED) {
-        LogPrint(BCLog::MNBUDGET,"%s: MN not enabled (%s)\n", __func__, activeMasternode.GetStatusMessage());
+    // Get the active masternode (operator) key
+    CKey mnKey; CKeyID mnKeyID; CTxIn mnVin;
+    if (!GetActiveMasternodeKeys(mnKey, mnKeyID, mnVin)) {
         return;
     }
 
