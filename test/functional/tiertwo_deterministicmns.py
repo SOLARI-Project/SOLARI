@@ -23,7 +23,9 @@ from test_framework.util import (
     assert_raises_rpc_error,
     bytes_to_hex_str,
     create_new_dmn,
+    connect_nodes,
     hex_str_to_bytes,
+    is_coin_locked_by,
     spend_mn_collateral,
 )
 
@@ -39,14 +41,13 @@ class DIP3Test(PivxTestFramework):
         self.extra_args = [["-nuparams=v5_shield:1", "-nuparams=v6_evo:130"]] * self.num_nodes
         self.extra_args[0].append("-sporkkey=932HEevBSujW2ud7RfB1YF91AFygbBRQj3de3LyaCRqNzKKgWXi")
 
-    def add_new_dmn(self, mns, strType, op_keys=None, from_out=None, lock=True):
+    def add_new_dmn(self, mns, strType, op_keys=None, from_out=None):
         mns.append(self.register_new_dmn(2 + len(mns),
                                          self.minerPos,
                                          self.controllerPos,
                                          strType,
                                          outpoint=from_out,
-                                         op_addr_and_key=op_keys,
-                                         fLock=lock))
+                                         op_addr_and_key=op_keys))
 
     def check_mn_list(self, mns):
         for i in range(self.num_nodes):
@@ -61,12 +62,21 @@ class DIP3Test(PivxTestFramework):
         return next(x['proTxHash'] for x in self.nodes[0].listmasternodes()
                     if x['dmnstate']['lastPaidHeight'] == self.nodes[0].getblockcount())
 
-    def create_block(self, mn_payee_script, height, prevhash):
-        coinbase = create_coinbase(height)
+    def create_block(self, mn_payee_script, prev_block):
+        coinbase = create_coinbase(prev_block["height"] + 1)
         coinbase.vout[0].nValue -= 3 * COIN
         coinbase.vout.append(CTxOut(int(3 * COIN), hex_str_to_bytes(mn_payee_script)))
         coinbase.rehash()
-        return create_block(int(prevhash, 16), coinbase, nVersion=10)
+        return create_block(int(prev_block["hash"], 16),
+                            coinbase,
+                            hashFinalSaplingRoot=int(prev_block["finalsaplingroot"], 16),
+                            nVersion=10)
+
+    def restart_controller(self):
+        self.restart_node(self.controllerPos, extra_args=self.extra_args[self.controllerPos])
+        self.connect_to_all(self.controllerPos)
+        connect_nodes(self.nodes[self.controllerPos], self.minerPos)
+        self.sync_all()
 
     def wait_until_mnsync_completed(self):
         SYNC_FINISHED = [999] * self.num_nodes
@@ -111,10 +121,13 @@ class DIP3Test(PivxTestFramework):
         assert_raises_rpc_error(-1, "Evo upgrade is not active yet", self.add_new_dmn, mns, "fund")
         # Can create the raw proReg
         dmn = create_new_dmn(2, controller, dummy_add, None)
-        tx, sig = self.protx_register_ext(miner, controller, dmn, None, False, False)
+        tx, sig = self.protx_register_ext(miner, controller, dmn, None, False)
         # but cannot send it
         assert_raises_rpc_error(-1, "Evo upgrade is not active yet", miner.protx_register_submit, tx, sig)
         self.log.info("Done. Now mine blocks till enforcement...")
+
+        # Check that no coin has been locked by the controller yet
+        assert_equal(len(controller.listlockunspent()), 0)
 
         # DIP3 activates at block 130.
         miner.generate(130 - miner.getblockcount())
@@ -162,6 +175,17 @@ class DIP3Test(PivxTestFramework):
                      ["Ready"] * (self.num_nodes - 2))
         self.log.info("All masternodes ready.")
 
+        # Restart the controller and check that the collaterals are still locked
+        self.log.info("Restarting controller...")
+        self.restart_controller()
+        time.sleep(1)
+        for mn in mns:
+            if not is_coin_locked_by(controller, mn.collateral):
+                raise Exception(
+                    "Collateral %s of mn with idx=%d is not locked" % (mn.collateral, mn.idx)
+                )
+        self.log.info("Collaterals still locked.")
+
         # Test collateral spending
         dmn = mns.pop(randrange(len(mns)))  # pop one at random
         self.log.info("Spending collateral of mn with idx=%d..." % dmn.idx)
@@ -179,8 +203,7 @@ class DIP3Test(PivxTestFramework):
         dmn2_keys = [dmn2.operator, dmn2.operator_key]
         self.log.info("Reactivating node %d reusing the collateral of node %d..." % (dmn.idx, dmn2.idx))
         mns.append(self.register_new_dmn(dmn.idx, self.minerPos, self.controllerPos, "external",
-                                         outpoint=dmn2.collateral, op_addr_and_key=dmn_keys,
-                                         fLock=False))
+                                         outpoint=dmn2.collateral, op_addr_and_key=dmn_keys))
         miner.generate(1)
         self.sync_blocks()
         self.check_mn_list(mns)
@@ -196,20 +219,20 @@ class DIP3Test(PivxTestFramework):
         self.log.info("Trying duplicate operator key...")
         dmn2b = create_new_dmn(dmn2.idx, controller, dummy_add, dmn_keys)
         assert_raises_rpc_error(-1, "bad-protx-dup-operator-key",
-                                self.protx_register_fund, miner, controller, dmn2b, dummy_add, False)
+                                self.protx_register_fund, miner, controller, dmn2b, dummy_add)
 
         # Now try with duplicate owner key
         self.log.info("Trying duplicate owner key...")
         dmn2c = create_new_dmn(dmn2.idx, controller, dummy_add, dmn2_keys)
         dmn2c.owner = mns[randrange(len(mns))].owner
         assert_raises_rpc_error(-1, "bad-protx-dup-owner-key",
-                                self.protx_register_fund, miner, controller, dmn2c, dummy_add, False)
+                                self.protx_register_fund, miner, controller, dmn2c, dummy_add)
 
         # Finally, register it properly. This time setting 10% of the reward for the operator
         op_rew = {"reward": 10.00, "address": self.nodes[dmn2.idx].getnewaddress()}
         self.log.info("Reactivating the node with a new registration (with operator reward)...")
         dmn2c = create_new_dmn(dmn2.idx, controller, dummy_add, dmn2_keys)
-        self.protx_register_fund(miner, controller, dmn2c, dummy_add, True, op_rew)
+        self.protx_register_fund(miner, controller, dmn2c, dummy_add, op_rew)
         mns.append(dmn2c)
         time.sleep(1)
         self.sync_mempools([miner, controller])
@@ -244,7 +267,7 @@ class DIP3Test(PivxTestFramework):
         self.wait_until_mnsync_completed()   # just to be sure
         self.log.info("Testing invalid masternode payment...")
         mn_payee_script = miner.validateaddress(miner.getnewaddress())['scriptPubKey']
-        block = self.create_block(mn_payee_script, miner.getblockcount(), miner.getbestblockhash())
+        block = self.create_block(mn_payee_script, miner.getblock(miner.getbestblockhash(), True))
         block.solve()
         assert_equal(miner.submitblock(bytes_to_hex_str(block.serialize())), "bad-cb-payee")
 
