@@ -22,6 +22,7 @@
 #include "checkpoints.h"
 #include "compat/sanity.h"
 #include "consensus/upgrades.h"
+#include "evo/deterministicmns.h"
 #include "evo/evonotificationinterface.h"
 #include "fs.h"
 #include "httpserver.h"
@@ -1860,6 +1861,7 @@ bool AppInitMain()
     strBudgetMode = gArgs.GetArg("-budgetvotemode", "auto");
 
 #ifdef ENABLE_WALLET
+    // !TODO: remove after complete transition to DMN
     // use only the first wallet here. This section can be removed after transition to DMN
     if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK) && !vpwallets.empty() && vpwallets[0]) {
         LOCK(vpwallets[0]->cs_wallet);
@@ -1871,6 +1873,14 @@ bool AppInitMain()
             vpwallets[0]->LockCoin(outpoint);
             LogPrintf("Locked collateral, MN: %s, tx hash: %s, output index: %s\n",
                       mne.getAlias(), mne.getTxHash(), mne.getOutputIndex());
+        }
+    }
+
+    // automatic lock for DMN
+    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK)) {
+        const auto& mnList = deterministicMNManager->GetListAtChainTip();
+        for (CWallet* pwallet : vpwallets) {
+            pwallet->ScanMasternodeCollateralsAndLock(mnList);
         }
     }
 #endif

@@ -9,6 +9,7 @@
 
 #include "budget/budgetmanager.h"
 #include "coincontrol.h"
+#include "evo/deterministicmns.h"
 #include "init.h"
 #include "guiinterfaceutil.h"
 #include "masternode.h"
@@ -963,7 +964,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
 {
     LOCK(cs_wallet);
     CWalletDB walletdb(*dbw, "r+", fFlushOnClose);
-    uint256 hash = wtxIn.GetHash();
+    const uint256& hash = wtxIn.GetHash();
 
     // Inserts only if not already there, returns tx inserted or tx found
     std::pair<std::map<uint256, CWalletTx>::iterator, bool> ret = mapWallet.emplace(hash, wtxIn);
@@ -1163,6 +1164,9 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CWallet
                 return false; // error adding incoming viewing key.
             }
         }
+
+        // If this is a ProRegTx and the wallet owns the collateral, lock the corresponding coin
+        LockIfMyCollateral(ptx);
 
         bool isFromMe = IsFromMe(ptx);
         if (fExisted || IsMine(ptx) || isFromMe || (saplingNoteData && !saplingNoteData->empty())) {
@@ -4150,6 +4154,47 @@ void CWallet::AutoCombineDust(CConnman* connman)
         LogPrintf("AutoCombineDust sent transaction\n");
 
         delete coinControl;
+    }
+}
+
+void CWallet::LockOutpointIfMine(const CTransactionRef& ptx, const COutPoint& c)
+{
+    AssertLockHeld(cs_wallet);
+    CTxOut txout;
+    if (ptx && c.hash == ptx->GetHash() && c.n < ptx->vout.size()) {
+        // the collateral is an output of this tx
+        txout = ptx->vout[c.n];
+    } else {
+        // the collateral is a reference to an utxo inside this wallet
+        const auto& it = mapWallet.find(c.hash);
+        if (it != mapWallet.end()) {
+            txout = it->second.tx->vout[c.n];
+        }
+    }
+    if (!txout.IsNull() && IsMine(txout) != ISMINE_NO && !IsSpent(c)) {
+        LockCoin(c);
+    }
+}
+
+// Called during Init
+void CWallet::ScanMasternodeCollateralsAndLock(const CDeterministicMNList& mnList)
+{
+    LOCK(cs_wallet);
+
+    LogPrintf("Locking masternode collaterals...\n");
+    mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
+        LockOutpointIfMine(nullptr, dmn->collateralOutpoint);
+    });
+}
+
+// Called from AddToWalletIfInvolvingMe
+void CWallet::LockIfMyCollateral(const CTransactionRef& ptx)
+{
+    AssertLockHeld(cs_wallet);
+
+    COutPoint o;
+    if (GetProRegCollateral(ptx, o)) {
+        LockOutpointIfMine(ptx, o);
     }
 }
 
