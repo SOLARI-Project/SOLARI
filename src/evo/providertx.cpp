@@ -7,6 +7,7 @@
 
 #include "base58.h"
 #include "core_io.h"
+#include "evo/deterministicmns.h"
 #include "masternode.h"     // MN_COLL_AMT
 #include "messagesigner.h"
 #include "evo/specialtx.h"
@@ -177,10 +178,23 @@ bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValid
         }
     }
 
-    // !TODO: check for duplicate IP address or keys in the dmns manager
-
     if (!CheckInputsHash(tx, pl, state)) {
         return false;
+    }
+
+    if (pindexPrev) {
+        auto mnList = deterministicMNManager->GetListForBlock(pindexPrev);
+        // only allow reusing of addresses when it's for the same collateral (which replaces the old MN)
+        if (mnList.HasUniqueProperty(pl.addr) && mnList.GetUniquePropertyMN(pl.addr)->collateralOutpoint != pl.collateralOutpoint) {
+            return state.DoS(10, false, REJECT_DUPLICATE, "bad-protx-dup-IP-address");
+        }
+        // never allow duplicate keys, even if this ProTx would replace an existing MN
+        if (mnList.HasUniqueProperty(pl.keyIDOwner)) {
+            return state.DoS(10, false, REJECT_DUPLICATE, "bad-protx-dup-owner-key");
+        }
+        if (mnList.HasUniqueProperty(pl.keyIDOperator)) {
+            return state.DoS(10, false, REJECT_DUPLICATE, "bad-protx-dup-operator-key");
+        }
     }
 
     return true;

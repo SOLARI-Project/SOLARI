@@ -168,7 +168,8 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
 {
     auto utxos = BuildSimpleUtxoMap(coinbaseTxns);
 
-    int nHeight = chainActive.Height();
+    const CBlockIndex* chainTip = chainActive.Tip();
+    int nHeight = chainTip->nHeight;
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, nHeight);
     int port = 1;
 
@@ -188,7 +189,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         operatorKeys.emplace(txid, operatorKey);
 
         CValidationState dummyState;
-        BOOST_CHECK(CheckProRegTx(tx, dummyState));
+        BOOST_CHECK(CheckSpecialTx(tx, chainTip, dummyState));
         BOOST_CHECK(CheckTransactionSignature(tx));
 
         // also verify that payloads are not malleable after they have been signed
@@ -197,14 +198,15 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         // into account
         auto tx2 = MalleateProTxPayout<ProRegPL>(tx);
         // Technically, the payload is still valid...
-        BOOST_CHECK(CheckProRegTx(tx2, dummyState));
+        BOOST_CHECK(CheckSpecialTx(tx2, chainTip, dummyState));
         // But the signature should not verify anymore
         BOOST_CHECK(!CheckTransactionSignature(tx2));
 
         CreateAndProcessBlock({tx}, coinbaseKey);
-        deterministicMNManager->UpdatedBlockTip(chainActive.Tip());
+        chainTip = chainActive.Tip();
+        BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
 
-        BOOST_CHECK_EQUAL(chainActive.Height(), nHeight + 1);
+        deterministicMNManager->UpdatedBlockTip(chainTip);
         BOOST_CHECK(deterministicMNManager->GetListAtChainTip().HasMN(txid));
 
         nHeight++;
