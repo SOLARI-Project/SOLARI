@@ -1193,7 +1193,7 @@ class PivxTestFramework():
     """
     Create a ProReg tx, which has the collateral as one of its outputs
     """
-    def protx_register_fund(self, miner, controller, dmn, collateral_addr, lock=True):
+    def protx_register_fund(self, miner, controller, dmn, collateral_addr, lock=True, op_rew=None):
         # send to the owner the collateral tx + some dust for the ProReg and fee
         funding_txid = miner.sendtoaddress(collateral_addr, Decimal('101'))
         # confirm and verify reception
@@ -1201,8 +1201,13 @@ class PivxTestFramework():
         self.sync_blocks([miner, controller])
         assert_greater_than(controller.getrawtransaction(funding_txid, True)["confirmations"], 0)
         # create and send the ProRegTx funding the collateral
-        dmn.proTx = controller.protx_register_fund(collateral_addr, dmn.ipport, dmn.owner,
-                                                   dmn.operator, dmn.voting, dmn.payee)
+        if op_rew is None:
+            dmn.proTx = controller.protx_register_fund(collateral_addr, dmn.ipport, dmn.owner,
+                                                       dmn.operator, dmn.voting, dmn.payee)
+        else:
+            dmn.proTx = controller.protx_register_fund(collateral_addr, dmn.ipport, dmn.owner,
+                                                       dmn.operator, dmn.voting, dmn.payee,
+                                                       op_rew["reward"], op_rew["address"])
         dmn.collateral = COutPoint(int(dmn.proTx, 16),
                                    get_collateral_vout(controller.getrawtransaction(dmn.proTx, True)))
         if lock:
