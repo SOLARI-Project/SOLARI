@@ -126,7 +126,7 @@ protected:
      *
      * Called on a background thread.
      */
-    virtual void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex, const std::vector<CTransactionRef> &txnConflicted) {}
+    virtual void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex) {}
     /**
      * Notifies listeners of a block being disconnected
      *
@@ -170,7 +170,7 @@ public:
     void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
     void TransactionAddedToMempool(const CTransactionRef &ptxn);
     void TransactionRemovedFromMempool(const CTransactionRef&);
-    void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex, const std::shared_ptr<const std::vector<CTransactionRef>> &);
+    void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex);
     void BlockDisconnected(const std::shared_ptr<const CBlock> &block, const uint256& blockHash, int nBlockHeight, int64_t blockTime);
     void SetBestChain(const CBlockLocator &);
     void Broadcast(CConnman* connman);

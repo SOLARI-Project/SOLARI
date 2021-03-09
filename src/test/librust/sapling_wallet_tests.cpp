@@ -351,8 +351,7 @@ BOOST_AUTO_TEST_CASE(SaplingNullifierIsSpent) {
     BOOST_CHECK(chainActive.Contains(&fakeIndex));
     BOOST_CHECK_EQUAL(0, chainActive.Height());
 
-    std::vector<CTransactionRef> vtxConflicted;
-    wallet.BlockConnected(std::make_shared<CBlock>(block), mi->second, vtxConflicted);
+    wallet.BlockConnected(std::make_shared<CBlock>(block), mi->second);
 
     // Verify note has been spent
     BOOST_CHECK(wallet.GetSaplingScriptPubKeyMan()->IsSaplingSpent(nullifier));

@@ -956,7 +956,7 @@ public:
     bool AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose = true);
     bool LoadToWallet(CWalletTx& wtxIn);
     void TransactionAddedToMempool(const CTransactionRef& tx) override;
-    void BlockConnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex *pindex, const std::vector<CTransactionRef>& vtxConflicted) override;
+    void BlockConnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex *pindex) override;
     void BlockDisconnected(const std::shared_ptr<const CBlock>& pblock, const uint256& blockHash, int nBlockHeight, int64_t blockTime) override;
     bool AddToWalletIfInvolvingMe(const CTransactionRef& tx, const CWalletTx::Confirmation& confirm, bool fUpdate);
     void EraseFromWallet(const uint256& hash);
