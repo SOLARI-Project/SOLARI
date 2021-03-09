@@ -2024,16 +2024,11 @@ class ConnectTrace {
 private:
     std::vector<PerBlockConnectTrace> blocksConnected;
     CTxMemPool &pool;
-    std::unique_ptr<interfaces::Handler> m_handler_notify_entry_removed;
 
 public:
-    ConnectTrace(CTxMemPool &_pool) : blocksConnected(1), pool(_pool) {
-        m_handler_notify_entry_removed = interfaces::MakeHandler(pool.NotifyEntryRemoved.connect(std::bind(&ConnectTrace::NotifyEntryRemoved, this, std::placeholders::_1, std::placeholders::_2)));
-    }
+    ConnectTrace(CTxMemPool &_pool) : blocksConnected(1), pool(_pool) {}
 
-    ~ConnectTrace() {
-        m_handler_notify_entry_removed->disconnect();
-    }
+    ~ConnectTrace() {}
 
     void BlockConnected(CBlockIndex* pindex, std::shared_ptr<const CBlock> pblock) {
         assert(!blocksConnected.back().pindex);
@@ -2053,10 +2048,6 @@ public:
         assert(!blocksConnected.back().pindex);
         blocksConnected.pop_back();
         return blocksConnected;
-    }
-
-    void NotifyEntryRemoved(CTransactionRef txRemoved, MemPoolRemovalReason reason) {
-        assert(!blocksConnected.back().pindex);
     }
 };
 
