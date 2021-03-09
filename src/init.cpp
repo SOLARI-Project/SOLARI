@@ -314,7 +314,6 @@ void PrepareShutdown()
     // Disconnect all slots
     UnregisterAllValidationInterfaces();
     GetMainSignals().UnregisterBackgroundSignalScheduler();
-    GetMainSignals().UnregisterWithMempoolSignals(mempool);
 
 #ifndef WIN32
     try {
@@ -1253,7 +1252,6 @@ bool AppInitMain()
     threadGroup.create_thread(std::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
 
     GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
-    GetMainSignals().RegisterWithMempoolSignals(mempool);
 
     // Initialize Sapling circuit parameters
     LoadSaplingParams();

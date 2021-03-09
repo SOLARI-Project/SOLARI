@@ -16,6 +16,7 @@
 #include "utiltime.h"
 #include "version.h"
 #include "validation.h"
+#include "validationinterface.h"
 
 
 
@@ -434,7 +435,12 @@ bool CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry,
 
 void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
 {
-    NotifyEntryRemoved(it->GetSharedTx(), reason);
+    CTransactionRef ptx = it->GetSharedTx();
+    NotifyEntryRemoved(ptx, reason);
+    if (reason != MemPoolRemovalReason::BLOCK && reason != MemPoolRemovalReason::CONFLICT) {
+        GetMainSignals().TransactionRemovedFromMempool(ptx);
+    }
+
     AssertLockHeld(cs);
     const CTransaction& tx = it->GetTx();
     for (const CTxIn& txin : tx.vin)

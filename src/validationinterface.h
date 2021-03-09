@@ -22,8 +22,6 @@ class CValidationInterface;
 class CValidationState;
 class uint256;
 class CScheduler;
-class CTxMemPool;
-enum class MemPoolRemovalReason;
 
 // These functions dispatch to one or all registered wallets
 
@@ -132,8 +130,6 @@ class CMainSignals {
 private:
     std::unique_ptr<MainSignalsInstance> m_internals;
 
-    void MempoolEntryRemoved(CTransactionRef tx, MemPoolRemovalReason reason);
-
     friend void ::RegisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterAllValidationInterfaces();
@@ -149,13 +145,9 @@ public:
 
     size_t CallbacksPending();
 
-    /** Register with mempool to call TransactionRemovedFromMempool callbacks */
-    void RegisterWithMempoolSignals(CTxMemPool& pool);
-    /** Unregister with mempool */
-    void UnregisterWithMempoolSignals(CTxMemPool& pool);
-
     void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
     void TransactionAddedToMempool(const CTransactionRef &ptxn);
+    void TransactionRemovedFromMempool(const CTransactionRef&);
     void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex, const std::shared_ptr<const std::vector<CTransactionRef>> &);
     void BlockDisconnected(const std::shared_ptr<const CBlock> &block, const uint256& blockHash, int nBlockHeight, int64_t blockTime);
     void SetBestChain(const CBlockLocator &);

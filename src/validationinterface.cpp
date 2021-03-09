@@ -6,7 +6,6 @@
 
 #include "validationinterface.h"
 #include "scheduler.h"
-#include "txmempool.h"
 #include "validation.h"
 
 #include <future>
@@ -79,14 +78,6 @@ size_t CMainSignals::CallbacksPending() {
     return m_internals->m_schedulerClient.CallbacksPending();
 }
 
-void CMainSignals::RegisterWithMempoolSignals(CTxMemPool& pool) {
-    pool.NotifyEntryRemoved.connect(std::bind(&CMainSignals::MempoolEntryRemoved, this, std::placeholders::_1, std::placeholders::_2));
-}
-
-void CMainSignals::UnregisterWithMempoolSignals(CTxMemPool& pool) {
-    pool.NotifyEntryRemoved.disconnect_all_slots();
-}
-
 CMainSignals& GetMainSignals()
 {
     return g_signals;
@@ -137,14 +128,6 @@ void SyncWithValidationInterfaceQueue() {
     promise.get_future().wait();
 }
 
-void CMainSignals::MempoolEntryRemoved(CTransactionRef ptx, MemPoolRemovalReason reason) {
-    if (reason != MemPoolRemovalReason::BLOCK && reason != MemPoolRemovalReason::CONFLICT) {
-        m_internals->m_schedulerClient.AddToProcessQueue([ptx, this] {
-            m_internals->TransactionRemovedFromMempool(ptx);
-        });
-    }
-}
-
 void CMainSignals::UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload) {
     // Dependencies exist that require UpdatedBlockTip events to be delivered in the order in which
     // the chain actually updates. One way to ensure this is for the caller to invoke this signal
@@ -158,6 +141,12 @@ void CMainSignals::UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockInd
 void CMainSignals::TransactionAddedToMempool(const CTransactionRef &ptx) {
     m_internals->m_schedulerClient.AddToProcessQueue([ptx, this] {
         m_internals->TransactionAddedToMempool(ptx);
+    });
+}
+
+void CMainSignals::TransactionRemovedFromMempool(const CTransactionRef& ptx) {
+    m_internals->m_schedulerClient.AddToProcessQueue([ptx, this] {
+        m_internals->TransactionRemovedFromMempool(ptx);
     });
 }
 
