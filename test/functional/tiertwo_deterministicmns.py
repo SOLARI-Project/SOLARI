@@ -238,6 +238,9 @@ class DIP3Test(PivxTestFramework):
         self.sync_mempools([miner, controller])
         miner.generate(6)
         self.sync_blocks()
+        json_tx = self.nodes[dmn2c.idx].getrawtransaction(dmn2c.proTx, True)
+        assert_greater_than(json_tx['confirmations'], 0)
+        self.check_proreg_payload(dmn2c, json_tx)
         self.check_mn_list(mns)     # 6 masternodes again
 
         # Test payments.
