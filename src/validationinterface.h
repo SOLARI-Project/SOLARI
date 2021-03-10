@@ -22,6 +22,7 @@ class CValidationInterface;
 class CValidationState;
 class uint256;
 class CScheduler;
+enum class MemPoolRemovalReason;
 
 // These functions dispatch to one or all registered wallets
 
@@ -119,7 +120,7 @@ protected:
      *
      * Called on a background thread.
      */
-    virtual void TransactionRemovedFromMempool(const CTransactionRef &ptx) {}
+    virtual void TransactionRemovedFromMempool(const CTransactionRef &ptx, MemPoolRemovalReason reason) {}
     /**
      * Notifies listeners of a block being connected.
      * Provides a vector of transactions evicted from the mempool as a result.
@@ -169,7 +170,7 @@ public:
 
     void UpdatedBlockTip(const CBlockIndex *, const CBlockIndex *, bool fInitialDownload);
     void TransactionAddedToMempool(const CTransactionRef &ptxn);
-    void TransactionRemovedFromMempool(const CTransactionRef&);
+    void TransactionRemovedFromMempool(const CTransactionRef&, MemPoolRemovalReason);
     void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex);
     void BlockDisconnected(const std::shared_ptr<const CBlock> &block, const uint256& blockHash, int nBlockHeight, int64_t blockTime);
     void SetBestChain(const CBlockLocator &);

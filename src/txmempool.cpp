@@ -439,7 +439,7 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         // for any reason except being included in a block. Clients interested
         // in transactions included in blocks can subscribe to the BlockConnected
         // notification.
-        GetMainSignals().TransactionRemovedFromMempool(it->GetSharedTx());
+        GetMainSignals().TransactionRemovedFromMempool(it->GetSharedTx(), reason);
     }
 
     AssertLockHeld(cs);
