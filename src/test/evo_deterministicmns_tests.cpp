@@ -168,7 +168,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
 {
     auto utxos = BuildSimpleUtxoMap(coinbaseTxns);
 
-    const CBlockIndex* chainTip = chainActive.Tip();
+    CBlockIndex* chainTip = chainActive.Tip();
     int nHeight = chainTip->nHeight;
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, nHeight);
     int port = 1;
@@ -209,8 +209,99 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         deterministicMNManager->UpdatedBlockTip(chainTip);
         BOOST_CHECK(deterministicMNManager->GetListAtChainTip().HasMN(txid));
 
+        // Add change to the utxos map
+        if (tx.vout.size() > 1) {
+            utxos.emplace(COutPoint(tx.GetHash(), 1), std::make_pair(nHeight + 1, tx.vout[1].nValue));
+        }
+
         nHeight++;
     }
+    // Mine 30 more blocks
+    for (size_t i = 0; i < 30; i++) {
+        CreateAndProcessBlock({}, coinbaseKey);
+        chainTip = chainActive.Tip();
+        BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+        deterministicMNManager->UpdatedBlockTip(chainTip);
+    }
+
+    // Try to register used owner key
+    {
+        SimpleUTXOMap utxos_copy(utxos);
+        const CKey& ownerKey = ownerKeys.at(dmnHashes[InsecureRandRange(dmnHashes.size())]);
+        auto tx = CreateProRegTx(nullopt, utxos_copy, port, GenerateRandomAddress(), coinbaseKey, ownerKey, GetRandomKey());
+        CValidationState state;
+        BOOST_CHECK(!CheckSpecialTx(tx, chainTip, state));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-owner-key");
+    }
+    // Try to register used operator key
+    {
+        SimpleUTXOMap utxos_copy(utxos);
+        const CKey& operatorKey = operatorKeys.at(dmnHashes[InsecureRandRange(dmnHashes.size())]);
+        auto tx = CreateProRegTx(nullopt, utxos_copy, port, GenerateRandomAddress(), coinbaseKey, GetRandomKey(), operatorKey);
+        CValidationState state;
+        BOOST_CHECK(!CheckSpecialTx(tx, chainTip, state));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-operator-key");
+    }
+    // Try to register used IP address
+    {
+        SimpleUTXOMap utxos_copy(utxos);
+        auto tx = CreateProRegTx(nullopt, utxos_copy, 1 + InsecureRandRange(port-1), GenerateRandomAddress(), coinbaseKey, GetRandomKey(), GetRandomKey());
+        CValidationState state;
+        BOOST_CHECK(!CheckSpecialTx(tx, chainTip, state));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-IP-address");
+    }
+    // Block with two ProReg txes using same owner key
+    {
+        SimpleUTXOMap utxos_copy(utxos);
+        const CKey& ownerKey = GetRandomKey();
+        const CKey& operatorKey1 = GetRandomKey();
+        const CKey& operatorKey2 = GetRandomKey();
+        auto tx1 = CreateProRegTx(nullopt, utxos_copy, port, GenerateRandomAddress(), coinbaseKey, ownerKey, operatorKey1);
+        auto tx2 = CreateProRegTx(nullopt, utxos_copy, (port+1), GenerateRandomAddress(), coinbaseKey, ownerKey, operatorKey2);
+        CBlock block = CreateBlock({tx1, tx2}, coinbaseKey);
+        CBlockIndex indexFake(block);
+        indexFake.nHeight = nHeight;
+        indexFake.pprev = chainTip;
+        CValidationState state;
+        BOOST_CHECK(!ProcessSpecialTxsInBlock(block, &indexFake, state, true));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-owner-key");
+        ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
+        BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
+    }
+    // Block with two ProReg txes using same operator key
+    {
+        SimpleUTXOMap utxos_copy(utxos);
+        const CKey& ownerKey1 = GetRandomKey();
+        const CKey& ownerKey2 = GetRandomKey();
+        const CKey& operatorKey = GetRandomKey();
+        auto tx1 = CreateProRegTx(nullopt, utxos_copy, port, GenerateRandomAddress(), coinbaseKey, ownerKey1, operatorKey);
+        auto tx2 = CreateProRegTx(nullopt, utxos_copy, (port+1), GenerateRandomAddress(), coinbaseKey, ownerKey2, operatorKey);
+        CBlock block = CreateBlock({tx1, tx2}, coinbaseKey);
+        CBlockIndex indexFake(block);
+        indexFake.nHeight = nHeight;
+        indexFake.pprev = chainTip;
+        CValidationState state;
+        BOOST_CHECK(!ProcessSpecialTxsInBlock(block, &indexFake, state, true));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-operator-key");
+        ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
+        BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
+    }
+    // Block with two ProReg txes using ip address
+    {
+        SimpleUTXOMap utxos_copy(utxos);
+        auto tx1 = CreateProRegTx(nullopt, utxos_copy, port, GenerateRandomAddress(), coinbaseKey, GetRandomKey(), GetRandomKey());
+        auto tx2 = CreateProRegTx(nullopt, utxos_copy, port, GenerateRandomAddress(), coinbaseKey, GetRandomKey(), GetRandomKey());
+        CBlock block = CreateBlock({tx1, tx2}, coinbaseKey);
+        CBlockIndex indexFake(block);
+        indexFake.nHeight = nHeight;
+        indexFake.pprev = chainTip;
+        CValidationState state;
+        BOOST_CHECK(!ProcessSpecialTxsInBlock(block, &indexFake, state, true));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-IP-address");
+        ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
+        BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
+    }
+
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT);
 }
 
