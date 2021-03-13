@@ -3743,6 +3743,13 @@ static bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs,
         // Pass check = true as every addition may be an overwrite.
         AddCoins(inputs, *tx, pindex->nHeight, true, fSkipInvalid);
     }
+
+    CValidationState state;
+    if (!ProcessSpecialTxsInBlock(block, pindex, state, false /*fJustCheck*/)) {
+        return error("%s: Special tx processing failed for block %s with %s",
+                     __func__, pindex->GetBlockHash().ToString(), FormatStateMessage(state));
+    }
+
     return true;
 }
 
