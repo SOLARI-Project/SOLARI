@@ -45,6 +45,16 @@ static bool CheckService(const CService& addr, CValidationState& state)
 }
 
 template <typename Payload>
+static bool CheckHashSig(const Payload& pl, const CKeyID& keyID, CValidationState& state)
+{
+    std::string strError;
+    if (!CHashSigner::VerifyHash(::SerializeHash(pl), keyID, pl.vchSig, strError)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-protx-sig", false, strError);
+    }
+    return true;
+}
+
+template <typename Payload>
 static bool CheckStringSig(const Payload& pl, const CKeyID& keyID, CValidationState& state)
 {
     std::string strError;
@@ -244,6 +254,87 @@ void ProRegPL::ToJson(UniValue& obj) const
         obj.pushKV("operatorPayoutAddress", EncodeDestination(dest2));
     }
     obj.pushKV("operatorReward", (double)nOperatorReward / 100);
+    obj.pushKV("inputsHash", inputsHash.ToString());
+}
+
+// Provider Update Service Payload
+
+bool CheckProUpServTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
+{
+    assert(tx.nType == CTransaction::TxType::PROUPSERV);
+
+    ProUpServPL pl;
+    if (!GetTxPayload(tx, pl)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-protx-payload");
+    }
+
+    if (pl.nVersion == 0 || pl.nVersion > ProUpServPL::CURRENT_VERSION) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-protx-version");
+    }
+
+    if (!CheckService(pl.addr, state)) {
+        // pass the state returned by the function above
+        return false;
+    }
+
+    if (!CheckInputsHash(tx, pl, state)) {
+        // pass the state returned by the function above
+        return false;
+    }
+
+    if (pindexPrev) {
+        auto mnList = deterministicMNManager->GetListForBlock(pindexPrev);
+        auto mn = mnList.GetMN(pl.proTxHash);
+        if (!mn) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-protx-hash");
+        }
+
+        // don't allow updating to addresses already used by other MNs
+        if (mnList.HasUniqueProperty(pl.addr) && mnList.GetUniquePropertyMN(pl.addr)->proTxHash != pl.proTxHash) {
+            return state.DoS(10, false, REJECT_DUPLICATE, "bad-protx-dup-addr");
+        }
+
+        if (pl.scriptOperatorPayout != CScript()) {
+            if (mn->nOperatorReward == 0) {
+                // don't allow to set operator reward payee in case no operatorReward was set
+                return state.DoS(10, false, REJECT_INVALID, "bad-protx-operator-payee");
+            }
+            // we may support other kinds of scripts later, but restrict it for now
+            if (!pl.scriptOperatorPayout.IsPayToPublicKeyHash()) {
+                return state.DoS(10, false, REJECT_INVALID, "bad-protx-operator-payee");
+            }
+        }
+
+        // we can only check the signature if pindexPrev != nullptr and the MN is known
+        if (!CheckHashSig(pl, mn->pdmnState->keyIDOperator, state)) {
+            // pass the state returned by the function above
+            return false;
+        }
+    }
+
+    return true;
+}
+
+std::string ProUpServPL::ToString() const
+{
+    CTxDestination dest;
+    std::string payee = ExtractDestination(scriptOperatorPayout, dest) ?
+                        EncodeDestination(dest) : "unknown";
+    return strprintf("ProUpServPL(nVersion=%d, proTxHash=%s, addr=%s, operatorPayoutAddress=%s)",
+        nVersion, proTxHash.ToString(), addr.ToString(), payee);
+}
+
+void ProUpServPL::ToJson(UniValue& obj) const
+{
+    obj.clear();
+    obj.setObject();
+    obj.pushKV("version", nVersion);
+    obj.pushKV("proTxHash", proTxHash.ToString());
+    obj.pushKV("service", addr.ToString());
+    CTxDestination dest;
+    if (ExtractDestination(scriptOperatorPayout, dest)) {
+        obj.pushKV("operatorPayoutAddress", EncodeDestination(dest));
+    }
     obj.pushKV("inputsHash", inputsHash.ToString());
 }
 

@@ -68,7 +68,42 @@ public:
     void ToJson(UniValue& obj) const;
 };
 
+class ProUpServPL
+{
+public:
+    static const uint16_t CURRENT_VERSION = 1;
+
+public:
+    uint16_t nVersion{CURRENT_VERSION}; // message version
+    uint256 proTxHash{UINT256_ZERO};
+    CService addr;
+    CScript scriptOperatorPayout;
+    uint256 inputsHash; // replay protection
+    std::vector<unsigned char> vchSig;
+
+public:
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
+        READWRITE(nVersion);
+        READWRITE(proTxHash);
+        READWRITE(addr);
+        READWRITE(scriptOperatorPayout);
+        READWRITE(inputsHash);
+        if (!(s.GetType() & SER_GETHASH)) {
+            READWRITE(vchSig);
+        }
+    }
+
+public:
+    std::string ToString() const;
+    void ToJson(UniValue& obj) const;
+};
+
 bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
+bool CheckProUpServTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
 
 // If tx is a ProRegTx, return the collateral outpoint in outRet.
 bool GetProRegCollateral(const CTransactionRef& tx, COutPoint& outRet);
