@@ -586,6 +586,7 @@ public:
     bool BuildNewListFromBlock(const CBlock& block, const CBlockIndex* pindexPrev, CValidationState& state, CDeterministicMNList& mnListRet, bool debugLogs);
     void DecreasePoSePenalties(CDeterministicMNList& mnList);
 
+    // to return a valid list, it must have been built first, so never call it with a block not-yet connected (e.g. from CheckBlock).
     CDeterministicMNList GetListForBlock(const CBlockIndex* pindex);
     CDeterministicMNList GetListAtChainTip();
 

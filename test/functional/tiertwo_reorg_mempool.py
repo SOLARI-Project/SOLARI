@@ -212,8 +212,6 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         # Reconnect and sync (give it some more time)
         self.log.info("Reconnecting nodes...")
         self.connect_all()
-        # !TODO: FIXME - failing because we check budget/mn payment in CheckBlock
-        # during a reorg, the previous block hasn't been connected yet, so the dmn list is empty.
         self.sync_blocks(wait=3, timeout=180)
 
         # Both nodes have the same list (mnB)

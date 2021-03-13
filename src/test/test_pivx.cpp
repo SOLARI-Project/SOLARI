@@ -139,6 +139,8 @@ TestChainSetup::TestChainSetup(int blockCount) : TestingSetup(CBaseChainParams::
         CBlock b = CreateAndProcessBlock(noTxns, scriptPubKey);
         coinbaseTxns.push_back(*b.vtx[0]);
     }
+
+    deterministicMNManager->UpdatedBlockTip(chainActive.Tip());
 }
 
 // Create a new block with coinbase paying to scriptPubKey, and try to add it to the current chain.

@@ -192,13 +192,21 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
 
     CBlockIndex* chainTip = chainActive.Tip();
     int nHeight = chainTip->nHeight;
-    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, nHeight);
+    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, nHeight + 2);
+
+    // load empty list (last block before enforcement)
+    CreateAndProcessBlock({}, coinbaseKey);
+    chainTip = chainActive.Tip();
+    BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+    deterministicMNManager->UpdatedBlockTip(chainTip);
+
+    // force mnsync complete and enable spork 8
     masternodeSync.RequestedMasternodeAssets = MASTERNODE_SYNC_FINISHED;
-    // enable SPORK_8
     int64_t nTime = GetTime() - 10;
     const CSporkMessage& sporkMnPayment = CSporkMessage(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT, nTime + 1, nTime);
     sporkManager.AddOrUpdateSporkMessage(sporkMnPayment);
     BOOST_CHECK(sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT));
+
     int port = 1;
 
     std::vector<uint256> dmnHashes;
@@ -403,8 +411,11 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     pblock->vtx[0] = MakeTransactionRef(invalidCoinbaseTx);
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     CValidationState state;
-    BOOST_CHECK_MESSAGE(!ProcessNewBlock(state, nullptr, pblock, nullptr), "Error, invalid block paying to an already paid DMN passed");
-    BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Height()) == nHeight); // no block connected
+    ProcessNewBlock(state, nullptr, pblock, nullptr);
+    // block not connected
+    chainTip = WITH_LOCK(cs_main, return chainActive.Tip());
+    BOOST_CHECK(chainTip->nHeight == nHeight);
+    BOOST_CHECK(chainTip->GetBlockHash() != pblock->GetHash());
 
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT);
 }
