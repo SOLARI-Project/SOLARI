@@ -11,17 +11,22 @@ Test deterministic masternodes conflicts and reorgs.
 """
 
 import random
-import time
 
 from test_framework.test_framework import PivxTestFramework
 
+from test_framework.messages import COutPoint
 from test_framework.util import (
     assert_equal,
+    assert_greater_than,
     assert_raises_rpc_error,
     create_new_dmn,
     connect_nodes,
     disconnect_nodes,
+    get_collateral_vout,
 )
+
+from decimal import Decimal
+import time
 
 class TiertwoReorgMempoolTest(PivxTestFramework):
 
@@ -105,8 +110,15 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         self.check_mn_list_on_node(0, mnsA)
         self.log.info("Masternodes registered on chain A.")
 
-        # Lock any utxo with less than 101 confs (e.g. change), so we can resurrect everything
-        for x in nodeA.listunspent(0, 101):
+        # Now create a collateral (which will be used later to register a masternode)
+        funding_txid = nodeA.sendtoaddress(collateral_addr, Decimal('100'))
+        nodeA.generate(1)
+        funding_tx_json = nodeA.getrawtransaction(funding_txid, True)
+        assert_greater_than(funding_tx_json["confirmations"], 0)
+        initial_collateral = COutPoint(int(funding_txid, 16), get_collateral_vout(funding_tx_json))
+
+        # Lock any utxo with less than 106 confs (e.g. change), so we can resurrect everything
+        for x in nodeA.listunspent(0, 106):
             nodeA.lockunspent(False, [{"txid": x["txid"], "vout": x["vout"]}])
 
         # Now send a valid proReg tx to the mempool, without mining it
@@ -142,7 +154,8 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
                                 self.register_masternode, nodeA, dmn_A3, collateral_addr)
         assert dmn_A3.proTx not in nodeA.getrawmempool()
 
-        # Now send other 2 valid proReg tx to the mempool, without mining it
+        # Now send other 2 valid proReg tx to the mempool, without mining them
+        self.log.info("Sending more ProReg txes to the mempool...")
         mempool_dmn2 = create_new_dmn(free_idx, nodeA, collateral_addr, None)
         free_idx += 1
         mempool_dmn3 = create_new_dmn(free_idx, nodeA, collateral_addr, None)
@@ -150,13 +163,33 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         self.register_masternode(nodeA, mempool_dmn2, collateral_addr)
         self.register_masternode(nodeA, mempool_dmn3, collateral_addr)
 
-        # Now nodeA has 3 proReg txes in its mempool
+        # Send to the mempool a ProRegTx using the collateral mined after the split
+        mempool_dmn4 = create_new_dmn(free_idx, nodeA, collateral_addr, None)
+        mempool_dmn4.collateral = initial_collateral
+        self.protx_register_ext(nodeA, nodeA, mempool_dmn4, mempool_dmn4.collateral, True)
+
+        # Now send a valid proUpServ tx to the mempool, without mining it
+        proupserv1_txid = nodeA.protx_update_service(pre_split_mn.proTx, "127.0.0.1:1000")
+
+        # Try sending another update, reusing the same ip of the previous mempool tx
+        self.log.info("Testing proUpServ in-mempool duplicate-IP rejection...")
+        assert_raises_rpc_error(-26, "protx-dup", nodeA.protx_update_service, mnsA[0].proTx, "127.0.0.1:1000")
+
+        # Now send other two valid proUpServ txes to the mempool, without mining them
+        proupserv2_txid = nodeA.protx_update_service(mnsA[2].proTx, "127.0.0.1:2000")
+        proupserv3_txid = nodeA.protx_update_service(pre_split_mn.proTx, "127.0.0.1:1001")
+
+        # Now nodeA has 4 proReg txes in its mempool, and 3 proUpServ txes
         mempoolA = nodeA.getrawmempool()
         assert mempool_dmn1.proTx in mempoolA
         assert mempool_dmn2.proTx in mempoolA
         assert mempool_dmn3.proTx in mempoolA
+        assert mempool_dmn4.proTx in mempoolA
+        assert proupserv1_txid in mempoolA
+        assert proupserv2_txid in mempoolA
+        assert proupserv3_txid in mempoolA
 
-        assert_equal(nodeA.getblockcount(), 207)
+        assert_equal(nodeA.getblockcount(), 208)
 
         #
         # -- CHAIN B --
@@ -198,6 +231,12 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
             mnsB.append(dmn)
             nodeB.generate(1)
 
+        # Register one masternode reusing the IP of the proUpServ mempool tx on chainA
+        dmn1000 = create_new_dmn(0, nodeB, collateral_addr, None)
+        dmn1000.ipport = "127.0.0.1:1000"
+        mnsB.append(dmn1000)
+        self.register_masternode(nodeB, dmn1000, collateral_addr)
+
         # Then mine 10 more blocks on chain B
         nodeB.generate(10)
         self.check_mn_list_on_node(1, mnsB)
@@ -218,15 +257,25 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         self.log.info("Checking masternode list...")
         self.check_mn_list_on_node(0, mnsB)
         self.check_mn_list_on_node(1, mnsB)
-        self.log.info("Both nodes have %d registered masternodes." % len(mnsB))
 
         # The first mempool proReg tx has been removed from nodeA's mempool due to
         # conflicts with the masternodes of chain B, now connected.
+        # The fourth mempool proReg tx has been removed because the collateral it
+        # was referencing has been disconnected.
         self.log.info("Checking mempool...")
         mempoolA = nodeA.getrawmempool()
         assert mempool_dmn1.proTx not in mempoolA
         assert mempool_dmn2.proTx in mempoolA
         assert mempool_dmn3.proTx in mempoolA
+        assert mempool_dmn4.proTx not in mempoolA
+        # The first mempool proUpServ tx has been removed as the IP (port=1000) is
+        # now used by a newly connected masternode.
+        # The second mempool proUpServ tx has been removed as it was meant to update
+        # a masternode that is not in the deterministic list anymore.
+        assert proupserv1_txid not in mempoolA
+        # !TODO: fix me - failing because we don't evict ProTx depending on resurrected ProReg
+        assert proupserv2_txid not in mempoolA
+        assert proupserv3_txid in mempoolA
         # The mempool contains also all the ProReg from the disconnected blocks,
         # except the ones re-registered and replayed on chain B.
         for mn in mnsA:
@@ -234,6 +283,25 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         assert rereg_mn.proTx not in mempoolA
         assert replay_mn.proTx not in mempoolA
         assert pre_split_mn.proTx not in mempoolA
+
+        # Mine a block from nodeA so the mempool proReg txes get included
+        self.log.info("Mining mempool txes...")
+        nodeA.generate(1)
+        self.sync_all()
+        # mempool_dmn2 and mempool_dmn3 have been included
+        mnsB.append(mempool_dmn2)
+        mnsB.append(mempool_dmn3)
+        # proupserv3 has changed the IP of the pre_split masternode
+        mnsB.remove(pre_split_mn)
+        pre_split_mn.ipport = "127.0.0.1:1001"
+        mnsB.append(pre_split_mn)
+        # the ProReg txes, that were added back to the mempool from the
+        # disconnected blocks, have been mined again
+        mns_all = mnsA + mnsB
+        # Check new mn list
+        self.check_mn_list_on_node(0, mns_all)
+        self.check_mn_list_on_node(1, mns_all)
+        self.log.info("Both nodes have %d registered masternodes." % len(mns_all))
 
         self.log.info("All good.")
 
