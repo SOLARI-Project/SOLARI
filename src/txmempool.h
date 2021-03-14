@@ -665,6 +665,7 @@ public:
     std::vector<TxMempoolInfo> infoAll() const;
 
     bool existsProviderTxConflict(const CTransaction &tx) const;
+    void removeProTxReferences(const uint256& proTxHash, MemPoolRemovalReason reason);
 
     /** Estimate fee rate needed to get into the next nBlocks
      *  If no answer can be given at nBlocks, return an estimate

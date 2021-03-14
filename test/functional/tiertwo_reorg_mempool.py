@@ -258,12 +258,12 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         self.check_mn_list_on_node(0, mnsB)
         self.check_mn_list_on_node(1, mnsB)
 
+        self.log.info("Checking mempool...")
+        mempoolA = nodeA.getrawmempool()
         # The first mempool proReg tx has been removed from nodeA's mempool due to
         # conflicts with the masternodes of chain B, now connected.
         # The fourth mempool proReg tx has been removed because the collateral it
         # was referencing has been disconnected.
-        self.log.info("Checking mempool...")
-        mempoolA = nodeA.getrawmempool()
         assert mempool_dmn1.proTx not in mempoolA
         assert mempool_dmn2.proTx in mempoolA
         assert mempool_dmn3.proTx in mempoolA
@@ -273,7 +273,6 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         # The second mempool proUpServ tx has been removed as it was meant to update
         # a masternode that is not in the deterministic list anymore.
         assert proupserv1_txid not in mempoolA
-        # !TODO: fix me - failing because we don't evict ProTx depending on resurrected ProReg
         assert proupserv2_txid not in mempoolA
         assert proupserv3_txid in mempoolA
         # The mempool contains also all the ProReg from the disconnected blocks,
