@@ -708,9 +708,50 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, const C
                 LogPrintf("CDeterministicMNManager::%s -- MN %s added at height %d: %s\n",
                     __func__, tx.GetHash().ToString(), nHeight, pl.ToString());
             }
+
+        } else if (tx.nType == CTransaction::TxType::PROUPSERV) {
+            ProUpServPL pl;
+            if (!GetTxPayload(tx, pl)) {
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-payload");
+            }
+
+            if (newList.HasUniqueProperty(pl.addr) && newList.GetUniquePropertyMN(pl.addr)->proTxHash != pl.proTxHash) {
+                return _state.DoS(100, false, REJECT_DUPLICATE, "bad-protx-dup-addr");
+            }
+
+            CDeterministicMNCPtr dmn = newList.GetMN(pl.proTxHash);
+            if (!dmn) {
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-hash");
+            }
+            if (dmn->nOperatorReward == 0 && !pl.scriptOperatorPayout.empty()) {
+                // operator payout address can not be set if the operator reward is 0
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-operator-payee");
+            }
+            auto newState = std::make_shared<CDeterministicMNState>(*dmn->pdmnState);
+            newState->addr = pl.addr;
+            newState->scriptOperatorPayout = pl.scriptOperatorPayout;
+
+            if (newState->nPoSeBanHeight != -1) {
+                // only revive when all keys are set
+                if (!newState->keyIDOperator.IsNull() && !newState->keyIDVoting.IsNull() && !newState->keyIDOwner.IsNull()) {
+                    newState->nPoSePenalty = 0;
+                    newState->nPoSeBanHeight = -1;
+                    newState->nPoSeRevivedHeight = nHeight;
+
+                    if (debugLogs) {
+                        LogPrintf("CDeterministicMNManager::%s -- MN %s revived at height %d\n",
+                            __func__, pl.proTxHash.ToString(), nHeight);
+                    }
+                }
+            }
+
+            newList.UpdateMN(pl.proTxHash, newState);
+            if (debugLogs) {
+                LogPrintf("CDeterministicMNManager::%s -- MN %s updated at height %d: %s\n",
+                    __func__, pl.proTxHash.ToString(), nHeight, pl.ToString());
+            }
         }
 
-        // !TODO: manage other special txes
     }
 
     // check if any existing MN collateral is spent by this transaction

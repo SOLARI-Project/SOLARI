@@ -294,7 +294,7 @@ bool CheckProUpServTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CVa
             return state.DoS(10, false, REJECT_DUPLICATE, "bad-protx-dup-addr");
         }
 
-        if (pl.scriptOperatorPayout != CScript()) {
+        if (!pl.scriptOperatorPayout.empty()) {
             if (mn->nOperatorReward == 0) {
                 // don't allow to set operator reward payee in case no operatorReward was set
                 return state.DoS(10, false, REJECT_INVALID, "bad-protx-operator-payee");
