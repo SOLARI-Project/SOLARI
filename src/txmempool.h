@@ -557,10 +557,6 @@ public:
     void removeForReorg(const CCoinsViewCache* pcoins, unsigned int nMemPoolHeight, int flags);
     void removeWithAnchor(const uint256& invalidRoot);
     void removeConflicts(const CTransaction& tx);
-    void removeProTxPubKeyConflicts(const CTransaction &tx, const CKeyID &keyId);
-    void removeProTxCollateralConflicts(const CTransaction &tx, const COutPoint &collateralOutpoint);
-    void removeProTxSpentCollateralConflicts(const CTransaction &tx);
-    void removeProTxConflicts(const CTransaction &tx);
     void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight,
                         bool fCurrentEstimate = true);
 
@@ -735,6 +731,15 @@ private:
      *  removal.
      */
     void removeUnchecked(txiter entry, MemPoolRemovalReason reason = MemPoolRemovalReason::UNKNOWN);
+
+    /** Special txes **/
+    void addUncheckedSpecialTx(const CTransaction& tx);
+    void removeUncheckedSpecialTx(const CTransaction& tx);
+    void removeProTxPubKeyConflicts(const CTransaction &tx, const CKeyID &keyId);
+    void removeProTxCollateralConflicts(const CTransaction &tx, const COutPoint &collateralOutpoint);
+    void removeProTxSpentCollateralConflicts(const CTransaction &tx);
+    void removeProTxConflicts(const CTransaction &tx);
+
 };
 
 /** 

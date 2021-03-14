@@ -371,6 +371,32 @@ void CTxMemPool::AddTransactionsUpdated(unsigned int n)
     nTransactionsUpdated += n;
 }
 
+void CTxMemPool::addUncheckedSpecialTx(const CTransaction& tx)
+{
+    if (!tx.IsSpecialTx()) return;
+
+    // Invalid special txes never get this far because transactions should be
+    // fully checked by AcceptToMemoryPool() at this point, so we just assume that
+    // everything is fine here.
+    const uint256& txid = tx.GetHash();
+    switch(tx.nType) {
+        case CTransaction::TxType::PROREG: {
+            ProRegPL pl;
+            bool ok = GetTxPayload(tx, pl);
+            assert(ok);
+            if (!pl.collateralOutpoint.hash.IsNull()) {
+                mapProTxRefs.emplace(txid, pl.collateralOutpoint.hash);
+                mapProTxCollaterals.emplace(pl.collateralOutpoint, txid);
+            }
+            mapProTxAddresses.emplace(pl.addr, txid);
+            mapProTxPubKeyIDs.emplace(pl.keyIDOwner, txid);
+            mapProTxPubKeyIDs.emplace(pl.keyIDOperator, txid);
+            break;
+        }
+
+    }
+}
+
 bool CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry, setEntries &setAncestors, bool fCurrentEstimate)
 {
     // Add to memory pool without checking anything.
@@ -431,24 +457,43 @@ bool CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry,
     totalTxSize += entry.GetTxSize();
     minerPolicyEstimator->processTransaction(entry, fCurrentEstimate);
 
-    // Invalid ProTxes should never get this far because transactions should be
-    // fully checked by AcceptToMemoryPool() at this point, so we just assume that
-    // everything is fine here.
-    if (tx.nType == CTransaction::TxType::PROREG) {
-        const uint256& txid = tx.GetHash();
-        ProRegPL pl;
-        bool ok = GetTxPayload(tx, pl);
-        assert(ok);
-        if (!pl.collateralOutpoint.hash.IsNull()) {
-            mapProTxRefs.emplace(txid, pl.collateralOutpoint.hash);
-            mapProTxCollaterals.emplace(pl.collateralOutpoint, txid);
-        }
-        mapProTxAddresses.emplace(pl.addr, txid);
-        mapProTxPubKeyIDs.emplace(pl.keyIDOwner, txid);
-        mapProTxPubKeyIDs.emplace(pl.keyIDOperator, txid);
-    }
+    addUncheckedSpecialTx(tx);
 
     return true;
+}
+
+void CTxMemPool::removeUncheckedSpecialTx(const CTransaction& tx)
+{
+    if (!tx.IsSpecialTx()) return;
+
+    auto eraseProTxRef = [&](const uint256& proTxHash, const uint256& txHash) {
+        auto its = mapProTxRefs.equal_range(proTxHash);
+        for (auto it = its.first; it != its.second;) {
+            if (it->second == txHash) {
+                it = mapProTxRefs.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    };
+
+    const uint256& txid = tx.GetHash();
+    switch(tx.nType) {
+        case CTransaction::TxType::PROREG: {
+            ProRegPL pl;
+            bool ok = GetTxPayload(tx, pl);
+            assert(ok);
+            if (!pl.collateralOutpoint.IsNull()) {
+                eraseProTxRef(txid, pl.collateralOutpoint.hash);
+            }
+            mapProTxCollaterals.erase(pl.collateralOutpoint);
+            mapProTxAddresses.erase(pl.addr);
+            mapProTxPubKeyIDs.erase(pl.keyIDOwner);
+            mapProTxPubKeyIDs.erase(pl.keyIDOperator);
+            break;
+        }
+
+    }
 }
 
 void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
@@ -472,30 +517,7 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         }
     }
 
-    auto eraseProTxRef = [&](const uint256& proTxHash, const uint256& txHash) {
-        auto its = mapProTxRefs.equal_range(proTxHash);
-        for (auto it = its.first; it != its.second;) {
-            if (it->second == txHash) {
-                it = mapProTxRefs.erase(it);
-            } else {
-                ++it;
-            }
-        }
-    };
-
-    if (tx.nType == CTransaction::TxType::PROREG) {
-        const uint256& txid = tx.GetHash();
-        ProRegPL pl;
-        bool ok = GetTxPayload(tx, pl);
-        assert(ok);
-        if (!pl.collateralOutpoint.IsNull()) {
-            eraseProTxRef(txid, pl.collateralOutpoint.hash);
-        }
-        mapProTxCollaterals.erase(pl.collateralOutpoint);
-        mapProTxAddresses.erase(pl.addr);
-        mapProTxPubKeyIDs.erase(pl.keyIDOwner);
-        mapProTxPubKeyIDs.erase(pl.keyIDOperator);
-    }
+    removeUncheckedSpecialTx(tx);
 
     totalTxSize -= it->GetTxSize();
     cachedInnerUsage -= it->DynamicMemoryUsage();
@@ -712,26 +734,30 @@ void CTxMemPool::removeProTxConflicts(const CTransaction &tx)
 {
     removeProTxSpentCollateralConflicts(tx);
 
-    if (tx.nType == CTransaction::TxType::PROREG) {
-        ProRegPL pl;
-        if (!GetTxPayload(tx, pl)) {
-            LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
-            return;
-        }
+    if (!tx.IsSpecialTx()) return;
 
-        const uint256& txid = tx.GetHash();
-
-        if (mapProTxAddresses.count(pl.addr)) {
-            const uint256& conflictHash = mapProTxAddresses.at(pl.addr);
-            if (conflictHash != txid && mapTx.count(conflictHash)) {
-                removeRecursive(mapTx.find(conflictHash)->GetTx(), MemPoolRemovalReason::CONFLICT);
+    const uint256& txid = tx.GetHash();
+    switch(tx.nType) {
+        case CTransaction::TxType::PROREG: {
+            ProRegPL pl;
+            if (!GetTxPayload(tx, pl)) {
+                LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
+                return;
             }
+            if (mapProTxAddresses.count(pl.addr)) {
+                const uint256& conflictHash = mapProTxAddresses.at(pl.addr);
+                if (conflictHash != txid && mapTx.count(conflictHash)) {
+                    removeRecursive(mapTx.find(conflictHash)->GetTx(), MemPoolRemovalReason::CONFLICT);
+                }
+            }
+            removeProTxPubKeyConflicts(tx, pl.keyIDOwner);
+            removeProTxPubKeyConflicts(tx, pl.keyIDOperator);
+            if (!pl.collateralOutpoint.hash.IsNull()) {
+                removeProTxCollateralConflicts(tx, pl.collateralOutpoint);
+            }
+            break;
         }
-        removeProTxPubKeyConflicts(tx, pl.keyIDOwner);
-        removeProTxPubKeyConflicts(tx, pl.keyIDOperator);
-        if (!pl.collateralOutpoint.hash.IsNull()) {
-            removeProTxCollateralConflicts(tx, pl.collateralOutpoint);
-        }
+
     }
 }
 
@@ -1049,31 +1075,35 @@ TxMempoolInfo CTxMemPool::info(const uint256& hash) const
     return GetInfo(i);
 }
 
-bool CTxMemPool::existsProviderTxConflict(const CTransaction &tx) const {
+bool CTxMemPool::existsProviderTxConflict(const CTransaction &tx) const
+{
+    if (!tx.IsSpecialTx()) return false;
+
     LOCK(cs);
 
-    if (tx.nType != CTransaction::TxType::PROREG)
-        return false;
-
-    ProRegPL pl;
-    if (!GetTxPayload(tx, pl)) {
-        LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
-        return true; // i.e. can't decode payload == conflict
-    }
-
-    if (mapProTxAddresses.count(pl.addr) || mapProTxPubKeyIDs.count(pl.keyIDOwner) || mapProTxPubKeyIDs.count(pl.keyIDOperator)) {
-        return true;
-    }
-
-    if (!pl.collateralOutpoint.hash.IsNull()) {
-        if (mapProTxCollaterals.count(pl.collateralOutpoint)) {
-            // there is another ProRegTx that refers to the same collateral
-            return true;
+    switch(tx.nType) {
+        case CTransaction::TxType::PROREG: {
+            ProRegPL pl;
+            if (!GetTxPayload(tx, pl)) {
+                LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
+                return true; // i.e. can't decode payload == conflict
+            }
+            if (mapProTxAddresses.count(pl.addr) || mapProTxPubKeyIDs.count(pl.keyIDOwner) || mapProTxPubKeyIDs.count(pl.keyIDOperator)) {
+                return true;
+            }
+            if (!pl.collateralOutpoint.hash.IsNull()) {
+                if (mapProTxCollaterals.count(pl.collateralOutpoint)) {
+                    // there is another ProRegTx that refers to the same collateral
+                    return true;
+                }
+                if (mapNextTx.count(pl.collateralOutpoint)) {
+                    // there is another tx that spends the collateral
+                    return true;
+                }
+            }
+            return false;
         }
-        if (mapNextTx.count(pl.collateralOutpoint)) {
-            // there is another tx that spends the collateral
-            return true;
-        }
+
     }
     return false;
 }
