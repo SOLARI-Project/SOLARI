@@ -293,7 +293,8 @@ static OperationResult SignTransaction(CWallet* const pwallet, CMutableTransacti
     return OperationResult(true);
 }
 
-static std::string SignAndSendSpecialTx(CWallet* const pwallet, CMutableTransaction& tx, const ProRegPL& pl)
+template<typename SpecialTxPayload>
+static std::string SignAndSendSpecialTx(CWallet* const pwallet, CMutableTransaction& tx, const SpecialTxPayload& pl)
 {
     SetTxPayload(tx, pl);
 
@@ -749,6 +750,83 @@ UniValue protx_list(const JSONRPCRequest& request)
     return ret;
 }
 
+#ifdef ENABLE_WALLET
+UniValue protx_update_service(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 4) {
+        throw std::runtime_error(
+                "protx_update_service \"proTxHash\" \"ipAndPort\" (\"operatorPayoutAddress\" \"operatorKey\")\n"
+                "\nCreates and sends a ProUpServTx to the network. This will update the IP address\n"
+                "of a masternode, and/or the operator payout address.\n"
+                "If the IP is changed for a masternode that got PoSe-banned, the ProUpServTx will also revive this masternode.\n"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                "\nArguments:\n"
+                + GetHelpString(1, proTxHash)
+                + GetHelpString(2, ipAndPort_update)
+                + GetHelpString(3, operatorPayoutAddress_update)
+                + GetHelpString(4, operatorKey) +
+                "\nResult:\n"
+                "\"txid\"                        (string) The transaction id.\n"
+                "\nExamples:\n"
+                + HelpExampleCli("protx_update_service", "...!TODO...")
+        );
+    }
+    CheckEvoUpgradeEnforcement();
+
+    EnsureWalletIsUnlocked(pwallet);
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    ProUpServPL pl;
+    pl.nVersion = ProUpServPL::CURRENT_VERSION;
+    pl.proTxHash = ParseHashV(request.params[0], "proTxHash");
+
+    auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(pl.proTxHash);
+    if (!dmn) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("masternode with hash %s not found", pl.proTxHash.ToString()));
+    }
+    const std::string& addrStr = request.params[1].get_str();
+    if (!addrStr.empty()) {
+        if (!Lookup(addrStr.c_str(), pl.addr, Params().GetDefaultPort(), false)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid network address %s", addrStr));
+        }
+    } else {
+        pl.addr = dmn->pdmnState->addr;
+    }
+    pl.scriptOperatorPayout = dmn->pdmnState->scriptOperatorPayout;
+    if (request.params.size() > 2) {
+        const std::string& strAddOpPayee = request.params[2].get_str();
+        if (!strAddOpPayee.empty()) {
+            if (dmn->nOperatorReward > 0) {
+                pl.scriptOperatorPayout = GetScriptForDestination(CTxDestination(ParsePubKeyIDFromAddress(strAddOpPayee)));
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Operator reward is 0. Cannot set operator payout address"));
+            }
+        }
+    }
+
+    const std::string& strOpKey = request.params.size() > 3 ? request.params[3].get_str() : "";
+    const CKey& operatorKey = strOpKey.empty() ? GetKeyFromWallet(pwallet, dmn->pdmnState->keyIDOperator)
+                                               : ParsePrivKey(pwallet, strOpKey, false);
+
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
+    tx.nType = CTransaction::TxType::PROUPSERV;
+
+    // make sure fee calculation works
+    pl.vchSig.resize(CPubKey::COMPACT_SIGNATURE_SIZE);
+    FundSpecialTx(pwallet, tx, pl);
+    SignSpecialTxPayloadByHash(tx, pl, operatorKey);
+
+    return SignAndSendSpecialTx(pwallet, tx, pl);
+}
+#endif
 
 static const CRPCCommand commands[] =
 { //  category       name                              actor (function)         okSafe argNames
@@ -759,6 +837,7 @@ static const CRPCCommand commands[] =
     { "evo",         "protx_register_fund",            &protx_register_fund,    true,  {"collateralAddress","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
     { "evo",         "protx_register_prepare",         &protx_register_prepare, true,  {"collateralHash","collateralIndex","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
     { "evo",         "protx_register_submit",          &protx_register_submit,  true,  {"tx","sig"}  },
+    { "evo",         "protx_update_service",           &protx_update_service,   true,  {"proTxHash","ipAndPort","operatorPayoutAddress","operatorKey"}  },
 #endif  //ENABLE_WALLET
 };
 
