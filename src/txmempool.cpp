@@ -394,6 +394,15 @@ void CTxMemPool::addUncheckedSpecialTx(const CTransaction& tx)
             break;
         }
 
+        case CTransaction::TxType::PROUPSERV: {
+            ProUpServPL pl;
+            bool ok = GetTxPayload(tx, pl);
+            assert(ok);
+            mapProTxRefs.emplace(pl.proTxHash, txid);
+            mapProTxAddresses.emplace(pl.addr, txid);
+            break;
+        }
+
     }
 }
 
@@ -490,6 +499,15 @@ void CTxMemPool::removeUncheckedSpecialTx(const CTransaction& tx)
             mapProTxAddresses.erase(pl.addr);
             mapProTxPubKeyIDs.erase(pl.keyIDOwner);
             mapProTxPubKeyIDs.erase(pl.keyIDOperator);
+            break;
+        }
+
+        case CTransaction::TxType::PROUPSERV: {
+            ProUpServPL pl;
+            bool ok = GetTxPayload(tx, pl);
+            assert(ok);
+            eraseProTxRef(pl.proTxHash, txid);
+            mapProTxAddresses.erase(pl.addr);
             break;
         }
 
@@ -754,6 +772,21 @@ void CTxMemPool::removeProTxConflicts(const CTransaction &tx)
             removeProTxPubKeyConflicts(tx, pl.keyIDOperator);
             if (!pl.collateralOutpoint.hash.IsNull()) {
                 removeProTxCollateralConflicts(tx, pl.collateralOutpoint);
+            }
+            break;
+        }
+
+        case CTransaction::TxType::PROUPSERV: {
+            ProUpServPL pl;
+            if (!GetTxPayload(tx, pl)) {
+                LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
+                return;
+            }
+            if (mapProTxAddresses.count(pl.addr)) {
+                const uint256& conflictHash = mapProTxAddresses.at(pl.addr);
+                if (conflictHash != txid && mapTx.count(conflictHash)) {
+                    removeRecursive(mapTx.find(conflictHash)->GetTx(), MemPoolRemovalReason::CONFLICT);
+                }
             }
             break;
         }
@@ -1102,6 +1135,16 @@ bool CTxMemPool::existsProviderTxConflict(const CTransaction &tx) const
                 }
             }
             return false;
+        }
+
+        case CTransaction::TxType::PROUPSERV: {
+            ProUpServPL pl;
+            if (!GetTxPayload(tx, pl)) {
+                LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
+                return true; // i.e. can't decode payload == conflict
+            }
+            auto it = mapProTxAddresses.find(pl.addr);
+            return it != mapProTxAddresses.end() && it->second != pl.proTxHash;
         }
 
     }
