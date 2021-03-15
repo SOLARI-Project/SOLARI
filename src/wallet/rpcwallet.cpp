@@ -3718,6 +3718,8 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
             "  \"immature_cold_staking_balance\": xxxxxx, (numeric) the cold-staking immature balance of the wallet in PIV\n"
             "  \"immature_balance\": xxxxxx,              (numeric) the total immature balance of the wallet in PIV\n"
             "  \"txcount\": xxxxxxx,                      (numeric) the total number of transactions in the wallet\n"
+            "  \"autocombine_enabled\": true|false,       (boolean) true if autocombine is enabled, otherwise false\n"
+            "  \"autocombine_threshold\": x.xxx,          (numeric) the current autocombine threshold in PIV\n"
             "  \"keypoololdest\": xxxxxx,                 (numeric) the timestamp (seconds since GMT epoch) of the oldest pre-generated key in the key pool\n"
             "  \"keypoolsize\": xxxx,                     (numeric) how many new keys are pre-generated (only counts external keys)\n"
             "  \"keypoolsize_hd_internal\": xxxx,         (numeric) how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)\n"
@@ -3747,8 +3749,13 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     obj.pushKV("immature_delegated_balance",    ValueFromAmount(pwalletMain->GetImmatureDelegatedBalance()));
     obj.pushKV("immature_cold_staking_balance",    ValueFromAmount(pwalletMain->GetImmatureColdStakingBalance()));
     obj.pushKV("txcount", (int)pwalletMain->mapWallet.size());
-    obj.pushKV("keypoololdest", pwalletMain->GetOldestKeyPoolTime());
 
+    // Autocombine settings
+    obj.pushKV("autocombine_enabled", pwalletMain->fCombineDust);
+    obj.pushKV("autocombine_threshold", ValueFromAmount(pwalletMain->nAutoCombineThreshold));
+
+    // Keypool information
+    obj.pushKV("keypoololdest", pwalletMain->GetOldestKeyPoolTime());
     size_t kpExternalSize = pwalletMain->KeypoolCountExternalKeys();
     obj.pushKV("keypoolsize", (int64_t)kpExternalSize);
 

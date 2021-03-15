@@ -48,6 +48,12 @@ Notable Changes
 
 A new init option flag '-blocksdir' will allow one to keep the blockfiles external from the data directory.
 
+
+#### Show wallet's auto-combine settings in getwalletinfo
+
+`getwalletinfo` now has two additional return fields. `autocombine_enabled` (boolean) and `autocombine_threshold` (numeric) that will show the auto-combine threshold and whether or not it is currently enabled.
+
+
 #### Disable PoW mining RPC Commands
 
 A new configure flag has been introduced to allow more granular control over weather or not the PoW mining RPC commands are compiled into the wallet. By default they are not. This behavior can be overridden by passing `--enable-mining-rpc` to the `configure` script.
