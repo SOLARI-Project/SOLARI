@@ -141,11 +141,12 @@ BASE_SCRIPTS= [
 
 TIERTWO_SCRIPTS = [
     # Longest test should go first, to favor running tests in parallel
-    'tiertwo_deterministicmns.py',
-    'tiertwo_governance_sync_basic.py',
-    'tiertwo_mn_compatibility.py',
-    'tiertwo_masternode_activation.py',
-    'tiertwo_masternode_ping.py',
+    'tiertwo_governance_sync_basic.py',         # ~ 445 sec
+    'tiertwo_mn_compatibility.py',              # ~ 413 sec
+    'tiertwo_deterministicmns.py',              # ~ 366 sec
+    'tiertwo_masternode_activation.py',         # ~ 352 sec
+    'tiertwo_masternode_ping.py',               # ~ 293 sec
+    'tiertwo_reorg_mempool.py',                 # ~ 107 sec
 ]
 
 SAPLING_SCRIPTS = [

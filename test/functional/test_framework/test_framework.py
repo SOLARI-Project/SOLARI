@@ -1312,6 +1312,7 @@ class PivxTestFramework():
         return dmn
 
     def check_mn_list_on_node(self, idx, mns):
+        self.nodes[idx].syncwithvalidationinterfacequeue()
         mnlist = self.nodes[idx].listmasternodes()
         if len(mnlist) != len(mns):
             raise Exception("Invalid mn list on node %d:\n%s\nExpected:%s" % (idx, str(mnlist), str(mns)))
