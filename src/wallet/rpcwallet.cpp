@@ -3905,7 +3905,7 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
     CAmount nThreshold = 0;
 
     if (fEnable)
-        nThreshold = request.params[1].get_int();
+        nThreshold = AmountFromValue(request.params[1]);
 
     pwalletMain->fCombineDust = fEnable;
     pwalletMain->nAutoCombineThreshold = nThreshold;

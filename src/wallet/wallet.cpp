@@ -3996,7 +3996,7 @@ void CWallet::AutoCombineDust(CConnman* connman)
     }
 
     std::map<CTxDestination, std::vector<COutput> > mapCoinsByAddress =
-            AvailableCoinsByAddress(true, nAutoCombineThreshold * COIN, false);
+            AvailableCoinsByAddress(true, nAutoCombineThreshold, false);
 
     //coins are sectioned by address. This combination code only wants to combine inputs that belong to the same address
     for (std::map<CTxDestination, std::vector<COutput> >::iterator it = mapCoinsByAddress.begin(); it != mapCoinsByAddress.end(); it++) {
@@ -4021,7 +4021,7 @@ void CWallet::AutoCombineDust(CConnman* connman)
             nTotalRewardsValue += out.Value();
 
             // Combine to the threshold and not way above
-            if (nTotalRewardsValue > nAutoCombineThreshold * COIN)
+            if (nTotalRewardsValue > nAutoCombineThreshold)
                 break;
 
             // Around 180 bytes per input. We use 190 to be certain
@@ -4073,7 +4073,7 @@ void CWallet::AutoCombineDust(CConnman* connman)
         }
 
         //we don't combine below the threshold unless the fees are 0 to avoid paying fees over fees over fees
-        if (!maxSize && nTotalRewardsValue < nAutoCombineThreshold * COIN && nFeeRet > 0)
+        if (!maxSize && nTotalRewardsValue < nAutoCombineThreshold && nFeeRet > 0)
             continue;
 
         const CWallet::CommitResult& res = CommitTransaction(wtx, keyChange, connman);
