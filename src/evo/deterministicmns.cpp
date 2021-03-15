@@ -750,6 +750,33 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, const C
                 LogPrintf("CDeterministicMNManager::%s -- MN %s updated at height %d: %s\n",
                     __func__, pl.proTxHash.ToString(), nHeight, pl.ToString());
             }
+
+        } else if (tx.nType == CTransaction::TxType::PROUPREG) {
+            ProUpRegPL pl;
+            if (!GetTxPayload(tx, pl)) {
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-payload");
+            }
+
+            CDeterministicMNCPtr dmn = newList.GetMN(pl.proTxHash);
+            if (!dmn) {
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-hash");
+            }
+            auto newState = std::make_shared<CDeterministicMNState>(*dmn->pdmnState);
+            if (newState->keyIDOperator != pl.keyIDOperator) {
+                // reset all operator related fields and put MN into PoSe-banned state in case the operator key changes
+                newState->ResetOperatorFields();
+                newState->BanIfNotBanned(nHeight);
+            }
+            newState->keyIDOperator = pl.keyIDOperator;
+            newState->keyIDVoting = pl.keyIDVoting;
+            newState->scriptPayout = pl.scriptPayout;
+
+            newList.UpdateMN(pl.proTxHash, newState);
+
+            if (debugLogs) {
+                LogPrintf("CDeterministicMNManager::%s -- MN %s updated at height %d: %s\n",
+                    __func__, pl.proTxHash.ToString(), nHeight, pl.ToString());
+            }
         }
 
     }
