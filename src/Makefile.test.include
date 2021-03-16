@@ -3,6 +3,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 bin_PROGRAMS += test/test_pivx
+noinst_PROGRAMS += test/test_pivx_fuzzy
 TEST_SRCDIR = test
 TEST_BINARY=test/test_pivx$(EXEEXT)
 
@@ -28,6 +29,7 @@ RAW_TEST_FILES =
 
 GENERATED_TEST_FILES = $(JSON_TEST_FILES:.json=.json.h) $(RAW_TEST_FILES:.raw=.raw.h)
 
+# test_pivx binary #
 BITCOIN_TEST_SUITE = \
   test/test_pivx.h \
   test/test_pivx.cpp \
@@ -151,6 +153,29 @@ if ENABLE_ZMQ
 test_test_pivx_LDADD += $(ZMQ_LIBS)
 endif
 #
+
+# test_pivx_fuzzy binary #
+test_test_pivx_fuzzy_SOURCES = test/test_bitcoin_fuzzy.cpp
+test_test_pivx_fuzzy_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+test_test_pivx_fuzzy_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+test_test_pivx_fuzzy_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+
+test_test_pivx_fuzzy_LDADD =
+
+if ENABLE_ZMQ
+test_test_pivx_fuzzy_LDADD += $(ZMQ_LIBS)
+endif
+
+test_test_pivx_fuzzy_LDADD += $(LIBBITCOIN_SERVER) $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBUNIVALUE) $(LIBBITCOIN_ZEROCOIN) \
+  $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) $(BOOST_LIBS) $(LIBSECP256K1) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS)
+
+if ENABLE_WALLET
+test_test_pivx_fuzzy_LDADD += $(LIBBITCOIN_WALLET)
+endif
+
+test_test_pivx_fuzzy_LDADD += $(LIBSAPLING) $(LIBBITCOIN_CRYPTO) $(LIBRUSTZCASH) $(LIBBITCOIN_CONSENSUS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(LIBZCASH_LIBS)
+
+# end test_pivx_fuzzy binary #
 
 nodist_test_test_pivx_SOURCES = $(GENERATED_TEST_FILES)
 
