@@ -157,6 +157,30 @@ static CMutableTransaction CreateProUpServTx(SimpleUTXOMap& utxos, const uint256
     return tx;
 }
 
+static CMutableTransaction CreateProUpRegTx(SimpleUTXOMap& utxos, const uint256& proTxHash, const CKey& ownerKey, const CKey& operatorKey, const CKey& votingKey, const CScript& scriptPayout, const CKey& coinbaseKey)
+{
+    CAmount change;
+    auto inputs = SelectUTXOs(utxos, 1 * COIN, change);
+
+    ProUpRegPL pl;
+    pl.proTxHash = proTxHash;
+    pl.keyIDOperator = operatorKey.GetPubKey().GetID();
+    pl.keyIDVoting = votingKey.GetPubKey().GetID();
+    pl.scriptPayout = scriptPayout;
+
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
+    tx.nType = CTransaction::TxType::PROUPREG;
+    const CScript& s = GetScriptForDestination(coinbaseKey.GetPubKey().GetID());
+    FundTransaction(tx, utxos, s, s, 1 * COIN);
+    pl.inputsHash = CalcTxInputsHash(tx);
+    BOOST_ASSERT(CHashSigner::SignHash(::SerializeHash(pl), ownerKey, pl.vchSig));
+    SetTxPayload(tx, pl);
+    SignTransaction(tx, coinbaseKey);
+
+    return tx;
+}
+
 static CScript GenerateRandomAddress()
 {
     CKey key;
@@ -412,10 +436,10 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     // Mine 30 blocks, checking MN reward payments
     mapPayments.clear();
     for (size_t i = 0; i < 30; i++) {
-        SyncWithValidationInterfaceQueue();
         auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
         CBlock block = CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
+        SyncWithValidationInterfaceQueue();
         BOOST_ASSERT(!block.vtx.empty());
         BOOST_CHECK(IsMNPayeeInBlock(block, dmnExpectedPayee->pdmnState->scriptPayout));
         mapPayments[dmnExpectedPayee->proTxHash]++;
@@ -530,6 +554,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         BOOST_ASSERT(dmn != nullptr);
         BOOST_CHECK(dmn->pdmnState->scriptOperatorPayout == operatorPayee);
     }
+
     // ProUpServ: Try to change masternode operator payout when the operator reward is zero
     {
         const CScript& operatorPayee = GenerateRandomAddress();
@@ -538,6 +563,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         BOOST_CHECK(!CheckSpecialTx(tx, chainTip, state));
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-operator-payee");
     }
+
     // Block including
     // - (1) ProRegTx registering a masternode
     // - (2) ProUpServTx changing the IP of another masternode, to the one used by (1)
@@ -552,6 +578,110 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CValidationState state;
         BOOST_CHECK(!ProcessSpecialTxsInBlock(block, &indexFake, state, true));
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-addr");
+        ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
+        BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
+    }
+
+    // ProUpReg: change voting key, operator key and payout address
+    {   const uint256& proTx = dmnHashes[InsecureRandRange(dmnHashes.size())];            // pick one at random
+        const CKey& new_operatorKey = GetRandomKey();
+        const CKey& new_votingKey = GetRandomKey();
+        const CScript& new_payee = GenerateRandomAddress();
+        // try first with wrong owner key
+        CValidationState state;
+        auto tx = CreateProUpRegTx(utxos, proTx, GetRandomKey(), new_operatorKey, new_votingKey, new_payee, coinbaseKey);
+        BOOST_CHECK_MESSAGE(!CheckProUpRegTx(tx, chainTip, state), "ProUpReg verifies with wrong owner key");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-sig");
+        // then use the proper key
+        state = CValidationState();
+        tx = CreateProUpRegTx(utxos, proTx, ownerKeys.at(proTx), new_operatorKey, new_votingKey, new_payee, coinbaseKey);
+        BOOST_CHECK_MESSAGE(CheckProUpRegTx(tx, chainTip, state), state.GetRejectReason());
+        BOOST_CHECK_MESSAGE(CheckTransactionSignature(tx), "ProUpReg signature verification failed");
+        // also verify that payloads are not malleable after they have been signed
+        auto tx2 = MalleateProTxPayout<ProUpRegPL>(tx);
+        BOOST_CHECK_MESSAGE(!CheckSpecialTx(tx2, chainTip, state), "Malleated ProUpReg accepted");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-sig");
+
+        CreateAndProcessBlock({tx}, coinbaseKey);
+        chainTip = chainActive.Tip();
+        BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
+
+        SyncWithValidationInterfaceQueue();
+        auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
+        BOOST_ASSERT(dmn != nullptr);
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->keyIDOperator == new_operatorKey.GetPubKey().GetID(), "mn operator key not changed");
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->keyIDVoting == new_votingKey.GetPubKey().GetID(), "mn voting key not changed");
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->scriptPayout == new_payee, "mn script payout not changed");
+
+        nHeight++;
+    }
+
+    // ProUpReg: Try to change the voting key of a masternode that doesn't exist
+    {
+        const CKey& votingKey = GetRandomKey();
+        auto tx = CreateProUpRegTx(utxos, GetRandHash(), GetRandomKey(), GetRandomKey(), GetRandomKey(), GenerateRandomAddress(), coinbaseKey);
+
+        CValidationState state;
+        BOOST_CHECK_MESSAGE(!CheckProUpRegTx(tx, chainTip, state), "Accepted ProUpReg with invalid protx hash");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-hash");
+    }
+
+    // ProUpReg: Try to change the operator key of a masternode to the one of another registered masternode
+    {
+        int randomIdx = InsecureRandRange(dmnHashes.size());
+        int randomIdx2 = 0;
+        do { randomIdx2 = InsecureRandRange(dmnHashes.size()); } while (randomIdx2 == randomIdx);
+        const uint256& proTx = dmnHashes[randomIdx];    // mn to update
+        const CKey& new_operatorKey = operatorKeys.at(dmnHashes[randomIdx2]);
+
+        auto tx = CreateProUpRegTx(utxos, proTx, ownerKeys.at(proTx), new_operatorKey, GetRandomKey(), GenerateRandomAddress(), coinbaseKey);
+
+        CValidationState state;
+        BOOST_CHECK_MESSAGE(!CheckProUpRegTx(tx, chainTip, state), "Accepted ProUpReg with duplicate operator key");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-key");
+    }
+
+    // Block with two ProUpReg txes using same operator key
+    {
+        int randomIdx1 = InsecureRandRange(dmnHashes.size());
+        int randomIdx2 = 0;
+        do { randomIdx2 = InsecureRandRange(dmnHashes.size()); } while (randomIdx2 == randomIdx1);
+        const uint256& proTx1 = dmnHashes[randomIdx1];
+        const uint256& proTx2 = dmnHashes[randomIdx2];
+        BOOST_ASSERT(proTx1 != proTx2);
+        const CKey& new_operatorKey = GetRandomKey();
+        const CKey& new_votingKey = GetRandomKey();
+        const CScript& new_payee = GenerateRandomAddress();
+        auto tx1 = CreateProUpRegTx(utxos, proTx1, ownerKeys.at(proTx1), new_operatorKey, new_votingKey, new_payee, coinbaseKey);
+        auto tx2 = CreateProUpRegTx(utxos, proTx2, ownerKeys.at(proTx2), new_operatorKey, new_votingKey, new_payee, coinbaseKey);
+        CBlock block = CreateBlock({tx1, tx2}, coinbaseKey);
+        CBlockIndex indexFake(block);
+        indexFake.nHeight = nHeight;
+        indexFake.pprev = chainTip;
+        CValidationState state;
+        BOOST_CHECK_MESSAGE(!ProcessSpecialTxsInBlock(block, &indexFake, state, true),
+                            "Accepted block with duplicate operator key in ProUpReg txes");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-operator-key");
+        ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
+        BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
+    }
+
+    // Block including
+    // - (1) ProRegTx registering a masternode
+    // - (2) ProUpRegTx changing the operator key of another masternode, to the one used by (1)
+    {
+        const CKey& new_operatorKey = GetRandomKey();
+        auto tx1 = CreateProRegTx(nullopt, utxos, port++, GenerateRandomAddress(), coinbaseKey, GetRandomKey(), new_operatorKey);
+        const uint256& proTx = dmnHashes[InsecureRandRange(dmnHashes.size())];    // pick one at random
+        auto tx2 = CreateProUpRegTx(utxos, proTx, ownerKeys.at(proTx), new_operatorKey, GetRandomKey(), GenerateRandomAddress(), coinbaseKey);
+        CBlock block = CreateBlock({tx1, tx2}, coinbaseKey);
+        CBlockIndex indexFake(block);
+        indexFake.nHeight = nHeight;
+        indexFake.pprev = chainTip;
+        CValidationState state;
+        BOOST_CHECK_MESSAGE(!ProcessSpecialTxsInBlock(block, &indexFake, state, true),
+                            "Accepted block with duplicate operator key in ProReg+ProUpReg txes");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-operator-key");
         ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
         BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
     }
