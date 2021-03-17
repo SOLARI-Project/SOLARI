@@ -827,6 +827,75 @@ UniValue protx_update_service(const JSONRPCRequest& request)
 
     return SignAndSendSpecialTx(pwallet, tx, pl);
 }
+
+UniValue protx_update_registrar(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 4 || request.params.size() > 5) {
+        throw std::runtime_error(
+                "protx update_registrar \"proTxHash\" \"operatorAddress\" \"votingAddress\" \"payoutAddress\" (\"ownerKey\")\n"
+                "\nCreates and sends a ProUpRegTx to the network. This will update the operator key, voting key and payout\n"
+                "address of the masternode specified by \"proTxHash\".\n"
+                "The owner key of this masternode must be known to your wallet.\n"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                "\nArguments:\n"
+                + GetHelpString(1, proTxHash)
+                + GetHelpString(2, operatorAddress_update)
+                + GetHelpString(3, votingAddress_update)
+                + GetHelpString(4, payoutAddress_update)
+                + GetHelpString(5, ownerKey) +
+                "\nResult:\n"
+                "\"txid\"                        (string) The transaction id.\n"
+                "\nExamples:\n"
+                + HelpExampleCli("protx_update_registrar", "...!TODO...")
+        );
+    }
+    CheckEvoUpgradeEnforcement();
+
+    EnsureWalletIsUnlocked(pwallet);
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    ProUpRegPL pl;
+    pl.nVersion = ProUpServPL::CURRENT_VERSION;
+    pl.proTxHash = ParseHashV(request.params[0], "proTxHash");
+
+    auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(pl.proTxHash);
+    if (!dmn) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("masternode with hash %s not found", pl.proTxHash.ToString()));
+    }
+    const std::string& strOperatorAddress = request.params[1].get_str();
+    pl.keyIDOperator = strOperatorAddress.empty() ? dmn->pdmnState->keyIDOperator
+                                                  : ParsePubKeyIDFromAddress(strOperatorAddress);
+
+    const std::string& strVotingAddress = request.params[2].get_str();
+    pl.keyIDVoting = strVotingAddress.empty() ? dmn->pdmnState->keyIDVoting
+                                              : ParsePubKeyIDFromAddress(strVotingAddress);
+
+    const std::string& strPayee = request.params[3].get_str();
+    pl.scriptPayout = strPayee.empty() ? pl.scriptPayout = dmn->pdmnState->scriptPayout
+                                       : GetScriptForDestination(CTxDestination(ParsePubKeyIDFromAddress(strPayee)));
+
+    const std::string& strOwnKey = request.params.size() > 4 ? request.params[4].get_str() : "";
+    const CKey& ownerKey = strOwnKey.empty() ? GetKeyFromWallet(pwallet, dmn->pdmnState->keyIDOwner)
+                                             : ParsePrivKey(pwallet, strOwnKey, false);
+
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
+    tx.nType = CTransaction::TxType::PROUPREG;
+
+    // make sure fee calculation works
+    pl.vchSig.resize(CPubKey::COMPACT_SIGNATURE_SIZE);
+    FundSpecialTx(pwallet, tx, pl);
+    SignSpecialTxPayloadByHash(tx, pl, ownerKey);
+
+    return SignAndSendSpecialTx(pwallet, tx, pl);
+}
 #endif
 
 static const CRPCCommand commands[] =
@@ -838,6 +907,7 @@ static const CRPCCommand commands[] =
     { "evo",         "protx_register_fund",            &protx_register_fund,    true,  {"collateralAddress","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
     { "evo",         "protx_register_prepare",         &protx_register_prepare, true,  {"collateralHash","collateralIndex","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
     { "evo",         "protx_register_submit",          &protx_register_submit,  true,  {"tx","sig"}  },
+    { "evo",         "protx_update_registrar",         &protx_update_registrar, true,  {"proTxHash","operatorAddress","votingAddress","payoutAddress","ownerKey"}  },
     { "evo",         "protx_update_service",           &protx_update_service,   true,  {"proTxHash","ipAndPort","operatorPayoutAddress","operatorKey"}  },
 #endif  //ENABLE_WALLET
 };
