@@ -11,12 +11,12 @@ if(CCACHE_PROGRAM)
 endif()
 
 # Search for the cargo and rustc compilers required to build libzcashrust
-find_program(CARGO_PROGRAM cargo REQUIRED)
+find_program(CARGO_PROGRAM cargo REQUIRED HINTS ~/.cargo/bin)
 if(CARGO_PROGRAM)
     message(STATUS "Found cargo: ${CARGO_PROGRAM}")
 endif()
 
-find_program(RUSTC_PROGRAM rustc REQUIRED)
+find_program(RUSTC_PROGRAM rustc REQUIRED HINTS ~/.cargo/bin)
 if(RUSTC_PROGRAM)
     message(STATUS "Found rustc: ${RUSTC_PROGRAM}")
 endif()
