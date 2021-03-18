@@ -256,6 +256,7 @@ public:
         PROREG = 1,
         PROUPSERV = 2,
         PROUPREG = 3,
+        PROUPREV = 4,
     };
 
     static const int16_t CURRENT_VERSION = TxVersion::LEGACY;

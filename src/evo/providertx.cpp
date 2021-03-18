@@ -453,6 +453,63 @@ void ProUpRegPL::ToJson(UniValue& obj) const
     obj.pushKV("inputsHash", inputsHash.ToString());
 }
 
+// Provider Update Revoke Payload
+
+bool CheckProUpRevTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
+{
+    assert(tx.nType == CTransaction::TxType::PROUPREV);
+
+    ProUpRevPL pl;
+    if (!GetTxPayload(tx, pl)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-protx-payload");
+    }
+
+    if (pl.nVersion == 0 || pl.nVersion > ProUpRevPL::CURRENT_VERSION) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-protx-version");
+    }
+
+    // pl.nReason < ProUpRevPL::REASON_NOT_SPECIFIED is always `false` since
+    // pl.nReason is unsigned and ProUpRevPL::REASON_NOT_SPECIFIED == 0
+    if (pl.nReason > ProUpRevPL::REASON_LAST) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-protx-reason");
+    }
+
+    if (!CheckInputsHash(tx, pl, state)) {
+        // pass the state returned by the function above
+        return false;
+    }
+
+    if (pindexPrev) {
+        auto mnList = deterministicMNManager->GetListForBlock(pindexPrev);
+        auto dmn = mnList.GetMN(pl.proTxHash);
+        if (!dmn)
+            return state.DoS(100, false, REJECT_INVALID, "bad-protx-hash");
+
+        if (!CheckHashSig(pl, dmn->pdmnState->keyIDOperator, state)) {
+            // pass the state returned by the function above
+            return false;
+        }
+    }
+
+    return true;
+}
+
+std::string ProUpRevPL::ToString() const
+{
+    return strprintf("ProUpRevPL(nVersion=%d, proTxHash=%s, nReason=%d)",
+                      nVersion, proTxHash.ToString(), nReason);
+}
+
+void ProUpRevPL::ToJson(UniValue& obj) const
+{
+    obj.clear();
+    obj.setObject();
+    obj.pushKV("version", nVersion);
+    obj.pushKV("proTxHash", proTxHash.ToString());
+    obj.pushKV("reason", (int)nReason);
+    obj.pushKV("inputsHash", inputsHash.ToString());
+}
+
 bool GetProRegCollateral(const CTransactionRef& tx, COutPoint& outRet)
 {
     if (tx == nullptr) {

@@ -55,7 +55,7 @@ void CDeterministicMNState::ToJson(UniValue& obj) const
     obj.pushKV("PoSeBanHeight", nPoSeBanHeight);
     obj.pushKV("revocationReason", nRevocationReason);
     obj.pushKV("ownerAddress", EncodeDestination(keyIDOwner));
-    obj.pushKV("operatorAddress", EncodeDestination(keyIDOperator));
+    obj.pushKV("operatorAddress", keyIDOperator == CKeyID() ? "" : EncodeDestination(keyIDOperator));
     obj.pushKV("votingAddress", EncodeDestination(keyIDVoting));
 
     CTxDestination dest1;

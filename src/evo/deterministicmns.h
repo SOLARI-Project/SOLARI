@@ -30,10 +30,7 @@ public:
     int nPoSePenalty{0};
     int nPoSeRevivedHeight{-1};
     int nPoSeBanHeight{-1};
-    uint16_t nRevocationReason{0};
-    /* !TODO: after introducing ProUpRev enum:
     uint16_t nRevocationReason{ProUpRevPL::REASON_NOT_SPECIFIED};
-    */
 
     // the block hash X blocks after registration, used in quorum calculations
     uint256 confirmedHash;
@@ -85,10 +82,7 @@ public:
         keyIDOperator = CKeyID();
         addr = CService();
         scriptOperatorPayout = CScript();
-        nRevocationReason = 0;
-        /* !TODO: after introducing ProUpRev enum:
         nRevocationReason = ProUpRevPL::REASON_NOT_SPECIFIED;
-        */
     }
     void BanIfNotBanned(int height)
     {
