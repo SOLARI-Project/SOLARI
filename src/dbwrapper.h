@@ -460,7 +460,7 @@ public:
         deletes.clear();
     }
 
-    bool Commit() {
+    void Commit() {
         CDBBatch batch;
         for (auto &p : deletes) {
             for (auto &p2 : p.second) {
@@ -472,9 +472,8 @@ public:
                 p2.second->Write(batch);
             }
         }
-        bool ret = db.WriteBatch(batch, true);
+        db.WriteBatch(batch, true);
         Clear();
-        return ret;
     }
 
     bool IsClean() {
@@ -495,13 +494,12 @@ public:
         if (!didCommitOrRollback)
             Rollback();
     }
-    bool Commit() {
+    void Commit() {
         assert(!didCommitOrRollback);
         didCommitOrRollback = true;
-        bool result = dbTransaction.Commit();
+        dbTransaction.Commit();
         if (commitHandler)
             commitHandler();
-        return result;
     }
     void Rollback() {
         assert(!didCommitOrRollback);
