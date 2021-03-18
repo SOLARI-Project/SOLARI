@@ -7,12 +7,49 @@
 
 std::unique_ptr<CEvoDB> evoDb;
 
+CEvoDBScopedCommitter::CEvoDBScopedCommitter(CEvoDB &_evoDB) :
+    evoDB(_evoDB)
+{
+}
+
+CEvoDBScopedCommitter::~CEvoDBScopedCommitter()
+{
+    if (!didCommitOrRollback)
+        Rollback();
+}
+
+void CEvoDBScopedCommitter::Commit()
+{
+    assert(!didCommitOrRollback);
+    didCommitOrRollback = true;
+    evoDB.CommitCurTransaction();
+}
+
+void CEvoDBScopedCommitter::Rollback()
+{
+    assert(!didCommitOrRollback);
+    didCommitOrRollback = true;
+    evoDB.RollbackCurTransaction();
+}
+
 CEvoDB::CEvoDB(size_t nCacheSize, bool fMemory, bool fWipe) :
         db(fMemory ? "" : (GetDataDir() / "evodb"), nCacheSize, fMemory, fWipe),
         rootBatch(),
         rootDBTransaction(db, rootBatch),
         curDBTransaction(rootDBTransaction, rootDBTransaction)
 {
+}
+
+void CEvoDB::CommitCurTransaction()
+{
+    LOCK(cs);
+    curDBTransaction.Commit();
+}
+
+void CEvoDB::RollbackCurTransaction()
+{
+    LOCK(cs);
+    curDBTransaction.Clear();
 }
 
 bool CEvoDB::CommitRootTransaction()
