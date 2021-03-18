@@ -8,6 +8,9 @@
 
 #include "dbwrapper.h"
 #include "sync.h"
+#include "uint256.h"
+
+static const std::string EVODB_BEST_BLOCK = "b_b";
 
 class CEvoDB
 {
@@ -58,6 +61,9 @@ public:
     {
         return db;
     }
+
+    bool VerifyBestBlock(const uint256& hash);
+    void WriteBestBlock(const uint256& hash);
 };
 
 extern std::unique_ptr<CEvoDB> evoDb;

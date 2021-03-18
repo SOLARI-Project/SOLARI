@@ -12,3 +12,14 @@ CEvoDB::CEvoDB(size_t nCacheSize, bool fMemory, bool fWipe) :
         dbTransaction(db)
 {
 }
+
+bool CEvoDB::VerifyBestBlock(const uint256& hash)
+{
+    uint256 hashBestBlock;
+    return Read(EVODB_BEST_BLOCK, hashBestBlock) && hashBestBlock == hash;
+}
+
+void CEvoDB::WriteBestBlock(const uint256& hash)
+{
+    Write(EVODB_BEST_BLOCK, hash);
+}
