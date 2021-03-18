@@ -46,6 +46,7 @@ enum ProRegParam {
     proTxHash,
     payoutAddress_register,
     payoutAddress_update,
+    revocationReason,
     votingAddress_register,
     votingAddress_update,
 };
@@ -113,6 +114,10 @@ static const std::map<ProRegParam, std::string> mapParamHelp = {
         },
         {proTxHash,
             "%d. \"proTxHash\"              (string, required) The hash of the initial ProRegTx.\n"
+        },
+        {revocationReason,
+            "%d. reason                     (numeric, optional) The reason for masternode service revocation. Default: 0.\n"
+            "                                 0=not_specified, 1=service_termination, 2=compromised_keys, 3=keys_change.\n"
         },
         {votingAddress_register,
             "%d. \"votingAddress\"          (string, required) The voting key address. The private key does not have to be known by your wallet.\n"
@@ -896,6 +901,73 @@ UniValue protx_update_registrar(const JSONRPCRequest& request)
 
     return SignAndSendSpecialTx(pwallet, tx, pl);
 }
+
+UniValue protx_revoke(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3) {
+        throw std::runtime_error(
+                "protx_update_revoke \"proTxHash\" (\"operatorKey\" reason)\n"
+                "\nCreates and sends a ProUpRevTx to the network. This will revoke the operator key of the masternode and\n"
+                "put it into the PoSe-banned state. It will also set the service field of the masternode\n"
+                "to zero. Use this in case your operator key got compromised or you want to stop providing your service\n"
+                "to the masternode owner.\n"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                "\nArguments:\n"
+                + GetHelpString(1, proTxHash)
+                + GetHelpString(2, operatorKey)
+                + GetHelpString(3, revocationReason) +
+                "\nResult:\n"
+                "\"txid\"                        (string) The transaction id.\n"
+                "\nExamples:\n"
+                + HelpExampleCli("protx_revoke", "...!TODO...")
+        );
+    }
+    CheckEvoUpgradeEnforcement();
+
+    EnsureWalletIsUnlocked(pwallet);
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    ProUpRevPL pl;
+    pl.nVersion = ProUpServPL::CURRENT_VERSION;
+    pl.proTxHash = ParseHashV(request.params[0], "proTxHash");
+
+    auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(pl.proTxHash);
+    if (!dmn) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("masternode with hash %s not found", pl.proTxHash.ToString()));
+    }
+
+    const std::string& strOpKey = request.params.size() > 1 ? request.params[1].get_str() : "";
+    const CKey& operatorKey = strOpKey.empty() ? GetKeyFromWallet(pwallet, dmn->pdmnState->keyIDOperator)
+                                               : ParsePrivKey(pwallet, strOpKey, false);
+
+    pl.nReason = ProUpRevPL::RevocationReason::REASON_NOT_SPECIFIED;
+    if (request.params.size() > 2) {
+        int nReason = request.params[2].get_int();
+        if (nReason < 0 || nReason > ProUpRevPL::RevocationReason::REASON_LAST) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid reason %d, must be between 0 and %d",
+                                                                nReason, ProUpRevPL::RevocationReason::REASON_LAST));
+        }
+        pl.nReason = (uint16_t)nReason;
+    }
+
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
+    tx.nType = CTransaction::TxType::PROUPREV;
+
+    // make sure fee calculation works
+    pl.vchSig.resize(CPubKey::COMPACT_SIGNATURE_SIZE);
+    FundSpecialTx(pwallet, tx, pl);
+    SignSpecialTxPayloadByHash(tx, pl, operatorKey);
+
+    return SignAndSendSpecialTx(pwallet, tx, pl);
+}
 #endif
 
 static const CRPCCommand commands[] =
@@ -907,6 +979,7 @@ static const CRPCCommand commands[] =
     { "evo",         "protx_register_fund",            &protx_register_fund,    true,  {"collateralAddress","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
     { "evo",         "protx_register_prepare",         &protx_register_prepare, true,  {"collateralHash","collateralIndex","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
     { "evo",         "protx_register_submit",          &protx_register_submit,  true,  {"tx","sig"}  },
+    { "evo",         "protx_revoke",                   &protx_revoke,           true,  {"proTxHash","operatorKey","reason"}  },
     { "evo",         "protx_update_registrar",         &protx_update_registrar, true,  {"proTxHash","operatorAddress","votingAddress","payoutAddress","ownerKey"}  },
     { "evo",         "protx_update_service",           &protx_update_service,   true,  {"proTxHash","ipAndPort","operatorPayoutAddress","operatorKey"}  },
 #endif  //ENABLE_WALLET
