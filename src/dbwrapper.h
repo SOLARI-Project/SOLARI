@@ -140,21 +140,24 @@ public:
 
     void SeekToFirst();
 
-    template<typename K> void Seek(const K& key) {
+    template<typename K> void Seek(const K& key)
+    {
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
         ssKey.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
         ssKey << key;
         Seek(ssKey);
     }
 
-    void Seek(const CDataStream& ssKey) {
+    void Seek(const CDataStream& ssKey)
+    {
         leveldb::Slice slKey(ssKey.data(), ssKey.size());
         piter->Seek(slKey);
     }
 
     void Next();
 
-    template<typename K> bool GetKey(K& key) {
+    template<typename K> bool GetKey(K& key)
+    {
         try {
             CDataStream ssKey = GetKey();
             ssKey >> key;
@@ -164,16 +167,19 @@ public:
         return true;
     }
 
-    CDataStream GetKey() {
+    CDataStream GetKey()
+    {
         leveldb::Slice slKey = piter->key();
         return CDataStream(slKey.data(), slKey.data() + slKey.size(), SER_DISK, CLIENT_VERSION);
     }
 
-    unsigned int GetKeySize() {
+    unsigned int GetKeySize()
+    {
         return piter->key().size();
     }
 
-    template<typename V> bool GetValue(V& value) {
+    template<typename V> bool GetValue(V& value)
+    {
         leveldb::Slice slValue = piter->value();
         try {
             CDataStream ssValue(slValue.data(), slValue.data() + slValue.size(), SER_DISK, CLIENT_VERSION);
@@ -184,7 +190,8 @@ public:
         return true;
     }
 
-    unsigned int GetValueSize() {
+    unsigned int GetValueSize()
+    {
         return piter->value().size();
     }
 
@@ -404,7 +411,8 @@ public:
         parentIt = std::unique_ptr<ParentIterator>(transaction.parent.NewIterator());
     }
 
-    void SeekToFirst() {
+    void SeekToFirst()
+    {
         transactionIt = transaction.writes.begin();
         parentIt->SeekToFirst();
         SkipDeletedAndOverwritten();
@@ -412,22 +420,26 @@ public:
     }
 
     template<typename K>
-    void Seek(const K& key) {
+    void Seek(const K& key)
+    {
         Seek(CDBTransaction::KeyToDataStream(key));
     }
 
-    void Seek(const CDataStream& ssKey) {
+    void Seek(const CDataStream& ssKey)
+    {
         transactionIt = transaction.writes.lower_bound(ssKey);
         parentIt->Seek(ssKey);
         SkipDeletedAndOverwritten();
         DecideCur();
     }
 
-    bool Valid() {
+    bool Valid()
+    {
         return transactionIt != transaction.writes.end() || parentIt->Valid();
     }
 
-    void Next() {
+    void Next()
+    {
         if (transactionIt == transaction.writes.end() && !parentIt->Valid()) {
             return;
         }
@@ -443,7 +455,8 @@ public:
     }
 
     template<typename K>
-    bool GetKey(K& key) {
+    bool GetKey(K& key)
+    {
         if (!Valid()) {
             return false;
         }
@@ -462,7 +475,8 @@ public:
         }
     }
 
-    CDataStream GetKey() {
+    CDataStream GetKey()
+    {
         if (!Valid()) {
             return CDataStream(SER_DISK, CLIENT_VERSION);
         }
@@ -473,7 +487,8 @@ public:
         }
     }
 
-    unsigned int GetKeySize() {
+    unsigned int GetKeySize()
+    {
         if (!Valid()) {
             return 0;
         }
@@ -485,7 +500,8 @@ public:
     }
 
     template<typename V>
-    bool GetValue(V& value) {
+    bool GetValue(V& value)
+    {
         if (!Valid()) {
             return false;
         }
@@ -497,7 +513,8 @@ public:
     };
 
 private:
-    void SkipDeletedAndOverwritten() {
+    void SkipDeletedAndOverwritten()
+    {
         while (parentIt->Valid()) {
             parentKey = parentIt->GetKey();
             if (!transaction.deletes.count(parentKey) && !transaction.writes.count(parentKey)) {
@@ -507,7 +524,8 @@ private:
         }
     }
 
-    void DecideCur() {
+    void DecideCur()
+    {
         if (transactionIt != transaction.writes.end() && !parentIt->Valid()) {
             curIsParent = false;
         } else if (transactionIt == transaction.writes.end() && parentIt->Valid()) {
@@ -532,14 +550,13 @@ protected:
     ssize_t memoryUsage{0}; // signed, just in case we made an error in the calculations so that we don't get an overflow
 
     struct DataStreamCmp {
-        static bool less(const CDataStream& a, const CDataStream& b) {
+        static bool less(const CDataStream& a, const CDataStream& b)
+        {
             return std::lexicographical_compare(
                     (const uint8_t*)a.data(), (const uint8_t*)a.data() + a.size(),
                     (const uint8_t*)b.data(), (const uint8_t*)b.data() + b.size());
         }
-        bool operator()(const CDataStream& a, const CDataStream& b) const {
-            return less(a, b);
-        }
+        bool operator()(const CDataStream& a, const CDataStream& b) const { return less(a, b); }
     };
 
     struct ValueHolder {
@@ -554,7 +571,8 @@ protected:
     struct ValueHolderImpl : ValueHolder {
         ValueHolderImpl(const V &_value, size_t _memoryUsage) : ValueHolder(_memoryUsage), value(_value) {}
 
-        virtual void Write(const CDataStream& ssKey, CommitTarget &commitTarget) {
+        virtual void Write(const CDataStream& ssKey, CommitTarget &commitTarget)
+        {
             // we're moving the value instead of copying it. This means that Write() can only be called once per
             // ValueHolderImpl instance. Commit() clears the write maps, so this ok.
             commitTarget.Write(ssKey, std::move(value));
@@ -563,7 +581,8 @@ protected:
     };
 
     template<typename K>
-    static CDataStream KeyToDataStream(const K& key) {
+    static CDataStream KeyToDataStream(const K& key)
+    {
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
         ssKey.reserve(DBWRAPPER_PREALLOC_KEY_SIZE);
         ssKey << key;
@@ -580,12 +599,14 @@ public:
     CDBTransaction(Parent &_parent, CommitTarget &_commitTarget) : parent(_parent), commitTarget(_commitTarget) {}
 
     template <typename K, typename V>
-    void Write(const K& key, const V& v) {
+    void Write(const K& key, const V& v)
+    {
         Write(KeyToDataStream(key), v);
     }
 
     template <typename V>
-    void Write(const CDataStream& ssKey, const V& v) {
+    void Write(const CDataStream& ssKey, const V& v)
+    {
         auto valueMemoryUsage = ::GetSerializeSize(v, SER_DISK, CLIENT_VERSION);
         if (deletes.erase(ssKey)) {
             memoryUsage -= ssKey.size();
@@ -600,12 +621,14 @@ public:
     }
 
     template <typename K, typename V>
-    bool Read(const K& key, V& value) {
+    bool Read(const K& key, V& value)
+    {
         return Read(KeyToDataStream(key), value);
     }
 
     template <typename V>
-    bool Read(const CDataStream& ssKey, V& value) {
+    bool Read(const CDataStream& ssKey, V& value)
+    {
         if (deletes.count(ssKey)) {
             return false;
         }
@@ -624,11 +647,13 @@ public:
     }
 
     template <typename K>
-    bool Exists(const K& key) {
+    bool Exists(const K& key)
+    {
         return Exists(KeyToDataStream(key));
     }
 
-    bool Exists(const CDataStream& ssKey) {
+    bool Exists(const CDataStream& ssKey)
+    {
         if (deletes.count(ssKey)) {
             return false;
         }
@@ -641,11 +666,13 @@ public:
     }
 
     template <typename K>
-    void Erase(const K& key) {
+    void Erase(const K& key)
+    {
         return Erase(KeyToDataStream(key));
     }
 
-    void Erase(const CDataStream& ssKey) {
+    void Erase(const CDataStream& ssKey)
+    {
         auto it = writes.find(ssKey);
         if (it != writes.end()) {
             memoryUsage -= ssKey.size() + it->second->memoryUsage;
@@ -656,13 +683,15 @@ public:
         }
     }
 
-    void Clear() {
+    void Clear()
+    {
         writes.clear();
         deletes.clear();
         memoryUsage = 0;
     }
 
-    void Commit() {
+    void Commit()
+    {
         for (const auto &k : deletes) {
             commitTarget.Erase(k);
         }
@@ -672,11 +701,13 @@ public:
         Clear();
     }
 
-    bool IsClean() {
+    bool IsClean()
+    {
         return writes.empty() && deletes.empty();
     }
 
-    size_t GetMemoryUsage() const {
+    size_t GetMemoryUsage() const
+    {
         if (memoryUsage < 0) {
             // something went wrong when we accounted/calculated used memory...
             static volatile bool didPrint = false;
@@ -689,10 +720,12 @@ public:
         return (size_t)memoryUsage;
     }
 
-    CDBTransactionIterator<CDBTransaction>* NewIterator() {
+    CDBTransactionIterator<CDBTransaction>* NewIterator()
+    {
         return new CDBTransactionIterator<CDBTransaction>(*this);
     }
-    std::unique_ptr<CDBTransactionIterator<CDBTransaction>> NewIteratorUniquePtr() {
+    std::unique_ptr<CDBTransactionIterator<CDBTransaction>> NewIteratorUniquePtr()
+    {
         return std::make_unique<CDBTransactionIterator<CDBTransaction>>(*this);
     }
 };
