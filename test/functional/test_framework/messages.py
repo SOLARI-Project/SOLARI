@@ -1389,6 +1389,11 @@ class Masternode(object):
         self.proTx = None
         self.collateral = None
 
+    def revoked(self):
+        self.ipport = "[::]:0"
+        self.operator = ""
+        self.operator_key = None
+
     def __repr__(self):
         return "Masternode(idx=%d, owner=%s, operator=%s, voting=%s, ip=%s, payee=%s, opkey=%s, protx=%s, collateral=%s)" % (
             self.idx, str(self.owner), str(self.operator), str(self.voting), str(self.ipport),

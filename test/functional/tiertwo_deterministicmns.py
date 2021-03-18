@@ -154,8 +154,8 @@ class DIP3Test(PivxTestFramework):
         for i in range(3):
             idx = 2 + len(mns) + i
             add_and_key = []
-            add_and_key.append(miner.getnewaddress("oper-%d-key" % idx))
-            add_and_key.append(miner.dumpprivkey(add_and_key[0]))
+            add_and_key.append(controller.getnewaddress("oper-%d-key" % idx))
+            add_and_key.append(controller.dumpprivkey(add_and_key[0]))
             self.nodes[idx].initmasternode(add_and_key[1], "", True)
             op_keys.append(add_and_key)
             time.sleep(1)
@@ -344,11 +344,13 @@ class DIP3Test(PivxTestFramework):
         self.check_mn_list(mns)
         self.log.info("Update payout address...")
         old_payee = mns[2].payee
-        old_mn2_bal = self.get_addr_balance(controller, old_payee)
         mns[2].payee = controller.getnewaddress()
         controller.protx_update_registrar(mns[2].proTx, "", "", mns[2].payee)
         self.sync_mempools([miner, controller])
-        miner.generate(len(mns))
+        miner.generate(1)
+        self.sync_blocks()
+        old_mn2_bal = self.get_addr_balance(controller, old_payee)
+        miner.generate(len(mns)-1)
         self.sync_blocks()
         self.check_mn_list(mns)
         # Check payment to new address
@@ -357,6 +359,50 @@ class DIP3Test(PivxTestFramework):
         assert_equal(self.get_addr_balance(controller, mns[2].payee), Decimal('3'))
         # The PoSe banned node didn't receive any more payment
         assert_equal(self.get_addr_balance(controller, mns[0].payee), old_mn0_balance)
+
+        # Test ProUpRev txes
+        self.log.info("Trying to revoke a non-existent masternode...")
+        assert_raises_rpc_error(-8, "not found", miner.protx_revoke,
+                                "%064x" % getrandbits(256))
+        self.log.info("Trying to revoke with invalid reason...")
+        assert_raises_rpc_error(-8, "invalid reason", controller.protx_revoke, mns[3].proTx, "", 100)
+        self.log.info("Revoke masternode...")
+        # Controller should already have the key (as it was generated there), no need to pass it
+        controller.protx_revoke(mns[3].proTx, "", 1)
+        mns[3].revoked()
+        self.sync_mempools([miner, controller])
+        miner.generate(1)
+        self.sync_blocks()
+        self.check_mn_list(mns)
+        old_mn3_bal = self.get_addr_balance(controller, mns[3].payee)
+        self.log.info("Revoke masternode (with external key)...")
+        miner.protx_revoke(mns[4].proTx, mns[4].operator_key, 2)
+        mns[4].revoked()
+        miner.generate(1)
+        self.sync_blocks()
+        self.check_mn_list(mns)
+        old_mn4_bal = self.get_addr_balance(controller, mns[4].payee)
+        miner.generate(len(mns) + 1)
+        self.sync_blocks()
+        self.check_mn_list(mns)
+        # Check (no) payments
+        self.log.info("Checking payments...")
+        assert_equal(self.get_addr_balance(controller, mns[3].payee), old_mn3_bal)
+        assert_equal(self.get_addr_balance(controller, mns[4].payee), old_mn4_bal)
+
+        # Test reviving a masternode
+        self.log.info("Reviving a masternode...")
+        mns[3].operator = controller.getnewaddress()
+        mns[3].operator_key = controller.dumpprivkey(mns[3].operator)
+        miner.protx_update_registrar(mns[3].proTx, mns[3].operator, "", "", controller.dumpprivkey(mns[3].owner))
+        miner.generate(1)
+        mns[3].ipport = "127.0.0.1:3000"
+        miner.protx_update_service(mns[3].proTx, mns[3].ipport, "", mns[3].operator_key)
+        miner.generate(len(mns))
+        self.sync_blocks()
+        self.check_mn_list(mns)
+        self.log.info("Checking payments...")
+        assert_equal(self.get_addr_balance(controller, mns[3].payee), old_mn3_bal + Decimal('3'))
 
         self.log.info("All good.")
 

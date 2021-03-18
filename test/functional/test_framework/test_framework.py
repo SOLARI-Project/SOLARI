@@ -1323,7 +1323,14 @@ class PivxTestFramework():
         self.nodes[idx].syncwithvalidationinterfacequeue()
         mnlist = self.nodes[idx].listmasternodes()
         if len(mnlist) != len(mns):
-            raise Exception("Invalid mn list on node %d:\n%s\nExpected:%s" % (idx, str(mnlist), str(mns)))
+            mnlist_l = [[x['proTxHash'], x['dmnstate']['service']] for x in mnlist]
+            mns_l = [[x.proTx, x.ipport] for x in mns]
+            strErr = ""
+            for x in [x for x in mnlist_l if x not in mns_l]:
+                strErr += "Mn %s is not expected\n" % str(x)
+            for x in [x for x in mns_l if x not in mnlist_l]:
+                strErr += "Expect Mn %s not found\n" % str(x)
+            raise Exception("Invalid mn list on node %d:\n%s" % (idx, strErr))
         protxs = {x["proTxHash"]: x for x in mnlist}
         for mn in mns:
             if mn.proTx not in protxs:
