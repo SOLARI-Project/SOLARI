@@ -30,8 +30,10 @@ public:
 
 class CEvoDB
 {
-private:
+public:
     RecursiveMutex cs;
+
+private:
     CDBWrapper db;
 
     typedef CDBTransaction<CDBWrapper, CDBBatch> RootTransaction;
@@ -48,6 +50,12 @@ public:
     {
         LOCK(cs);
         return std::make_unique<CEvoDBScopedCommitter>(*this);
+    }
+
+    CurTransaction& GetCurTransaction()
+    {
+        AssertLockHeld(cs); // lock must be held from outside as long as the DB transaction is used
+        return curDBTransaction;
     }
 
     template<typename K, typename V>
