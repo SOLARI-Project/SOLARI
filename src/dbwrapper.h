@@ -510,7 +510,7 @@ private:
     bool didCommitOrRollback{};
 
 public:
-    CScopedDBTransaction(Transaction &dbTx) : dbTransaction(dbTx) {}
+    explicit CScopedDBTransaction(Transaction &dbTx) : dbTransaction(dbTx) {}
     ~CScopedDBTransaction() {
         if (!didCommitOrRollback)
             Rollback();
