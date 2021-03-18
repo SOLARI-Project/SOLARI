@@ -83,6 +83,11 @@ public:
         return db;
     }
 
+    size_t GetMemoryUsage()
+    {
+        return rootDBTransaction.GetMemoryUsage();
+    }
+
     bool CommitRootTransaction();
 
     bool VerifyBestBlock(const uint256& hash);
