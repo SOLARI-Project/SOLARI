@@ -132,7 +132,7 @@ public:
     static const uint16_t CURRENT_VERSION = 1;
 
     // these are just informational and do not have any effect on the revocation
-    enum {
+    enum RevocationReason {
         REASON_NOT_SPECIFIED = 0,
         REASON_TERMINATION_OF_SERVICE = 1,
         REASON_COMPROMISED_KEYS = 2,

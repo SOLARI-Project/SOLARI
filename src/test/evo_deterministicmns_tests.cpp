@@ -181,6 +181,28 @@ static CMutableTransaction CreateProUpRegTx(SimpleUTXOMap& utxos, const uint256&
     return tx;
 }
 
+static CMutableTransaction CreateProUpRevTx(SimpleUTXOMap& utxos, const uint256& proTxHash, ProUpRevPL::RevocationReason reason, const CKey& operatorKey, const CKey& coinbaseKey)
+{
+    CAmount change;
+    auto inputs = SelectUTXOs(utxos, 1 * COIN, change);
+
+    ProUpRevPL pl;
+    pl.proTxHash = proTxHash;
+    pl.nReason = reason;
+
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
+    tx.nType = CTransaction::TxType::PROUPREV;
+    const CScript& s = GetScriptForDestination(coinbaseKey.GetPubKey().GetID());
+    FundTransaction(tx, utxos, s, s, 1 * COIN);
+    pl.inputsHash = CalcTxInputsHash(tx);
+    BOOST_ASSERT(CHashSigner::SignHash(::SerializeHash(pl), operatorKey, pl.vchSig));
+    SetTxPayload(tx, pl);
+    SignTransaction(tx, coinbaseKey);
+
+    return tx;
+}
+
 static CScript GenerateRandomAddress()
 {
     CKey key;
@@ -207,6 +229,17 @@ static CMutableTransaction MalleateProUpServTx(const CMutableTransaction& tx)
     if (!pl.scriptOperatorPayout.empty()) {
         pl.scriptOperatorPayout = GenerateRandomAddress();
     }
+    CMutableTransaction tx2 = tx;
+    SetTxPayload(tx2, pl);
+    return tx2;
+}
+
+static CMutableTransaction MalleateProUpRevTx(const CMutableTransaction& tx)
+{
+    ProUpRevPL pl;
+    GetTxPayload(tx, pl);
+    BOOST_ASSERT(pl.nReason != ProUpRevPL::RevocationReason::REASON_CHANGE_OF_KEYS);
+    pl.nReason = ProUpRevPL::RevocationReason::REASON_CHANGE_OF_KEYS;
     CMutableTransaction tx2 = tx;
     SetTxPayload(tx2, pl);
     return tx2;
@@ -583,7 +616,8 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     }
 
     // ProUpReg: change voting key, operator key and payout address
-    {   const uint256& proTx = dmnHashes[InsecureRandRange(dmnHashes.size())];            // pick one at random
+    {
+        const uint256& proTx = dmnHashes[InsecureRandRange(dmnHashes.size())];            // pick one at random
         const CKey& new_operatorKey = GetRandomKey();
         const CKey& new_votingKey = GetRandomKey();
         const CScript& new_payee = GenerateRandomAddress();
@@ -684,6 +718,39 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-operator-key");
         ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
         BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
+    }
+
+    // ProUpRev: revoke masternode service
+    {
+        const uint256& proTx = dmnHashes[InsecureRandRange(dmnHashes.size())];            // pick one at random
+        ProUpRevPL::RevocationReason reason = ProUpRevPL::RevocationReason::REASON_TERMINATION_OF_SERVICE;
+        // try first with wrong operator key
+        CValidationState state;
+        auto tx = CreateProUpRevTx(utxos, proTx, reason, GetRandomKey(), coinbaseKey);
+        BOOST_CHECK_MESSAGE(!CheckProUpRevTx(tx, chainTip, state), "ProUpReg verifies with wrong owner key");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-sig");
+        // then use the proper key
+        state = CValidationState();
+        tx = CreateProUpRevTx(utxos, proTx, reason, operatorKeys.at(proTx), coinbaseKey);
+        BOOST_CHECK_MESSAGE(CheckProUpRevTx(tx, chainTip, state), state.GetRejectReason());
+        BOOST_CHECK_MESSAGE(CheckTransactionSignature(tx), "ProUpReg signature verification failed");
+        // also verify that payloads are not malleable after they have been signed
+        auto tx2 = MalleateProUpRevTx(tx);
+        BOOST_CHECK_MESSAGE(!CheckSpecialTx(tx2, chainTip, state), "Malleated ProUpReg accepted");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-sig");
+
+        CreateAndProcessBlock({tx}, coinbaseKey);
+        chainTip = chainActive.Tip();
+        BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+
+        SyncWithValidationInterfaceQueue();
+        auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
+        BOOST_ASSERT(dmn != nullptr);
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->keyIDOperator == CKeyID(), "mn operator key not removed");
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->addr == CService(), "mn IP address not removed");
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->scriptOperatorPayout.empty(), "mn operator payout not removed");
+        BOOST_CHECK_EQUAL(dmn->pdmnState->nRevocationReason, reason);
+        BOOST_CHECK_EQUAL(dmn->pdmnState->nPoSeBanHeight, nHeight);
     }
 
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT);
