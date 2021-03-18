@@ -54,6 +54,8 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
     def register_masternode(self, from_node, dmn, collateral_addr):
         dmn.proTx = from_node.protx_register_fund(collateral_addr, dmn.ipport, dmn.owner,
                                                   dmn.operator, dmn.voting, dmn.payee)
+        dmn.collateral = COutPoint(int(dmn.proTx, 16),
+                                   get_collateral_vout(from_node.getrawtransaction(dmn.proTx, True)))
 
     def run_test(self):
         self.disable_mocktime()
@@ -179,7 +181,21 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         proupserv2_txid = nodeA.protx_update_service(mnsA[2].proTx, "127.0.0.1:2000")
         proupserv3_txid = nodeA.protx_update_service(pre_split_mn.proTx, "127.0.0.1:1001")
 
-        # Now nodeA has 4 proReg txes in its mempool, and 3 proUpServ txes
+        # Send valid proUpReg tx to the mempool
+        operator_to_reuse = nodeA.getnewaddress()
+        proupreg1_txid = nodeA.protx_update_registrar(mnsA[3].proTx, operator_to_reuse, "", "")
+
+        # Try sending another one, reusing the operator key used by another mempool proTx
+        self.log.info("Testing proUpReg in-mempool duplicate-operator-key rejection...")
+        assert_raises_rpc_error(-26, "protx-dup", nodeA.protx_update_registrar,
+                                mnsA[4].proTx, mempool_dmn1.operator, "", "")
+
+        # Now send other two valid proUpServ txes to the mempool, without mining them
+        new_voting_address = nodeA.getnewaddress()
+        proupreg2_txid = nodeA.protx_update_registrar(mnsA[4].proTx, "", new_voting_address, "")
+        proupreg3_txid = nodeA.protx_update_registrar(pre_split_mn.proTx, "", new_voting_address, "")
+
+        # Now nodeA has 4 proReg txes in its mempool, 3 proUpServ txes, and 3 proUpReg txes
         mempoolA = nodeA.getrawmempool()
         assert mempool_dmn1.proTx in mempoolA
         assert mempool_dmn2.proTx in mempoolA
@@ -188,6 +204,9 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         assert proupserv1_txid in mempoolA
         assert proupserv2_txid in mempoolA
         assert proupserv3_txid in mempoolA
+        assert proupreg1_txid in mempoolA
+        assert proupreg2_txid in mempoolA
+        assert proupreg3_txid in mempoolA
 
         assert_equal(nodeA.getblockcount(), 208)
 
@@ -230,12 +249,21 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
             self.register_masternode(nodeB, dmn, collateral_addr)
             mnsB.append(dmn)
             nodeB.generate(1)
+        self.check_mn_list_on_node(1, mnsB)
 
         # Register one masternode reusing the IP of the proUpServ mempool tx on chainA
-        dmn1000 = create_new_dmn(0, nodeB, collateral_addr, None)
+        dmn1000 = create_new_dmn(free_idx, nodeB, collateral_addr, None)
+        free_idx += 1
         dmn1000.ipport = "127.0.0.1:1000"
         mnsB.append(dmn1000)
         self.register_masternode(nodeB, dmn1000, collateral_addr)
+
+        # Register one masternode reusing the operator-key of the proUpReg mempool tx on chainA
+        dmnop = create_new_dmn(free_idx, nodeB, collateral_addr, None)
+        free_idx += 1
+        dmnop.operator = operator_to_reuse
+        mnsB.append(dmnop)
+        self.register_masternode(nodeB, dmnop, collateral_addr)
 
         # Then mine 10 more blocks on chain B
         nodeB.generate(10)
@@ -275,6 +303,13 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         assert proupserv1_txid not in mempoolA
         assert proupserv2_txid not in mempoolA
         assert proupserv3_txid in mempoolA
+        # The first mempool proUpReg tx has been removed as the operator key is
+        # now used by a newly connected masternode.
+        # The second mempool proUpReg tx has been removed as it was meant to update
+        # a masternode that is not in the deterministic list anymore.
+        assert proupreg1_txid not in mempoolA
+        assert proupreg2_txid not in mempoolA
+        assert proupreg3_txid in mempoolA
         # The mempool contains also all the ProReg from the disconnected blocks,
         # except the ones re-registered and replayed on chain B.
         for mn in mnsA:
@@ -291,8 +326,10 @@ class TiertwoReorgMempoolTest(PivxTestFramework):
         mnsB.append(mempool_dmn2)
         mnsB.append(mempool_dmn3)
         # proupserv3 has changed the IP of the pre_split masternode
+        # and proupreg3 has changed its voting address
         mnsB.remove(pre_split_mn)
         pre_split_mn.ipport = "127.0.0.1:1001"
+        pre_split_mn.voting = new_voting_address
         mnsB.append(pre_split_mn)
         # the ProReg txes, that were added back to the mempool from the
         # disconnected blocks, have been mined again

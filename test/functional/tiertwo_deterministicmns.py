@@ -283,8 +283,11 @@ class DIP3Test(PivxTestFramework):
                                 mns[0].proTx, mns[1].ipport, "", mns[0].operator_key)
         self.log.info("Trying to update the payout address when the reward is 0...")
         assert_raises_rpc_error(-8, "Operator reward is 0. Cannot set operator payout address",
-                                miner.protx_update_service, mns[0].proTx, mns[0].ipport,
+                                miner.protx_update_service, mns[0].proTx, "",
                                 miner.getnewaddress(), mns[0].operator_key)
+        self.log.info("Trying to update the operator payee to an invalid address...")
+        assert_raises_rpc_error(-5, "invalid PIVX address InvalidPayee",
+                                miner.protx_update_service, dmn2c.proTx, "", "InvalidPayee", "")
         self.log.info("Update IP address...")
         mns[0].ipport = "127.0.0.1:1000"
         # Controller should already have the key (as it was generated there), no need to pass it
@@ -301,6 +304,59 @@ class DIP3Test(PivxTestFramework):
         # Check payment to new address
         self.log.info("Checking payment...")
         assert_equal(self.get_addr_balance(self.nodes[dmn2c.idx], new_address), Decimal('0.3'))
+
+        # Test ProUpReg txes
+        self.log.info("Trying to update a non-existent masternode...")
+        assert_raises_rpc_error(-8, "not found", miner.protx_update_registrar,
+                                "%064x" % getrandbits(256), "", "", "")
+        self.log.info("Trying to update an operator address to an already used one...")
+        assert_raises_rpc_error(-1, "bad-protx-dup-key", controller.protx_update_registrar,
+                                mns[0].proTx, mns[1].operator, "", "")
+        self.log.info("Trying to update the payee to an invalid address...")
+        assert_raises_rpc_error(-5, "invalid PIVX address InvalidPayee", controller.protx_update_registrar,
+                                mns[0].proTx, "", "", "InvalidPayee")
+        self.log.info("Update operator address...")
+        mns[0].operator = self.nodes[mns[0].idx].getnewaddress()
+        mns[0].operator_key = self.nodes[mns[0].idx].dumpprivkey(mns[0].operator)
+        # Controller should already have the key (as it was generated there), no need to pass it
+        controller.protx_update_registrar(mns[0].proTx, mns[0].operator, "", "")
+        self.sync_mempools([miner, controller])
+        miner.generate(1)
+        self.sync_blocks()
+        # Updating the operator address, clears the IP (and puts the mn in PoSe banned state)
+        mns[0].ipport = "[::]:0"
+        self.check_mn_list(mns)
+        old_mn0_balance = self.get_addr_balance(controller, mns[0].payee)
+        self.log.info("Update operator address (with external key)...")
+        mns[0].operator = self.nodes[mns[0].idx].getnewaddress()
+        mns[0].operator_key = self.nodes[mns[0].idx].dumpprivkey(mns[0].operator)
+        ownerKey = controller.dumpprivkey(mns[0].owner)
+        miner.protx_update_registrar(mns[0].proTx, mns[0].operator, "", "", ownerKey)
+        miner.generate(1)
+        self.sync_blocks()
+        self.check_mn_list(mns)
+        self.log.info("Update voting address...")
+        mns[1].voting = controller.getnewaddress()
+        controller.protx_update_registrar(mns[1].proTx, "", mns[1].voting, "")
+        self.sync_mempools([miner, controller])
+        miner.generate(1)
+        self.sync_blocks()
+        self.check_mn_list(mns)
+        self.log.info("Update payout address...")
+        old_payee = mns[2].payee
+        old_mn2_bal = self.get_addr_balance(controller, old_payee)
+        mns[2].payee = controller.getnewaddress()
+        controller.protx_update_registrar(mns[2].proTx, "", "", mns[2].payee)
+        self.sync_mempools([miner, controller])
+        miner.generate(len(mns))
+        self.sync_blocks()
+        self.check_mn_list(mns)
+        # Check payment to new address
+        self.log.info("Checking payments...")
+        assert_equal(self.get_addr_balance(controller, old_payee), old_mn2_bal)
+        assert_equal(self.get_addr_balance(controller, mns[2].payee), Decimal('3'))
+        # The PoSe banned node didn't receive any more payment
+        assert_equal(self.get_addr_balance(controller, mns[0].payee), old_mn0_balance)
 
         self.log.info("All good.")
 
