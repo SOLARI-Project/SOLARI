@@ -412,6 +412,14 @@ void CTxMemPool::addUncheckedSpecialTx(const CTransaction& tx)
             break;
         }
 
+        case CTransaction::TxType::PROUPREV: {
+            ProUpRevPL pl;
+            bool ok = GetTxPayload(tx, pl);
+            assert(ok);
+            mapProTxRefs.emplace(pl.proTxHash, txid);
+            break;
+        }
+
     }
 }
 
@@ -526,6 +534,14 @@ void CTxMemPool::removeUncheckedSpecialTx(const CTransaction& tx)
             assert(ok);
             eraseProTxRef(pl.proTxHash, txid);
             mapProTxPubKeyIDs.erase(pl.keyIDOperator);
+            break;
+        }
+
+        case CTransaction::TxType::PROUPREV: {
+            ProUpRevPL pl;
+            bool ok = GetTxPayload(tx, pl);
+            assert(ok);
+            eraseProTxRef(pl.proTxHash, txid);
             break;
         }
 
