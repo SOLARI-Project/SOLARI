@@ -862,6 +862,10 @@ UniValue protx_update_registrar(const JSONRPCRequest& request)
     }
     CheckEvoUpgradeEnforcement();
 
+    if (!deterministicMNManager->LegacyMNObsolete()) {
+        throw JSONRPCError(RPC_MISC_ERROR, "Legacy masternode system still active. ProUpReg transactions are not accepted yet.");
+    }
+
     EnsureWalletIsUnlocked(pwallet);
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now

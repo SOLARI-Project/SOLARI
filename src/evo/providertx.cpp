@@ -384,6 +384,12 @@ bool CheckProUpRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CVal
     }
 
     if (pindexPrev) {
+        // ProUpReg txes are disabled when the legacy system is still active
+        // !TODO: remove after complete transition to DMN
+        if (!deterministicMNManager->LegacyMNObsolete(pindexPrev->nHeight + 1)) {
+            return state.DoS(10, false, REJECT_INVALID, "spork-21-inactive");
+        }
+
         auto mnList = deterministicMNManager->GetListForBlock(pindexPrev);
         auto dmn = mnList.GetMN(pl.proTxHash);
         if (!dmn) {
