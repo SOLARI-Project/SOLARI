@@ -559,7 +559,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-hash");
     }
 
-    // ProUpServ: Change masternode operator payout.
+    // ProUpServ: Change masternode operator payout. (new masternode created here)
     {
         // first create a ProRegTx with 5% reward for the operator, and mine it
         const CKey& ownerKey = GetRandomKey();
@@ -638,7 +638,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
 
         CreateAndProcessBlock({tx}, coinbaseKey);
         chainTip = chainActive.Tip();
-        BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
+        BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
 
         SyncWithValidationInterfaceQueue();
         auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
@@ -647,7 +647,40 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         BOOST_CHECK_MESSAGE(dmn->pdmnState->keyIDVoting == new_votingKey.GetPubKey().GetID(), "mn voting key not changed");
         BOOST_CHECK_MESSAGE(dmn->pdmnState->scriptPayout == new_payee, "mn script payout not changed");
 
-        nHeight++;
+        operatorKeys.at(proTx) = new_operatorKey;
+
+        // check that changing the operator key puts the MN in PoSe banned state
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->addr == CService(), "IP address not cleared after changing operator");
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->scriptOperatorPayout.empty(), "operator payee not empty after changing operator");
+        BOOST_CHECK_EQUAL(dmn->pdmnState->nPoSeBanHeight, nHeight);
+
+        // revive the MN
+        auto tx3 = CreateProUpServTx(utxos, proTx, operatorKeys.at(proTx), 2000, CScript(), coinbaseKey);
+        CreateAndProcessBlock({tx3}, coinbaseKey);
+        chainTip = chainActive.Tip();
+        BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+        SyncWithValidationInterfaceQueue();
+        dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
+
+        // check updated dmn state
+        BOOST_CHECK_EQUAL(dmn->pdmnState->addr.GetPort(), 2000);
+        BOOST_CHECK_EQUAL(dmn->pdmnState->nPoSeBanHeight, -1);
+        BOOST_CHECK_EQUAL(dmn->pdmnState->nPoSeRevivedHeight, nHeight);
+
+        // Mine 32 blocks, checking MN reward payments
+        mapPayments.clear();
+        for (size_t i = 0; i < 32; i++) {
+            SyncWithValidationInterfaceQueue();
+            auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
+            CBlock block = CreateAndProcessBlock({}, coinbaseKey);
+            chainTip = chainActive.Tip();
+            BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+            BOOST_ASSERT(!block.vtx.empty());
+            BOOST_CHECK(IsMNPayeeInBlock(block, dmnExpectedPayee->pdmnState->scriptPayout));
+            mapPayments[dmnExpectedPayee->proTxHash]++;
+        }
+        // 16 masternodes: 2 rewards each
+        CheckPayments(mapPayments, 16, 2);
     }
 
     // ProUpReg: Try to change the voting key of a masternode that doesn't exist
