@@ -1010,17 +1010,16 @@ AC_SUBST(LIBMEMENV)
 
 dnl enable-fuzz should disable all other targets
 if test "x$enable_fuzz" = "xyes"; then
-  AC_MSG_WARN(enable-fuzz will disable all other targets)
+  AC_MSG_WARN(enable-fuzz will disable other targets)
   build_bitcoin_utils=no
   build_bitcoin_cli=no
   build_bitcoin_tx=no
-  build_bitcoin_wallet=no
   build_bitcoind=no
   build_bitcoin_libs=no
   bitcoin_enable_qt=no
   bitcoin_enable_qt_test=no
   bitcoin_enable_qt_dbus=no
-  enable_wallet=no
+  enable_wallet=yes # needs to be built for now.
   use_bench=no
   use_upnp=no
   use_zmq=no
