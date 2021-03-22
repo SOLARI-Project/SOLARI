@@ -6,10 +6,12 @@
 #include "base58.h"
 #include "key.h"
 #include "policy/policy.h"
+#include "wallet/test/wallet_test_fixture.h"
+#include "wallet/wallet.h"
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(script_P2CS_tests, TestingSetup)
+BOOST_FIXTURE_TEST_SUITE(script_P2CS_tests, WalletTestingSetup)
 
 void CheckValidKeyId(const CTxDestination& dest, const CKeyID& expectedKey)
 {
@@ -195,6 +197,89 @@ BOOST_AUTO_TEST_CASE(coldstake_script)
     // -- but the owner can
     SignColdStake(tx, 0, scriptP2CS, ownerKey, false);
     BOOST_CHECK(CheckP2CSScript(tx.vin[0].scriptSig, scriptP2CS, tx, err));
+}
+
+// Check that it's not possible to "fake" a P2CS script for the owner by splitting the locking
+// and unlocking parts.
+static CScript GetFakeLockingScript(const CKeyID staker, const CKeyID& owner)
+{
+    CScript script;
+    script << opcodetype(0x2F) << opcodetype(0x01) << OP_ROT <<
+            OP_IF << OP_CHECKCOLDSTAKEVERIFY << ToByteVector(staker) <<
+            OP_ELSE << ToByteVector(owner) << OP_DROP <<
+            OP_EQUALVERIFY << OP_CHECKSIG;
+
+    return script;
+}
+
+void FakeUnlockColdStake(CMutableTransaction& tx, const CScript& prevScript, const CKey& key)
+{
+    // sign the first input
+    tx.vin[0].scriptSig.clear();
+    const CTransaction _tx(tx);
+    SigVersion sv = _tx.GetRequiredSigVersion();
+    const uint256& hash = SignatureHash(prevScript, _tx, 0, SIGHASH_ALL, amtIn, sv);
+    std::vector<unsigned char> vchSig;
+    BOOST_CHECK(key.Sign(hash, vchSig));
+    vchSig.push_back((unsigned char)SIGHASH_ALL);
+    tx.vin[0].scriptSig << vchSig << ToByteVector(key.GetPubKey()) << OP_DUP << OP_HASH160 << ToByteVector(key.GetPubKey().GetID());
+}
+
+static void setupWallet(CWallet& wallet)
+{
+    wallet.SetMinVersion(FEATURE_SAPLING);
+    wallet.SetupSPKM(false);
+}
+
+BOOST_AUTO_TEST_CASE(fake_script_test)
+{
+    CWallet& wallet = *pwalletMain;
+    LOCK(wallet.cs_wallet);
+    setupWallet(wallet);
+    CKey stakerKey;         // dummy staker key (not in the wallet)
+    stakerKey.MakeNewKey(true);
+    CKeyID stakerId = stakerKey.GetPubKey().GetID();
+    CPubKey ownerPubKey;
+    BOOST_ASSERT(wallet.GetKeyFromPool(ownerPubKey));
+    const CKeyID& ownerId = ownerPubKey.GetID();
+    CKey ownerKey;          // owner key (in the wallet)
+    BOOST_ASSERT(wallet.GetKey(ownerId, ownerKey));
+
+    const CScript& scriptP2CS = GetFakeLockingScript(stakerId, ownerId);
+
+    // Create prev transaction:
+    CMutableTransaction txFrom;
+    txFrom.vout.resize(1);
+    txFrom.vout[0].nValue = amtIn;
+    txFrom.vout[0].scriptPubKey = scriptP2CS;
+
+    // passes IsPayToColdStaking
+    BOOST_CHECK(scriptP2CS.IsPayToColdStaking());
+
+    // the output amount is credited to the owner wallet
+    wallet.AddToWallet({&wallet, MakeTransactionRef(CTransaction(txFrom))});
+    BOOST_CHECK_EQUAL(wallet.GetWalletTx(txFrom.GetHash())->GetAvailableCredit(false, ISMINE_SPENDABLE_TRANSPARENT), amtIn);
+
+    // create spend tx
+    CMutableTransaction tx;
+    tx.vin.resize(1);
+    tx.vout.resize(1);
+    tx.vin[0].prevout.n = 0;
+    tx.vin[0].prevout.hash = txFrom.GetHash();
+    tx.vout[0].nValue = amtIn - 10000;
+    tx.vout[0].scriptPubKey = GetScriptForDestination(stakerId);
+
+    // it cannot be spent with the owner key, using the P2CS unlocking script
+    SignColdStake(tx, 0, scriptP2CS, ownerKey, false);
+    ScriptError err = SCRIPT_ERR_OK;
+    BOOST_CHECK(!CheckP2CSScript(tx.vin[0].scriptSig, scriptP2CS, tx, err));
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_EQUALVERIFY, ScriptErrorString(err));
+
+    // ... but it can be spent by the staker (or any) key, with the fake unlocking script
+    FakeUnlockColdStake(tx, scriptP2CS, stakerKey);
+    BOOST_CHECK_MESSAGE(CheckP2CSScript(tx.vin[0].scriptSig, scriptP2CS, tx, err), ScriptErrorString(err));
+    wallet.AddToWallet({&wallet, MakeTransactionRef(CTransaction(tx))});
+    BOOST_CHECK_EQUAL(wallet.GetWalletTx(txFrom.GetHash())->GetAvailableCredit(false, ISMINE_SPENDABLE_TRANSPARENT), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
