@@ -178,7 +178,7 @@ test_test_pivx_LDADD += $(LIBRUSTZCASH) $(LIBBITCOIN_CONSENSUS) $(BDB_LIBS) $(MI
 test_test_pivx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) -static
 
 if ENABLE_ZMQ
-test_test_pivx_LDADD += $(ZMQ_LIBS)
+test_test_pivx_LDADD += $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
 endif
 
 if ENABLE_FUZZ
@@ -186,7 +186,7 @@ if ENABLE_FUZZ
 # base dependencies #
 test_test_pivx_fuzzy_LDADD =
 if ENABLE_ZMQ
-test_test_pivx_fuzzy_LDADD += $(ZMQ_LIBS)
+test_test_pivx_fuzzy_LDADD += $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
 endif
 test_test_pivx_fuzzy_LDADD += $(LIBBITCOIN_SERVER) $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBUNIVALUE) $(LIBBITCOIN_ZEROCOIN) \
   $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) $(BOOST_LIBS) $(LIBSECP256K1) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS)
