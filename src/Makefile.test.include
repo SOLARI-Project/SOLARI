@@ -19,6 +19,7 @@ FUZZ_TARGETS = \
   test/fuzz/messageheader_deserialize \
   test/fuzz/netaddr_deserialize \
   test/fuzz/service_deserialize \
+  test/fuzz/transaction \
   test/fuzz/transaction_deserialize \
   test/fuzz/txoutcompressor_deserialize \
   test/fuzz/txundo_deserialize
@@ -304,6 +305,13 @@ test_fuzz_txoutcompressor_deserialize_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUD
 test_fuzz_txoutcompressor_deserialize_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 test_fuzz_txoutcompressor_deserialize_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 test_fuzz_txoutcompressor_deserialize_LDADD = $(test_test_pivx_fuzzy_LDADD)
+
+test_fuzz_transaction_SOURCES = $(FUZZ_SUITE) test/fuzz/transaction.cpp
+test_fuzz_transaction_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+test_fuzz_transaction_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+test_fuzz_transaction_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+test_fuzz_transaction_LDADD = $(test_test_pivx_fuzzy_LDADD)
+
 endif # ENABLE_FUZZ
 
 nodist_test_test_pivx_SOURCES = $(GENERATED_TEST_FILES)
