@@ -24,7 +24,7 @@ void test_one_input(std::vector<uint8_t> buffer)
         int nVersion;
         ds >> nVersion;
         ds.SetVersion(nVersion);
-    } catch (const std::ios_base::failure& e) {
+    } catch (const std::ios_base::failure&) {
         return;
     }
     unsigned int nBlockHeight = 0;
@@ -33,16 +33,30 @@ void test_one_input(std::vector<uint8_t> buffer)
     } catch (const std::ios_base::failure& e) {
         return;
     }
-    bool valid = true;
+    bool valid_tx = true;
     const CTransaction tx = [&] {
         try {
             return CTransaction(deserialize, ds);
-        } catch (const std::ios_base::failure& e) {
-            valid = false;
+        } catch (const std::ios_base::failure&) {
+            valid_tx = false;
             return CTransaction();
         }
     }();
-    if (!valid) {
+    bool valid_mutable_tx = true;
+    CDataStream ds_mtx(buffer, SER_NETWORK, INIT_PROTO_VERSION);
+    CMutableTransaction mutable_tx;
+    try {
+        int nVersion;
+        ds_mtx >> nVersion;
+        ds_mtx.SetVersion(nVersion);
+        unsigned int nBlockHeight2 = 0;
+        ds_mtx >> nBlockHeight2;
+        ds_mtx >> mutable_tx;
+    } catch (const std::ios_base::failure&) {
+        valid_mutable_tx = false;
+    }
+    assert(valid_tx == valid_mutable_tx);
+    if (!valid_tx) {
         return;
     }
 
