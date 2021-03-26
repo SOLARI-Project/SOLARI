@@ -173,6 +173,7 @@ file(GLOB CONSENSUS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/consensus/*.h)
 file(GLOB CTAES_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/crypto/ctaes/*.h)
 file(GLOB ZRUST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/rust/include/*.h)
 file(GLOB SAPLING_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/sapling/*.h)
+file(GLOB IMMER_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/immer/*.h)
 file(GLOB EVO_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/evo/*.h)
 
 source_group("BitcoinHeaders" FILES
@@ -187,6 +188,7 @@ source_group("BitcoinHeaders" FILES
         ${CTAES_HEADERS}
         ${ZRUST_HEADERS}
         ${SAPLING_HEADERS}
+        ${IMMER_HEADERS}
         ${EVO_HEADERS}
         ./src/support/cleanse.h
         )
