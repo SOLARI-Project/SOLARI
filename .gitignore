@@ -33,6 +33,8 @@ src/test/fuzz/service_deserialize
 src/test/fuzz/transaction_deserialize
 src/test/fuzz/txoutcompressor_deserialize
 src/test/fuzz/txundo_deserialize
+src/test/fuzz/transaction
+src/test/fuzz/*deserialize
 
 
 # autoreconf
