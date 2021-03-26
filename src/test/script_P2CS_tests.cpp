@@ -232,9 +232,10 @@ static void setupWallet(CWallet& wallet)
     wallet.SetupSPKM(false);
 }
 
-/* !TODO: check before/after v6 enforcement
 BOOST_AUTO_TEST_CASE(fake_script_test)
 {
+    BOOST_ASSERT(!g_IsV6Active);
+
     CWallet& wallet = *pwalletMain;
     LOCK(wallet.cs_wallet);
     setupWallet(wallet);
@@ -250,17 +251,21 @@ BOOST_AUTO_TEST_CASE(fake_script_test)
     const CScript& scriptP2CS = GetFakeLockingScript(stakerId, ownerId);
 
     // Create prev transaction:
+    // It has two outputs. The first one is spent before v6.
+    // The second one is tested after v6 enforcement.
     CMutableTransaction txFrom;
-    txFrom.vout.resize(1);
-    txFrom.vout[0].nValue = amtIn;
-    txFrom.vout[0].scriptPubKey = scriptP2CS;
+    txFrom.vout.resize(2);
+    for (size_t i = 0; i < 2; i++) {
+        txFrom.vout[i].nValue = amtIn;
+        txFrom.vout[i].scriptPubKey = scriptP2CS;
+    }
 
     // passes IsPayToColdStaking
     BOOST_CHECK(scriptP2CS.IsPayToColdStaking());
 
     // the output amount is credited to the owner wallet
     wallet.AddToWallet({&wallet, MakeTransactionRef(CTransaction(txFrom))});
-    BOOST_CHECK_EQUAL(wallet.GetWalletTx(txFrom.GetHash())->GetAvailableCredit(false, ISMINE_SPENDABLE_TRANSPARENT), amtIn);
+    BOOST_CHECK_EQUAL(wallet.GetWalletTx(txFrom.GetHash())->GetAvailableCredit(false, ISMINE_SPENDABLE_TRANSPARENT), 2 * amtIn);
 
     // create spend tx
     CMutableTransaction tx;
@@ -283,8 +288,16 @@ BOOST_AUTO_TEST_CASE(fake_script_test)
         BOOST_ERROR(strprintf("P2CS verification failed: %s", ScriptErrorString(err)));
     }
     wallet.AddToWallet({&wallet, MakeTransactionRef(CTransaction(tx))});
+    BOOST_CHECK_EQUAL(wallet.GetWalletTx(txFrom.GetHash())->GetAvailableCredit(false, ISMINE_SPENDABLE_TRANSPARENT), amtIn);
+
+    // Now let's activate v6
+    g_IsV6Active = true;
+
+    // it does NOT pass IsPayToColdStaking
+    BOOST_CHECK_MESSAGE(!scriptP2CS.IsPayToColdStaking(), "Fake script passes as P2CS");
+
+    // the output amount is NOT credited to the owner wallet
     BOOST_CHECK_EQUAL(wallet.GetWalletTx(txFrom.GetHash())->GetAvailableCredit(false, ISMINE_SPENDABLE_TRANSPARENT), 0);
 }
-*/
 
 BOOST_AUTO_TEST_SUITE_END()
