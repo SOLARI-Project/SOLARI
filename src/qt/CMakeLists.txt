@@ -67,16 +67,6 @@ endif()
 file(GLOB LOCAL_QT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 source_group("QtHeaders" FILES ${LOCAL_QT_HEADERS})
 
-find_package(Protobuf REQUIRED)
-if(Protobuf_FOUND)
-    message(STATUS "Found Protobuf compiler: ${Protobuf_PROTOC_EXECUTABLE}")
-    message(STATUS "Found Protobuf library: ${Protobuf_LIBRARIES}")
-endif()
-include_directories(${PROTOBUF_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/paymentrequest.proto)
-
 SET(QT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/bantablemodel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/bitcoinaddressvalidator.cpp
@@ -103,7 +93,6 @@ SET(QT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/coincontroltreewidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/editaddressdialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/openuridialog.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/paymentrequestplus.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/paymentserver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/recentrequeststablemodel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/transactionfilterproxy.cpp
@@ -215,7 +204,7 @@ target_link_libraries(pivx-qt
         univalue
         SERVER_A WALLET_A COMMON_A ZEROCOIN_A UTIL_A SAPLING_A BITCOIN_CRYPTO_A CLI_A
         leveldb crc32c secp256k1 rustzcash
-        ${BerkeleyDB_LIBRARIES} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${PROTOBUF_LIBRARIES} ${LIBEVENT_LIB}
+        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${LIBEVENT_LIB}
         ${sodium_LIBRARY_RELEASE}
         -ldl pthread
         )

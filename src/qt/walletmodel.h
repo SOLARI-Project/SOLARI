@@ -7,12 +7,16 @@
 #ifndef PIVX_QT_WALLETMODEL_H
 #define PIVX_QT_WALLETMODEL_H
 
+#if defined(HAVE_CONFIG_H)
+#include "config/pivx-config.h"
+#endif
+
 #include "interfaces/wallet.h"
 
+#include "key.h"
 #include "operationresult.h"
 #include "support/allocators/zeroafterfree.h"
 #include "pairresult.h"
-#include "qt/paymentrequestplus.h"
 
 #include <map>
 #include <vector>
@@ -71,8 +75,9 @@ public:
     // If from a payment request, this is used for storing the memo
     QString message{};
 
-    // If from a payment request, paymentRequest.IsInitialized() will be true
-    PaymentRequestPlus paymentRequest{};
+    // serialized string to ensure load/store is lossless
+    std::string sPaymentRequest{};
+
     // Empty if no authentication or invalid signature/cert/etc.
     QString authenticatedMerchant{};
 
@@ -87,9 +92,6 @@ public:
         std::string sAddress = address.toStdString();
         std::string sLabel = label.toStdString();
         std::string sMessage = message.toStdString();
-        std::string sPaymentRequest;
-        if (!ser_action.ForRead() && paymentRequest.IsInitialized())
-            paymentRequest.SerializeToString(&sPaymentRequest);
         std::string sAuthenticatedMerchant = authenticatedMerchant.toStdString();
 
         READWRITE(this->nVersion);
@@ -104,8 +106,6 @@ public:
             address = QString::fromStdString(sAddress);
             label = QString::fromStdString(sLabel);
             message = QString::fromStdString(sMessage);
-            if (!sPaymentRequest.empty())
-                paymentRequest.parse(QByteArray::fromRawData(sPaymentRequest.data(), sPaymentRequest.size()));
             authenticatedMerchant = QString::fromStdString(sAuthenticatedMerchant);
         }
     }
