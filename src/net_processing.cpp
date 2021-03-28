@@ -553,9 +553,10 @@ void EraseOrphansFor(NodeId peer) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 unsigned int LimitOrphanTxSize(unsigned int nMaxOrphans) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     unsigned int nEvicted = 0;
+    FastRandomContext rng;
     while (mapOrphanTransactions.size() > nMaxOrphans) {
         // Evict a random orphan:
-        uint256 randomhash = GetRandHash();
+        uint256 randomhash = rng.rand256();
         std::map<uint256, COrphanTx>::iterator it = mapOrphanTransactions.lower_bound(randomhash);
         if (it == mapOrphanTransactions.end())
             it = mapOrphanTransactions.begin();
