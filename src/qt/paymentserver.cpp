@@ -169,8 +169,7 @@ PaymentServer::~PaymentServer()
 }
 
 //
-// OSX-specific way of handling pivx: URIs and
-// PaymentRequest mime types
+// OSX-specific way of handling pivx: URIs
 //
 bool PaymentServer::eventFilter(QObject* object, QEvent* event)
 {
