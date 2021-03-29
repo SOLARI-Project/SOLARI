@@ -14,7 +14,7 @@ GCOV_EXECUTABLE="gcov"
 
 # Disable tests known to cause non-deterministic behaviour and document the source or point of non-determinism.
 NON_DETERMINISTIC_TESTS=(
-    "DoS_tests/DoS_mapOrphans"                        # RandomOrphan()
+    "dummy_tests"                                # We currently don't have any unit tests that have determinism issues
 )
 
 TEST_BITCOIN_BINARY="src/test/test_pivx"
