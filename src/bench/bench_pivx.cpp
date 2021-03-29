@@ -7,6 +7,7 @@
 
 #include "bls/bls_wrapper.h"
 #include "key.h"
+#include "random.h"
 #include "util/system.h"
 
 void InitBLSTests();
@@ -16,6 +17,7 @@ void CleanupBLSDkgTests();
 int main(int argc, char** argv)
 {
     ECC_Start();
+    RandomInit();
     BLSInit();
     InitBLSTests();
     SetupEnvironment();
