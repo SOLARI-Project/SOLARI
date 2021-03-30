@@ -39,6 +39,7 @@
 #include <sys/random.h>
 #endif
 #ifdef HAVE_SYSCTL_ARND
+#include "utilstrencodings.h"
 #include <sys/sysctl.h>
 #endif
 
