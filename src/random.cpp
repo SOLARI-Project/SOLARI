@@ -12,8 +12,9 @@
 #include "compat.h" // for Windows API
 #include <wincrypt.h>
 #endif
-#include "util.h"             // for LogPrint()
-#include "utilstrencodings.h" // for GetTime()
+#include "logging.h"  // for LogPrint()
+#include "sync.h"
+#include "utiltime.h" // for GetTime()
 
 #include <stdlib.h>
 #include <limits>
@@ -23,6 +24,7 @@
 #include "allocators.h"
 
 #ifndef WIN32
+#include <fcntl.h>
 #include <sys/time.h>
 #endif
 
