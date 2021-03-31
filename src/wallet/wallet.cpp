@@ -1830,13 +1830,6 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
     fScanningWallet = true;
 
     CBlockIndex* pindex = pindexStart;
-    {
-        LOCK(cs_main);
-        // no need to read and scan block, if block was created before
-        // our wallet birthday (as adjusted for block time variability)
-        while (pindex && nTimeFirstKey && (pindex->GetBlockTime() < (nTimeFirstKey - TIMESTAMP_WINDOW)))
-            pindex = chainActive.Next(pindex);
-    }
 
     {
         ShowProgress(_("Rescanning..."), 0); // show rescan progress in GUI as dialog or on splashscreen, if -rescan on startup
@@ -4324,6 +4317,13 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
     if (chainActive.Tip() && chainActive.Tip() != pindexRescan) {
         uiInterface.InitMessage(_("Rescanning..."));
         LogPrintf("Rescanning last %i blocks (from block %i)...\n", chainActive.Height() - pindexRescan->nHeight, pindexRescan->nHeight);
+
+        // no need to read and scan block, if block was created before
+        // our wallet birthday (as adjusted for block time variability)
+        while (pindexRescan && walletInstance->nTimeFirstKey &&
+                pindexRescan->GetBlockTime() < (walletInstance->nTimeFirstKey - TIMESTAMP_WINDOW)) {
+            pindexRescan = chainActive.Next(pindexRescan);
+        }
         const int64_t nWalletRescanTime = GetTimeMillis();
         if (walletInstance->ScanForWalletTransactions(pindexRescan, nullptr, true, true) != nullptr) {
             UIError(_("Shutdown requested over the txs scan. Exiting."));
