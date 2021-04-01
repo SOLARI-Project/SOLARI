@@ -271,6 +271,13 @@ void SettingsBitToolWidget::onDecryptClicked()
 
 void SettingsBitToolWidget::importAddressFromDecKey()
 {
+    // whenever a key is imported, we need to scan the whole chain
+    WalletRescanReserver reserver(pwalletMain);
+    if (!reserver.reserve()) {
+        ui->statusLabel_DEC->setStyleSheet("QLabel { color: red; }");
+        ui->statusLabel_DEC->setText(tr("Wallet is currently rescanning. Abort existing rescan or wait."));
+        return;
+    }
     WalletModel::UnlockContext ctx(walletModel->requestUnlock());
     if (!ctx.isValid()) {
         ui->statusLabel_DEC->setStyleSheet("QLabel { color: red; }");
@@ -309,10 +316,7 @@ void SettingsBitToolWidget::importAddressFromDecKey()
             ui->statusLabel_DEC->setText(tr("Error adding key to the wallet"));
             return;
         }
-
-        // whenever a key is imported, we need to scan the whole chain
-        pwalletMain->nTimeFirstKey = 1; // 0 would be considered 'no value'
-        pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, true);
+        pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver, true);
     }
 
     ui->statusLabel_DEC->setStyleSheet("QLabel { color: green; }");

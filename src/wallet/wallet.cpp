@@ -1829,7 +1829,7 @@ bool CWallet::Upgrade(std::string& error, const int& prevVersion)
  * @return Earliest timestamp that could be successfully scanned from. Timestamp
  * returned will be higher than startTime if relevant blocks could not be read.
  */
-int64_t CWallet::RescanFromTime(int64_t startTime, bool update)
+int64_t CWallet::RescanFromTime(int64_t startTime, const WalletRescanReserver& reserver, bool update)
 {
     // Find starting block. May be null if nCreateTime is greater than the
     // highest blockchain timestamp, in which case there is nothing that needs
@@ -1842,7 +1842,7 @@ int64_t CWallet::RescanFromTime(int64_t startTime, bool update)
     }
 
     if (startBlock) {
-        const CBlockIndex* const failedBlock = ScanForWalletTransactions(startBlock, nullptr, update);
+        const CBlockIndex* const failedBlock = ScanForWalletTransactions(startBlock, nullptr, reserver, update);
         if (failedBlock) {
             return failedBlock->GetBlockTimeMax() + TIMESTAMP_WINDOW + 1;
         }
@@ -1866,10 +1866,11 @@ int64_t CWallet::RescanFromTime(int64_t startTime, bool update)
  * the main chain after to the addition of any new keys you want to detect
  * transactions for.
  */
-CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop, bool fUpdate, bool fromStartup)
+CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop, const WalletRescanReserver& reserver, bool fUpdate, bool fromStartup)
 {
     int64_t nNow = GetTime();
 
+    assert(reserver.isReserved());
     if (pindexStop) {
         assert(pindexStop->nHeight >= pindexStart->nHeight);
     }
@@ -1966,7 +1967,6 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
             LogPrintf("Rescan aborted at block %d. Progress=%f\n", pindex->nHeight, Checkpoints::GuessVerificationProgress(pindex, false));
         }
         ShowProgress(_("Rescanning..."), 100); // hide progress dialog in GUI
-        fScanningWallet = false;
     }
     return ret;
 }
@@ -4373,9 +4373,16 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
             pindexRescan = chainActive.Next(pindexRescan);
         }
         const int64_t nWalletRescanTime = GetTimeMillis();
-        if (walletInstance->ScanForWalletTransactions(pindexRescan, nullptr, true, true) != nullptr) {
-            UIError(_("Shutdown requested over the txs scan. Exiting."));
-            return nullptr;
+        {
+            WalletRescanReserver reserver(walletInstance);
+            if (!reserver.reserve()) {
+                UIError(_("Failed to rescan the wallet during initialization"));
+                return nullptr;
+            }
+            if (walletInstance->ScanForWalletTransactions(pindexRescan, nullptr, reserver, true, true) != nullptr) {
+                UIError(_("Shutdown requested over the txs scan. Exiting."));
+                return nullptr;
+            }
         }
         LogPrintf("Rescan completed in %15dms\n", GetTimeMillis() - nWalletRescanTime);
         walletInstance->SetBestChain(chainActive.GetLocator());
