@@ -75,7 +75,7 @@ public:
     /** Default value for -checkmempool and -checkblockindex argument */
     bool DefaultConsistencyChecks() const { return IsRegTestNet(); }
 
-    /** Return the BIP70 network string (main, test or regtest) */
+    /** Return the network string */
     std::string NetworkIDString() const { return strNetworkID; }
     const std::vector<CDNSSeedData>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
@@ -115,7 +115,7 @@ std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain);
 const CChainParams& Params();
 
 /**
- * Sets the params returned by Params() to those for the given BIP70 chain name.
+ * Sets the params returned by Params() to those for the given chain name.
  * @throws std::runtime_error when the chain is not supported.
  */
 void SelectParams(const std::string& chain);

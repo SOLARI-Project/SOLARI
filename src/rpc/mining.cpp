@@ -300,7 +300,7 @@ UniValue getmininginfo(const JSONRPCRequest& request)
             "  \"hashespersec\": n          (numeric) The hashes per second of the generation, or 0 if no generation.\n"
             "  \"pooledtx\": n              (numeric) The size of the mem pool\n"
             "  \"testnet\": true|false      (boolean) If using testnet or not\n"
-            "  \"chain\": \"xxxx\",         (string) current network name as defined in BIP70 (main, test, regtest)\n"
+            "  \"chain\": \"xxxx\",         (string) current network name (main, test, regtest)\n"
             "}\n"
 
             "\nExamples:\n" +
