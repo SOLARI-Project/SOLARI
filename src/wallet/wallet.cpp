@@ -1831,14 +1831,15 @@ bool CWallet::Upgrade(std::string& error, const int& prevVersion)
  */
 int64_t CWallet::RescanFromTime(int64_t startTime, bool update)
 {
-    AssertLockHeld(cs_main);
-    AssertLockHeld(cs_wallet);
-
     // Find starting block. May be null if nCreateTime is greater than the
     // highest blockchain timestamp, in which case there is nothing that needs
     // to be scanned.
-    CBlockIndex* const startBlock = chainActive.FindEarliestAtLeast(startTime - TIMESTAMP_WINDOW);
-    LogPrintf("%s: Rescanning last %i blocks\n", __func__, startBlock ? chainActive.Height() - startBlock->nHeight + 1 : 0);
+    CBlockIndex* startBlock = nullptr;
+    {
+        LOCK(cs_main);
+        startBlock = chainActive.FindEarliestAtLeast(startTime - TIMESTAMP_WINDOW);
+        LogPrintf("%s: Rescanning last %i blocks\n", __func__, startBlock ? chainActive.Height() - startBlock->nHeight + 1 : 0);
+    }
 
     if (startBlock) {
         const CBlockIndex* const failedBlock = ScanForWalletTransactions(startBlock, nullptr, update);
@@ -1854,41 +1855,45 @@ int64_t CWallet::RescanFromTime(int64_t startTime, bool update)
  * from or to us. If fUpdate is true, found transactions that already
  * exist in the wallet will be updated.
  *
- * If pindexStop is not a nullptr, the scan will stop at the block-index
- * defined by pindexStop
- *
  * Returns null if scan was successful. Otherwise, if a complete rescan was not
  * possible (due to pruning or corruption), returns pointer to the most recent
  * block that could not be scanned.
+ *
+ * If pindexStop is not a nullptr, the scan will stop at the block-index
+ * defined by pindexStop
+ *
+ * Caller needs to make sure pindexStop (and the optional pindexStart) are on
+ * the main chain after to the addition of any new keys you want to detect
+ * transactions for.
  */
 CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop, bool fUpdate, bool fromStartup)
 {
-    CBlockIndex* ret = nullptr;
     int64_t nNow = GetTime();
 
     if (pindexStop) {
         assert(pindexStop->nHeight >= pindexStart->nHeight);
     }
 
-    fAbortRescan = false;
-    fScanningWallet = true;
-
     CBlockIndex* pindex = pindexStart;
-
+    CBlockIndex* ret = nullptr;
     {
         ShowProgress(_("Rescanning..."), 0); // show rescan progress in GUI as dialog or on splashscreen, if -rescan on startup
-        const double dProgressStart = Checkpoints::GuessVerificationProgress(pindex, false);
-        const CBlockIndex* tip = nullptr;
-        double dProgressTip = 0.0;
-        std::vector<uint256> myTxHashes;
+        CBlockIndex* tip = nullptr;
+        double dProgressStart;
+        double dProgressTip;
+        {
+            LOCK(cs_main);
+            tip = chainActive.Tip();
+            dProgressStart = Checkpoints::GuessVerificationProgress(pindex, false);
+            dProgressTip = Checkpoints::GuessVerificationProgress(tip, false);
+        }
 
-        double gvp = dProgressStart;
+        std::vector<uint256> myTxHashes;
         while (pindex && !fAbortRescan) {
-            gvp = Checkpoints::GuessVerificationProgress(pindex, false);
+            double gvp = 0;
             if (pindex->nHeight % 100 == 0 && dProgressTip - dProgressStart > 0.0) {
-                ShowProgress(_("Rescanning..."), std::max(1, std::min(99, (int) ((gvp - dProgressStart) /
-                                                                                 (dProgressTip - dProgressStart) *
-                                                                                 100))));
+                gvp = WITH_LOCK(cs_main, return Checkpoints::GuessVerificationProgress(pindex, false); );
+                ShowProgress(_("Rescanning..."), std::max(1, std::min(99, (int)((gvp - dProgressStart) / (dProgressTip - dProgressStart) * 100))));
             }
             if (GetTime() >= nNow + 60) {
                 nNow = GetTime();
@@ -1899,26 +1904,15 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
             }
 
             CBlock block;
-            if (!ReadBlockFromDisk(block, pindex)) {
-                LogPrintf("Unable to read block %d (%s) from disk.", pindex->nHeight, pindex->GetBlockHash().ToString());
-                ret = pindex;
-                break; // failed, try to save txs and return the failed index
-            }
-
-            {
+            bool readRet = WITH_LOCK(cs_main, return ReadBlockFromDisk(block, pindex); );
+            if (readRet) {
                 LOCK2(cs_main, cs_wallet);
-                if (tip != chainActive.Tip()) {
-                    tip = chainActive.Tip();
-                    // in case the tip has changed, update progress max
-                    dProgressTip = Checkpoints::GuessVerificationProgress(tip, false);
-                }
-
-                if (!chainActive.Contains(pindex)) {
-                    // Abort scan if current block is no longer active, to prevent
-                    // marking transactions as coming from the wrong block.
-                    ret = pindex;
-                    break;
-                }
+                if (pindex && !chainActive.Contains(pindex)) {
+                     // Abort scan if current block is no longer active, to prevent
+                     // marking transactions as coming from the wrong block.
+                     ret = pindex;
+                     break;
+                 }
                 for (int posInBlock = 0; posInBlock < (int) block.vtx.size(); posInBlock++) {
                     const auto& tx = block.vtx[posInBlock];
                     CWalletTx::Confirmation confirm(CWalletTx::Status::CONFIRMED, pindex->nHeight, pindex->GetBlockHash(), posInBlock);
@@ -1938,10 +1932,20 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
                         ChainTipAdded(pindex, &block, saplingTree);
                     }
                 }
-                if (pindex == pindexStop) {
-                    break;
-                }
+            } else {
+                ret = pindex;
+            }
+            if (pindex == pindexStop) {
+                break;
+            }
+            {
+                LOCK(cs_main);
                 pindex = chainActive.Next(pindex);
+                if (tip != chainActive.Tip()) {
+                    tip = chainActive.Tip();
+                    // in case the tip has changed, update progress max
+                    dProgressTip = Checkpoints::GuessVerificationProgress(tip, false);
+                }
             }
         }
 
