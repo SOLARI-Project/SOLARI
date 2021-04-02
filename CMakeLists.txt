@@ -85,12 +85,7 @@ endif()
 
 find_package(LibEvent REQUIRED)
 
-find_package(GMP)
-if(GMP_FOUND)
-else()
-    message(WARNING "GMP not found, falling back to OpenSSL for bignum!")
-    set(BIGNUM_CONFIGURE_FLAGS "--with-zerocoin-bignum=openssl")
-endif()
+find_package(GMP REQUIRED)
 
 find_package(ZMQ)
 find_package(Miniupnp)
@@ -363,11 +358,6 @@ set(ZEROCOIN_SOURCES
         ./src/libzerocoin/ParamGeneration.cpp
         ./src/libzerocoin/Params.cpp
         )
-if(GMP_FOUND)
-    list(APPEND ZEROCOIN_SOURCES ./src/libzerocoin/bignum_gmp.cpp)
-else()
-    list(APPEND ZEROCOIN_SOURCES ./src/libzerocoin/bignum_openssl.cpp)
-endif()
 add_library(ZEROCOIN_A STATIC ${ZEROCOIN_SOURCES})
 target_include_directories(ZEROCOIN_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${OPENSSL_INCLUDE_DIR}
@@ -529,13 +519,10 @@ target_link_libraries(pivx-tx
         secp256k1
         SAPLING_A
         rustzcash
-        ${Boost_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} -ldl pthread
+        ${Boost_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} ${GMP_LIBRARY} -ldl pthread
         )
 if($ENV{target} MATCHES "Windows")
     target_link_libraries(pivx-tx ${WINDOWS_LDADD})
-endif()
-if(GMP_FOUND)
-    target_link_libraries(pivx-tx ${GMP_LIBRARY})
 endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(pivx-tx "-framework Cocoa")
@@ -551,7 +538,8 @@ target_include_directories(pivxd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/leveldb
         ${CMAKE_CURRENT_SOURCE_DIR}/src/leveldb/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/leveldb/helpers/memenv
-        ${LIBEVENT_INCLUDE_DIR})
+        ${LIBEVENT_INCLUDE_DIR}
+        ${GMP_INCLUDE_DIR})
 target_link_libraries(pivxd
         pthread
         SERVER_A
@@ -566,15 +554,11 @@ target_link_libraries(pivxd
         crc32c
         secp256k1
         rustzcash
-        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${LIBEVENT_LIB} pthread
+        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${LIBEVENT_LIB} ${GMP_LIBRARY} pthread
         )
 if($ENV{target} MATCHES "Windows")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wstack-protector -fstack-protector-all -fPIE -pipe -O2 -pthread -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -pie --static")
     target_link_libraries(pivxd ${WINDOWS_LDADD})
-endif()
-if(GMP_FOUND)
-    target_link_libraries(pivxd ${GMP_LIBRARY})
-    target_include_directories(pivxd PUBLIC ${GMP_INCLUDE_DIR})
 endif()
 if(ZMQ_FOUND)
     target_link_libraries(pivxd ZMQ_A ${ZMQ_LIB})

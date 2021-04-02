@@ -148,7 +148,8 @@ target_include_directories(test_pivx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/src/leveldb
         ${CMAKE_SOURCE_DIR}/src/leveldb/include
         ${CMAKE_SOURCE_DIR}/src/leveldb/helpers/memenv
-        ${LIBEVENT_INCLUDE_DIR})
+        ${LIBEVENT_INCLUDE_DIR}
+        ${GMP_INCLUDE_DIR})
 target_link_libraries(test_pivx PRIVATE
         SERVER_A
         CLI_A
@@ -163,12 +164,8 @@ target_link_libraries(test_pivx PRIVATE
         crc32c
         secp256k1
         rustzcash
-        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${LIBEVENT_LIB} pthread
+        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${LIBEVENT_LIB} ${GMP_LIBRARY} pthread
         )
-if(GMP_FOUND)
-    target_link_libraries(test_pivx PRIVATE ${GMP_LIBRARY})
-    target_include_directories(test_pivx PRIVATE ${GMP_INCLUDE_DIR})
-endif()
 if(ZMQ_FOUND)
     target_link_libraries(test_pivx PRIVATE ZMQ_A ${ZMQ_LIB})
     target_include_directories(test_pivx PRIVATE ${ZMQ_INCLUDE_DIR})
