@@ -260,7 +260,7 @@ bool CWalletDB::ErasePool(int64_t nPool)
 
 bool CWalletDB::WriteMinVersion(int nVersion)
 {
-    return batch.Write(std::string(DBKeys::MINVERSION), nVersion);
+    return WriteIC(std::string(DBKeys::MINVERSION), nVersion);
 }
 
 bool CWalletDB::WriteHDChain(const CHDChain& chain)
