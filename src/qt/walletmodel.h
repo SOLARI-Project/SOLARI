@@ -284,12 +284,18 @@ public:
     //! Return a new shielded address.
     PairResult getNewShieldedAddress(QString& shieldedAddrRet, std::string strLabel = "");
 
+    //! Return new wallet rescan reserver
+    WalletRescanReserver getRescanReserver() const { return WalletRescanReserver(wallet); }
+
     bool whitelistAddressFromColdStaking(const QString &addressStr);
     bool blacklistAddressFromColdStaking(const QString &address);
     bool updateAddressBookPurpose(const QString &addressStr, const std::string& purpose);
     std::string getLabelForAddress(const CTxDestination& address);
     QString getSaplingAddressString(const CWalletTx* wtx, const SaplingOutPoint& op) const;
     bool getKeyId(const CTxDestination& address, CKeyID& keyID);
+    bool getKey(const CKeyID& keyID, CKey& key) const { return wallet->GetKey(keyID, key); }
+    bool haveKey(const CKeyID& keyID) const { return wallet->HaveKey(keyID); }
+    bool addKeys(const CKey& key, const CPubKey& pubkey, WalletRescanReserver& reserver);
 
     bool isMine(const CWDestination& address);
     bool isMine(const QString& addressStr);
