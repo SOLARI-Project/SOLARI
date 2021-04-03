@@ -19,6 +19,18 @@ struct TxValues
     CAmount target{0};
 };
 
+SaplingOperation::SaplingOperation(const Consensus::Params& consensusParams, int nHeight, CWallet* _wallet) :
+    wallet(_wallet),
+    txBuilder(consensusParams, nHeight, _wallet)
+{
+    assert (wallet != nullptr);
+};
+
+SaplingOperation::~SaplingOperation()
+{
+    delete tkeyChange;
+}
+
 OperationResult SaplingOperation::checkTxValues(TxValues& txValues, bool isFromtAddress, bool isFromShielded)
 {
     assert(!isFromtAddress || txValues.shieldedInTotal == 0);

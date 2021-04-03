@@ -81,10 +81,8 @@ public:
 
 class SaplingOperation {
 public:
-    explicit SaplingOperation(const Consensus::Params& consensusParams, int chainHeight) : txBuilder(consensusParams, chainHeight) {};
-    explicit SaplingOperation(TransactionBuilder& _builder) : txBuilder(_builder) {};
-
-    ~SaplingOperation() { delete tkeyChange; }
+    explicit SaplingOperation(const Consensus::Params& consensusParams, int nHeight, CWallet* _wallet);
+    ~SaplingOperation();
 
     OperationResult build();
     OperationResult send(std::string& retTxHash);
@@ -107,6 +105,13 @@ public:
     CTransactionRef getFinalTxRef() { return finalTx; }
 
 private:
+    /*
+     * Cannot be nullptr. A pointer to the wallet, used to retrieve the inputs to spend, the keys to create the outputs,
+     * sapling notes and nullifiers, as well as to commit transactions.
+     * The same keystore is passed to the transaction builder in order to produce the required signatures.
+     */
+    CWallet* wallet;
+
     FromAddress fromAddress;
     // In case of no addressFrom filter selected, it will accept any utxo in the wallet as input.
     bool selectFromtaddrs{false};

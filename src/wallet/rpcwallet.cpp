@@ -1168,8 +1168,7 @@ UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNe
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, Sapling not active yet");
         }
         std::vector<SendManyRecipient> recipients = {SendManyRecipient(ownerKey, *stakeKey, nValue)};
-        TransactionBuilder txBuilder = TransactionBuilder(consensus, nextBlockHeight, pwalletMain);
-        SaplingOperation operation(txBuilder);
+        SaplingOperation operation(consensus, nextBlockHeight, pwalletMain);
         OperationResult res = operation.setSelectShieldedCoins(true)
                                        ->setRecipients(recipients)
                                        ->build();
@@ -1520,8 +1519,7 @@ static SaplingOperation CreateShieldedTransaction(const JSONRPCRequest& request)
     EnsureWalletIsUnlocked();
     LOCK2(cs_main, pwalletMain->cs_wallet);
     int nextBlockHeight = chainActive.Height() + 1;
-    TransactionBuilder txBuilder = TransactionBuilder(Params().GetConsensus(), nextBlockHeight, pwalletMain);
-    SaplingOperation operation(txBuilder);
+    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, pwalletMain);
 
     // Param 0: source of funds. Can either be a valid address, sapling address,
     // or the string "from_transparent"|"from_trans_cold"|"from_shield"
