@@ -6,6 +6,7 @@
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include "amount.h"
+#include "base58.h"
 #include "blockassembler.h"
 #include "chainparams.h"
 #include "core_io.h"
@@ -146,6 +147,49 @@ UniValue generate(const JSONRPCRequest& request)
     }
 
     return blockHashes;
+}
+
+UniValue generatetoaddress(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 2)
+        throw std::runtime_error(
+                "generatetoaddress numblocks \"address\"\n"
+                "\nMine blocks immediately to a specified address (before the RPC call returns)\n"
+                "\nArguments:\n"
+                "1. numblocks    (numeric, required) How many blocks are generated immediately.\n"
+                "2. \"address\"      (string, required) The address to send the newly generated bitcoin to.\n"
+                "\nResult\n"
+                "[ blockhashes ]     (array) hashes of blocks generated\n"
+                "\nExamples:\n"
+                "\nGenerate 11 blocks to myaddress\n"
+                + HelpExampleCli("generatetoaddress", "11 \"myaddress\"")
+        );
+
+    int nGenerate = request.params[0].get_int();
+    CTxDestination dest(DecodeDestination(request.params[1].get_str()));
+    if (!IsValidDestination(dest)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
+    }
+    CScript coinbaseScript = GetScriptForDestination(dest);
+
+    const Consensus::Params& consensus = Params().GetConsensus();
+    int nHeightEnd = 0;
+    int nHeight = 0;
+
+    {   // Don't keep cs_main locked
+        LOCK(cs_main);
+        nHeight = chainActive.Height();
+        nHeightEnd = nHeight + nGenerate;
+    }
+
+    bool fPoS = consensus.NetworkUpgradeActive(nHeight + 1, Consensus::UPGRADE_POS);
+    return generateBlocks(consensus,
+                          pwalletMain,
+                          fPoS,
+                          nGenerate,
+                          nHeight,
+                          nHeightEnd,
+                          &coinbaseScript);
 }
 
 #endif // ENABLE_WALLET
@@ -836,6 +880,7 @@ static const CRPCCommand commands[] =
     /* Not shown in help */
 #ifdef ENABLE_WALLET
     { "hidden",             "generate",               &generate,               true  },
+    { "hidden",             "generatetoaddress",      &generatetoaddress,      true  },
 #endif
     { "hidden",             "submitblock",            &submitblock,            true  },
 #ifdef ENABLE_MINING_RPC
