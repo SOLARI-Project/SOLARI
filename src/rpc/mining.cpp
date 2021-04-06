@@ -14,19 +14,74 @@
 #include "net.h"
 #include "pow.h"
 #include "rpc/server.h"
-#include "util.h"
 #include "validationinterface.h"
 #ifdef ENABLE_WALLET
 #include "wallet/db.h"
 #include "wallet/wallet.h"
 #endif
-#include "warnings.h"
 
 #include <stdint.h>
 
 #include <univalue.h>
 
 #ifdef ENABLE_WALLET
+UniValue generateBlocks(const Consensus::Params& consensus,
+                        CWallet* wallet,
+                        bool fPoS,
+                        const int nGenerate,
+                        int nHeight,
+                        int nHeightEnd,
+                        CScript* coinbaseScript)
+{
+    UniValue blockHashes(UniValue::VARR);
+    unsigned int nExtraNonce = 0;
+
+    while (nHeight < nHeightEnd && !ShutdownRequested()) {
+
+        // Get available coins
+        std::vector<CStakeableOutput> availableCoins;
+        if (fPoS && !wallet->StakeableCoins(&availableCoins)) {
+            throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "No available coins to stake");
+        }
+
+        std::unique_ptr<CBlockTemplate> pblocktemplate(fPoS ?
+                                                       BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(CScript(), wallet, true, &availableCoins) :
+                                                       CreateNewBlockWithScript(*coinbaseScript, wallet));
+        if (!pblocktemplate.get()) break;
+        std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
+
+        if(!fPoS) {
+            {
+                LOCK(cs_main);
+                IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
+            }
+            while (pblock->nNonce < std::numeric_limits<uint32_t>::max() &&
+                   !CheckProofOfWork(pblock->GetHash(), pblock->nBits)) {
+                ++pblock->nNonce;
+            }
+            if (ShutdownRequested()) break;
+            if (pblock->nNonce == std::numeric_limits<uint32_t>::max()) continue;
+        }
+
+        CValidationState state;
+        if (!ProcessNewBlock(state, nullptr, pblock, nullptr))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+
+        ++nHeight;
+        blockHashes.push_back(pblock->GetHash().GetHex());
+
+        // Check PoS if needed.
+        if (!fPoS)
+            fPoS = consensus.NetworkUpgradeActive(nHeight + 1, Consensus::UPGRADE_POS);
+    }
+
+    const int nGenerated = blockHashes.size();
+    if (nGenerated == 0 || (!fPoS && nGenerated < nGenerate))
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new blocks");
+
+    return blockHashes;
+}
+
 UniValue generate(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 1)
@@ -62,6 +117,7 @@ UniValue generate(const JSONRPCRequest& request)
     const Consensus::Params& consensus = Params().GetConsensus();
     bool fPoS = consensus.NetworkUpgradeActive(nHeight + 1, Consensus::UPGRADE_POS);
     std::unique_ptr<CReserveKey> reservekey;
+    CScript coinbaseScript;
 
     if (fPoS) {
         // If we are in PoS, wallet must be unlocked.
@@ -69,53 +125,19 @@ UniValue generate(const JSONRPCRequest& request)
     } else {
         // Coinbase key
         reservekey = MakeUnique<CReserveKey>(pwalletMain);
+        CPubKey pubkey;
+        if (!reservekey->GetReservedKey(pubkey)) throw JSONRPCError(RPC_INTERNAL_ERROR, "Error: Cannot get key from keypool");
+        coinbaseScript = GetScriptForDestination(pubkey.GetID());
     }
 
-    UniValue blockHashes(UniValue::VARR);
-    unsigned int nExtraNonce = 0;
-
-    while (nHeight < nHeightEnd && !ShutdownRequested()) {
-
-        // Get available coins
-        std::vector<CStakeableOutput> availableCoins;
-        if (fPoS && !pwalletMain->StakeableCoins(&availableCoins)) {
-            throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "No available coins to stake");
-        }
-
-        std::unique_ptr<CBlockTemplate> pblocktemplate((fPoS ?
-                                                        BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(CScript(), pwalletMain, true, &availableCoins) :
-                                                        CreateNewBlockWithKey(reservekey.get(), pwalletMain)));
-        if (!pblocktemplate.get()) break;
-        std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
-
-        if(!fPoS) {
-            {
-                LOCK(cs_main);
-                IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-            }
-            while (pblock->nNonce < std::numeric_limits<uint32_t>::max() &&
-                   !CheckProofOfWork(pblock->GetHash(), pblock->nBits)) {
-                ++pblock->nNonce;
-            }
-            if (ShutdownRequested()) break;
-            if (pblock->nNonce == std::numeric_limits<uint32_t>::max()) continue;
-        }
-
-        CValidationState state;
-        if (!ProcessNewBlock(state, nullptr, pblock, nullptr))
-            throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
-
-        ++nHeight;
-        blockHashes.push_back(pblock->GetHash().GetHex());
-
-        // Check PoS if needed.
-        if (!fPoS)
-            fPoS = consensus.NetworkUpgradeActive(nHeight + 1, Consensus::UPGRADE_POS);
-    }
-
-    const int nGenerated = blockHashes.size();
-    if (nGenerated == 0 || (!fPoS && nGenerated < nGenerate))
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new blocks");
+    // Create the blocks
+    UniValue blockHashes = generateBlocks(consensus,
+                                          pwalletMain,
+                                          fPoS,
+                                          nGenerate,
+                                          nHeight,
+                                          nHeightEnd,
+                                          &coinbaseScript);
 
     // mark key as used, only for PoW coinbases
     if (reservekey) {
@@ -125,6 +147,7 @@ UniValue generate(const JSONRPCRequest& request)
 
     return blockHashes;
 }
+
 #endif // ENABLE_WALLET
 
 #ifdef ENABLE_MINING_RPC
