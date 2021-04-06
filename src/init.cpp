@@ -1288,7 +1288,7 @@ bool AppInitMain()
         if (nWalletBackups > 0) {
             if (fs::exists(backupDir)) {
                 // Create backup of the wallet
-                std::string dateTimeStr = DateTimeStrFormat(".%Y-%m-%d-%H-%M", GetTime());
+                std::string dateTimeStr = FormatISO8601DateTimeForBackup(GetTime());
                 std::string backupPathStr = backupDir.string();
                 backupPathStr += "/" + strWalletFile;
                 std::string sourcePathStr = GetDataDir().string();

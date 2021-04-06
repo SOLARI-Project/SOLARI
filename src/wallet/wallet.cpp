@@ -4419,7 +4419,7 @@ bool CWalletTx::AcceptToMemoryPool(CValidationState& state, bool fLimitFree, boo
 
 std::string CWallet::GetUniqueWalletBackupName() const
 {
-    return strprintf("%s%s", (dbw ? dbw->GetName() : "null"), DateTimeStrFormat(".%Y-%m-%d-%H-%M", GetTime()));
+    return strprintf("%s%s", (dbw ? dbw->GetName() : "null"), FormatISO8601DateTimeForBackup(GetTime()));
 }
 
 CWallet::CWallet() : dbw(new CWalletDBWrapper())
