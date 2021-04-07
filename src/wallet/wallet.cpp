@@ -3227,9 +3227,6 @@ bool CWallet::CreateCoinStake(
     pStakerStatus->SetLastTip(pindexPrev);
     pStakerStatus->SetLastCoins((int) availableCoins->size());
 
-    // P2PKH block signatures were not accepted before v5 update.
-    bool onlyP2PK = !consensus.NetworkUpgradeActive(pindexPrev->nHeight + 1, Consensus::UPGRADE_V5_0);
-
     // Kernel Search
     CAmount nCredit;
     CScript scriptPubKeyKernel;
@@ -3277,7 +3274,7 @@ bool CWallet::CreateCoinStake(
 
         // Create the output transaction(s)
         std::vector<CTxOut> vout;
-        if (!stakeInput.CreateTxOuts(this, vout, nCredit, onlyP2PK)) {
+        if (!stakeInput.CreateTxOuts(this, vout, nCredit)) {
             LogPrintf("%s : failed to create output\n", __func__);
             it++;
             continue;
