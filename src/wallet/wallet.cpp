@@ -3254,13 +3254,6 @@ bool CWallet::CreateCoinStake(
             continue;
         }
 
-        // This should never happen
-        if (stakeInput.IsZPIV()) {
-            LogPrintf("%s: ERROR - zPOS is disabled\n", __func__);
-            it++;
-            continue;
-        }
-
         nCredit = 0;
 
         nAttempts++;
