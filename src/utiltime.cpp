@@ -99,10 +99,10 @@ std::string DurationToDHMS(int64_t nDurationTime)
 std::string FormatISO8601DateTime(int64_t nTime) {
     struct tm ts;
     time_t time_val = nTime;
-#ifdef _MSC_VER
-    if (gmtime_s(&ts, &time_val) != 0) {
-#else
+#ifdef HAVE_GMTIME_R
     if (gmtime_r(&time_val, &ts) == nullptr) {
+#else
+    if (gmtime_s(&ts, &time_val) != 0) {
 #endif
         return {};
     }
@@ -112,10 +112,10 @@ std::string FormatISO8601DateTime(int64_t nTime) {
 std::string FormatISO8601DateTimeForBackup(int64_t nTime) {
     struct tm ts;
     time_t time_val = nTime;
-#ifdef _MSC_VER
-    if (gmtime_s(&ts, &time_val) != 0) {
-#else
+#ifdef HAVE_GMTIME_R
     if (gmtime_r(&time_val, &ts) == nullptr) {
+#else
+    if (gmtime_s(&ts, &time_val) != 0) {
 #endif
         return {};
     }
@@ -125,10 +125,10 @@ std::string FormatISO8601DateTimeForBackup(int64_t nTime) {
 std::string FormatISO8601Date(int64_t nTime) {
     struct tm ts;
     time_t time_val = nTime;
-#ifdef _MSC_VER
-    if (gmtime_s(&ts, &time_val) != 0) {
-#else
+#ifdef HAVE_GMTIME_R
     if (gmtime_r(&time_val, &ts) == nullptr) {
+#else
+    if (gmtime_s(&ts, &time_val) != 0) {
 #endif
         return {};
     }
@@ -138,10 +138,10 @@ std::string FormatISO8601Date(int64_t nTime) {
 std::string FormatISO8601Time(int64_t nTime) {
     struct tm ts;
     time_t time_val = nTime;
-#ifdef _MSC_VER
-    if (gmtime_s(&ts, &time_val) != 0) {
-#else
+#ifdef HAVE_GMTIME_R
     if (gmtime_r(&time_val, &ts) == nullptr) {
+#else
+    if (gmtime_s(&ts, &time_val) != 0) {
 #endif
         return {};
     }
