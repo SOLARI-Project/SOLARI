@@ -2169,7 +2169,7 @@ CWallet::Balance CWallet::GetBalance(const int min_depth) const
     return ret;
 }
 
-CAmount CWallet::loopTxsBalance(std::function<void(const uint256&, const CWalletTx&, CAmount&)> method) const
+CAmount CWallet::loopTxsBalance(const std::function<void(const uint256&, const CWalletTx&, CAmount&)>& method) const
 {
     CAmount nTotal = 0;
     {
@@ -3903,7 +3903,7 @@ std::vector<CKeyID> CWallet::GetAffectedKeys(const CScript& spk)
     std::vector<CKeyID> vAffected;
     CAffectedKeysVisitor(*this, vAffected).Process(spk);
     for (const CKeyID& keyid : vAffected) {
-        ret.push_back(keyid);
+        ret.emplace_back(keyid);
     }
     return ret;
 }
@@ -4777,7 +4777,7 @@ Optional<std::pair<
 {
     auto output = this->tx->sapData->vShieldedOutput[op.n];
 
-    for (auto ovk : ovks) {
+    for (const auto& ovk : ovks) {
         auto outPt = libzcash::SaplingOutgoingPlaintext::decrypt(
                 output.outCiphertext,
                 ovk,
