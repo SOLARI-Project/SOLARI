@@ -632,6 +632,37 @@ PeerLogicValidation::PeerLogicValidation(CConnman* connmanIn) :
     recentRejects.reset(new CRollingBloomFilter(120000, 0.000001));
 }
 
+void PeerLogicValidation::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex* pindex)
+{
+    LOCK(cs_main);
+
+    std::vector<uint256> vOrphanErase;
+
+    for (const CTransactionRef& ptx : pblock->vtx) {
+        const CTransaction& tx = *ptx;
+
+        // Which orphan pool entries must we evict?
+        for (size_t j = 0; j < tx.vin.size(); j++) {
+            auto itByPrev = mapOrphanTransactionsByPrev.find(tx.vin[j].prevout);
+            if (itByPrev == mapOrphanTransactionsByPrev.end()) continue;
+            for (auto mi = itByPrev->second.begin(); mi != itByPrev->second.end(); ++mi) {
+                const CTransaction& orphanTx = *(*mi)->second.tx;
+                const uint256& orphanHash = orphanTx.GetHash();
+                vOrphanErase.emplace_back(orphanHash);
+            }
+        }
+    }
+
+    // Erase orphan transactions include or precluded by this block
+    if (!vOrphanErase.empty()) {
+        int nErased = 0;
+        for (uint256& orphanHash : vOrphanErase) {
+            nErased += EraseOrphanTx(orphanHash);
+        }
+        LogPrint(BCLog::MEMPOOL, "Erased %d orphan tx included or conflicted by block\n", nErased);
+    }
+}
+
 void PeerLogicValidation::UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload)
 {
     const int nNewHeight = pindexNew->nHeight;
