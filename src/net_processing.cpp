@@ -22,13 +22,22 @@ int64_t nTimeBestReceived = 0;  // Used only to inform the wallet of when we las
 
 static const uint64_t RANDOMIZER_ID_ADDRESS_RELAY = 0x3cac0035b5866b90ULL; // SHA256("main address relay")[0:8]
 
+struct IteratorComparator
+{
+    template<typename I>
+    bool operator()(const I& a, const I& b) const
+    {
+        return &(*a) < &(*b);
+    }
+};
+
 struct COrphanTx {
     CTransactionRef tx;
     NodeId fromPeer;
 };
 
 std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(cs_main);
-std::map<uint256, std::set<uint256> > mapOrphanTransactionsByPrev GUARDED_BY(cs_main);
+std::map<COutPoint, std::set<std::map<uint256, COrphanTx>::iterator, IteratorComparator>> mapOrphanTransactionsByPrev GUARDED_BY(cs_main);
 
 void EraseOrphansFor(NodeId peer) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
@@ -511,28 +520,30 @@ bool AddOrphanTx(const CTransactionRef& tx, NodeId peer) EXCLUSIVE_LOCKS_REQUIRE
 
     auto ret = mapOrphanTransactions.emplace(hash, COrphanTx{tx, peer});
     assert(ret.second);
-    for (const CTxIn& txin : tx->vin)
-        mapOrphanTransactionsByPrev[txin.prevout.hash].insert(hash);
+    for (const CTxIn& txin : tx->vin) {
+        mapOrphanTransactionsByPrev[txin.prevout].insert(ret.first);
+    }
 
-    LogPrint(BCLog::MEMPOOL, "stored orphan tx %s (mapsz %u prevsz %u)\n", hash.ToString(),
+    LogPrint(BCLog::MEMPOOL, "stored orphan tx %s (mapsz %u outsz %u)\n", hash.ToString(),
         mapOrphanTransactions.size(), mapOrphanTransactionsByPrev.size());
     return true;
 }
 
-void static EraseOrphanTx(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+int static EraseOrphanTx(uint256 hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     std::map<uint256, COrphanTx>::iterator it = mapOrphanTransactions.find(hash);
     if (it == mapOrphanTransactions.end())
-        return;
+        return 0;
     for (const CTxIn& txin : it->second.tx->vin) {
-        std::map<uint256, std::set<uint256> >::iterator itPrev = mapOrphanTransactionsByPrev.find(txin.prevout.hash);
+        auto itPrev = mapOrphanTransactionsByPrev.find(txin.prevout);
         if (itPrev == mapOrphanTransactionsByPrev.end())
             continue;
-        itPrev->second.erase(hash);
+        itPrev->second.erase(it);
         if (itPrev->second.empty())
             mapOrphanTransactionsByPrev.erase(itPrev);
     }
     mapOrphanTransactions.erase(it);
+    return 1;
 }
 
 void EraseOrphansFor(NodeId peer) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
@@ -542,8 +553,7 @@ void EraseOrphansFor(NodeId peer) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     while (iter != mapOrphanTransactions.end()) {
         std::map<uint256, COrphanTx>::iterator maybeErase = iter++; // increment to avoid iterator becoming invalid
         if (maybeErase->second.fromPeer == peer) {
-            EraseOrphanTx(maybeErase->second.tx->GetHash());
-            ++nErased;
+            nErased += EraseOrphanTx(maybeErase->second.tx->GetHash());
         }
     }
     if (nErased > 0) LogPrint(BCLog::MEMPOOL, "Erased %d orphan tx from peer %d\n", nErased, peer);
@@ -1413,7 +1423,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
 
 
     else if (strCommand == NetMsgType::TX) {
-        std::vector<uint256> vWorkQueue;
+        std::deque<COutPoint> vWorkQueue;
         std::vector<uint256> vEraseQueue;
         CTransaction tx(deserialize, vRecv);
         CTransactionRef ptx = MakeTransactionRef(tx);
@@ -1433,7 +1443,9 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         if (!tx.HasZerocoinSpendInputs() && AcceptToMemoryPool(mempool, state, ptx, true, &fMissingInputs, false, ignoreFees)) {
             mempool.check(pcoinsTip);
             RelayTransaction(tx, connman);
-            vWorkQueue.push_back(inv.hash);
+            for (unsigned int i = 0; i < tx.vout.size(); i++) {
+                vWorkQueue.emplace_back(inv.hash, i);
+            }
 
             LogPrint(BCLog::MEMPOOL, "%s : peer=%d %s : accepted %s (poolsz %u txn, %u kB)\n",
                     __func__, pfrom->id, pfrom->cleanSubVer, tx.GetHash().ToString(),
@@ -1441,16 +1453,17 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
 
             // Recursively process any orphan transactions that depended on this one
             std::set<NodeId> setMisbehaving;
-            for(unsigned int i = 0; i < vWorkQueue.size(); i++) {
-                std::map<uint256, std::set<uint256> >::iterator itByPrev = mapOrphanTransactionsByPrev.find(vWorkQueue[i]);
+            while (!vWorkQueue.empty()) {
+                auto itByPrev = mapOrphanTransactionsByPrev.find(vWorkQueue.front());
+                vWorkQueue.pop_front();
                 if(itByPrev == mapOrphanTransactionsByPrev.end())
                     continue;
-                for(std::set<uint256>::iterator mi = itByPrev->second.begin();
+                for (auto mi = itByPrev->second.begin();
                     mi != itByPrev->second.end();
                     ++mi) {
-                    const uint256 &orphanHash = *mi;
-                    const auto &orphanTx = mapOrphanTransactions[orphanHash].tx;
-                    NodeId fromPeer = mapOrphanTransactions[orphanHash].fromPeer;
+                    const CTransactionRef& orphanTx = (*mi)->second.tx;
+                    const uint256& orphanHash = orphanTx->GetHash();
+                    NodeId fromPeer = (*mi)->second.fromPeer;
                     bool fMissingInputs2 = false;
                     // Use a dummy CValidationState so someone can't setup nodes to counter-DoS based on orphan
                     // resolution (that is, feeding people an invalid transaction based on LegitTxX in order to get
@@ -1463,7 +1476,9 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
                     if(AcceptToMemoryPool(mempool, stateDummy, orphanTx, true, &fMissingInputs2)) {
                         LogPrint(BCLog::MEMPOOL, "   accepted orphan tx %s\n", orphanHash.ToString());
                         RelayTransaction(*orphanTx, connman);
-                        vWorkQueue.push_back(orphanHash);
+                        for (unsigned int i = 0; i < orphanTx->vout.size(); i++) {
+                            vWorkQueue.emplace_back(orphanHash, i);
+                        }
                         vEraseQueue.push_back(orphanHash);
                     } else if(!fMissingInputs2) {
                         int nDos = 0;
