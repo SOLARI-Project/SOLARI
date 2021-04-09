@@ -754,26 +754,6 @@ fs::path GetTempPath()
     return fs::temp_directory_path();
 }
 
-double double_safe_addition(double fValue, double fIncrement)
-{
-    double fLimit = std::numeric_limits<double>::max() - fValue;
-
-    if (fLimit > fIncrement)
-        return fValue + fIncrement;
-    else
-        return std::numeric_limits<double>::max();
-}
-
-double double_safe_multiplication(double fValue, double fmultiplicator)
-{
-    double fLimit = std::numeric_limits<double>::max() / fmultiplicator;
-
-    if (fLimit > fmultiplicator)
-        return fValue * fmultiplicator;
-    else
-        return std::numeric_limits<double>::max();
-}
-
 void runCommand(std::string strCommand)
 {
     if (strCommand.empty()) return;
