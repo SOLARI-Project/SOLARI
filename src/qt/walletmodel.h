@@ -346,7 +346,7 @@ public:
     void stop();
 
 private:
-    CWallet* wallet;
+    CWallet* wallet{nullptr};
     // Simple Wallet interface.
     // todo: Goal would be to move every CWallet* call to the wallet wrapper and
     //  in the model only perform the data organization (and QT wrappers) to be presented on the UI.

@@ -110,7 +110,7 @@ private:
      * sapling notes and nullifiers, as well as to commit transactions.
      * The same keystore is passed to the transaction builder in order to produce the required signatures.
      */
-    CWallet* wallet;
+    CWallet* wallet{nullptr};
 
     FromAddress fromAddress;
     // In case of no addressFrom filter selected, it will accept any utxo in the wallet as input.

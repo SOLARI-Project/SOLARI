@@ -77,7 +77,7 @@ public:
     {
     }
 
-    CWallet* wallet;
+    CWallet* wallet{nullptr};
     TransactionTableModel* parent;
 
     /* Local cache of wallet.
