@@ -3364,7 +3364,6 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, const std::shared_pt
 
     // Preliminary checks
     int64_t nStartTime = GetTimeMillis();
-    const Consensus::Params& consensus = Params().GetConsensus();
     int newHeight = 0;
 
     {
