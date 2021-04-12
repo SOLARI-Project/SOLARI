@@ -1578,17 +1578,28 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
 
         } else if (fMissingInputs) {
             bool fRejectedParents = false; // It may be the case that the orphans parents have all been rejected
+
+            // Deduplicate parent txids, so that we don't have to loop over
+            // the same parent txid more than once down below.
+            std::vector<uint256> unique_parents;
+            unique_parents.reserve(tx.vin.size());
             for (const CTxIn& txin : ptx->vin) {
-                if (recentRejects->contains(txin.prevout.hash)) {
+                // We start with all parents, and then remove duplicates below.
+                unique_parents.emplace_back(txin.prevout.hash);
+            }
+            std::sort(unique_parents.begin(), unique_parents.end());
+            unique_parents.erase(std::unique(unique_parents.begin(), unique_parents.end()), unique_parents.end());
+            for (const uint256& parent_txid : unique_parents) {
+                if (recentRejects->contains(parent_txid)) {
                     fRejectedParents = true;
                     break;
                 }
             }
             if (!fRejectedParents) {
-                for (const CTxIn& txin : ptx->vin) {
-                    CInv inv(MSG_TX, txin.prevout.hash);
-                    pfrom->AddInventoryKnown(inv);
-                    if (!AlreadyHave(inv)) pfrom->AskFor(inv);
+                for (const uint256& parent_txid : unique_parents) {
+                    CInv _inv(MSG_TX, parent_txid);
+                    pfrom->AddInventoryKnown(_inv);
+                    if (!AlreadyHave(_inv)) pfrom->AskFor(_inv);
                 }
                 AddOrphanTx(ptx, pfrom->GetId());
 
