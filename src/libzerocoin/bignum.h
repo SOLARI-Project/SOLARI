@@ -60,12 +60,6 @@ public:
     */
     static CBigNum randBignum(const CBigNum& range);
 
-    /** Generates a cryptographically secure random k-bit number
-    * @param k The bit length of the number.
-    * @return
-    */
-    static CBigNum randKBitBignum(const uint32_t k);
-
     /**Returns the size in bits of the underlying bignum.
      *
      * @return the size
@@ -137,14 +131,6 @@ public:
     * @return the inverse
     */
     CBigNum inverse(const CBigNum& m) const;
-
-    /**
-     * Generates a random (safe) prime of numBits bits
-     * @param numBits the number of bits
-     * @param safe true for a safe prime
-     * @return the prime
-     */
-    static CBigNum generatePrime(const unsigned int numBits, bool safe = false);
 
     /**
      * Calculates the greatest common divisor (GCD) of two numbers.
