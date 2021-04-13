@@ -115,7 +115,7 @@ public:
         READWRITE(nBlockStart);
         READWRITE(nBlockEnd);
         READWRITE(nAmount);
-        READWRITE(*(CScriptBase*)(&address));
+        READWRITE(address);
         READWRITE(nFeeTXHash);
         READWRITE(nTime);
         READWRITE(mapVotes);

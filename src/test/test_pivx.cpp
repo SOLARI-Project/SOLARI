@@ -9,6 +9,7 @@
 
 #include "blockassembler.h"
 #include "guiinterface.h"
+#include "evo/evodb.h"
 #include "miner.h"
 #include "net_processing.h"
 #include "random.h"
@@ -46,11 +47,13 @@ BasicTestingSetup::BasicTestingSetup()
         InitSignatureCache();
         fCheckBlockIndex = true;
         SelectParams(CBaseChainParams::MAIN);
+        evoDb.reset(new CEvoDB(1 << 20, true, true));
 }
 BasicTestingSetup::~BasicTestingSetup()
 {
         ECC_Stop();
         g_connman.reset();
+        evoDb.reset();
 }
 
 TestingSetup::TestingSetup()

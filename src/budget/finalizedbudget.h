@@ -161,7 +161,7 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action)
     {
-        READWRITE(*(CScriptBase*)(&payee));
+        READWRITE(payee);
         READWRITE(nAmount);
         READWRITE(nProposalHash);
     }
