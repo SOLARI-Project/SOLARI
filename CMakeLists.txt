@@ -340,7 +340,6 @@ add_library(BITCOIN_CRYPTO_A STATIC ${BITCOIN_CRYPTO_SOURCES})
 target_include_directories(BITCOIN_CRYPTO_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${OPENSSL_INCLUDE_DIR})
 
 set(ZEROCOIN_SOURCES
-        ./src/libzerocoin/Accumulator.h
         ./src/libzerocoin/bignum.h
         ./src/libzerocoin/bignum.cpp
         ./src/libzerocoin/Coin.h
@@ -352,7 +351,6 @@ set(ZEROCOIN_SOURCES
         ./src/libzerocoin/Params.h
         ./src/libzerocoin/SpendType.h
         ./src/libzerocoin/ZerocoinDefines.h
-        ./src/libzerocoin/Accumulator.cpp
         ./src/libzerocoin/Coin.cpp
         ./src/libzerocoin/CoinRandomnessSchnorrSignature.cpp
         ./src/libzerocoin/Denominations.cpp
