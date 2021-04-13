@@ -4207,34 +4207,44 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
     }
 
     EnsureWallet();
-    LOCK2(cs_main, pwalletMain->cs_wallet);
+    WalletRescanReserver reserver(pwalletMain);
+    if (!reserver.reserve()) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
+    }
 
-    CBlockIndex *pindexStart = chainActive.Genesis();
+    CBlockIndex *pindexStart = nullptr;
     CBlockIndex *pindexStop = nullptr;
-    if (!request.params[0].isNull()) {
-        pindexStart = chainActive[request.params[0].get_int()];
-        if (!pindexStart) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid start_height");
+    CBlockIndex *pChainTip = nullptr;
+    {
+        LOCK(cs_main);
+        pindexStart = chainActive.Genesis();
+        pChainTip = chainActive.Tip();
+
+        if (!request.params[0].isNull()) {
+            pindexStart = chainActive[request.params[0].get_int()];
+            if (!pindexStart) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid start_height");
+            }
+        }
+
+        if (!request.params[1].isNull()) {
+            pindexStop = chainActive[request.params[1].get_int()];
+            if (!pindexStop) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid stop_height");
+            }
+            else if (pindexStop->nHeight < pindexStart->nHeight) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "stop_height must be greater then start_height");
+            }
         }
     }
 
-    if (!request.params[1].isNull()) {
-        pindexStop = chainActive[request.params[1].get_int()];
-        if (!pindexStop) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid stop_height");
-        }
-        else if (pindexStop->nHeight < pindexStart->nHeight) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "stop_height must be greater then start_height");
-        }
-    }
-
-    CBlockIndex *stopBlock = pwalletMain->ScanForWalletTransactions(pindexStart, pindexStop, true);
+    CBlockIndex *stopBlock = pwalletMain->ScanForWalletTransactions(pindexStart, pindexStop, reserver, true);
     if (!stopBlock) {
         if (pwalletMain->IsAbortingRescan()) {
             throw JSONRPCError(RPC_MISC_ERROR, "Rescan aborted.");
         }
         // if we got a nullptr returned, ScanForWalletTransactions did rescan up to the requested stopindex
-        stopBlock = pindexStop ? pindexStop : chainActive.Tip();
+        stopBlock = pindexStop ? pindexStop : pChainTip;
     }
     else {
         throw JSONRPCError(RPC_MISC_ERROR, "Rescan failed. Potentially corrupted data files.");

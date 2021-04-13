@@ -44,7 +44,8 @@
 #include <utility>
 #include <vector>
 
-extern CWallet* pwalletMain;
+typedef CWallet* CWalletRef;
+extern CWalletRef pwalletMain;
 
 /**
  * Settings
@@ -85,6 +86,7 @@ static const unsigned int DEFAULT_CREATEWALLETBACKUPS = 10;
 static const bool DEFAULT_DISABLE_WALLET = false;
 
 extern const char * DEFAULT_WALLET_DAT;
+static const int64_t TIMESTAMP_MIN = 0;
 
 class CAddressBookIterator;
 class CCoinControl;
@@ -553,6 +555,9 @@ public:
     bool AcceptToMemoryPool(CValidationState& state, bool fLimitFree = true, bool fRejectInsaneFee = true, bool ignoreFees = false);
 };
 
+
+class WalletRescanReserver; //forward declarations for ScanForWalletTransactions/RescanFromTime
+
 /**
  * A CWallet is an extension of a keystore, which also maintains a set of transactions and balances,
  * and provides the ability to create new transactions.
@@ -562,7 +567,10 @@ class CWallet : public CCryptoKeyStore, public CValidationInterface
 private:
     static std::atomic<bool> fFlushScheduled;
     std::atomic<bool> fAbortRescan;
-    std::atomic<bool> fScanningWallet;
+    std::atomic<bool> fScanningWallet; //controlled by WalletRescanReserver
+    std::mutex mutexScanning;
+    friend class WalletRescanReserver;
+
 
     //! keeps track of whether Unlock has run a thorough check before
     bool fDecryptionThoroughlyChecked{false};
@@ -906,6 +914,7 @@ public:
     bool LoadKeyMetadata(const CPubKey& pubkey, const CKeyMetadata& metadata);
 
     bool LoadMinVersion(int nVersion);
+    void UpdateTimeFirstKey(int64_t nCreateTime);
 
     //! Adds an encrypted key to the store, and saves it to disk.
     bool AddCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret) override;
@@ -958,7 +967,8 @@ public:
     bool Upgrade(std::string& error, const int& prevVersion);
     bool ActivateSaplingWallet(bool memOnly = false);
 
-    CBlockIndex* ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop = nullptr, bool fUpdate = false, bool fromStartup = false);
+    int64_t RescanFromTime(int64_t startTime, const WalletRescanReserver& reserver, bool update);
+    CBlockIndex* ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop, const WalletRescanReserver& reserver, bool fUpdate = false, bool fromStartup = false);
     void TransactionRemovedFromMempool(const CTransactionRef &ptx) override;
     void ReacceptWalletTransactions(bool fFirstLoad = false);
     void ResendWalletTransactions(CConnman* connman) override;
@@ -1224,6 +1234,41 @@ public:
     CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn,
                      const CBlockIndex*& pindex);
 
+};
+
+/** RAII object to check and reserve a wallet rescan */
+class WalletRescanReserver
+{
+private:
+    CWalletRef m_wallet;
+    bool m_could_reserve;
+public:
+    explicit WalletRescanReserver(CWalletRef w) : m_wallet(w), m_could_reserve(false) {}
+
+    bool reserve()
+    {
+        assert(!m_could_reserve);
+        std::lock_guard<std::mutex> lock(m_wallet->mutexScanning);
+        if (m_wallet->fScanningWallet) {
+            return false;
+        }
+        m_wallet->fScanningWallet = true;
+        m_could_reserve = true;
+        return true;
+    }
+
+    bool isReserved() const
+    {
+        return (m_could_reserve && m_wallet->fScanningWallet);
+    }
+
+    ~WalletRescanReserver()
+    {
+        std::lock_guard<std::mutex> lock(m_wallet->mutexScanning);
+        if (m_could_reserve) {
+            m_wallet->fScanningWallet = false;
+        }
+    }
 };
 
 #endif // BITCOIN_WALLET_H
