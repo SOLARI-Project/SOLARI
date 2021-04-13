@@ -197,7 +197,7 @@ void ArgsManager::InterpretNegatedOption(std::string& key, std::string& val)
         m_negated_args.insert(key);
         val = bool_val ? "0" : "1";
     } else {
-        // In an invocation like "bitcoind -nofoo -foo" we want to unmark -foo
+        // In an invocation like "pivxd -nofoo -foo" we want to unmark -foo
         // as negated when we see the second option.
         m_negated_args.erase(key);
     }
