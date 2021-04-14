@@ -63,8 +63,7 @@ CBigNum CBigNum::randBignum(const CBigNum& range)
     size_t size = (mpz_sizeinbase (range.bn, 2) + CHAR_BIT-1) / CHAR_BIT;
     std::vector<unsigned char> buf(size);
 
-    RandAddPeriodic();
-    GetRandBytes(buf.data(), size);
+    GetStrongRandBytes(buf.data(), size);
 
     CBigNum ret(buf);
     if (ret < 0)
@@ -80,8 +79,7 @@ CBigNum CBigNum::randKBitBignum(const uint32_t k)
 {
     std::vector<unsigned char> buf((k+7)/8);
 
-    RandAddPeriodic();
-    GetRandBytes(buf.data(), (k+7)/8);
+    GetStrongRandBytes(buf.data(), (k+7)/8);
 
     CBigNum ret(buf);
     if (ret < 0)
