@@ -995,7 +995,7 @@ static UniValue ShieldSendManyTo(const UniValue& sendTo,
         throw JSONRPCError(RPC_WALLET_ERROR, res.getError());
 
     // add comments
-    const uint256 txHash(txid);
+    const uint256& txHash = uint256S(txid);
     assert(pwalletMain->mapWallet.count(txHash));
     if (!commentStr.empty()) {
         pwalletMain->mapWallet.at(txHash).mapValue["comment"] = commentStr;
