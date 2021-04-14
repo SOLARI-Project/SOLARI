@@ -24,8 +24,6 @@
 #include "boost/multi_index/hashed_index.hpp"
 #include <boost/multi_index/sequenced_index.hpp>
 
-#include <boost/signals2/signal.hpp>
-
 class CAutoFile;
 
 inline double AllowFreeThreshold()
@@ -683,9 +681,6 @@ public:
     bool ReadFeeEstimates(CAutoFile& filein);
 
     size_t DynamicMemoryUsage() const;
-
-    boost::signals2::signal<void (CTransactionRef)> NotifyEntryAdded;
-    boost::signals2::signal<void (CTransactionRef, MemPoolRemovalReason)> NotifyEntryRemoved;
 
 private:
     /** UpdateForDescendants is used by UpdateTransactionsFromBlock to update

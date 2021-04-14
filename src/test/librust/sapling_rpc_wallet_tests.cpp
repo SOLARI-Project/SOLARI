@@ -434,8 +434,7 @@ BOOST_AUTO_TEST_CASE(rpc_shieldsendmany_taddr_to_sapling)
     chainActive.SetTip(&fakeIndex);
     BOOST_CHECK(chainActive.Contains(&fakeIndex));
     BOOST_CHECK_EQUAL(1, chainActive.Height());
-    std::vector<CTransactionRef> vtxConflicted;
-    pwalletMain->BlockConnected(std::make_shared<CBlock>(block), mi->second, vtxConflicted);
+    pwalletMain->BlockConnected(std::make_shared<CBlock>(block), mi->second);
     BOOST_CHECK_MESSAGE(pwalletMain->GetAvailableBalance() > 0, "tx not confirmed");
 
     // Context that shieldsendmany requires

@@ -71,7 +71,6 @@ TestingSetup::TestingSetup()
         // callbacks via CValidationInterface are unreliable, but that's OK,
         // our unit tests aren't testing multiple parts of the code at once.
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
-        GetMainSignals().RegisterWithMempoolSignals(mempool);
 
         // Ideally we'd move all the RPC tests to the functional testing framework
         // instead of unit tests, but for now we need these here.
@@ -105,7 +104,6 @@ TestingSetup::~TestingSetup()
         GetMainSignals().FlushBackgroundCallbacks();
         UnregisterAllValidationInterfaces();
         GetMainSignals().UnregisterBackgroundSignalScheduler();
-        GetMainSignals().UnregisterWithMempoolSignals(mempool);
         UnloadBlockIndex();
         delete pcoinsTip;
         delete pcoinsdbview;
