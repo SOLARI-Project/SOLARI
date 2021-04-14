@@ -96,7 +96,7 @@ void RandAddSeedPerfmon(CSHA512& hasher)
     } else {
         // Performance data is only a best-effort attempt at improving the
         // situation when the OS randomness (and other sources) aren't
-        // adequate. As a result, failure to read it is isn't considered critical,
+        // adequate. As a result, failure to read it isn't considered critical,
         // so we don't call RandFailure().
         // TODO: Add logging when the logger is made functional before global
         // constructors have been invoked.
