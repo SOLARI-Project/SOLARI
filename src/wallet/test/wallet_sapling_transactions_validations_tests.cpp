@@ -43,8 +43,7 @@ SaplingOperation createOperationAndBuildTx(std::vector<SendManyRecipient> recipi
                                            bool selectTransparentCoins)
 {
     // Create the operation
-    TransactionBuilder txBuilder = TransactionBuilder(Params().GetConsensus(), nextBlockHeight, pwalletMain);
-    SaplingOperation operation(txBuilder);
+    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, pwalletMain);
     auto operationResult = operation.setRecipients(recipients)
             ->setSelectTransparentCoins(selectTransparentCoins)
             ->setSelectShieldedCoins(!selectTransparentCoins)

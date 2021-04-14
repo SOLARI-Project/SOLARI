@@ -606,8 +606,7 @@ OperationResult WalletModel::PrepareShieldedTransaction(WalletModelTransaction* 
     if (!opResult) return opResult;
 
     // Create the operation
-    TransactionBuilder txBuilder = TransactionBuilder(Params().GetConsensus(), nextBlockHeight, wallet);
-    SaplingOperation operation(txBuilder);
+    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, wallet);
     auto operationResult = operation.setRecipients(recipients)
              ->setTransparentKeyChange(modelTransaction->getPossibleKeyChange())
              ->setSelectTransparentCoins(fromTransparent)

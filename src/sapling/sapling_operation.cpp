@@ -19,6 +19,18 @@ struct TxValues
     CAmount target{0};
 };
 
+SaplingOperation::SaplingOperation(const Consensus::Params& consensusParams, int nHeight, CWallet* _wallet) :
+    wallet(_wallet),
+    txBuilder(consensusParams, nHeight, _wallet)
+{
+    assert (wallet != nullptr);
+};
+
+SaplingOperation::~SaplingOperation()
+{
+    delete tkeyChange;
+}
+
 OperationResult SaplingOperation::checkTxValues(TxValues& txValues, bool isFromtAddress, bool isFromShielded)
 {
     assert(!isFromtAddress || txValues.shieldedInTotal == 0);
@@ -36,13 +48,14 @@ OperationResult SaplingOperation::checkTxValues(TxValues& txValues, bool isFromt
     return OperationResult(true);
 }
 
-OperationResult loadKeysFromShieldedFrom(const libzcash::SaplingPaymentAddress &addr,
+OperationResult loadKeysFromShieldedFrom(const CWallet* pwallet,
+                                         const libzcash::SaplingPaymentAddress &addr,
                                          libzcash::SaplingExpandedSpendingKey& expskOut,
                                          uint256& ovkOut)
 {
     // Get spending key for address
     libzcash::SaplingExtendedSpendingKey sk;
-    if (!pwalletMain->GetSaplingExtendedSpendingKey(addr, sk)) {
+    if (!pwallet->GetSaplingExtendedSpendingKey(addr, sk)) {
         return errorOut("Spending key not in the wallet");
     }
     expskOut = sk.expsk;
@@ -126,7 +139,7 @@ OperationResult SaplingOperation::build()
             // Get the common OVK for recovering t->shield outputs.
             // If not already databased, a new one will be generated from the HD seed.
             // It is safe to do it here, as the wallet is unlocked.
-            ovk = pwalletMain->GetSaplingScriptPubKeyMan()->getCommonOVK();
+            ovk = wallet->GetSaplingScriptPubKeyMan()->getCommonOVK();
         }
 
         // Add outputs
@@ -158,7 +171,7 @@ OperationResult SaplingOperation::build()
         // Set change address if we are using transparent funds
         if (isFromtAddress) {
             if (!tkeyChange) {
-                tkeyChange = new CReserveKey(pwalletMain);
+                tkeyChange = new CReserveKey(wallet);
             }
             CPubKey vchPubKey;
             if (!tkeyChange->GetReservedKey(vchPubKey, true)) {
@@ -227,7 +240,7 @@ OperationResult SaplingOperation::build()
 
 OperationResult SaplingOperation::send(std::string& retTxHash)
 {
-    const CWallet::CommitResult& res = pwalletMain->CommitTransaction(finalTx, tkeyChange, g_connman.get());
+    const CWallet::CommitResult& res = wallet->CommitTransaction(finalTx, tkeyChange, g_connman.get());
     if (res.status != CWallet::CommitStatus::OK) {
         return errorOut(res.ToString());
     }
@@ -271,7 +284,7 @@ OperationResult SaplingOperation::loadUtxos(TxValues& txValues)
         std::vector<COutput> selectedUTXOInputs;
         CAmount nSelectedValue = 0;
         for (const auto& outpoint : vCoins) {
-            const auto* tx = pwalletMain->GetWalletTx(outpoint.outPoint.hash);
+            const auto* tx = wallet->GetWalletTx(outpoint.outPoint.hash);
             if (!tx) continue;
             nSelectedValue += tx->tx->vout[outpoint.outPoint.n].nValue;
             selectedUTXOInputs.emplace_back(tx, outpoint.outPoint.n, 0, true, true);
@@ -289,7 +302,7 @@ OperationResult SaplingOperation::loadUtxos(TxValues& txValues)
                                               true,
                                               &destinations,
                                               mindepth);
-    if (!pwalletMain->AvailableCoins(&transInputs, nullptr, coinsFilter)) {
+    if (!wallet->AvailableCoins(&transInputs, nullptr, coinsFilter)) {
         return errorOut("Insufficient funds, no available UTXO to spend");
     }
 
@@ -353,10 +366,12 @@ OperationResult SaplingOperation::loadUtxos(TxValues& txValues, const std::vecto
  * recover it from the note (now that we have the spending key).
  */
 enum CacheCheckResult {OK, SPENT, INVALID};
-static CacheCheckResult CheckCachedNote(const SaplingNoteEntry& t, const libzcash::SaplingExpandedSpendingKey& expsk)
+static CacheCheckResult CheckCachedNote(CWallet* pwallet,
+                                        const SaplingNoteEntry& t,
+                                        const libzcash::SaplingExpandedSpendingKey& expsk)
 {
-    auto sspkm = pwalletMain->GetSaplingScriptPubKeyMan();
-    CWalletTx& prevTx = pwalletMain->mapWallet.at(t.op.hash);
+    auto sspkm = pwallet->GetSaplingScriptPubKeyMan();
+    CWalletTx& prevTx = pwallet->mapWallet.at(t.op.hash);
     SaplingNoteData& nd = prevTx.mapSaplingNoteData.at(t.op);
     if (nd.witnesses.empty()) {
         return CacheCheckResult::INVALID;
@@ -372,13 +387,13 @@ static CacheCheckResult CheckCachedNote(const SaplingNoteEntry& t, const libzcas
             LogPrintf("ERROR: Unable to recover nullifier for note %s.\n", noteStr);
             return CacheCheckResult::INVALID;
         }
-        WITH_LOCK(pwalletMain->cs_wallet, sspkm->UpdateSaplingNullifierNoteMap(nd, t.op, nf));
+        WITH_LOCK(pwallet->cs_wallet, sspkm->UpdateSaplingNullifierNoteMap(nd, t.op, nf));
         // re-check the spent status
         if (sspkm->IsSaplingSpent(*(nd.nullifier))) {
             LogPrintf("Removed note %s as it appears to be already spent.\n", noteStr);
             prevTx.MarkDirty();
-            CWalletDB(pwalletMain->GetDBHandle(), "r+").WriteTx(prevTx);
-            pwalletMain->NotifyTransactionChanged(pwalletMain, t.op.hash, CT_UPDATED);
+            CWalletDB(pwallet->GetDBHandle(), "r+").WriteTx(prevTx);
+            pwallet->NotifyTransactionChanged(pwallet, t.op.hash, CT_UPDATED);
             return CacheCheckResult::SPENT;
         }
     }
@@ -388,7 +403,7 @@ static CacheCheckResult CheckCachedNote(const SaplingNoteEntry& t, const libzcas
 OperationResult SaplingOperation::loadUnspentNotes(TxValues& txValues, uint256& ovk)
 {
     shieldedInputs.clear();
-    auto sspkm = pwalletMain->GetSaplingScriptPubKeyMan();
+    auto sspkm = wallet->GetSaplingScriptPubKeyMan();
     // if we already have selected the notes, let's directly set them.
     bool hasCoinControl = coinControl && coinControl->HasSelected();
     if (hasCoinControl) {
@@ -437,12 +452,12 @@ OperationResult SaplingOperation::loadUnspentNotes(TxValues& txValues, uint256& 
         // Get the spending key for the address.
         libzcash::SaplingExpandedSpendingKey expsk;
         uint256 ovkIn;
-        auto resLoadKeys = loadKeysFromShieldedFrom(t.address, expsk, ovkIn);
+        auto resLoadKeys = loadKeysFromShieldedFrom(wallet, t.address, expsk, ovkIn);
         if (!resLoadKeys) return resLoadKeys;
 
         // If the noteData is not properly cached, for whatever reason,
         // try to update it here, now that we have the spending key.
-        CacheCheckResult res = CheckCachedNote(t, expsk);
+        CacheCheckResult res = CheckCachedNote(wallet, t, expsk);
         if (res == CacheCheckResult::INVALID) {
             // This should never happen. User would be forced to zap.
             LogPrintf("ERROR: Witness/Nullifier invalid for note %s. Restart with --zapwallettxes\n", t.op.ToString());
@@ -481,7 +496,7 @@ OperationResult SaplingOperation::loadUnspentNotes(TxValues& txValues, uint256& 
     // Fetch Sapling anchor and witnesses
     uint256 anchor;
     std::vector<boost::optional<SaplingWitness>> witnesses;
-    pwalletMain->GetSaplingScriptPubKeyMan()->GetSaplingNoteWitnesses(ops, witnesses, anchor);
+    wallet->GetSaplingScriptPubKeyMan()->GetSaplingNoteWitnesses(ops, witnesses, anchor);
 
     // Add Sapling spends
     for (size_t i = 0; i < notes.size(); i++) {
