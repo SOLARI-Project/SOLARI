@@ -504,13 +504,13 @@ MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeigh
     //  -- (chance per block * chances before IsScheduled will fire)
     int nTenthNetwork = nMnCount / 10;
     int nCountTenth = 0;
-    uint256 nHigh;
+    arith_uint256 nHigh;
     const uint256& hash = GetHashAtHeight(nBlockHeight - 101);
     for (const auto& s: vecMasternodeLastPaid) {
         const MasternodeRef pmn = s.second;
         if (!pmn) break;
 
-        const uint256& n = pmn->CalculateScore(hash);
+        const arith_uint256& n = pmn->CalculateScore(hash);
         if (n > nHigh) {
             nHigh = n;
             pBestMasternode = pmn;
@@ -563,7 +563,7 @@ int CMasternodeMan::GetMasternodeRank(const CTxIn& vin, int64_t nBlockHeight) co
 {
     const uint256& hash = GetHashAtHeight(nBlockHeight - 1);
     // height outside range
-    if (!hash) return -1;
+    if (hash == UINT256_ZERO) return -1;
 
     // scan for winner
     int minProtocol = ActiveProtocol();
@@ -605,7 +605,7 @@ std::vector<std::pair<int64_t, MasternodeRef>> CMasternodeMan::GetMasternodeRank
     std::vector<std::pair<int64_t, MasternodeRef>> vecMasternodeScores;
     const uint256& hash = GetHashAtHeight(nBlockHeight - 1);
     // height outside range
-    if (!hash) return vecMasternodeScores;
+    if (hash == UINT256_ZERO) return vecMasternodeScores;
     {
         LOCK(cs);
         // scan for winner
@@ -813,7 +813,7 @@ int64_t CMasternodeMan::SecondsSincePayment(const MasternodeRef& mn, const CBloc
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     ss << mn->vin;
     ss << mn->sigTime;
-    uint256 hash = ss.GetHash();
+    const arith_uint256& hash = UintToArith256(ss.GetHash());
 
     // return some deterministic value for unknown/unpaid but force it to be more than 30 days old
     return month + hash.GetCompact(false);
@@ -832,7 +832,7 @@ int64_t CMasternodeMan::GetLastPaid(const MasternodeRef& mn, const CBlockIndex* 
     uint256 hash = ss.GetHash();
 
     // use a deterministic offset to break a tie -- 2.5 minutes
-    int64_t nOffset = hash.GetCompact(false) % 150;
+    int64_t nOffset = UintToArith256(hash).GetCompact(false) % 150;
 
     int nMnCount = CountEnabled() * 1.25;
     for (int n = 0; n < nMnCount; n++) {

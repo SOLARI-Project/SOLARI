@@ -152,7 +152,7 @@ public:
         return !(a.vin == b.vin);
     }
 
-    uint256 CalculateScore(const uint256& hash) const;
+    arith_uint256 CalculateScore(const uint256& hash) const;
 
     ADD_SERIALIZE_METHODS;
 
