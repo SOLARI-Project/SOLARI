@@ -29,12 +29,6 @@ public:
         insecure_rand = FastRandomContext(true);
     }
 
-    int RandomInt(int nMax)
-    {
-        state = ReadLE64((CHashWriter(SER_GETHASH, 0) << state).GetHash().begin());
-        return (unsigned int)(state % nMax);
-    }
-
     CAddrInfo* Find(const CNetAddr& addr, int* pnId = NULL)
     {
         LOCK(cs);

@@ -12,7 +12,6 @@
 #include "evo/evodb.h"
 #include "miner.h"
 #include "net_processing.h"
-#include "random.h"
 #include "rpc/server.h"
 #include "rpc/register.h"
 #include "script/sigcache.h"
@@ -27,8 +26,7 @@ std::unique_ptr<CConnman> g_connman;
 
 CClientUIInterface uiInterface;  // Declared but not defined in guiinterface.h
 
-uint256 insecure_rand_seed = GetRandHash();
-FastRandomContext insecure_rand_ctx(insecure_rand_seed);
+FastRandomContext insecure_rand_ctx;
 
 extern bool fPrintToConsole;
 extern void noui_connect();
@@ -41,7 +39,6 @@ std::ostream& operator<<(std::ostream& os, const uint256& num)
 
 BasicTestingSetup::BasicTestingSetup()
 {
-        RandomInit();
         ECC_Start();
         SetupEnvironment();
         InitSignatureCache();

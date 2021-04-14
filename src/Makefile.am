@@ -165,6 +165,7 @@ BITCOIN_CORE_H = \
   coins.h \
   compat.h \
   compat/byteswap.h \
+  compat/cpuid.h \
   compat/endian.h \
   compat/sanity.h \
   compressor.h \
@@ -239,6 +240,7 @@ BITCOIN_CORE_H = \
   protocol.h \
   pubkey.h \
   random.h \
+  randomenv.h \
   reverselock.h \
   reverse_iterate.h \
   rpc/client.h \
@@ -538,6 +540,7 @@ libbitcoin_util_a_SOURCES = \
   interfaces/handler.cpp \
   logging.cpp \
   random.cpp \
+  randomenv.cpp \
   rpc/protocol.cpp \
   support/cleanse.cpp \
   support/lockedpool.cpp \

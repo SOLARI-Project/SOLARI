@@ -15,6 +15,7 @@ bench_bench_pivx_SOURCES = \
   bench/base58.cpp \
   bench/checkblock.cpp \
   bench/checkqueue.cpp \
+  bench/chacha20.cpp \
   bench/crypto_hash.cpp \
   bench/lockedpool.cpp \
   bench/perf.cpp \

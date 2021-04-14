@@ -1253,6 +1253,11 @@ bool AppInitMain()
     CScheduler::Function serviceLoop = std::bind(&CScheduler::serviceQueue, &scheduler);
     threadGroup.create_thread(std::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
 
+    // Gather some entropy once per minute.
+    scheduler.scheduleEvery([]{
+        RandAddPeriodic();
+    }, 60000);
+
     GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
 
     // Initialize Sapling circuit parameters

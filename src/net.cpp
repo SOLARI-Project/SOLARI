@@ -21,6 +21,7 @@
 #include "netbase.h"
 #include "netmessagemaker.h"
 #include "primitives/transaction.h"
+#include "random.h"
 #include "scheduler.h"
 #include "validation.h"
 
@@ -28,6 +29,10 @@
 #include <string.h>
 #else
 #include <fcntl.h>
+#endif
+
+#if HAVE_DECL_GETIFADDRS && HAVE_DECL_FREEIFADDRS
+#include <ifaddrs.h>
 #endif
 
 #ifdef USE_UPNP
@@ -125,11 +130,12 @@ static std::vector<CAddress> convertSeed6(const std::vector<SeedSpec6>& vSeedsIn
     const int64_t nOneWeek = 7 * 24 * 60 * 60;
     std::vector<CAddress> vSeedsOut;
     vSeedsOut.reserve(vSeedsIn.size());
+    FastRandomContext rng;
     for (std::vector<SeedSpec6>::const_iterator i(vSeedsIn.begin()); i != vSeedsIn.end(); ++i) {
         struct in6_addr ip;
         memcpy(&ip, i->addr, sizeof(ip));
         CAddress addr(CService(ip, i->port), NODE_NETWORK);
-        addr.nTime = GetTime() - GetRand(nOneWeek) - nOneWeek;
+        addr.nTime = GetTime() - rng.randrange(nOneWeek) - nOneWeek;
         vSeedsOut.push_back(addr);
     }
     return vSeedsOut;
@@ -174,14 +180,14 @@ void AdvertiseLocal(CNode* pnode)
         // If discovery is enabled, sometimes give our peer the address it
         // tells us that it sees us as in case it has a better idea of our
         // address than we do.
+        FastRandomContext rng;
         if (IsPeerAddrLocalGood(pnode) && (!addrLocal.IsRoutable() ||
-                                              GetRand((GetnScore(addrLocal) > LOCAL_MANUAL) ? 8 : 2) == 0)) {
+             rng.randbits((GetnScore(addrLocal) > LOCAL_MANUAL) ? 3 : 1) == 0)) {
             addrLocal.SetIP(pnode->GetAddrLocal());
         }
         if (addrLocal.IsRoutable()) {
             LogPrintf("%s: advertising address %s\n", __func__, addrLocal.ToString());
-            FastRandomContext insecure_rand;
-            pnode->PushAddress(addrLocal, insecure_rand);
+            pnode->PushAddress(addrLocal, rng);
         }
     }
 }
@@ -377,6 +383,9 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char* pszDest, bool fCo
         CNode* pnode = new CNode(id, nLocalServices, GetBestHeight(), hSocket, addrConnect, CalculateKeyedNetGroup(addrConnect), nonce, pszDest ? pszDest : "", false);
         pnode->nServicesExpected = ServiceFlags(addrConnect.nServices & nRelevantServices);
         pnode->AddRef();
+
+        // We're making a new connection, harvest entropy from the time (and our peer count)
+        RandAddEvent((uint32_t)id);
 
         return pnode;
     } else if (!proxyConnectionFailed) {
@@ -1066,6 +1075,9 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
     }
+
+    // We received a new connection, harvest entropy from the time (and our peer count)
+    RandAddEvent((uint32_t)id);
 }
 
 void CConnman::ThreadSocketHandler()
@@ -1999,7 +2011,7 @@ void Discover()
             }
         }
     }
-#else
+#elif (HAVE_DECL_GETIFADDRS && HAVE_DECL_FREEIFADDRS)
     // Get local host ip
     struct ifaddrs* myaddrs;
     if (getifaddrs(&myaddrs) == 0) {

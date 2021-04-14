@@ -431,6 +431,7 @@ set(UTIL_SOURCES
         ./src/fs.cpp
         ./src/logging.cpp
         ./src/random.cpp
+        ./src/randomenv.cpp
         ./src/rpc/protocol.cpp
         ./src/sync.cpp
         ./src/threadinterrupt.cpp

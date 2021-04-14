@@ -9,9 +9,11 @@
 
 #include "test/test_pivx.h"
 
+#include "arith_uint256.h"
 #include "keystore.h"
 #include "net_processing.h"
 #include "net.h"
+#include "pubkey.h"
 #include "pow.h"
 #include "script/sign.h"
 #include "serialize.h"
@@ -139,10 +141,26 @@ CTransactionRef RandomOrphan()
     return it->second.tx;
 }
 
+static void MakeNewKeyWithFastRandomContext(CKey& key)
+{
+    std::vector<unsigned char> keydata;
+    keydata = insecure_rand_ctx.randbytes(32);
+    key.Set(keydata.data(), keydata.data() + keydata.size(), /*fCompressedIn*/ true);
+    assert(key.IsValid());
+}
+
 BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
 {
+    // This test had non-deterministic coverage due to
+    // randomly selected seeds.
+    // This seed is chosen so that all branches of the function
+    // ecdsa_signature_parse_der_lax are executed during this test.
+    // Specifically branches that run only when an ECDSA
+    // signature's R and S values have leading zeros.
+    insecure_rand_ctx = FastRandomContext(ArithToUint256(arith_uint256(33)));
+
     CKey key;
-    key.MakeNewKey(true);
+    MakeNewKeyWithFastRandomContext(key);
     CBasicKeyStore keystore;
     keystore.AddKey(key);
 
