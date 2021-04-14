@@ -19,34 +19,36 @@
 template<unsigned int BITS>
 class base_blob
 {
+protected:
+    static constexpr int WIDTH = BITS / 8;
+    uint8_t m_data[WIDTH];
 public:
-    // todo: make this protected
-    enum { WIDTH=BITS/8 };
-    uint8_t data[WIDTH];
+    /* construct 0 value by default */
+    constexpr base_blob() : m_data() {}
 
-    base_blob()
-    {
-        SetNull();
-    }
+    /* constructor for constants between 1 and 255 */
+    constexpr explicit base_blob(uint8_t v) : m_data{v} {}
 
     explicit base_blob(const std::vector<unsigned char>& vch);
 
     bool IsNull() const
     {
         for (int i = 0; i < WIDTH; i++)
-            if (data[i] != 0)
+            if (m_data[i] != 0)
                 return false;
         return true;
     }
 
     void SetNull()
     {
-        memset(data, 0, sizeof(data));
+        memset(m_data, 0, sizeof(m_data));
     }
 
-    friend inline bool operator==(const base_blob& a, const base_blob& b) { return memcmp(a.data, b.data, sizeof(a.data)) == 0; }
-    friend inline bool operator!=(const base_blob& a, const base_blob& b) { return memcmp(a.data, b.data, sizeof(a.data)) != 0; }
-    friend inline bool operator<(const base_blob& a, const base_blob& b) { return memcmp(a.data, b.data, sizeof(a.data)) < 0; }
+    inline int Compare(const base_blob& other) const { return memcmp(m_data, other.m_data, sizeof(m_data)); }
+
+    friend inline bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
+    friend inline bool operator!=(const base_blob& a, const base_blob& b) { return a.Compare(b) != 0; }
+    friend inline bool operator<(const base_blob& a, const base_blob& b) { return a.Compare(b) < 0; }
 
     std::string GetHex() const;
     void SetHex(const char* psz);
@@ -55,32 +57,32 @@ public:
 
     unsigned char* begin()
     {
-        return &data[0];
+        return &m_data[0];
     }
 
     unsigned char* end()
     {
-        return &data[WIDTH];
+        return &m_data[WIDTH];
     }
 
     const unsigned char* begin() const
     {
-        return &data[0];
+        return &m_data[0];
     }
 
     const unsigned char* end() const
     {
-        return &data[WIDTH];
+        return &m_data[WIDTH];
     }
 
     unsigned int size() const
     {
-        return sizeof(data);
+        return sizeof(m_data);
     }
 
     uint64_t GetUint64(int pos) const
     {
-        const uint8_t* ptr = data + pos * 8;
+        const uint8_t* ptr = m_data + pos * 8;
         return ((uint64_t)ptr[0]) | \
                ((uint64_t)ptr[1]) << 8 | \
                ((uint64_t)ptr[2]) << 16 | \
@@ -94,13 +96,13 @@ public:
     template<typename Stream>
     void Serialize(Stream& s) const
     {
-        s.write((char*)data, sizeof(data));
+        s.write((char*)m_data, sizeof(m_data));
     }
 
     template<typename Stream>
     void Unserialize(Stream& s)
     {
-        s.read((char*)data, sizeof(data));
+        s.read((char*)m_data, sizeof(m_data));
     }
 };
 
@@ -144,7 +146,7 @@ public:
     uint64_t GetCheapHash() const
     {
         uint64_t result;
-        memcpy((void*)&result, (void*)data, 8);
+        memcpy((void*)&result, (void*)m_data, 8);
         return result;
     }
 
