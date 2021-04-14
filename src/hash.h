@@ -8,6 +8,7 @@
 #ifndef PIVX_HASH_H
 #define PIVX_HASH_H
 
+#include "arith_uint256.h"
 #include "crypto/ripemd160.h"
 #include "crypto/sha256.h"
 #include "prevector.h"

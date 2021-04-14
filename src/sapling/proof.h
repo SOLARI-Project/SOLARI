@@ -6,7 +6,7 @@
 #define ZC_PROOF_H_
 
 #include "serialize.h"
-#include "blob_uint256.h"
+#include "uint256.h"
 
 namespace libzcash {
 
