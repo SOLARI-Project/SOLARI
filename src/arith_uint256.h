@@ -374,6 +374,8 @@ public:
     explicit arith_uint512(const std::string& str) : base_uint<512>(str) {}
     explicit arith_uint512(const std::vector<unsigned char>& vch) : base_uint<512>(vch) {}
 
+    uint256 trim256() const;
+
     //friend arith_uint512 UintToArith512(const blob_uint512 &a);
     //friend blob_uint512 ArithToUint512(const arith_uint512 &a);
 

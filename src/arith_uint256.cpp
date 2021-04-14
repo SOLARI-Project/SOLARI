@@ -6,6 +6,8 @@
 #include "arith_uint256.h"
 
 #include "crypto/common.h"
+#include "uint256.h"
+#include "uint512.h"
 #include "utilstrencodings.h"
 
 #include <stdio.h>
@@ -312,3 +314,14 @@ uint32_t arith_uint256::GetCompact(bool fNegative) const
     nCompact |= (fNegative && (nCompact & 0x007fffff) ? 0x00800000 : 0);
     return nCompact;
 }
+
+uint256 arith_uint512::trim256() const
+{
+    std::vector<unsigned char> vch;
+    const unsigned char* p = this->begin();
+    for (unsigned int i = 0; i < 32; i++) {
+        vch.push_back(*p++);
+    }
+    return uint256(vch);
+}
+

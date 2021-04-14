@@ -90,15 +90,6 @@ public:
     explicit uint512(const std::string& str) : base_uint<512>(str) {}
     explicit uint512(const std::vector<unsigned char>& vch) : base_uint<512>(vch) {}
 
-    uint256 trim256() const
-    {
-        uint256 ret;
-        for (unsigned int i = 0; i < uint256::WIDTH; i++) {
-            ret.pn[i] = pn[i];
-        }
-        return ret;
-    }
-
     friend arith_uint512 UintToArith512(const uint512 &a);
     friend uint512 ArithToUint512(const arith_uint512 &a);
 };
