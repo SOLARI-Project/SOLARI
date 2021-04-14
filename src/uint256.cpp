@@ -15,16 +15,13 @@ template <unsigned int BITS>
 base_blob<BITS>::base_blob(const std::vector<unsigned char>& vch)
 {
     assert(vch.size() == sizeof(m_data));
-    memcpy(m_data, &vch[0], sizeof(m_data));
+    memcpy(m_data, vch.data(), sizeof(m_data));
 }
 
 template <unsigned int BITS>
 std::string base_blob<BITS>::GetHex() const
 {
-    char psz[sizeof(m_data) * 2 + 1];
-    for (unsigned int i = 0; i < sizeof(m_data); i++)
-        sprintf(psz + i * 2, "%02x", m_data[sizeof(m_data) - i - 1]);
-    return std::string(psz, psz + sizeof(m_data) * 2);
+    return HexStr(std::reverse_iterator<const uint8_t*>(m_data + sizeof(m_data)), std::reverse_iterator<const uint8_t*>(m_data));
 }
 
 template <unsigned int BITS>
@@ -41,16 +38,15 @@ void base_blob<BITS>::SetHex(const char* psz)
         psz += 2;
 
     // hex string to uint
-    const char* pbegin = psz;
-    while (::HexDigit(*psz) != -1)
-        psz++;
-    psz--;
+    size_t digits = 0;
+    while (::HexDigit(psz[digits]) != -1)
+        digits++;
     unsigned char* p1 = (unsigned char*)m_data;
     unsigned char* pend = p1 + WIDTH;
-    while (psz >= pbegin && p1 < pend) {
-        *p1 = ::HexDigit(*psz--);
-        if (psz >= pbegin) {
-            *p1 |= ((unsigned char)::HexDigit(*psz--) << 4);
+    while (digits > 0 && p1 < pend) {
+        *p1 = ::HexDigit(psz[--digits]);
+        if (digits > 0) {
+            *p1 |= ((unsigned char)::HexDigit(psz[--digits]) << 4);
             p1++;
         }
     }
