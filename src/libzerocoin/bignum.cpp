@@ -110,14 +110,14 @@ void CBigNum::setuint256(uint256 n)
     mpz_import(bn, n.size(), -1, 1, 0, 0, (unsigned char*)&n);
 }
 
-uint256 CBigNum::getuint256() const
+arith_uint256 CBigNum::getuint256() const
 {
     if(bitSize() > 256) {
         throw std::range_error("cannot convert to uint256, bignum longer than 256 bits");
     }
     uint256 n = UINT256_ZERO;
     mpz_export((unsigned char*)&n, NULL, -1, 1, 0, 0, bn);
-    return n;
+    return UintToArith256(n);
 }
 
 void CBigNum::setvch(const std::vector<unsigned char>& vch)

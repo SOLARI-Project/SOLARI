@@ -18,8 +18,7 @@ uint32_t ParseAccChecksum(uint256 nCheckpoint, const libzerocoin::CoinDenominati
 {
     int pos = std::distance(libzerocoin::zerocoinDenomList.begin(),
             find(libzerocoin::zerocoinDenomList.begin(), libzerocoin::zerocoinDenomList.end(), denom));
-    nCheckpoint = nCheckpoint >> (32*((libzerocoin::zerocoinDenomList.size() - 1) - pos));
-    return nCheckpoint.Get32();
+    return (UintToArith256(nCheckpoint) >> (32*((libzerocoin::zerocoinDenomList.size() - 1) - pos))).Get32();
 }
 
 bool CLegacyZPivStake::InitFromTxIn(const CTxIn& txin)
@@ -47,7 +46,7 @@ CLegacyZPivStake::CLegacyZPivStake(const libzerocoin::CoinSpend& spend) : CStake
 {
     this->nChecksum = spend.getAccumulatorChecksum();
     this->denom = spend.getDenomination();
-    uint256 nSerial = spend.getCoinSerialNumber().getuint256();
+    arith_uint256 nSerial = spend.getCoinSerialNumber().getuint256();
     this->hashSerial = Hash(nSerial.begin(), nSerial.end());
 }
 
