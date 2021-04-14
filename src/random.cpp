@@ -6,11 +6,11 @@
 
 #include "random.h"
 
-#include "allocators.h"
 #include "compat/cpuid.h"
 #include "crypto/sha256.h"
 #include "crypto/sha512.h"
 #include "support/cleanse.h"
+#include "support/allocators/secure.h"
 #ifdef WIN32
 #include "compat.h" // for Windows API
 #include <wincrypt.h>
