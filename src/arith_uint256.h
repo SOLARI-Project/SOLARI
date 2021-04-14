@@ -384,5 +384,6 @@ public:
 /** End classes definitions */
 
 const arith_uint256 ARITH_UINT256_ZERO = arith_uint256();
+const arith_uint256 ARITH_UINT256_ONE = arith_uint256(1);
 
 #endif // BITCOIN_UINT256_H
