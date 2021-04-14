@@ -37,7 +37,7 @@ static bool SelectBlockFromCandidates(
     bool fModifierV2 = false;
     bool fFirstRun = true;
     bool fSelected = false;
-    uint256 hashBest;
+    arith_uint256 hashBest = ARITH_UINT256_ZERO;
     *pindexSelected = (const CBlockIndex*)0;
     for (const auto& item : vSortedByTimestamp) {
         if (!mapBlockIndex.count(item.second))
@@ -65,7 +65,7 @@ static bool SelectBlockFromCandidates(
 
         CDataStream ss(SER_GETHASH, 0);
         ss << hashProof << nStakeModifierPrev;
-        uint256 hashSelection = Hash(ss.begin(), ss.end());
+        arith_uint256 hashSelection = UintToArith256(Hash(ss.begin(), ss.end()));
 
         // the selection hash is divided by 2**32 so that proof-of-stake block
         // is always favored over proof-of-work block. this is to preserve
