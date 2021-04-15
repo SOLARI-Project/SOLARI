@@ -8,6 +8,8 @@
 #ifndef PIVX_UINT256_H
 #define PIVX_UINT256_H
 
+#include "crypto/common.h"
+
 #include <assert.h>
 #include <cstring>
 #include <stdexcept>
@@ -143,12 +145,7 @@ public:
      * provide values to trigger worst-case behavior.
      * @note The result of this function is not stable between little and big endian.
      */
-    uint64_t GetCheapHash() const
-    {
-        uint64_t result;
-        memcpy((void*)&result, (void*)m_data, 8);
-        return result;
-    }
+    uint64_t GetCheapHash() const { return ReadLE64(begin()); }
 
 };
 
