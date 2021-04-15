@@ -3378,9 +3378,9 @@ UniValue encryptwallet(const JSONRPCRequest& request)
 
 UniValue listunspent(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 4)
+    if (request.fHelp || request.params.size() > 5)
         throw std::runtime_error(
-                "listunspent ( minconf maxconf  [\"address\",...] watchonlyconfig )\n"
+                "listunspent ( minconf maxconf  [\"address\",...] watchonlyconfig [query_options])\n"
                 "\nReturns array of unspent transaction outputs\n"
                 "with between minconf and maxconf (inclusive) confirmations.\n"
                 "Optionally filter to only include txouts paid to specified addresses.\n"
@@ -3396,7 +3396,13 @@ UniValue listunspent(const JSONRPCRequest& request)
                 "      ,...\n"
                 "    ]\n"
                 "4. watchonlyconfig  (numeric, optional, default=1) 1 = list regular unspent transactions,  2 = list all unspent transactions (including watchonly)\n"
-
+                "5. query_options    (json, optional) JSON with query options\n"
+                "    {\n"
+                "      \"minimumAmount\"    (numeric or string, default=0) Minimum value of each UTXO in " + CURRENCY_UNIT + "\n"
+                "      \"maximumAmount\"    (numeric or string, default=unlimited) Maximum value of each UTXO in " + CURRENCY_UNIT + "\n"
+                "      \"maximumCount\"     (numeric or string, default=unlimited) Maximum number of UTXOs\n"
+                "      \"minimumSumAmount\" (numeric or string, default=unlimited) Minimum sum value of all UTXOs in " + CURRENCY_UNIT + "\n"
+                "    }\n"
                 "\nResult\n"
                 "[                   (array of json object)\n"
                 "  {\n"
@@ -3416,7 +3422,11 @@ UniValue listunspent(const JSONRPCRequest& request)
                 "]\n"
 
                 "\nExamples\n" +
-                HelpExampleCli("listunspent", "") + HelpExampleCli("listunspent", "6 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"") + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\""));
+                HelpExampleCli("listunspent", "") + HelpExampleCli("listunspent", "6 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
+                + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
+                + HelpExampleCli("listunspent", "6 9999999 '[]' 1 '{ \"minimumAmount\": 0.005 }'")
+                + HelpExampleRpc("listunspent", "6, 9999999, [] , 1, { \"minimumAmount\": 0.005 } ")
+                );
 
     RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VNUM, UniValue::VARR, UniValue::VNUM});
 
@@ -3454,13 +3464,32 @@ UniValue listunspent(const JSONRPCRequest& request)
             nWatchonlyConfig = 1;
     }
 
+    CWallet::AvailableCoinsFilter coinFilter;
+    if (request.params.size() > 4) {
+        const UniValue& options = request.params[4].get_obj();
+
+        if (options.exists("minimumAmount")) {
+            coinFilter.nMinOutValue = AmountFromValue(options["minimumAmount"]);
+        }
+
+        if (options.exists("maximumAmount")) {
+            coinFilter.nMaxOutValue = AmountFromValue(options["maximumAmount"]);
+        }
+
+        if (options.exists("minimumSumAmount")) {
+            coinFilter.nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
+        }
+
+        if (options.exists("maximumCount"))
+            coinFilter.nMaximumCount = options["maximumCount"].get_int64();
+    }
+
     CCoinControl coinControl;
     coinControl.fAllowWatchOnly = nWatchonlyConfig == 2;
 
     UniValue results(UniValue::VARR);
     std::vector<COutput> vecOutputs;
     LOCK2(cs_main, pwalletMain->cs_wallet);
-    CWallet::AvailableCoinsFilter coinFilter;
     coinFilter.fOnlyConfirmed = false;
     pwalletMain->AvailableCoins(&vecOutputs, &coinControl, coinFilter);
     for (const COutput& out : vecOutputs) {
