@@ -3428,22 +3428,25 @@ UniValue listunspent(const JSONRPCRequest& request)
                 + HelpExampleRpc("listunspent", "6, 9999999, [] , 1, { \"minimumAmount\": 0.005 } ")
                 );
 
-    RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VNUM, UniValue::VARR, UniValue::VNUM});
-
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
 
     int nMinDepth = 1;
-    if (request.params.size() > 0)
+    if (request.params.size() > 0) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
         nMinDepth = request.params[0].get_int();
+    }
 
     int nMaxDepth = 9999999;
-    if (request.params.size() > 1)
+    if (request.params.size() > 1) {
+        RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
         nMaxDepth = request.params[1].get_int();
+    }
 
     std::set<CTxDestination> destinations;
     if (request.params.size() > 2) {
+        RPCTypeCheckArgument(request.params[2], UniValue::VARR);
         UniValue inputs = request.params[2].get_array();
         for (unsigned int inx = 0; inx < inputs.size(); inx++) {
             const UniValue& input = inputs[inx];
@@ -3459,6 +3462,7 @@ UniValue listunspent(const JSONRPCRequest& request)
     // List watch only utxo
     int nWatchonlyConfig = 1;
     if(request.params.size() > 3) {
+        RPCTypeCheckArgument(request.params[3], UniValue::VNUM);
         nWatchonlyConfig = request.params[3].get_int();
         if (nWatchonlyConfig > 2 || nWatchonlyConfig < 1)
             nWatchonlyConfig = 1;
@@ -3467,6 +3471,15 @@ UniValue listunspent(const JSONRPCRequest& request)
     CWallet::AvailableCoinsFilter coinFilter;
     if (request.params.size() > 4) {
         const UniValue& options = request.params[4].get_obj();
+
+        RPCTypeCheckObj(options,
+            {
+                    {"minimumAmount", UniValueType()},
+                    {"maximumAmount", UniValueType()},
+                    {"minimumSumAmount", UniValueType()},
+                    {"maximumCount", UniValueType(UniValue::VNUM)},
+            },
+            true, true);
 
         if (options.exists("minimumAmount")) {
             coinFilter.nMinOutValue = AmountFromValue(options["minimumAmount"]);
