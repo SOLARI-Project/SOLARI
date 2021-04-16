@@ -4,7 +4,6 @@
 
 #include "qt/pivx/settings/settingsconsolewidget.h"
 #include "qt/pivx/settings/forms/ui_settingsconsolewidget.h"
-#include "qt/pivx/settings/moc_settingsconsolewidget.cpp"
 
 #include "qt/pivx/qtutils.h"
 #include "qt/rpcexecutor.h"

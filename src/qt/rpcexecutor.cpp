@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "qt/rpcexecutor.h"
-#include "qt/moc_rpcexecutor.cpp"
+
 #include "rpc/client.h"
 
 #include <univalue.h>
