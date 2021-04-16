@@ -82,8 +82,6 @@ static bool SelectBlockFromCandidates(
             *pindexSelected = (const CBlockIndex*)pindex;
         }
     }
-    if (gArgs.GetBoolArg("-printstakemodifier", false))
-        LogPrintf("%s : selection hash=%s\n", __func__, hashBest.ToString().c_str());
     return fSelected;
 }
 
@@ -170,9 +168,6 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64_t& nStakeMod
     nStakeModifier = p->GetStakeModifierV1();
     nModifierTime = p->GetBlockTime();
 
-    if (gArgs.GetBoolArg("-printstakemodifier", false))
-        LogPrintf("%s : prev modifier= %s time=%s\n", __func__, std::to_string(nStakeModifier).c_str(), DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nModifierTime).c_str());
-
     if (nModifierTime / MODIFIER_INTERVAL >= pindexPrev->GetBlockTime() / MODIFIER_INTERVAL)
         return true;
 
@@ -187,7 +182,6 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64_t& nStakeMod
         pindex = pindex->pprev;
     }
 
-    int nHeightFirstCandidate = pindex ? (pindex->nHeight + 1) : 0;
     std::reverse(vSortedByTimestamp.begin(), vSortedByTimestamp.end());
     std::sort(vSortedByTimestamp.begin(), vSortedByTimestamp.end());
 
@@ -208,32 +202,6 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64_t& nStakeMod
 
         // add the selected block from candidates to selected list
         mapSelectedBlocks.emplace(pindex->GetBlockHash(), pindex);
-        if (gArgs.GetBoolArg("-printstakemodifier", false))
-            LogPrintf("%s : selected round %d stop=%s height=%d bit=%d\n", __func__,
-                nRound, DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nSelectionIntervalStop).c_str(), pindex->nHeight, pindex->GetStakeEntropyBit());
-    }
-
-    // Print selection map for visualization of the selected blocks
-    if (gArgs.GetBoolArg("-printstakemodifier", false)) {
-        std::string strSelectionMap = "";
-        // '-' indicates proof-of-work blocks not selected
-        strSelectionMap.insert(0, pindexPrev->nHeight - nHeightFirstCandidate + 1, '-');
-        pindex = pindexPrev;
-        while (pindex && pindex->nHeight >= nHeightFirstCandidate) {
-            // '=' indicates proof-of-stake blocks not selected
-            if (pindex->IsProofOfStake())
-                strSelectionMap.replace(pindex->nHeight - nHeightFirstCandidate, 1, "=");
-            pindex = pindex->pprev;
-        }
-        for (const std::pair<const uint256, const CBlockIndex*> &item : mapSelectedBlocks) {
-            // 'S' indicates selected proof-of-stake blocks
-            // 'W' indicates selected proof-of-work blocks
-            strSelectionMap.replace(item.second->nHeight - nHeightFirstCandidate, 1, item.second->IsProofOfStake() ? "S" : "W");
-        }
-        LogPrintf("%s : selection height [%d, %d] map %s\n", __func__, nHeightFirstCandidate, pindexPrev->nHeight, strSelectionMap.c_str());
-    }
-    if (gArgs.GetBoolArg("-printstakemodifier", false)) {
-        LogPrintf("%s : new modifier=%s time=%s\n", __func__, std::to_string(nStakeModifierNew).c_str(), DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexPrev->GetBlockTime()).c_str());
     }
 
     nStakeModifier = nStakeModifierNew;
