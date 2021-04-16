@@ -40,22 +40,6 @@ bool DisconnectZerocoinTx(const CTransaction& tx, CZerocoinDB* zerocoinDB)
 
             }
         }
-
-        if (tx.HasZerocoinMintOutputs()) {
-            //erase all zerocoinmints in this transaction
-            for (const CTxOut &txout : tx.vout) {
-                if (txout.scriptPubKey.empty() || !txout.IsZerocoinMint())
-                    continue;
-
-                libzerocoin::PublicCoin pubCoin(params);
-                CValidationState state;
-                if (!TxOutToPublicCoin(txout, pubCoin, state))
-                    return error("DisconnectBlock(): TxOutToPublicCoin() failed");
-
-                if (!zerocoinDB->EraseCoinMint(pubCoin.getValue()))
-                    return error("DisconnectBlock(): Failed to erase coin mint");
-            }
-        }
     }
     return true;
 }

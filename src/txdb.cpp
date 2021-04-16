@@ -376,22 +376,6 @@ bool CZerocoinDB::WriteCoinMintBatch(const std::vector<std::pair<libzerocoin::Pu
     return WriteBatch(batch, true);
 }
 
-bool CZerocoinDB::ReadCoinMint(const CBigNum& bnPubcoin, uint256& hashTx)
-{
-    return ReadCoinMint(GetPubCoinHash(bnPubcoin), hashTx);
-}
-
-bool CZerocoinDB::ReadCoinMint(const uint256& hashPubcoin, uint256& hashTx)
-{
-    return Read(std::make_pair('m', hashPubcoin), hashTx);
-}
-
-bool CZerocoinDB::EraseCoinMint(const CBigNum& bnPubcoin)
-{
-    uint256 hash = GetPubCoinHash(bnPubcoin);
-    return Erase(std::make_pair('m', hash));
-}
-
 bool CZerocoinDB::WriteCoinSpendBatch(const std::vector<std::pair<libzerocoin::CoinSpend, uint256> >& spendInfo)
 {
     CDBBatch batch;
