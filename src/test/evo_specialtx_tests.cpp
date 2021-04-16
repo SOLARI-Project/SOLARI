@@ -13,15 +13,6 @@
 
 BOOST_FIXTURE_TEST_SUITE(evo_specialtx_tests, TestingSetup)
 
-static void RandomScript(CScript &script)
-{
-    static const opcodetype oplist[] = {OP_FALSE, OP_1, OP_2, OP_3, OP_CHECKSIG, OP_IF, OP_VERIF, OP_RETURN, OP_CODESEPARATOR};
-    script = CScript();
-    int ops = (InsecureRandRange(10));
-    for (int i=0; i<ops; i++)
-        script << oplist[InsecureRandRange(sizeof(oplist)/sizeof(oplist[0]))];
-}
-
 static CKey GetRandomKey()
 {
     CKey key;
@@ -34,18 +25,23 @@ static CKeyID GetRandomKeyID()
     return GetRandomKey().GetPubKey().GetID();
 }
 
+static CScript GetRandomScript()
+{
+    return GetScriptForDestination(GetRandomKeyID());
+}
+
 static ProRegPL GetRandomProRegPayload()
 {
     ProRegPL pl;
     pl.collateralOutpoint.hash = GetRandHash();
     pl.collateralOutpoint.n = InsecureRandBits(2);
-    BOOST_CHECK(Lookup("127.0.0.1:51472", pl.addr, Params().GetDefaultPort(), false));
+    BOOST_CHECK(Lookup("57.12.210.11:51472", pl.addr, Params().GetDefaultPort(), false));
     pl.keyIDOwner = GetRandomKeyID();
     pl.keyIDOperator = GetRandomKeyID();
     pl.keyIDVoting = GetRandomKeyID();
-    RandomScript(pl.scriptPayout);
+    pl.scriptPayout = GetRandomScript();
     pl.nOperatorReward = InsecureRandRange(10000);
-    RandomScript(pl.scriptOperatorPayout);
+    pl.scriptOperatorPayout = GetRandomScript();
     pl.inputsHash = GetRandHash();
     pl.vchSig = InsecureRandBytes(63);
     return pl;
@@ -88,6 +84,20 @@ BOOST_AUTO_TEST_CASE(special_tx_validation_test)
     mtx.extraPayload->pop_back();
     BOOST_CHECK(!CheckSpecialTxNoContext(CTransaction(mtx), state));
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-payload");
+
+    // valid payload but invalid inputs hash
+    mtx.extraPayload->clear();
+    ProRegPL pl = GetRandomProRegPayload();
+    SetTxPayload(mtx, pl);
+    BOOST_CHECK(!CheckSpecialTxNoContext(CTransaction(mtx), state));
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-inputs-hash");
+
+    // all good.
+    mtx.vin.emplace_back(GetRandHash(), 0);
+    mtx.extraPayload->clear();
+    pl.inputsHash = CalcTxInputsHash(CTransaction(mtx));
+    SetTxPayload(mtx, pl);
+    BOOST_CHECK(CheckSpecialTxNoContext(CTransaction(mtx), state));
 }
 
 BOOST_AUTO_TEST_CASE(providertx_setpayload_test)
@@ -123,7 +133,7 @@ BOOST_AUTO_TEST_CASE(providertx_checkstringsig_test)
     // Change owner address or script payout
     pl.keyIDOwner = GetRandomKeyID();
     BOOST_CHECK(!CMessageSigner::VerifyMessage(keyID, pl.vchSig, pl.MakeSignString(), strError));
-    RandomScript(pl.scriptPayout);
+    pl.scriptPayout = GetRandomScript();
     BOOST_CHECK(!CMessageSigner::VerifyMessage(keyID, pl.vchSig, pl.MakeSignString(), strError));
 }
 
