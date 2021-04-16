@@ -87,7 +87,6 @@ SET(QT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/intro.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/networkstyle.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/notificator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/optionsdialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/optionsmodel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/peertablemodel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/platformstyle.cpp
@@ -164,8 +163,6 @@ SET(QT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingsfaqwidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingsinformationwidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingsmainoptionswidget.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingsmultisenddialog.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingsmultisendwidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingssignmessagewidgets.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingswalletoptionswidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingswalletrepairwidget.cpp

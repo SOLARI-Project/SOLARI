@@ -7,22 +7,19 @@
 #ifndef PIVX_QT_WALLETMODEL_H
 #define PIVX_QT_WALLETMODEL_H
 
-#include "askpassphrasedialog.h"
-#include "paymentrequestplus.h"
-#include "walletmodeltransaction.h"
-
 #include "interfaces/wallet.h"
 
 #include "operationresult.h"
 #include "support/allocators/zeroafterfree.h"
-#include "wallet/wallet.h"
 #include "pairresult.h"
+#include "qt/paymentrequestplus.h"
 
 #include <map>
 #include <vector>
 
 #include <QObject>
 #include <QFuture>
+#include <QSettings>
 
 class AddressTableModel;
 class ClientModel;
@@ -151,6 +148,7 @@ public:
     TransactionTableModel* getTransactionTableModel();
     RecentRequestsTableModel* getRecentRequestsTableModel();
 
+    void resetWalletOptions(QSettings& settings);
     bool isTestNetwork() const;
     bool isRegTestNetwork() const;
     bool isShutdownRequested();
@@ -177,6 +175,7 @@ public:
     CAmount getDelegatedBalance() const;
 
     bool isColdStaking() const;
+    void getAvailableP2CSCoins(std::vector<COutput>& vCoins) const;
 
     EncryptionStatus getEncryptionStatus() const;
     bool isWalletUnlocked() const;
@@ -208,7 +207,12 @@ public:
     void setWalletDefaultFee(CAmount fee = DEFAULT_TRANSACTION_FEE);
     bool hasWalletCustomFee();
     bool getWalletCustomFee(CAmount& nFeeRet);
-    void setWalletCustomFee(bool fUseCustomFee, const CAmount& nFee = DEFAULT_TRANSACTION_FEE);
+    void setWalletCustomFee(bool fUseCustomFee, const CAmount nFee = DEFAULT_TRANSACTION_FEE);
+
+    void setWalletStakeSplitThreshold(const CAmount nStakeSplitThreshold);
+    CAmount getWalletStakeSplitThreshold() const;
+    /* Minimum stake split threshold*/
+    double getSSTMinimum() const;
 
     const CWalletTx* getTx(uint256 id);
 
@@ -280,17 +284,26 @@ public:
     //! Return a new shielded address.
     PairResult getNewShieldedAddress(QString& shieldedAddrRet, std::string strLabel = "");
 
+    //! Return new wallet rescan reserver
+    WalletRescanReserver getRescanReserver() const { return WalletRescanReserver(wallet); }
+
     bool whitelistAddressFromColdStaking(const QString &addressStr);
     bool blacklistAddressFromColdStaking(const QString &address);
     bool updateAddressBookPurpose(const QString &addressStr, const std::string& purpose);
     std::string getLabelForAddress(const CTxDestination& address);
+    QString getSaplingAddressString(const CWalletTx* wtx, const SaplingOutPoint& op) const;
     bool getKeyId(const CTxDestination& address, CKeyID& keyID);
+    bool getKey(const CKeyID& keyID, CKey& key) const { return wallet->GetKey(keyID, key); }
+    bool haveKey(const CKeyID& keyID) const { return wallet->HaveKey(keyID); }
+    bool addKeys(const CKey& key, const CPubKey& pubkey, WalletRescanReserver& reserver);
 
     bool isMine(const CWDestination& address);
     bool isMine(const QString& addressStr);
     bool IsShieldedDestination(const CWDestination& address);
     bool isUsed(CTxDestination address);
     bool getMNCollateralCandidate(COutPoint& outPoint);
+    // Depth of a wallet transaction or -1 if not found
+    int getWalletTxDepth(const uint256& txHash) const;
     bool isSpent(const COutPoint& outpoint) const;
 
     class ListCoinsKey {
@@ -335,13 +348,13 @@ public:
     uint256 getLastBlockProcessed() const;
     int getLastBlockProcessedNum() const;
 
-    interfaces::WalletBalances getBalances() { return walletWrapper.getBalances(); };
     bool hasForceCheckBalance() { return fForceCheckBalanceChanged; }
     void setCacheNumBlocks(int _cachedNumBlocks) { cachedNumBlocks = _cachedNumBlocks; }
     int getCacheNumBLocks() { return cachedNumBlocks; }
     void setCacheBlockHash(const uint256& _blockHash) { m_cached_best_block_hash = _blockHash; }
     void setfForceCheckBalanceChanged(bool _fForceCheckBalanceChanged) { fForceCheckBalanceChanged = _fForceCheckBalanceChanged; }
     Q_INVOKABLE void checkBalanceChanged(const interfaces::WalletBalances& new_balances);
+    bool processBalanceChangeInternal();
 
     void stop();
 
@@ -355,6 +368,7 @@ private:
     // Listeners
     std::unique_ptr<interfaces::Handler> m_handler_notify_status_changed;
     std::unique_ptr<interfaces::Handler> m_handler_notify_addressbook_changed;
+    std::unique_ptr<interfaces::Handler> m_handler_notify_sst_changed;
     std::unique_ptr<interfaces::Handler> m_handler_notify_transaction_changed;
     std::unique_ptr<interfaces::Handler> m_handler_show_progress;
     std::unique_ptr<interfaces::Handler> m_handler_notify_watch_only_changed;
@@ -381,6 +395,8 @@ private:
 
     QTimer* pollTimer;
     QFuture<void> pollFuture;
+
+    interfaces::WalletBalances getBalances() { return walletWrapper.getBalances(); };
 
     void subscribeToCoreSignals();
     void unsubscribeFromCoreSignals();
@@ -411,6 +427,9 @@ Q_SIGNALS:
 
     // Receive tab address may have changed
     void notifyReceiveAddressChanged();
+
+    /** notify stake-split threshold changed */
+    void notifySSTChanged(const double sstVal);
 
 public Q_SLOTS:
     /* Wallet balances changes */

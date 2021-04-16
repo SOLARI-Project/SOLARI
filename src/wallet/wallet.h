@@ -716,15 +716,6 @@ public:
     bool fUseCustomFee;
     CAmount nCustomFee;
 
-    //MultiSend
-    std::vector<std::pair<std::string, int> > vMultiSend;
-    bool fMultiSendStake;
-    bool fMultiSendMasternodeReward;
-    bool fMultiSendNotify;
-    std::string strMultiSendChangeAddress;
-    int nLastMultiSendHeight;
-    std::vector<std::string> vDisabledAddresses;
-
     //Auto Combine Inputs
     bool fCombineDust;
     CAmount nAutoCombineThreshold;
@@ -754,8 +745,6 @@ public:
     CWallet(std::unique_ptr<CWalletDBWrapper> dbw_in);
     ~CWallet();
     void SetNull();
-    bool isMultiSendEnabled();
-    void setMultiSendDisabled();
 
     std::map<uint256, CWalletTx> mapWallet;
 
@@ -849,6 +838,12 @@ public:
     void AbortRescan() { fAbortRescan = true; }
     bool IsAbortingRescan() { return fAbortRescan; }
     bool IsScanning() { return fScanningWallet; }
+
+    /*
+     * Stake Split threshold
+     */
+    bool SetStakeSplitThreshold(const CAmount sst);
+    CAmount GetStakeSplitThreshold() const { LOCK(cs_wallet); return nStakeSplitThreshold; }
 
     //  keystore implementation
     PairResult getNewAddress(CTxDestination& ret, const std::string addressLabel, const std::string purpose,
@@ -1044,7 +1039,6 @@ public:
                          CMutableTransaction& txNew,
                          int64_t& nTxNewTime,
                          std::vector<CStakeableOutput>* availableCoins);
-    bool MultiSend();
     void AutoCombineDust(CConnman* connman);
 
     // Shielded balances
@@ -1182,6 +1176,9 @@ public:
 
     /** notify wallet file backed up */
     boost::signals2::signal<void (const bool& fSuccess, const std::string& filename)> NotifyWalletBacked;
+
+    /** notify stake-split threshold changed */
+    boost::signals2::signal<void (const CAmount stakeSplitThreshold)> NotifySSTChanged;
 };
 
 /** A key allocated from the key pool. */

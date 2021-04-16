@@ -16,7 +16,6 @@ QT_FORMS_UI = \
   qt/forms/helpmessagedialog.ui \
   qt/forms/intro.ui \
   qt/forms/openuridialog.ui \
-  qt/forms/optionsdialog.ui \
   qt/forms/rpcconsole.ui \
   qt/pivx/forms/loadingdialog.ui \
   qt/pivx/forms/snackbar.ui \
@@ -59,8 +58,6 @@ QT_FORMS_UI = \
   qt/pivx/settings/forms/settingsfaqwidget.ui \
   qt/pivx/settings/forms/settingsinformationwidget.ui \
   qt/pivx/settings/forms/settingsmainoptionswidget.ui \
-  qt/pivx/settings/forms/settingsmultisenddialog.ui \
-  qt/pivx/settings/forms/settingsmultisendwidget.ui \
   qt/pivx/settings/forms/settingssignmessagewidgets.ui \
   qt/pivx/settings/forms/settingswalletoptionswidget.ui \
   qt/pivx/settings/forms/settingswalletrepairwidget.ui \
@@ -87,7 +84,6 @@ QT_MOC_CPP = \
   qt/moc_macnotificationhandler.cpp \
   qt/moc_notificator.cpp \
   qt/moc_openuridialog.cpp \
-  qt/moc_optionsdialog.cpp \
   qt/moc_optionsmodel.cpp \
   qt/moc_peertablemodel.cpp \
   qt/moc_paymentserver.cpp \
@@ -148,8 +144,6 @@ QT_MOC_CPP = \
   qt/pivx/settings/moc_settingsfaqwidget.cpp \
   qt/pivx/settings/moc_settingsinformationwidget.cpp \
   qt/pivx/settings/moc_settingsmainoptionswidget.cpp \
-  qt/pivx/settings/moc_settingsmultisenddialog.cpp \
-  qt/pivx/settings/moc_settingsmultisendwidget.cpp \
   qt/pivx/settings/moc_settingssignmessagewidgets.cpp \
   qt/pivx/settings/moc_settingswalletoptionswidget.cpp \
   qt/pivx/settings/moc_settingswalletrepairwidget.cpp \
@@ -195,7 +189,6 @@ BITCOIN_QT_H = \
   qt/networkstyle.h \
   qt/notificator.h \
   qt/openuridialog.h \
-  qt/optionsdialog.h \
   qt/optionsmodel.h \
   qt/paymentrequestplus.h \
   qt/paymentserver.h \
@@ -269,8 +262,6 @@ BITCOIN_QT_H = \
   qt/pivx/settings/settingsfaqwidget.h \
   qt/pivx/settings/settingsinformationwidget.h \
   qt/pivx/settings/settingsmainoptionswidget.h \
-  qt/pivx/settings/settingsmultisenddialog.h \
-  qt/pivx/settings/settingsmultisendwidget.h \
   qt/pivx/settings/settingssignmessagewidgets.h \
   qt/pivx/settings/settingswalletoptionswidget.h \
   qt/pivx/settings/settingswalletrepairwidget.h \
@@ -511,7 +502,6 @@ BITCOIN_QT_BASE_CPP = \
   qt/intro.cpp \
   qt/networkstyle.cpp \
   qt/notificator.cpp \
-  qt/optionsdialog.cpp \
   qt/optionsmodel.cpp \
   qt/peertablemodel.cpp \
   qt/platformstyle.cpp \
@@ -592,8 +582,6 @@ BITCOIN_QT_WALLET_CPP = \
   qt/pivx/settings/settingsfaqwidget.cpp \
   qt/pivx/settings/settingsinformationwidget.cpp \
   qt/pivx/settings/settingsmainoptionswidget.cpp \
-  qt/pivx/settings/settingsmultisenddialog.cpp \
-  qt/pivx/settings/settingsmultisendwidget.cpp \
   qt/pivx/settings/settingssignmessagewidgets.cpp \
   qt/pivx/settings/settingswalletoptionswidget.cpp \
   qt/pivx/settings/settingswalletrepairwidget.cpp \
