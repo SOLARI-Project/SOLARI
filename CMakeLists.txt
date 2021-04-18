@@ -40,9 +40,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/qt5)
     list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/openssl@1.1)
     list(APPEND CMAKE_PREFIX_PATH /usr/local/Cellar/berkeley-db@4)
-    #set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl@1.1/")
-    #set(ENV{CPPFLAGS} "-I${OPENSSL_ROOT_DIR}/include")
-    #set(ENV{LDFLAGS} "-L${OPENSSL_ROOT_DIR}/lib")
     set(BerkeleyDB_ROOT_DIR "/usr/local/Cellar/berkeley-db@4/${BDB_VER}/")
     set(Boost_USE_MULTITHREADED ON)
     set(Boost_NO_BOOST_CMAKE ON)
@@ -77,7 +74,7 @@ if(BerkeleyDB_FOUND)
     endif()
 endif()
 
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL COMPONENTS Crypto REQUIRED)
 if(OPENSSL_FOUND)
     message(STATUS "Found OpenSSL (${OPENSSL_VERSION}): ${OPENSSL_LIBRARIES}")
     if(OPENSSL_VERSION VERSION_GREATER_EQUAL 1.1)
@@ -508,7 +505,7 @@ target_link_libraries(pivx-cli
         BITCOIN_CRYPTO_A
         SAPLING_A
         rustzcash
-        ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} -ldl pthread
+        ${Boost_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} -ldl pthread
         )
 if($ENV{target} MATCHES "Windows")
     target_link_libraries(pivx-cli ${WINDOWS_LDADD})
@@ -532,7 +529,7 @@ target_link_libraries(pivx-tx
         secp256k1
         SAPLING_A
         rustzcash
-        ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} -ldl pthread
+        ${Boost_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} -ldl pthread
         )
 if($ENV{target} MATCHES "Windows")
     target_link_libraries(pivx-tx ${WINDOWS_LDADD})
@@ -569,7 +566,7 @@ target_link_libraries(pivxd
         crc32c
         secp256k1
         rustzcash
-        ${BerkeleyDB_LIBRARIES} ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${LIBEVENT_LIB} pthread
+        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${LIBEVENT_LIB} pthread
         )
 if($ENV{target} MATCHES "Windows")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wstack-protector -fstack-protector-all -fPIE -pipe -O2 -pthread -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -pie --static")
