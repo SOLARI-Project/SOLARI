@@ -1907,9 +1907,9 @@ bool AppInitMain()
         if (fDeterministic) {
             // Check enforcement
             if (!deterministicMNManager->IsDIP3Enforced()) {
-                const std::string strError = "Cannot start deterministic masternode before enforcement. Remove -mnoperatorprivatekey to start as legacy masternode";
+                const std::string strError = strprintf(_("Cannot start deterministic masternode before enforcement. Remove %s to start as legacy masternode"), "-mnoperatorprivatekey");
                 LogPrintf("-- ERROR: %s\n", strError);
-                return UIError(_(strError.c_str()));
+                return UIError(strError);
             }
             // Create and register activeMasternodeManager
             activeMasternodeManager = new CActiveDeterministicMasternodeManager();
@@ -1921,9 +1921,9 @@ bool AppInitMain()
         } else {
             // Check enforcement
             if (deterministicMNManager->LegacyMNObsolete()) {
-                const std::string strError = "Legacy masternode system disabled. Use -mnoperatorprivatekey to start as deterministic masternode";
+                const std::string strError = strprintf(_("Legacy masternode system disabled. Use %s to start as deterministic masternode"), "-mnoperatorprivatekey");
                 LogPrintf("-- ERROR: %s\n", strError);
-                return UIError(_(strError.c_str()));
+                return UIError(strError);
             }
             auto res = initMasternode(gArgs.GetArg("-masternodeprivkey", ""), gArgs.GetArg("-masternodeaddr", ""), true);
             if (!res) { return UIError(res.getError()); }

@@ -188,7 +188,7 @@ CDeterministicMNCPtr CDeterministicMNList::GetMNByInternalId(uint64_t internalId
     return GetMN(*proTxHash);
 }
 
-static int CompareByLastPaid_GetHeight(const CDeterministicMN& dmn)
+static int CompareByLastPaidGetHeight(const CDeterministicMN& dmn)
 {
     int height = dmn.pdmnState->nLastPaidHeight;
     if (dmn.pdmnState->nPoSeRevivedHeight != -1 && dmn.pdmnState->nPoSeRevivedHeight > height) {
@@ -201,8 +201,8 @@ static int CompareByLastPaid_GetHeight(const CDeterministicMN& dmn)
 
 static bool CompareByLastPaid(const CDeterministicMN& _a, const CDeterministicMN& _b)
 {
-    int ah = CompareByLastPaid_GetHeight(_a);
-    int bh = CompareByLastPaid_GetHeight(_b);
+    int ah = CompareByLastPaidGetHeight(_a);
+    int bh = CompareByLastPaidGetHeight(_b);
     if (ah == bh) {
         return _a.proTxHash < _b.proTxHash;
     } else {

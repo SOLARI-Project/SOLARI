@@ -79,14 +79,14 @@ void CActiveDeterministicMasternodeManager::Init()
         // listen option is probably overwritten by smth else, no good
         state = MASTERNODE_ERROR;
         strError = "Masternode must accept connections from outside. Make sure listen configuration option is not overwritten by some another parameter.";
-        LogPrintf("%s -- ERROR: %s\n", __func__, strError);
+        LogPrintf("%s ERROR: %s\n", __func__, strError);
         return;
     }
 
     if (!GetLocalAddress(info.service)) {
         state = MASTERNODE_ERROR;
         strError = "Can't detect valid external address. Please consider using the externalip configuration option if problem persists. Make sure to use IPv4 address only.";
-        LogPrintf("%s -- ERROR: %s\n", __func__, strError);
+        LogPrintf("%s ERROR: %s\n", __func__, strError);
         return;
     }
 
@@ -107,27 +107,27 @@ void CActiveDeterministicMasternodeManager::Init()
         return;
     }
 
-    LogPrintf("%s -- proTxHash=%s, proTx=%s\n", __func__, dmn->proTxHash.ToString(), dmn->ToString());
+    LogPrintf("%s: proTxHash=%s, proTx=%s\n", __func__, dmn->proTxHash.ToString(), dmn->ToString());
 
     if (info.service != dmn->pdmnState->addr) {
         state = MASTERNODE_ERROR;
         strError = strprintf("Local address %s does not match the address from ProTx (%s)",
                              info.service.ToStringIPPort(), dmn->pdmnState->addr.ToStringIPPort());
-        LogPrintf("%s -- ERROR: %s\n", __func__, strError);
+        LogPrintf("%s ERROR: %s\n", __func__, strError);
         return;
     }
 
     if (!Params().IsRegTestNet()) {
         // Check socket connectivity
         const std::string& strService = info.service.ToString();
-        LogPrintf("%s -- Checking inbound connection to '%s'\n", __func__, strService);
+        LogPrintf("%s: Checking inbound connection to '%s'\n", __func__, strService);
         SOCKET hSocket;
         bool fConnected = ConnectSocket(info.service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
         CloseSocket(hSocket);
 
         if (!fConnected) {
             state = MASTERNODE_ERROR;
-            LogPrintf("%s -- ERROR: Could not connect to %s\n", __func__, strService);
+            LogPrintf("%s ERROR: Could not connect to %s\n", __func__, strService);
             return;
         }
     }
