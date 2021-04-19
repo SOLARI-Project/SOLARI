@@ -711,11 +711,6 @@ fs::path GetSpecialFolderPath(int nFolder, bool fCreate)
 }
 #endif
 
-fs::path GetTempPath()
-{
-    return fs::temp_directory_path();
-}
-
 void runCommand(std::string strCommand)
 {
     if (strCommand.empty()) return;
