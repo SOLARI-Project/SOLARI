@@ -94,8 +94,9 @@ BASE_SCRIPTS= [
     'mempool_reorg.py',                         # ~ 92 sec
     'interface_zmq.py',                         # ~ 90 sec
     'wallet_encryption.py',                     # ~ 89 sec
-    'wallet_import_stakingaddress.py',          # ~ 86 sec
+    'wallet_import_stakingaddress.py',          # ~ 88 sec
     'wallet_keypool.py',                        # ~ 88 sec
+    'feature_config_args.py',                   # ~ 85 sec
     'wallet_dump.py',                           # ~ 83 sec
     'rpc_net.py',                               # ~ 83 sec
     'rpc_bip38.py',                             # ~ 82 sec
@@ -134,8 +135,6 @@ BASE_SCRIPTS= [
     # 'feature_minchainwork.py',
     # 'p2p_fingerprint.py',
     # 'p2p_unrequested_blocks.py',
-    # 'feature_config_args.py',
-
 ]
 
 TIERTWO_SCRIPTS = [
@@ -182,6 +181,7 @@ EXTENDED_SCRIPTS = [
 LEGACY_SKIP_TESTS = [
     # These tests are not run when the flag --legacywallet is used
     'feature_blockindexstats.py',
+    'feature_config_args.py',
     'feature_help.py',
     'feature_logging.py',
     'feature_reindex.py',
