@@ -95,7 +95,7 @@ const fs::path &ZC_GetParamsDir();
 // Init sapling library
 void initZKSNARKS();
 void ClearDatadirCache();
-fs::path GetConfigFile();
+fs::path GetConfigFile(const std::string& confPath);
 fs::path GetMasternodeConfigFile();
 #ifndef WIN32
 fs::path GetPidFile();
@@ -127,7 +127,7 @@ protected:
 
 public:
     void ParseParameters(int argc, const char* const argv[]);
-    void ReadConfigFile();
+    void ReadConfigFile(const std::string& confPath);
 
     /**
      * Return a vector of strings of the given argument

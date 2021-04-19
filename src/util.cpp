@@ -488,9 +488,9 @@ void ClearDatadirCache()
     pathCachedNetSpecific = fs::path();
 }
 
-fs::path GetConfigFile()
+fs::path GetConfigFile(const std::string& confPath)
 {
-    fs::path pathConfigFile(gArgs.GetArg("-conf", PIVX_CONF_FILENAME));
+    fs::path pathConfigFile(confPath);
     return AbsPathForConfigVal(pathConfigFile, false);
 }
 
@@ -500,12 +500,12 @@ fs::path GetMasternodeConfigFile()
     return AbsPathForConfigVal(pathConfigFile);
 }
 
-void ArgsManager::ReadConfigFile()
+void ArgsManager::ReadConfigFile(const std::string& confPath)
 {
-    fs::ifstream streamConfig(GetConfigFile());
+    fs::ifstream streamConfig(GetConfigFile(confPath));
     if (!streamConfig.good()) {
         // Create empty pivx.conf if it does not exist
-        FILE* configFile = fsbridge::fopen(GetConfigFile(), "a");
+        FILE* configFile = fsbridge::fopen(GetConfigFile(confPath), "a");
         if (configFile != NULL)
             fclose(configFile);
         return; // Nothing to read, so just return
