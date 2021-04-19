@@ -142,8 +142,15 @@ bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex)
 uint256 CalcTxInputsHash(const CTransaction& tx)
 {
     CHashWriter hw(CLIENT_VERSION, SER_GETHASH);
-    for (const auto& in : tx.vin) {
+    // transparent inputs
+    for (const CTxIn& in: tx.vin) {
         hw << in.prevout;
+    }
+    // shield inputs
+    if (tx.hasSaplingData()) {
+        for (const SpendDescription& sd: tx.sapData->vShieldedSpend) {
+            hw << sd.nullifier;
+        }
     }
     return hw.GetHash();
 }
