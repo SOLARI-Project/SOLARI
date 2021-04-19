@@ -37,13 +37,13 @@ std::ostream& operator<<(std::ostream& os, const uint256& num)
     return os;
 }
 
-BasicTestingSetup::BasicTestingSetup()
+BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
 {
         ECC_Start();
         SetupEnvironment();
         InitSignatureCache();
         fCheckBlockIndex = true;
-        SelectParams(CBaseChainParams::MAIN);
+        SelectParams(chainName);
         evoDb.reset(new CEvoDB(1 << 20, true, true));
 }
 BasicTestingSetup::~BasicTestingSetup()
@@ -53,7 +53,7 @@ BasicTestingSetup::~BasicTestingSetup()
         evoDb.reset();
 }
 
-TestingSetup::TestingSetup()
+TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(chainName)
 {
         ClearDatadirCache();
         pathTemp = GetTempPath() / strprintf("test_pivx_%lu_%i", (unsigned long)GetTime(), (int)(InsecureRandRange(100000)));
@@ -110,10 +110,9 @@ TestingSetup::~TestingSetup()
         fs::remove_all(pathTemp);
 }
 
-TestChainSetup::TestChainSetup(int blockCount)
+// Test chain only available on regtest
+TestChainSetup::TestChainSetup(int blockCount) : TestingSetup(CBaseChainParams::REGTEST)
 {
-    SelectParams(CBaseChainParams::REGTEST);
-
     // if blockCount is over PoS start, delay it to 100 blocks after.
     if (blockCount > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_POS].nActivationHeight) {
         UpdateNetworkUpgradeParameters(Consensus::UPGRADE_POS, blockCount + 100);

@@ -34,7 +34,7 @@ static inline std::vector<unsigned char> InsecureRandBytes(size_t len) { return 
  * This just configures logging and chain parameters.
  */
 struct BasicTestingSetup {
-    BasicTestingSetup();
+    BasicTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~BasicTestingSetup();
 };
 
@@ -51,7 +51,7 @@ struct TestingSetup: public BasicTestingSetup {
     CScheduler scheduler;
     ECCVerifyHandle globalVerifyHandle;
 
-    TestingSetup();
+    TestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~TestingSetup();
 };
 
@@ -59,6 +59,7 @@ class CBlock;
 struct CMutableTransaction;
 class CScript;
 
+// Test chain only available on regtest
 struct TestChainSetup : public TestingSetup
 {
     TestChainSetup(int blockCount);
