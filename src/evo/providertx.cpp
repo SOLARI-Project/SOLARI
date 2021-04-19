@@ -203,15 +203,8 @@ bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValid
 std::string ProRegPL::MakeSignString() const
 {
     std::ostringstream ss;
-    CTxDestination destPayout;
-    std::string strPayout;
-    if (ExtractDestination(scriptPayout, destPayout)) {
-        strPayout = EncodeDestination(destPayout);
-    } else {
-        strPayout = HexStr(scriptPayout.begin(), scriptPayout.end());
-    }
 
-    ss << strPayout << "|";
+    ss << HexStr(scriptPayout.begin(), scriptPayout.end()) << "|";
     ss << strprintf("%d", nOperatorReward) << "|";
     ss << EncodeDestination(keyIDOwner) << "|";
     ss << EncodeDestination(keyIDVoting) << "|";
