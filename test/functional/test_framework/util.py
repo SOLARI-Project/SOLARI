@@ -305,12 +305,9 @@ def initialize_datadir(dirname, n):
     datadir = get_datadir_path(dirname, n)
     if not os.path.isdir(datadir):
         os.makedirs(datadir)
-    rpc_u, rpc_p = rpc_auth_pair(n)
     with open(os.path.join(datadir, "pivx.conf"), 'w', encoding='utf8') as f:
         f.write("regtest=1\n")
         f.write("[regtest]\n")
-        f.write("rpcuser=" + rpc_u + "\n")
-        f.write("rpcpassword=" + rpc_p + "\n")
         f.write("port=" + str(p2p_port(n)) + "\n")
         f.write("rpcport=" + str(rpc_port(n)) + "\n")
         f.write("server=1\n")
@@ -320,9 +317,6 @@ def initialize_datadir(dirname, n):
         f.write("spendzeroconfchange=1\n")
         f.write("printtoconsole=0\n")
     return datadir
-
-def rpc_auth_pair(n):
-    return 'rpcuser�' + str(n), 'rpcpass�' + str(n)
 
 def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))
