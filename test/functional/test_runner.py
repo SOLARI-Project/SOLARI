@@ -105,6 +105,7 @@ BASE_SCRIPTS= [
     'mempool_packages.py',                      # ~ 63 sec
 
     # vv Tests less than 60s vv
+    'rpc_users.py',
     'wallet_labels.py',                         # ~ 57 sec
     'rpc_signmessage.py',                       # ~ 54 sec
     'mempool_resurrect.py',                     # ~ 51 sec
@@ -123,7 +124,6 @@ BASE_SCRIPTS= [
     # 'feature_block.py',
     # 'mempool_limit.py', # We currently don't limit our mempool_reorg
     # 'rpc_getchaintips.py',
-    # 'rpc_users.py',
     # 'mining_prioritisetransaction.py',
     # 'p2p_invalid_block.py',
     # 'p2p_invalid_tx.py',
@@ -203,6 +203,7 @@ LEGACY_SKIP_TESTS = [
     'rpc_net.py',
     'rpc_signmessage.py',
     'rpc_spork.py',
+    'rpc_users.py',
     'wallet_hd.py',         # no HD tests for pre-HD wallets
     'wallet_upgrade.py',    # can't upgrade to pre-HD wallet
     'sapling_wallet_persistence.py',
