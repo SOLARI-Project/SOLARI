@@ -72,6 +72,9 @@ void test_one_input(std::vector<uint8_t> buffer)
     std::string reason;
     IsStandardTx(ptx, nBlockHeight,reason);
 
+    CValidationState contextualCheckState;
+    ContextualCheckTransaction(ptx, contextualCheckState, Params(), nBlockHeight, true, false);
+
     (void)tx.GetHash();
     (void)tx.GetTotalSize();
     try {
