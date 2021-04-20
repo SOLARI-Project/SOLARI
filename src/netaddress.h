@@ -84,9 +84,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(FLATDATA(ip));
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(ip);
     }
 
     friend class CSubNet;
@@ -122,11 +121,10 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
+    inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(network);
-        READWRITE(FLATDATA(netmask));
-        READWRITE(FLATDATA(valid));
+        READWRITE(netmask);
+        READWRITE(valid);
     }
 };
 
@@ -159,15 +157,14 @@ public:
 
     ADD_SERIALIZE_METHODS;
 
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(FLATDATA(ip));
-        unsigned short portN = htons(port);
-        READWRITE(FLATDATA(portN));
-        if (ser_action.ForRead())
-            port = ntohs(portN);
-    }
+        template <typename Stream, typename Operation>
+        inline void SerializationOp(Stream& s, Operation ser_action) {
+            READWRITE(ip);
+            unsigned short portN = htons(port);
+            READWRITE(FLATDATA(portN));
+            if (ser_action.ForRead())
+                 port = ntohs(portN);
+        }
 };
 
 #endif // BITCOIN_NETADDRESS_H

@@ -45,7 +45,7 @@ bool CMasternodePaymentDB::Write(const CMasternodePayments& objToSave)
     CDataStream ssObj(SER_DISK, CLIENT_VERSION);
     ssObj << MNPAYMENTS_DB_VERSION;
     ssObj << strMagicMessage;                   // masternode cache file specific magic message
-    ssObj << FLATDATA(Params().MessageStart()); // network specific magic number
+    ssObj << Params().MessageStart(); // network specific magic number
     ssObj << objToSave;
     uint256 hash = Hash(ssObj.begin(), ssObj.end());
     ssObj << hash;

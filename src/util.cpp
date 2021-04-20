@@ -584,21 +584,37 @@ bool TryCreateDirectory(const fs::path& p)
     return false;
 }
 
-void FileCommit(FILE* fileout)
+bool FileCommit(FILE* file)
 {
-    fflush(fileout); // harmless if redundantly called
+    if (fflush(file) != 0) { // harmless if redundantly called
+        LogPrintf("%s: fflush failed: %d\n", __func__, errno);
+        return false;
+    }
 #ifdef WIN32
-    HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(fileout));
-    FlushFileBuffers(hFile);
+    HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(file));
+    if (FlushFileBuffers(hFile) == 0) {
+        LogPrintf("%s: FlushFileBuffers failed: %d\n", __func__, GetLastError());
+        return false;
+    }
 #else
-#if defined(__linux__) || defined(__NetBSD__)
-    fdatasync(fileno(fileout));
-#elif defined(__APPLE__) && defined(F_FULLFSYNC)
-    fcntl(fileno(fileout), F_FULLFSYNC, 0);
-#else
-    fsync(fileno(fileout));
+    #if defined(__linux__) || defined(__NetBSD__)
+    if (fdatasync(fileno(file)) != 0 && errno != EINVAL) { // Ignore EINVAL for filesystems that don't support sync
+        LogPrintf("%s: fdatasync failed: %d\n", __func__, errno);
+        return false;
+    }
+    #elif defined(__APPLE__) && defined(F_FULLFSYNC)
+    if (fcntl(fileno(file), F_FULLFSYNC, 0) == -1) { // Manpage says "value other than -1" is returned on success
+        LogPrintf("%s: fcntl F_FULLFSYNC failed: %d\n", __func__, errno);
+        return false;
+    }
+    #else
+    if (fsync(fileno(file)) != 0 && errno != EINVAL) {
+        LogPrintf("%s: fsync failed: %d\n", __func__, errno);
+        return false;
+    }
+    #endif
 #endif
-#endif
+    return true;
 }
 
 bool TruncateFile(FILE* file, unsigned int length)
@@ -698,26 +714,6 @@ fs::path GetSpecialFolderPath(int nFolder, bool fCreate)
 fs::path GetTempPath()
 {
     return fs::temp_directory_path();
-}
-
-double double_safe_addition(double fValue, double fIncrement)
-{
-    double fLimit = std::numeric_limits<double>::max() - fValue;
-
-    if (fLimit > fIncrement)
-        return fValue + fIncrement;
-    else
-        return std::numeric_limits<double>::max();
-}
-
-double double_safe_multiplication(double fValue, double fmultiplicator)
-{
-    double fLimit = std::numeric_limits<double>::max() / fmultiplicator;
-
-    if (fLimit > fmultiplicator)
-        return fValue * fmultiplicator;
-    else
-        return std::numeric_limits<double>::max();
 }
 
 void runCommand(std::string strCommand)

@@ -782,7 +782,7 @@ bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos)
 
     // Write index header
     unsigned int nSize = GetSerializeSize(fileout, block);
-    fileout << FLATDATA(Params().MessageStart()) << nSize;
+    fileout << Params().MessageStart() << nSize;
 
     // Write block
     long fileOutPos = ftell(fileout.Get());
@@ -1222,7 +1222,7 @@ bool UndoWriteToDisk(const CBlockUndo& blockundo, CDiskBlockPos& pos, const uint
 
     // Write index header
     unsigned int nSize = GetSerializeSize(fileout, blockundo);
-    fileout << FLATDATA(Params().MessageStart()) << nSize;
+    fileout << Params().MessageStart() << nSize;
 
     // Write undo data
     long fileOutPos = ftell(fileout.Get());
@@ -1421,21 +1421,26 @@ void static FlushBlockFile(bool fFinalize = false)
     LOCK(cs_LastBlockFile);
 
     CDiskBlockPos posOld(nLastBlockFile, 0);
+    bool status = true;
 
     FILE* fileOld = OpenBlockFile(posOld);
     if (fileOld) {
         if (fFinalize)
-            TruncateFile(fileOld, vinfoBlockFile[nLastBlockFile].nSize);
-        FileCommit(fileOld);
+            status &= TruncateFile(fileOld, vinfoBlockFile[nLastBlockFile].nSize);
+        status &= FileCommit(fileOld);
         fclose(fileOld);
     }
 
     fileOld = OpenUndoFile(posOld);
     if (fileOld) {
         if (fFinalize)
-            TruncateFile(fileOld, vinfoBlockFile[nLastBlockFile].nUndoSize);
-        FileCommit(fileOld);
+            status &= TruncateFile(fileOld, vinfoBlockFile[nLastBlockFile].nUndoSize);
+        status &= FileCommit(fileOld);
         fclose(fileOld);
+    }
+
+    if (!status) {
+        AbortNode("Flushing block file to disk failed. This is likely the result of an I/O error.");
     }
 }
 
@@ -3942,8 +3947,8 @@ bool LoadExternalBlockFile(FILE* fileIn, CDiskBlockPos* dbp)
                 // locate a header
                 unsigned char buf[MESSAGE_START_SIZE];
                 blkdat.FindByte(Params().MessageStart()[0]);
-                nRewind = blkdat.GetPos() + 1;
-                blkdat >> FLATDATA(buf);
+                nRewind = blkdat.GetPos()+1;
+                blkdat >> buf;
                 if (memcmp(buf, Params().MessageStart(), MESSAGE_START_SIZE))
                     continue;
                 // read size
@@ -4300,7 +4305,8 @@ bool DumpMempool(const CTxMemPool& pool)
         }
 
         file << mapDeltas;
-        FileCommit(file.Get());
+        if (!FileCommit(file.Get()))
+            throw std::runtime_error("FileCommit failed");
         file.fclose();
         if (!RenameOver(GetDataDir() / "mempool.dat.new", GetDataDir() / "mempool.dat")) {
             throw std::runtime_error("Rename failed");

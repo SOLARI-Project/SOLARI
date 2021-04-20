@@ -70,7 +70,7 @@ bool CMasternodeDB::Write(const CMasternodeMan& mnodemanToSave)
     CDataStream ssMasternodes(SER_DISK, CLIENT_VERSION);
     ssMasternodes << MASTERNODE_DB_VERSION;
     ssMasternodes << strMagicMessage;                   // masternode cache file specific magic message
-    ssMasternodes << FLATDATA(Params().MessageStart()); // network specific magic number
+    ssMasternodes << Params().MessageStart(); // network specific magic number
     ssMasternodes << mnodemanToSave;
     uint256 hash = Hash(ssMasternodes.begin(), ssMasternodes.end());
     ssMasternodes << hash;
