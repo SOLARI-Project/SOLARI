@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2015 The Bitcoin Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2017-2021 The PIVX Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -26,7 +27,7 @@ void CNetAddr::SetIP(const CNetAddr& ipIn)
     memcpy(ip, ipIn.ip, sizeof(ip));
 }
 
-void CNetAddr::SetRaw(Network network, const uint8_t *ip_in)
+void CNetAddr::SetRaw(Network network, const uint8_t* ip_in)
 {
     switch(network)
     {
@@ -42,7 +43,7 @@ void CNetAddr::SetRaw(Network network, const uint8_t *ip_in)
     }
 }
 
-bool CNetAddr::SetSpecial(const std::string &strName)
+bool CNetAddr::SetSpecial(const std::string& strName)
 {
     if (strName.size()>6 && strName.substr(strName.size() - 6, 6) == ".onion") {
         std::vector<unsigned char> vchAddr = DecodeBase32(strName.substr(0, strName.size() - 6).c_str());
@@ -249,7 +250,7 @@ std::string CNetAddr::ToStringIP() const
     socklen_t socklen = sizeof(sockaddr);
     if (serv.GetSockAddr((struct sockaddr*)&sockaddr, &socklen)) {
         char name[1025] = "";
-        if (!getnameinfo((const struct sockaddr*)&sockaddr, socklen, name, sizeof(name), NULL, 0, NI_NUMERICHOST))
+        if (!getnameinfo((const struct sockaddr*)&sockaddr, socklen, name, sizeof(name), nullptr, 0, NI_NUMERICHOST))
             return std::string(name);
     }
     if (IsIPv4())
@@ -379,7 +380,7 @@ static const int NET_UNKNOWN = NET_MAX + 0;
 static const int NET_TEREDO  = NET_MAX + 1;
 int static GetExtNetwork(const CNetAddr *addr)
 {
-    if (addr == NULL)
+    if (addr == nullptr)
         return NET_UNKNOWN;
     if (addr->IsRFC4380())
         return NET_TEREDO;
