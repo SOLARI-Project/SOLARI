@@ -1,9 +1,10 @@
-// Copyright (c) 2009-2015 The Bitcoin Core developers
+// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2017-2021 The PIVX Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_NETADDRESS_H
-#define BITCOIN_NETADDRESS_H
+#ifndef PIVX_NETADDRESS_H
+#define PIVX_NETADDRESS_H
 
 #if defined(HAVE_CONFIG_H)
 #include "config/pivx-config.h"
@@ -72,7 +73,7 @@ public:
     uint64_t GetHash() const;
     bool GetInAddr(struct in_addr* pipv4Addr) const;
     std::vector<unsigned char> GetGroup() const;
-    int GetReachabilityFrom(const CNetAddr* paddrPartner = NULL) const;
+    int GetReachabilityFrom(const CNetAddr* paddrPartner = nullptr) const;
 
     CNetAddr(const struct in6_addr& pipv6Addr, const uint32_t scope = 0);
     bool GetIn6Addr(struct in6_addr* pipv6Addr) const;
@@ -84,7 +85,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(ip);
     }
 
@@ -121,7 +123,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(network);
         READWRITE(netmask);
         READWRITE(valid);
@@ -157,14 +160,15 @@ public:
 
     ADD_SERIALIZE_METHODS;
 
-        template <typename Stream, typename Operation>
-        inline void SerializationOp(Stream& s, Operation ser_action) {
-            READWRITE(ip);
-            unsigned short portN = htons(port);
-            READWRITE(FLATDATA(portN));
-            if (ser_action.ForRead())
-                 port = ntohs(portN);
-        }
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
+        READWRITE(ip);
+        unsigned short portN = htons(port);
+        READWRITE(FLATDATA(portN));
+        if (ser_action.ForRead())
+            port = ntohs(portN);
+    }
 };
 
-#endif // BITCOIN_NETADDRESS_H
+#endif // PIVX_NETADDRESS_H
