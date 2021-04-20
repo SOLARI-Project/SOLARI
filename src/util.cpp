@@ -318,6 +318,8 @@ fs::path GetDefaultDataDir()
 #endif
 }
 
+static fs::path g_blocks_path_cached;
+static fs::path g_blocks_path_cache_net_specific;
 static fs::path pathCached;
 static fs::path pathCachedNetSpecific;
 static fs::path zc_paramsPathCached;
@@ -452,6 +454,35 @@ void initZKSNARKS()
     //std::cout << "### Sapling params initialized ###" << std::endl;
 }
 
+const fs::path &GetBlocksDir(bool fNetSpecific)
+{
+
+    LOCK(csPathCached);
+
+    fs::path &path = fNetSpecific ? g_blocks_path_cache_net_specific : g_blocks_path_cached;
+
+    // This can be called during exceptions by LogPrintf(), so we cache the
+    // value so we don't have to do memory allocations after that.
+    if (!path.empty())
+        return path;
+
+    if (gArgs.IsArgSet("-blocksdir")) {
+        path = fs::system_complete(gArgs.GetArg("-blocksdir", ""));
+        if (!fs::is_directory(path)) {
+            path = "";
+            return path;
+        }
+    } else {
+        path = GetDataDir(false);
+    }
+    if (fNetSpecific)
+        path /= BaseParams().DataDir();
+
+    path /= "blocks";
+    fs::create_directories(path);
+    return path;
+}
+
 const fs::path& GetDataDir(bool fNetSpecific)
 {
     LOCK(csPathCached);
@@ -486,6 +517,8 @@ void ClearDatadirCache()
 
     pathCached = fs::path();
     pathCachedNetSpecific = fs::path();
+    g_blocks_path_cached = fs::path();
+    g_blocks_path_cache_net_specific = fs::path();
 }
 
 fs::path GetConfigFile()

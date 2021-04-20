@@ -422,6 +422,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-?", _("This help message"));
     strUsage += HelpMessageOpt("-version", _("Print version and exit"));
     strUsage += HelpMessageOpt("-alertnotify=<cmd>", _("Execute command when a relevant alert is received or we see a really long fork (%s in cmd is replaced by message)"));
+    strUsage += HelpMessageOpt("-blocksdir=<dir>", _("Specify blocks directory (default: <datadir>/blocks)"));
     strUsage += HelpMessageOpt("-blocknotify=<cmd>", _("Execute command when the best block changes (%s in cmd is replaced by block hash)"));
     strUsage += HelpMessageOpt("-checkblocks=<n>", strprintf(_("How many blocks to check at startup (default: %u, 0 = all)"), DEFAULT_CHECKBLOCKS));
     strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), PIVX_CONF_FILENAME));
@@ -1015,6 +1016,10 @@ bool AppInitParameterInteraction()
 {
     // ********************************************************* Step 2: parameter interactions
 
+    if (!fs::is_directory(GetBlocksDir(false))) {
+        return UIError(strprintf(_("Specified blocks directory \"%s\" does not exist.\n"), gArgs.GetArg("-blocksdir", "").c_str()));
+    }
+
     // Make sure enough file descriptors are available
 
     // -bind and -whitebind can't be set when not listening
@@ -1348,7 +1353,7 @@ bool AppInitMain()
         if (gArgs.GetBoolArg("-resync", false)) {
             uiInterface.InitMessage(_("Preparing for resync..."));
             // Delete the local blockchain folders to force a resync from scratch to get a consitent blockchain-state
-            fs::path blocksDir = GetDataDir() / "blocks";
+            fs::path blocksDir = GetBlocksDir();
             fs::path chainstateDir = GetDataDir() / "chainstate";
             fs::path sporksDir = GetDataDir() / "sporks";
             fs::path zerocoinDir = GetDataDir() / "zerocoin";
@@ -1539,7 +1544,7 @@ bool AppInitMain()
     fReindex = gArgs.GetBoolArg("-reindex", false);
 
     // Create blocks directory if it doesn't already exist
-    fs::create_directories(GetDataDir() / "blocks");
+    fs::create_directories(GetBlocksDir());
 
     // cache size calculations
     int64_t nTotalCache = (gArgs.GetArg("-dbcache", nDefaultDbCache) << 20);
@@ -1770,7 +1775,7 @@ bool AppInitMain()
 #endif
     // ********************************************************* Step 9: import blocks
 
-    if (!CheckDiskSpace())
+    if (!CheckDiskSpace() && !CheckDiskSpace(0, true))
         return false;
 
     // Either install a handler to notify us when genesis activates, or set fHaveGenesis directly.

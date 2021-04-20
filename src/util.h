@@ -87,6 +87,7 @@ void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length);
 bool RenameOver(fs::path src, fs::path dest);
 bool TryCreateDirectory(const fs::path& p);
 fs::path GetDefaultDataDir();
+const fs::path &GetBlocksDir(bool fNetSpecific = true);
 const fs::path &GetDataDir(bool fNetSpecific = true);
 // Sapling network dir
 const fs::path &ZC_GetParamsDir();
