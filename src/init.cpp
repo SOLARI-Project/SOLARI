@@ -1016,7 +1016,7 @@ bool AppInitParameterInteraction()
 {
     // ********************************************************* Step 2: parameter interactions
 
-    if (!fs::is_directory(GetBlocksDir(false))) {
+    if (!fs::is_directory(GetBlocksDir())) {
         return UIError(strprintf(_("Specified blocks directory \"%s\" does not exist.\n"), gArgs.GetArg("-blocksdir", "").c_str()));
     }
 
