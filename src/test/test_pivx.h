@@ -34,6 +34,8 @@ static inline std::vector<unsigned char> InsecureRandBytes(size_t len) { return 
  * This just configures logging and chain parameters.
  */
 struct BasicTestingSetup {
+    ECCVerifyHandle globalVerifyHandle;
+
     BasicTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~BasicTestingSetup();
 };
@@ -49,7 +51,6 @@ struct TestingSetup: public BasicTestingSetup {
     boost::thread_group threadGroup;
     CConnman* connman;
     CScheduler scheduler;
-    ECCVerifyHandle globalVerifyHandle;
 
     TestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~TestingSetup();
