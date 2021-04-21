@@ -1221,11 +1221,6 @@ BOOST_AUTO_TEST_CASE(GetNotes)
         BOOST_CHECK_EQUAL(entries[i].confirmations, 1);
     }
 
-    /*
-     * !TODO: fix GetNotes.
-     * This test currently fails due to an assertion error (cs_wallet lock not held)
-     */
-
     // Check GetNotes
     std::vector<SaplingNoteEntry> entries2;
     wallet.GetSaplingScriptPubKeyMan()->GetNotes(saplingOutpoints, entries2);

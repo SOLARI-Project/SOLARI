@@ -397,6 +397,7 @@ void SaplingScriptPubKeyMan::GetNotes(const std::vector<SaplingOutPoint>& saplin
     for (const auto& outpoint : saplingOutpoints) {
         const auto* wtx = wallet->GetWalletTx(outpoint.hash);
         if (!wtx) throw std::runtime_error("No transaction available for hash " + outpoint.hash.GetHex());
+        const int depth = WITH_LOCK(wallet->cs_wallet, return wtx->GetDepthInMainChain(); );
         const auto& it = wtx->mapSaplingNoteData.find(outpoint);
         if (it != wtx->mapSaplingNoteData.end()) {
             const SaplingOutPoint& op = it->first;
@@ -414,7 +415,7 @@ void SaplingScriptPubKeyMan::GetNotes(const std::vector<SaplingOutPoint>& saplin
             const libzcash::SaplingPaymentAddress& pa = optNotePtAndAddress->second;
             auto note = notePt.note(ivk).get();
 
-            saplingEntriesRet.emplace_back(op, pa, note, notePt.memo(), wtx->GetDepthInMainChain());
+            saplingEntriesRet.emplace_back(op, pa, note, notePt.memo(), depth);
         }
     }
 }
