@@ -465,9 +465,9 @@ void SaplingScriptPubKeyMan::GetFilteredNotes(
         }
 
         // Filter the transactions before checking for notes
+        const int depth = wtx.GetDepthInMainChain();
         if (!IsFinalTx(wtx.tx, wallet->GetLastBlockHeight() + 1, GetAdjustedTime()) ||
-            wtx.GetDepthInMainChain() < minDepth ||
-            wtx.GetDepthInMainChain() > maxDepth) {
+            depth < minDepth || depth > maxDepth) {
             continue;
         }
 
@@ -506,7 +506,7 @@ void SaplingScriptPubKeyMan::GetFilteredNotes(
             //    continue;
             //}
 
-            saplingEntries.emplace_back(op, pa, note, notePt.memo(), wtx.GetDepthInMainChain());
+            saplingEntries.emplace_back(op, pa, note, notePt.memo(), depth);
         }
     }
 }
