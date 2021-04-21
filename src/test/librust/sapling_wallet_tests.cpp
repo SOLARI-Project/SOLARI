@@ -1147,6 +1147,107 @@ BOOST_AUTO_TEST_CASE(MarkAffectedSaplingTransactionsDirty) {
     RegtestDeactivateSapling();
 }
 
+BOOST_AUTO_TEST_CASE(GetNotes)
+{
+    auto consensusParams = RegtestActivateSapling();
+
+    CWallet& wallet = *pwalletMain;
+    libzcash::SaplingPaymentAddress pk;
+    uint256 blockHash;
+    std::vector<SaplingOutPoint> saplingOutpoints;
+    {
+        LOCK2(cs_main, wallet.cs_wallet);
+        setupWallet(wallet);
+
+        // Generate Sapling address
+        auto sk = GetTestMasterSaplingSpendingKey();
+        auto extfvk = sk.ToXFVK();
+        pk = sk.DefaultAddress();
+
+        BOOST_CHECK(wallet.AddSaplingZKey(sk));
+        BOOST_CHECK(wallet.HaveSaplingSpendingKey(extfvk));
+
+        // Set up transparent address
+        CBasicKeyStore keystore;
+        CKey tsk = AddTestCKeyToKeyStore(keystore);
+        auto scriptPubKey = GetScriptForDestination(tsk.GetPubKey().GetID());
+
+        // Generate shielding tx from transparent to Sapling (five 1 PIV notes)
+        auto builder = TransactionBuilder(consensusParams, 1, &keystore);
+        builder.AddTransparentInput(COutPoint(), scriptPubKey, 510000000);
+        for (int i=0; i<5; i++) builder.AddSaplingOutput(extfvk.fvk.ovk, pk, 100000000, {});
+        builder.SetFee(10000000);
+        auto tx1 = builder.Build().GetTxOrThrow();
+
+        CWalletTx wtx {&wallet, MakeTransactionRef(tx1)};
+
+        // Fake-mine the transaction
+        BOOST_CHECK_EQUAL(0, chainActive.Height());
+        SaplingMerkleTree saplingTree;
+        CBlock block;
+        block.vtx.emplace_back(wtx.tx);
+        block.hashMerkleRoot = BlockMerkleRoot(block);
+        blockHash = block.GetHash();
+        CBlockIndex fakeIndex {block};
+        BlockMap::iterator mi = mapBlockIndex.emplace(blockHash, &fakeIndex).first;
+        fakeIndex.phashBlock = &((*mi).first);
+        chainActive.SetTip(&fakeIndex);
+        BOOST_CHECK(chainActive.Contains(&fakeIndex));
+        BOOST_CHECK_EQUAL(0, chainActive.Height());
+
+        // Simulate SyncTransaction which calls AddToWalletIfInvolvingMe
+        auto saplingNoteData = wallet.GetSaplingScriptPubKeyMan()->FindMySaplingNotes(*wtx.tx).first;
+        BOOST_CHECK(saplingNoteData.size() > 0);
+        wtx.SetSaplingNoteData(saplingNoteData);
+        wtx.m_confirm = CWalletTx::Confirmation(CWalletTx::Status::CONFIRMED, fakeIndex.nHeight, block.GetHash(), 0);
+        wallet.LoadToWallet(wtx);
+
+        // Simulate receiving new block and ChainTip signal
+        wallet.IncrementNoteWitnesses(&fakeIndex, &block, saplingTree);
+        wallet.GetSaplingScriptPubKeyMan()->UpdateSaplingNullifierNoteMapForBlock(&block);
+        wallet.SetLastBlockProcessed(mi->second);
+
+        const uint256& txid = wtx.GetHash();
+        for (int i=0; i<5; i++) saplingOutpoints.emplace_back(txid, i);
+    }
+
+    // Check GetFilteredNotes
+    std::vector<SaplingNoteEntry> entries;
+    Optional<libzcash::SaplingPaymentAddress> address = pk;
+    wallet.GetSaplingScriptPubKeyMan()->GetFilteredNotes(entries, address, 0, true, false);
+    for (int i=0; i<5; i++) {
+        BOOST_CHECK(entries[i].op == saplingOutpoints[i]);
+        BOOST_CHECK(entries[i].address == pk);
+        BOOST_CHECK_EQUAL(entries[i].confirmations, 1);
+    }
+
+    /*
+     * !TODO: fix GetNotes.
+     * This test currently fails due to an assertion error (cs_wallet lock not held)
+     */
+
+    // Check GetNotes
+    std::vector<SaplingNoteEntry> entries2;
+    wallet.GetSaplingScriptPubKeyMan()->GetNotes(saplingOutpoints, entries2);
+    for (int i=0; i<5; i++) {
+        BOOST_CHECK(entries2[i].op == entries[i].op);
+        BOOST_CHECK(entries2[i].address == entries[i].address);
+        BOOST_CHECK(entries2[i].note.d == entries[i].note.d);
+        BOOST_CHECK_EQUAL(entries2[i].note.pk_d, entries[i].note.pk_d);
+        BOOST_CHECK_EQUAL(entries2[i].note.r, entries[i].note.r);
+        BOOST_CHECK(entries2[i].memo == entries[i].memo);
+        BOOST_CHECK_EQUAL(entries2[i].confirmations, entries[i].confirmations);
+    }
+
+    // Tear down
+    LOCK(cs_main);
+    chainActive.SetTip(nullptr);
+    mapBlockIndex.erase(blockHash);
+
+    // Revert to default
+    RegtestDeactivateSapling();
+}
+
 // TODO: Back port WriteWitnessCache & SetBestChainIgnoresTxsWithoutShieldedData test cases.
 
 BOOST_AUTO_TEST_SUITE_END()
