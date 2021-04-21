@@ -450,16 +450,15 @@ public:
 
     void BindWallet(CWallet* pwalletIn);
 
-    void SetSaplingNoteData(mapSaplingNoteData_t &noteData);
+    void SetSaplingNoteData(mapSaplingNoteData_t& noteData);
 
     Optional<std::pair<
             libzcash::SaplingNotePlaintext,
-            libzcash::SaplingPaymentAddress>> DecryptSaplingNote(SaplingOutPoint op) const;
+            libzcash::SaplingPaymentAddress>> DecryptSaplingNote(const SaplingOutPoint& op) const;
 
     Optional<std::pair<
             libzcash::SaplingNotePlaintext,
-            libzcash::SaplingPaymentAddress>> RecoverSaplingNote(
-            SaplingOutPoint op, std::set<uint256>& ovks) const;
+            libzcash::SaplingPaymentAddress>> RecoverSaplingNote(const SaplingOutPoint& op, const std::set<uint256>& ovks) const;
 
     //! checks whether a tx has P2CS inputs or not
     bool HasP2CSInputs() const;
