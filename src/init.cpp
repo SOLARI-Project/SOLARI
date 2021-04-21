@@ -1735,11 +1735,11 @@ bool AppInitMain()
 #endif
     // ********************************************************* Step 9: import blocks
 
-    if (!CheckDiskSpace(/* additional_bytes */ 0, /* blocks_dir */ false)) {
+    if (!CheckDiskSpace(GetDataDir())) {
         UIError(strprintf(_("Error: Disk space is low for %s"), GetDataDir()));
         return false;
     }
-    if (!CheckDiskSpace(/* additional_bytes */ 0, /* blocks_dir */ true)) {
+    if (!CheckDiskSpace(GetBlocksDir())) {
         UIError(strprintf(_("Error: Disk space is low for %s"), GetBlocksDir()));
         return false;
     }

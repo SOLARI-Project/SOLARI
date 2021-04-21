@@ -159,9 +159,6 @@ extern CMoneySupply MoneySupply;
 /** Best header we've seen so far (used for getheaders queries' starting points). */
 extern CBlockIndex* pindexBestHeader;
 
-/** Minimum disk space required - used in CheckDiskSpace() */
-static const uint64_t nMinDiskSpace = 52428800;
-
 /**
  * Process an incoming block. This only returns after the best known valid
  * block is made active. Note that it does not, however, guarantee that the
@@ -175,8 +172,7 @@ static const uint64_t nMinDiskSpace = 52428800;
  * @return True if state.IsValid()
  */
 bool ProcessNewBlock(CValidationState& state, CNode* pfrom, const std::shared_ptr<const CBlock> pblock, CDiskBlockPos* dbp, bool* fAccepted = nullptr);
-/** Check whether enough disk space is available for an incoming block */
-bool CheckDiskSpace(uint64_t nAdditionalBytes = 0, bool blocks_dir = false);
+
 /** Open a block file (blk?????.dat) */
 FILE* OpenBlockFile(const CDiskBlockPos& pos, bool fReadOnly = false);
 /** Open an undo file (rev?????.dat) */

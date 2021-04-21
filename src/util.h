@@ -86,6 +86,7 @@ bool FileCommit(FILE* file);
 bool TruncateFile(FILE* file, unsigned int length);
 int RaiseFileDescriptorLimit(int nMinFD);
 void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length);
+bool CheckDiskSpace(const fs::path& dir, uint64_t nAdditionalBytes = 0);
 bool RenameOver(fs::path src, fs::path dest);
 bool TryCreateDirectories(const fs::path& p);
 fs::path GetDefaultDataDir();
