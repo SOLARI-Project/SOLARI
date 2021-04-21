@@ -186,6 +186,7 @@ set(SERVER_SOURCES
         ./src/chain.cpp
         ./src/checkpoints.cpp
         ./src/consensus/tx_verify.cpp
+        ./src/flatfile.cpp
         ./src/httprpc.cpp
         ./src/httpserver.cpp
         ./src/indirectmap.h

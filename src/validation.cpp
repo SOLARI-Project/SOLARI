@@ -24,6 +24,7 @@
 #include "consensus/zerocoin_verify.h"
 #include "evo/deterministicmns.h"
 #include "evo/specialtx.h"
+#include "flatfile.h"
 #include "fs.h"
 #include "guiinterface.h"
 #include "init.h"
@@ -34,13 +35,9 @@
 #include "masternode-payments.h"
 #include "masternode-sync.h"
 #include "masternodeman.h"
-#include "messagesigner.h"
-#include "netmessagemaker.h"
-#include "net_processing.h"
 #include "policy/policy.h"
 #include "pow.h"
 #include "reverse_iterate.h"
-#include "sapling/sapling_validation.h"
 #include "script/sigcache.h"
 #include "spork.h"
 #include "sporkdb.h"
@@ -224,6 +221,8 @@ enum FlushStateMode {
 
 // See definition for documentation
 bool static FlushStateToDisk(CValidationState &state, FlushStateMode mode);
+static FlatFileSeq BlockFileSeq();
+static FlatFileSeq UndoFileSeq();
 
 bool CheckFinalTx(const CTransactionRef& tx, int flags)
 {
@@ -3496,6 +3495,16 @@ FILE* OpenDiskFile(const CDiskBlockPos& pos, const char* prefix, bool fReadOnly)
     return file;
 }
 
+static FlatFileSeq BlockFileSeq()
+{
+    return FlatFileSeq(GetBlocksDir(), "blk", BLOCKFILE_CHUNK_SIZE);
+}
+
+static FlatFileSeq UndoFileSeq()
+{
+    return FlatFileSeq(GetBlocksDir(), "rev", UNDOFILE_CHUNK_SIZE);
+}
+
 FILE* OpenBlockFile(const CDiskBlockPos& pos, bool fReadOnly)
 {
     return OpenDiskFile(pos, "blk", fReadOnly);
@@ -3506,9 +3515,9 @@ FILE* OpenUndoFile(const CDiskBlockPos& pos, bool fReadOnly)
     return OpenDiskFile(pos, "rev", fReadOnly);
 }
 
-fs::path GetBlockPosFilename(const CDiskBlockPos& pos, const char* prefix)
+fs::path GetBlockPosFilename(const CDiskBlockPos &pos)
 {
-    return GetBlocksDir() / strprintf("%s%05u.dat", prefix, pos.nFile);
+    return BlockFileSeq().FileName(pos);
 }
 
 CBlockIndex* InsertBlockIndex(uint256 hash)

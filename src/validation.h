@@ -178,7 +178,7 @@ FILE* OpenBlockFile(const CDiskBlockPos& pos, bool fReadOnly = false);
 /** Open an undo file (rev?????.dat) */
 FILE* OpenUndoFile(const CDiskBlockPos& pos, bool fReadOnly = false);
 /** Translation to a filesystem path */
-fs::path GetBlockPosFilename(const CDiskBlockPos& pos, const char* prefix);
+fs::path GetBlockPosFilename(const CDiskBlockPos &pos);
 /** Import blocks from an external file */
 bool LoadExternalBlockFile(FILE* fileIn, CDiskBlockPos* dbp = NULL);
 /** Ensures we have a genesis block in the block tree, possibly writing one to disk. */

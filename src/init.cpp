@@ -689,7 +689,7 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
         int nFile = 0;
         while (true) {
             CDiskBlockPos pos(nFile, 0);
-            if (!fs::exists(GetBlockPosFilename(pos, "blk")))
+            if (!fs::exists(GetBlockPosFilename(pos)))
                 break; // No block files left to reindex
             FILE* file = OpenBlockFile(pos, true);
             if (!file)
