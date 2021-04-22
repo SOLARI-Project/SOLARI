@@ -15,7 +15,9 @@
 #include "util/system.h"
 #include "utilstrencodings.h"
 #include "utiltime.h"
-#include "wallet/wallet.h"
+#include "wallet/rpcwallet.h"
+#include "wallet.h"
+#include "validation.h"
 
 #include <fstream>
 #include <secp256k1.h>

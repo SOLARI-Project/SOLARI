@@ -18,6 +18,7 @@
 #include "timedata.h"
 #include "util/system.h"
 #ifdef ENABLE_WALLET
+#include "wallet/rpcwallet.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
 #endif

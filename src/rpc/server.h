@@ -196,17 +196,6 @@ extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
 extern std::string HelpExampleCli(std::string methodname, std::string args);
 extern std::string HelpExampleRpc(std::string methodname, std::string args);
 
-// Needed even with !ENABLE_WALLET, to pass (ignored) pointers around
-class CWallet;
-CWallet* GetWalletForJSONRPCRequest(const JSONRPCRequest& request);
-
-#ifdef ENABLE_WALLET
-// New code should accessing the wallet should be under the ../wallet/ directory
-std::string HelpRequiringPassphrase(CWallet* const pwallet);
-bool EnsureWalletIsAvailable(CWallet* const pwallet, bool avoidException);
-void EnsureWalletIsUnlocked(CWallet *pwallet, bool fAllowAnonOnly = false);
-#endif
-
 bool StartRPC();
 void InterruptRPC();
 void StopRPC();

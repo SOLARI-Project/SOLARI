@@ -16,6 +16,7 @@
 #include "utilstrencodings.h"
 #include "validation.h"
 #include "version.h"
+#include "wallet/wallet.h"
 
 #include <boost/algorithm/string.hpp>
 

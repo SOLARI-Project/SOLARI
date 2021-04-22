@@ -25,6 +25,7 @@
 #ifdef ENABLE_WALLET
 #include "sapling/address.h"
 #include "sapling/key_io_sapling.h"
+#include "wallet/rpcwallet.h"
 #include "wallet/wallet.h"
 #endif
 

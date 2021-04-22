@@ -5,6 +5,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "wallet/rpcwallet.h"
+
 #include "addressbook.h"
 #include "amount.h"
 #include "base58.h"
@@ -17,21 +19,17 @@
 #include "net.h"
 #include "policy/feerate.h"
 #include "rpc/server.h"
-#include "timedata.h"
-#include "util/system.h"
-#include "utilmoneystr.h"
-#include "wallet.h"
-#include "walletdb.h"
-#include "zpivchain.h"
-
 #include "sapling/sapling_operation.h"
 #include "sapling/transaction_builder.h"
 #include "sapling/key_io_sapling.h"
+#include "spork.h"
+#include "timedata.h"
+#include "utilmoneystr.h"
+#include "wallet/wallet.h"
+#include "wallet/walletdb.h"
+#include "zpivchain.h"
 
 #include <stdint.h>
-
-#include "spork.h"
-
 #include <univalue.h>
 
 

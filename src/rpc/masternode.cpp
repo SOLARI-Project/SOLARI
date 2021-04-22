@@ -14,6 +14,9 @@
 #include "netbase.h"
 #include "rpc/server.h"
 #include "utilmoneystr.h"
+#ifdef ENABLE_WALLET
+#include "wallet/rpcwallet.h"
+#endif
 
 #include <univalue.h>
 
