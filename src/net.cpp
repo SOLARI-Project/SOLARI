@@ -1402,7 +1402,7 @@ void ThreadMapPort()
             }
         }
 
-        std::string strDesc = "PIVX " + FormatFullVersion();
+        std::string strDesc = PACKAGE_NAME " " + FormatFullVersion();
 
         do {
             r = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
