@@ -4208,35 +4208,6 @@ UniValue getautocombinethreshold(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue printAddresses()
-{
-    std::vector<COutput> vCoins;
-    pwalletMain->AvailableCoins(&vCoins);
-    std::map<std::string, double> mapAddresses;
-    for (const COutput& out : vCoins) {
-        CTxDestination utxoAddress;
-        ExtractDestination(out.tx->tx->vout[out.i].scriptPubKey, utxoAddress);
-        std::string strAdd = EncodeDestination(utxoAddress);
-
-        if (mapAddresses.find(strAdd) == mapAddresses.end()) //if strAdd is not already part of the map
-            mapAddresses[strAdd] = (double)out.tx->tx->vout[out.i].nValue / (double)COIN;
-        else
-            mapAddresses[strAdd] += (double)out.tx->tx->vout[out.i].nValue / (double)COIN;
-    }
-
-    UniValue ret(UniValue::VARR);
-    for (std::map<std::string, double>::const_iterator it = mapAddresses.begin(); it != mapAddresses.end(); ++it) {
-        UniValue obj(UniValue::VOBJ);
-        const std::string* strAdd = &(*it).first;
-        const double* nBalance = &(*it).second;
-        obj.pushKV("Address ", *strAdd);
-        obj.pushKV("Balance ", *nBalance);
-        ret.push_back(obj);
-    }
-
-    return ret;
-}
-
 UniValue getsaplingnotescount(const JSONRPCRequest& request)
 {
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
