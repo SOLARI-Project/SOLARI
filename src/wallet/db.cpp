@@ -433,11 +433,6 @@ void CWalletDBWrapper::IncrementUpdateCounter()
     ++nUpdateCounter;
 }
 
-unsigned int CWalletDBWrapper::GetUpdateCounter()
-{
-    return nUpdateCounter.load();
-}
-
 void CDB::Close()
 {
     if (!pdb)
