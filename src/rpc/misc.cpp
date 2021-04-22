@@ -47,7 +47,7 @@ UniValue getsupplyinfo(const JSONRPCRequest& request);
  **/
 UniValue getinfo(const JSONRPCRequest& request)
 {
-    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error(
@@ -85,7 +85,7 @@ UniValue getinfo(const JSONRPCRequest& request)
             HelpExampleCli("getinfo", "") + HelpExampleRpc("getinfo", ""));
 
 #ifdef ENABLE_WALLET
-    LOCK2(cs_main, pwalletMain ? &pwalletMain->cs_wallet : NULL);
+    LOCK2(cs_main, pwallet ? &pwallet->cs_wallet : NULL);
 #else
     LOCK(cs_main);
 #endif
@@ -116,10 +116,10 @@ UniValue getinfo(const JSONRPCRequest& request)
     obj.pushKV("protocolversion", PROTOCOL_VERSION);
     obj.pushKV("services", services);
 #ifdef ENABLE_WALLET
-    if (pwalletMain) {
-        obj.pushKV("walletversion", pwalletMain->GetVersion());
-        obj.pushKV("balance", ValueFromAmount(pwalletMain->GetAvailableBalance()));
-        obj.pushKV("staking status", (pwalletMain->pStakerStatus->IsActive() ? "Staking Active" : "Staking Not Active"));
+    if (pwallet) {
+        obj.pushKV("walletversion", pwallet->GetVersion());
+        obj.pushKV("balance", ValueFromAmount(pwallet->GetAvailableBalance()));
+        obj.pushKV("staking status", (pwallet->pStakerStatus->IsActive() ? "Staking Active" : "Staking Not Active"));
     }
 #endif
     obj.pushKV("blocks", (int)chainActive.Height());
@@ -137,12 +137,12 @@ UniValue getinfo(const JSONRPCRequest& request)
     obj.pushKV("shieldsupply", supply_info["shieldsupply"]);
 
 #ifdef ENABLE_WALLET
-    if (pwalletMain) {
-        obj.pushKV("keypoololdest", pwalletMain->GetOldestKeyPoolTime());
-        size_t kpExternalSize = pwalletMain->KeypoolCountExternalKeys();
+    if (pwallet) {
+        obj.pushKV("keypoololdest", pwallet->GetOldestKeyPoolTime());
+        size_t kpExternalSize = pwallet->KeypoolCountExternalKeys();
         obj.pushKV("keypoolsize", (int64_t)kpExternalSize);
     }
-    if (pwalletMain && pwalletMain->IsCrypted())
+    if (pwallet && pwallet->IsCrypted())
         obj.pushKV("unlocked_until", nWalletUnlockTime);
     obj.pushKV("paytxfee", ValueFromAmount(payTxFee.GetFeePerK()));
 #endif
@@ -378,7 +378,7 @@ private:
 
 UniValue validateaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
@@ -412,7 +412,7 @@ UniValue validateaddress(const JSONRPCRequest& request)
             HelpExampleRpc("validateaddress", "\"1PSSGeFHDnKNxiEyFrD1wcEaHr9hrQDDWc\""));
 
 #ifdef ENABLE_WALLET
-    LOCK2(cs_main, pwalletMain ? &pwalletMain->cs_wallet : nullptr);
+    LOCK2(cs_main, pwallet ? &pwallet->cs_wallet : nullptr);
 #else
     LOCK(cs_main);
 #endif
@@ -436,7 +436,7 @@ UniValue validateaddress(const JSONRPCRequest& request)
     ret.pushKV("isvalid", isValid);
     if (isValid) {
         ret.pushKV("address", strAddress);
-        UniValue detail = boost::apply_visitor(DescribePaymentAddressVisitor(pwalletMain, isStakingAddress), finalAddress);
+        UniValue detail = boost::apply_visitor(DescribePaymentAddressVisitor(pwallet, isStakingAddress), finalAddress);
         ret.pushKVs(detail);
     }
 
@@ -506,7 +506,7 @@ CScript _createmultisig_redeemScript(CWallet * const pwallet, const UniValue& pa
 
 UniValue createmultisig(const JSONRPCRequest& request)
 {
-    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 2)
         throw std::runtime_error(
@@ -535,7 +535,7 @@ UniValue createmultisig(const JSONRPCRequest& request)
             HelpExampleRpc("createmultisig", "2, \"[\\\"16sSauSf5pF2UkUwvKGq4qjNRzBZYqgEL5\\\",\\\"171sgjn4YtPu27adkKGrdDwzRTxnRkBfKV\\\"]\""));
 
     // Construct using pay-to-script-hash:
-    CScript inner = _createmultisig_redeemScript(pwalletMain, request.params);
+    CScript inner = _createmultisig_redeemScript(pwallet, request.params);
     CScriptID innerID(inner);
 
     UniValue result(UniValue::VOBJ);

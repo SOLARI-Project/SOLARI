@@ -97,9 +97,9 @@ void checkBudgetInputs(const UniValue& params, std::string &strProposalName, std
 
 UniValue preparebudget(const JSONRPCRequest& request)
 {
-    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
-    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
     if (request.fHelp || request.params.size() != 6)
@@ -122,13 +122,9 @@ UniValue preparebudget(const JSONRPCRequest& request)
             HelpExampleCli("preparebudget", "\"test-proposal\" \"https://forum.pivx.org/t/test-proposal\" 2 820800 \"D9oc6C3dttUbv8zd7zGNq1qKBGf4ZQ1XEE\" 500") +
             HelpExampleRpc("preparebudget", "\"test-proposal\" \"https://forum.pivx.org/t/test-proposal\" 2 820800 \"D9oc6C3dttUbv8zd7zGNq1qKBGf4ZQ1XEE\" 500"));
 
-    if (!pwalletMain) {
-        throw JSONRPCError(RPC_IN_WARMUP, "Try again after active chain is loaded");
-    }
+    LOCK2(cs_main, pwallet->cs_wallet);
 
-    LOCK2(cs_main, pwalletMain->cs_wallet);
-
-    EnsureWalletIsUnlocked(pwalletMain);
+    EnsureWalletIsUnlocked(pwallet);
 
     std::string strProposalName;
     std::string strURL;
@@ -150,19 +146,19 @@ UniValue preparebudget(const JSONRPCRequest& request)
 
     CTransactionRef wtx;
     // make our change address
-    CReserveKey keyChange(pwalletMain);
-    if (!pwalletMain->CreateBudgetFeeTX(wtx, nHash, keyChange, false)) { // 50 PIV collateral for proposal
+    CReserveKey keyChange(pwallet);
+    if (!pwallet->CreateBudgetFeeTX(wtx, nHash, keyChange, false)) { // 50 PIV collateral for proposal
         throw std::runtime_error("Error making collateral transaction for proposal. Please check your wallet balance.");
     }
 
     //send the tx to the network
-    const CWallet::CommitResult& res = pwalletMain->CommitTransaction(wtx, keyChange, g_connman.get());
+    const CWallet::CommitResult& res = pwallet->CommitTransaction(wtx, keyChange, g_connman.get());
     if (res.status != CWallet::CommitStatus::OK)
         throw JSONRPCError(RPC_WALLET_ERROR, res.ToString());
 
     // Store proposal name as a comment
-    assert(pwalletMain->mapWallet.count(wtx->GetHash()));
-    pwalletMain->mapWallet.at(wtx->GetHash()).SetComment("Proposal: " + strProposalName);
+    assert(pwallet->mapWallet.count(wtx->GetHash()));
+    pwallet->mapWallet.at(wtx->GetHash()).SetComment("Proposal: " + strProposalName);
 
     return wtx->GetHash().ToString();
 }

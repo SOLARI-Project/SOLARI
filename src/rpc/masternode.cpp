@@ -355,9 +355,9 @@ UniValue startmasternode(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_MISC_ERROR, "startmasternode is not supported when deterministic masternode list is active (DIP3)");
     }
 
-    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
-    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
     std::string strCommand;
@@ -407,7 +407,7 @@ UniValue startmasternode(const JSONRPCRequest& request)
 
     bool fLock = (request.params[1].get_str() == "true" ? true : false);
 
-    EnsureWalletIsUnlocked(pwalletMain);
+    EnsureWalletIsUnlocked(pwallet);
 
     if (strCommand == "local") {
         if (!fMasterNode) throw std::runtime_error("you must set masternode=1 in the configuration\n");
@@ -415,7 +415,7 @@ UniValue startmasternode(const JSONRPCRequest& request)
         if (activeMasternode.GetStatus() != ACTIVE_MASTERNODE_STARTED) {
             activeMasternode.ResetStatus();
             if (fLock)
-                pwalletMain->Lock();
+                pwallet->Lock();
         }
 
         return activeMasternode.GetStatusMessage();
@@ -444,7 +444,7 @@ UniValue startmasternode(const JSONRPCRequest& request)
             RelayMNB(mnb, fSuccess, successful, failed);
         }
         if (fLock)
-            pwalletMain->Lock();
+            pwallet->Lock();
 
         UniValue returnObj(UniValue::VOBJ);
         returnObj.pushKV("overall", strprintf("Successfully started %d masternodes, failed to start %d, total %d", successful, failed, successful + failed));
@@ -484,7 +484,7 @@ UniValue startmasternode(const JSONRPCRequest& request)
         }
 
         if (fLock)
-            pwalletMain->Lock();
+            pwallet->Lock();
 
         if(!found) {
             statusObj.pushKV("success", false);
@@ -517,9 +517,9 @@ UniValue createmasternodekey (const JSONRPCRequest& request)
 
 UniValue getmasternodeoutputs (const JSONRPCRequest& request)
 {
-    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
-    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
     if (request.fHelp || (request.params.size() != 0))
@@ -544,7 +544,7 @@ UniValue getmasternodeoutputs (const JSONRPCRequest& request)
     coinsFilter.fIncludeDelegated = false;
     coinsFilter.nCoinType = ONLY_10000;
     std::vector<COutput> possibleCoins;
-    pwalletMain->AvailableCoins(&possibleCoins, nullptr, coinsFilter);
+    pwallet->AvailableCoins(&possibleCoins, nullptr, coinsFilter);
 
     UniValue ret(UniValue::VARR);
     for (COutput& out : possibleCoins) {
@@ -817,9 +817,9 @@ bool DecodeHexMnb(CMasternodeBroadcast& mnb, std::string strHexMnb) {
 }
 UniValue createmasternodebroadcast(const JSONRPCRequest& request)
 {
-    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
-    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
     std::string strCommand;
@@ -829,7 +829,7 @@ UniValue createmasternodebroadcast(const JSONRPCRequest& request)
         throw std::runtime_error(
             "createmasternodebroadcast \"command\" ( \"alias\")\n"
             "\nCreates a masternode broadcast message for one or all masternodes configured in masternode.conf\n" +
-            HelpRequiringPassphrase(pwalletMain) + "\n"
+            HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
             "1. \"command\"      (string, required) \"alias\" for single masternode, \"all\" for all masternodes\n"
@@ -860,7 +860,7 @@ UniValue createmasternodebroadcast(const JSONRPCRequest& request)
             "\nExamples:\n" +
             HelpExampleCli("createmasternodebroadcast", "alias mymn1") + HelpExampleRpc("createmasternodebroadcast", "alias mymn1"));
 
-    EnsureWalletIsUnlocked(pwalletMain);
+    EnsureWalletIsUnlocked(pwallet);
 
     if (strCommand == "alias")
     {
