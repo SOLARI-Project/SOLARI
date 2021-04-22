@@ -194,13 +194,18 @@ extern int64_t nWalletUnlockTime;
 extern CAmount AmountFromValue(const UniValue& value);
 extern UniValue ValueFromAmount(const CAmount& amount);
 extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
-extern std::string HelpRequiringPassphrase();
 extern std::string HelpExampleCli(std::string methodname, std::string args);
 extern std::string HelpExampleRpc(std::string methodname, std::string args);
 
-extern void EnsureWalletIsUnlocked(bool fAllowAnonOnly = false);
-// Ensure the wallet's existence.
-extern void EnsureWallet();
+// Needed even with !ENABLE_WALLET, to pass (ignored) pointers around
+class CWallet;
+
+#ifdef ENABLE_WALLET
+// New code should accessing the wallet should be under the ../wallet/ directory
+std::string HelpRequiringPassphrase(CWallet* const pwallet);
+bool EnsureWalletIsAvailable(CWallet* const pwallet, bool avoidException);
+void EnsureWalletIsUnlocked(CWallet *pwallet, bool fAllowAnonOnly = false);
+#endif
 
 bool StartRPC();
 void InterruptRPC();

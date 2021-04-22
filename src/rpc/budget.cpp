@@ -97,6 +97,9 @@ void checkBudgetInputs(const UniValue& params, std::string &strProposalName, std
 
 UniValue preparebudget(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 6)
         throw std::runtime_error(
             "preparebudget \"proposal-name\" \"url\" payment-count block-start \"pivx-address\" monthy-payment\n"
@@ -123,7 +126,7 @@ UniValue preparebudget(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
 
     std::string strProposalName;
     std::string strURL;

@@ -272,10 +272,9 @@ static std::string TxInErrorToString(int i, const CTxIn& txin, const std::string
     return strprintf("Input %d (%s): %s", i, txin.prevout.ToStringShort(), strError);
 }
 
-static OperationResult SignTransaction(CMutableTransaction& tx)
+static OperationResult SignTransaction(CWallet* const pwallet, CMutableTransaction& tx)
 {
-    EnsureWalletIsUnlocked();
-    LOCK2(cs_main, pwalletMain->cs_wallet);
+    LOCK2(cs_main, pwallet->cs_wallet);
     const CTransaction txConst(tx);
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         CTxIn& txin = tx.vin[i];
@@ -286,7 +285,7 @@ static OperationResult SignTransaction(CMutableTransaction& tx)
         SigVersion sv = tx.GetRequiredSigVersion();
         txin.scriptSig.clear();
         SignatureData sigdata;
-        if (!ProduceSignature(MutableTransactionSignatureCreator(pwalletMain, &tx, i, coin.out.nValue, SIGHASH_ALL),
+        if (!ProduceSignature(MutableTransactionSignatureCreator(pwallet, &tx, i, coin.out.nValue, SIGHASH_ALL),
                               coin.out.scriptPubKey, sigdata, sv, false)) {
             return errorOut(TxInErrorToString(i, txin, "signature failed"));
         }
@@ -295,11 +294,8 @@ static OperationResult SignTransaction(CMutableTransaction& tx)
     return OperationResult(true);
 }
 
-static std::string SignAndSendSpecialTx(CMutableTransaction& tx, const ProRegPL& pl)
+static std::string SignAndSendSpecialTx(CWallet* const pwallet, CMutableTransaction& tx, const ProRegPL& pl)
 {
-    EnsureWallet();
-    EnsureWalletIsUnlocked();
-
     SetTxPayload(tx, pl);
 
     CValidationState state;
@@ -307,7 +303,7 @@ static std::string SignAndSendSpecialTx(CMutableTransaction& tx, const ProRegPL&
         throw JSONRPCError(RPC_MISC_ERROR, FormatStateMessage(state));
     }
 
-    const OperationResult& sigRes = SignTransaction(tx);
+    const OperationResult& sigRes = SignTransaction(pwallet, tx);
     if (!sigRes) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, sigRes.getError());
     }
@@ -379,6 +375,9 @@ static ProRegPL ParseProRegPLParams(const UniValue& params, unsigned int paramId
 // handles protx_register, and protx_register_prepare
 static UniValue ProTxRegister(const JSONRPCRequest& request, bool fSignAndSend)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 7 || request.params.size() > 9) {
         throw std::runtime_error(
                 (fSignAndSend ?
@@ -391,7 +390,7 @@ static UniValue ProTxRegister(const JSONRPCRequest& request, bool fSignAndSend)
                     "key and then passed to \"protx_register_submit\".\n"
                     "The collateral is specified through \"collateralHash\" and \"collateralIndex\" and must be an unspent transaction output.\n"
                 )
-                + HelpRequiringPassphrase() + "\n"
+                + HelpRequiringPassphrase(pwalletMain) + "\n"
                 "\nArguments:\n"
                 + GetHelpString(1, collateralHash)
                 + GetHelpString(2, collateralIndex)
@@ -421,8 +420,7 @@ static UniValue ProTxRegister(const JSONRPCRequest& request, bool fSignAndSend)
     }
     if (fSignAndSend) CheckEvoUpgradeEnforcement();
 
-    EnsureWallet();
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
@@ -471,7 +469,7 @@ static UniValue ProTxRegister(const JSONRPCRequest& request, bool fSignAndSend)
     if (fSignAndSend) {
         SignSpecialTxPayloadByString(pl, keyCollateral); // prove we own the collateral
         // check the payload, add the tx inputs sigs, and send the tx.
-        return SignAndSendSpecialTx(tx, pl);
+        return SignAndSendSpecialTx(pwalletMain, tx, pl);
     }
     // external signing with collateral key
     pl.vchSig.clear();
@@ -495,12 +493,15 @@ UniValue protx_register_prepare(const JSONRPCRequest& request)
 
 UniValue protx_register_submit(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 2) {
         throw std::runtime_error(
                 "protx_register_submit \"tx\" \"sig\"\n"
                 "\nSubmits the specified ProTx to the network. This command will also sign the inputs of the transaction\n"
                 "which were previously added by \"protx_register_prepare\" to cover transaction fees\n"
-                + HelpRequiringPassphrase() + "\n"
+                + HelpRequiringPassphrase(pwalletMain) + "\n"
                 "\nArguments:\n"
                 "1. \"tx\"                 (string, required) The serialized transaction previously returned by \"protx_register_prepare\"\n"
                 "2. \"sig\"                (string, required) The signature signed with the collateral key. Must be in base64 format.\n"
@@ -512,8 +513,7 @@ UniValue protx_register_submit(const JSONRPCRequest& request)
     }
     CheckEvoUpgradeEnforcement();
 
-    EnsureWallet();
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
@@ -536,17 +536,20 @@ UniValue protx_register_submit(const JSONRPCRequest& request)
     pl.vchSig = DecodeBase64(request.params[1].get_str().c_str());
 
     // check the payload, add the tx inputs sigs, and send the tx.
-    return SignAndSendSpecialTx(tx, pl);
+    return SignAndSendSpecialTx(pwalletMain, tx, pl);
 }
 
 UniValue protx_register_fund(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 6 || request.params.size() > 8) {
         throw std::runtime_error(
                 "protx_register_fund \"collateralAddress\" \"ipAndPort\" \"ownerAddress\" \"operatorAddress\" \"votingAddress\" \"payoutAddress\" (operatorReward \"operatorPayoutAddress\")\n"
                 "\nCreates, funds and sends a ProTx to the network. The resulting transaction will move 10000 PIV\n"
                 "to the address specified by collateralAddress and will then function as masternode collateral.\n"
-                + HelpRequiringPassphrase() + "\n"
+                + HelpRequiringPassphrase(pwalletMain) + "\n"
                 "\nArguments:\n"
                 + GetHelpString(1, collateralAddress)
                 + GetHelpString(2, ipAndPort_register)
@@ -564,8 +567,7 @@ UniValue protx_register_fund(const JSONRPCRequest& request)
     }
     CheckEvoUpgradeEnforcement();
 
-    EnsureWallet();
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
@@ -594,7 +596,7 @@ UniValue protx_register_fund(const JSONRPCRequest& request)
     // update payload on tx (with final collateral outpoint)
     pl.vchSig.clear();
     // check the payload, add the tx inputs sigs, and send the tx.
-    return SignAndSendSpecialTx(tx, pl);
+    return SignAndSendSpecialTx(pwalletMain, tx, pl);
 }
 
 #endif  //ENABLE_WALLET

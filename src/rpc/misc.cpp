@@ -227,7 +227,9 @@ private:
     isminetype mine;
 
 public:
-    DescribeAddressVisitor(isminetype mineIn) : mine(mineIn) {}
+    CWallet * const pwallet;
+
+    DescribeAddressVisitor(CWallet *_pwallet) : pwallet(_pwallet) {}
 
     UniValue operator()(const CNoDestination &dest) const { return UniValue(UniValue::VOBJ); }
 
@@ -235,8 +237,7 @@ public:
         UniValue obj(UniValue::VOBJ);
         CPubKey vchPubKey;
         obj.pushKV("isscript", false);
-        if (bool(mine & ISMINE_ALL)) {
-            pwalletMain->GetPubKey(keyID, vchPubKey);
+        if (pwallet && pwallet->GetPubKey(keyID, vchPubKey)) {
             obj.pushKV("pubkey", HexStr(vchPubKey));
             obj.pushKV("iscompressed", vchPubKey.IsCompressed());
         }
@@ -247,19 +248,20 @@ public:
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("isscript", true);
         CScript subscript;
-        pwalletMain->GetCScript(scriptID, subscript);
-        std::vector<CTxDestination> addresses;
-        txnouttype whichType;
-        int nRequired;
-        ExtractDestinations(subscript, whichType, addresses, nRequired);
-        obj.pushKV("script", GetTxnOutputType(whichType));
-        obj.pushKV("hex", HexStr(subscript.begin(), subscript.end()));
-        UniValue a(UniValue::VARR);
-        for (const CTxDestination& addr : addresses)
-            a.push_back(EncodeDestination(addr));
-        obj.pushKV("addresses", a);
-        if (whichType == TX_MULTISIG)
-            obj.pushKV("sigsrequired", nRequired);
+        if (pwallet && pwallet->GetCScript(scriptID, subscript)) {
+            std::vector<CTxDestination> addresses;
+            txnouttype whichType;
+            int nRequired;
+            ExtractDestinations(subscript, whichType, addresses, nRequired);
+            obj.pushKV("script", GetTxnOutputType(whichType));
+            obj.pushKV("hex", HexStr(subscript.begin(), subscript.end()));
+            UniValue a(UniValue::VARR);
+            for (const CTxDestination& addr : addresses)
+                a.push_back(EncodeDestination(addr));
+            obj.pushKV("addresses", a);
+            if (whichType == TX_MULTISIG)
+                obj.pushKV("sigsrequired", nRequired);
+        }
         return obj;
     }
 };
@@ -334,7 +336,7 @@ typedef boost::variant<libzcash::InvalidEncoding, libzcash::SaplingPaymentAddres
 class DescribePaymentAddressVisitor : public boost::static_visitor<UniValue>
 {
 public:
-    explicit DescribePaymentAddressVisitor(bool _isStaking) : isStaking(_isStaking) {}
+    explicit DescribePaymentAddressVisitor(CWallet *_pwallet, bool _isStaking) : pwallet(_pwallet), isStaking(_isStaking) {}
     UniValue operator()(const libzcash::InvalidEncoding &zaddr) const { return UniValue(UniValue::VOBJ); }
 
     UniValue operator()(const libzcash::SaplingPaymentAddress &zaddr) const {
@@ -342,8 +344,8 @@ public:
         obj.pushKV("diversifier", HexStr(zaddr.d));
         obj.pushKV("diversifiedtransmissionkey", zaddr.pk_d.GetHex());
 #ifdef ENABLE_WALLET
-        if (pwalletMain) {
-            obj.pushKV("ismine", pwalletMain->HaveSpendingKeyForPaymentAddress(zaddr));
+        if (pwallet) {
+            obj.pushKV("ismine", pwallet->HaveSpendingKeyForPaymentAddress(zaddr));
         }
 #endif
         return obj;
@@ -355,19 +357,20 @@ public:
         ret.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
 
 #ifdef ENABLE_WALLET
-        isminetype mine = pwalletMain ? IsMine(*pwalletMain, dest) : ISMINE_NO;
+        isminetype mine = pwallet ? IsMine(*pwallet, dest) : ISMINE_NO;
         ret.pushKV("ismine", bool(mine & (ISMINE_SPENDABLE_ALL | ISMINE_COLD)));
         ret.pushKV("isstaking", isStaking);
         ret.pushKV("iswatchonly", bool(mine & ISMINE_WATCH_ONLY));
-        UniValue detail = boost::apply_visitor(DescribeAddressVisitor(mine), dest);
+        UniValue detail = boost::apply_visitor(DescribeAddressVisitor(pwallet), dest);
         ret.pushKVs(detail);
-        if (pwalletMain && pwalletMain->HasAddressBook(dest))
-            ret.pushKV("label", pwalletMain->GetNameForAddressBookEntry(dest));
+        if (pwallet && pwallet->HasAddressBook(dest))
+            ret.pushKV("label", pwallet->GetNameForAddressBookEntry(dest));
 #endif
         return ret;
     }
 
 private:
+    CWallet * const pwallet;
     bool isStaking{false};
 };
 
@@ -429,7 +432,7 @@ UniValue validateaddress(const JSONRPCRequest& request)
     ret.pushKV("isvalid", isValid);
     if (isValid) {
         ret.pushKV("address", strAddress);
-        UniValue detail = boost::apply_visitor(DescribePaymentAddressVisitor(isStakingAddress), finalAddress);
+        UniValue detail = boost::apply_visitor(DescribePaymentAddressVisitor(pwalletMain, isStakingAddress), finalAddress);
         ret.pushKVs(detail);
     }
 
@@ -439,7 +442,7 @@ UniValue validateaddress(const JSONRPCRequest& request)
 /**
  * Used by addmultisigaddress / createmultisig:
  */
-CScript _createmultisig_redeemScript(const UniValue& params)
+CScript _createmultisig_redeemScript(CWallet * const pwallet, const UniValue& params)
 {
     int nRequired = params[0].get_int();
     const UniValue& keys = params[1].get_array();
@@ -461,14 +464,14 @@ CScript _createmultisig_redeemScript(const UniValue& params)
 #ifdef ENABLE_WALLET
         // Case 1: PIVX address and we have full public key:
         CTxDestination dest = DecodeDestination(ks);
-        if (pwalletMain && IsValidDestination(dest)) {
+        if (pwallet && IsValidDestination(dest)) {
             const CKeyID* keyID = boost::get<CKeyID>(&dest);
             if (!keyID) {
                 throw std::runtime_error(
                         strprintf("%s does not refer to a key", ks));
             }
             CPubKey vchPubKey;
-            if (!pwalletMain->GetPubKey(*keyID, vchPubKey))
+            if (!pwallet->GetPubKey(*keyID, vchPubKey))
                 throw std::runtime_error(
                     strprintf("no full public key for address %s", ks));
             if (!vchPubKey.IsFullyValid())
@@ -526,7 +529,7 @@ UniValue createmultisig(const JSONRPCRequest& request)
             HelpExampleRpc("createmultisig", "2, \"[\\\"16sSauSf5pF2UkUwvKGq4qjNRzBZYqgEL5\\\",\\\"171sgjn4YtPu27adkKGrdDwzRTxnRkBfKV\\\"]\""));
 
     // Construct using pay-to-script-hash:
-    CScript inner = _createmultisig_redeemScript(request.params);
+    CScript inner = _createmultisig_redeemScript(pwalletMain, request.params);
     CScriptID innerID(inner);
 
     UniValue result(UniValue::VOBJ);

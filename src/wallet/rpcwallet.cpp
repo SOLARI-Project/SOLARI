@@ -37,21 +37,26 @@
 int64_t nWalletUnlockTime;
 static RecursiveMutex cs_nWalletUnlockTime;
 
-std::string HelpRequiringPassphrase()
+std::string HelpRequiringPassphrase(CWallet* const pwallet)
 {
-    return pwalletMain && pwalletMain->IsCrypted() ? "\nRequires wallet passphrase to be set with walletpassphrase call." : "";
+    return pwallet && pwallet->IsCrypted() ? "\nRequires wallet passphrase to be set with walletpassphrase call." : "";
 }
 
-void EnsureWalletIsUnlocked(bool fAllowAnonOnly)
+bool EnsureWalletIsAvailable(CWallet* const pwallet, bool avoidException)
 {
-    if (pwalletMain->IsLocked() || (!fAllowAnonOnly && pwalletMain->fWalletUnlockStaking))
+    if (!pwallet) {
+        if (!avoidException)
+            throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found (wallet disabled)");
+        else
+            return false;
+    }
+    return true;
+}
+
+void EnsureWalletIsUnlocked(CWallet* const pwallet, bool fAllowAnonOnly)
+{
+    if (pwallet->IsLocked() || (!fAllowAnonOnly && pwallet->fWalletUnlockStaking))
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
-}
-
-void EnsureWallet()
-{
-    if (!pwalletMain)
-        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: No wallet loaded in the system");
 }
 
 void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
@@ -88,17 +93,17 @@ std::string LabelFromValue(const UniValue& value)
     return label;
 }
 
-CTxDestination GetNewAddressFromLabel(const std::string purpose, const UniValue &params,
-        const CChainParams::Base58Type addrType = CChainParams::PUBKEY_ADDRESS)
+static CTxDestination GetNewAddressFromLabel(CWallet* const pwallet, const std::string purpose, const UniValue &params,
+                                             const CChainParams::Base58Type addrType = CChainParams::PUBKEY_ADDRESS)
 {
-    LOCK2(cs_main, pwalletMain->cs_wallet);
+    LOCK2(cs_main, pwallet->cs_wallet);
     // Parse the label first so we don't generate a key if there's an error
     std::string label;
     if (!params.isNull() && params.size() > 0)
         label = LabelFromValue(params[0]);
 
     CTxDestination address;
-    PairResult r = pwalletMain->getNewAddress(address, label, purpose, addrType);
+    PairResult r = pwallet->getNewAddress(address, label, purpose, addrType);
     if(!r.result)
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, *r.status);
     return address;
@@ -127,9 +132,8 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
 {
     CWallet* const pwallet = pwalletMain;
 
-    if (!pwallet) {
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
-    }
 
     const std::string example_address = "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\"";
 
@@ -254,9 +258,8 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
 UniValue getaddressesbylabel(const JSONRPCRequest& request)
 {
     CWallet* const pwallet = pwalletMain;
-    if (!pwallet) {
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
-    }
 
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
@@ -301,9 +304,8 @@ UniValue getaddressesbylabel(const JSONRPCRequest& request)
 UniValue listlabels(const JSONRPCRequest& request)
 {
     CWallet* const pwallet = pwalletMain;
-    if (!pwallet) {
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
-    }
 
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
@@ -369,6 +371,9 @@ CPubKey parseWIFKey(std::string strKey, CWallet* pwallet)
 
 UniValue upgradewallet(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error("upgradewallet\n"
                                  "Bump the wallet features to the latest supported version. Non-HD wallets will be upgraded to HD wallet functionality. "
@@ -378,10 +383,10 @@ UniValue upgradewallet(const JSONRPCRequest& request)
                                  "Enabling the Sapling key manager. Sapling keys will be deterministically derived by the same HD wallet seed.\n"
                                  "Wallets that are running the latest Sapling version will not be upgraded"
                                  "\nNote that you will need to MAKE A NEW BACKUP of your wallet after upgrade it.\n"
+                                 + HelpRequiringPassphrase(pwalletMain) + "\n"
                                  + HelpExampleCli("upgradewallet", "") + HelpExampleRpc("upgradewallet", "")
         );
 
-    EnsureWallet();
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
     // Do not do anything to wallets already upgraded
@@ -389,7 +394,7 @@ UniValue upgradewallet(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, "Cannot upgrade the wallet. The wallet is already running the latest version");
     }
 
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
 
     // Get version
     int prev_version = pwalletMain->GetVersion();
@@ -410,16 +415,16 @@ UniValue upgradewallet(const JSONRPCRequest& request)
 UniValue sethdseed(const JSONRPCRequest& request)
 {
     CWallet* pwallet = pwalletMain;
-
-    if (!pwallet) {
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
-    }
 
     if (request.fHelp || request.params.size() > 2)
         throw std::runtime_error("sethdseed ( newkeypool \"seed\" )\n"
                "Set or generate a new HD wallet seed. Non-HD wallets will not be upgraded to being a HD wallet. Wallets that are already\n"
                "HD will have a new HD seed set so that new keys added to the keypool will be derived from this new seed.\n"
-               "\nNote that you will need to MAKE A NEW BACKUP of your wallet after setting the HD wallet seed.\n\n"
+               "\nNote that you will need to MAKE A NEW BACKUP of your wallet after setting the HD wallet seed.\n"
+                + HelpRequiringPassphrase(pwalletMain) + "\n"
+
                "\nArguments:\n"
                "1. newkeypool (boolean, optional, default true): Whether to flush old unused addresses, including change addresses, from the keypool and regenerate it.\n"
                "           If true, the next address from getnewaddress and change address from getrawchangeaddress will be from this new seed.\n"
@@ -474,6 +479,9 @@ UniValue sethdseed(const JSONRPCRequest& request)
 
 UniValue getnewaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "getnewaddress ( \"label\" )\n"
@@ -490,11 +498,13 @@ UniValue getnewaddress(const JSONRPCRequest& request)
             "\nExamples:\n" +
             HelpExampleCli("getnewaddress", "") + HelpExampleRpc("getnewaddress", ""));
 
-    return EncodeDestination(GetNewAddressFromLabel(AddressBook::AddressBookPurpose::RECEIVE, request.params));
+    return EncodeDestination(GetNewAddressFromLabel(pwalletMain, AddressBook::AddressBookPurpose::RECEIVE, request.params));
 }
 
 UniValue getnewstakingaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
 
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
@@ -511,16 +521,19 @@ UniValue getnewstakingaddress(const JSONRPCRequest& request)
             "\nExamples:\n" +
             HelpExampleCli("getnewstakingaddress", "") + HelpExampleRpc("getnewstakingaddress", ""));
 
-    return EncodeDestination(GetNewAddressFromLabel("coldstaking", request.params, CChainParams::STAKING_ADDRESS), CChainParams::STAKING_ADDRESS);
+    return EncodeDestination(GetNewAddressFromLabel(pwalletMain, "coldstaking", request.params, CChainParams::STAKING_ADDRESS), CChainParams::STAKING_ADDRESS);
 }
 
 UniValue getnewshieldaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
                 "getnewshieldaddress\n"
                 "\nReturns a new shield address for receiving payments.\n"
-                + HelpRequiringPassphrase() + "\n"
+                + HelpRequiringPassphrase(pwalletMain) + "\n"
 
                 "\nResult:\n"
                 "\"address\"    (string) The new shield address.\n"
@@ -530,17 +543,18 @@ UniValue getnewshieldaddress(const JSONRPCRequest& request)
                 + HelpExampleRpc("getnewshieldaddress", "")
         );
 
-    EnsureWallet();
-
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
 
     return KeyIO::EncodePaymentAddress(pwalletMain->GenerateNewSaplingZKey());
 }
 
 UniValue listshieldunspent(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 4)
         throw std::runtime_error(
                 "listshieldunspent ( minconf maxconf includeWatchonly [\"shield_addr\",...] )\n"
@@ -579,8 +593,6 @@ UniValue listshieldunspent(const JSONRPCRequest& request)
                 + HelpExampleCli("listshieldunspent", "6 9999999 false \"[\\\"ptestsapling1h0w73csah2aq0a32h42kr7tq4htlt5wfn4ejxfnm56f6ehjvek7k4e244g6v8v3pgylmz5ea8jh\\\",\\\"ptestsapling1h0w73csah2aq0a32h42kr7tq4htlt5wfn4ejxfnm56f6ehjvek7k4e244g6v8v3pgylmz5ea8jh\\\"]\"")
                 + HelpExampleRpc("listshieldunspent", "6 9999999 false \"[\\\"ptestsapling1h0w73csah2aq0a32h42kr7tq4htlt5wfn4ejxfnm56f6ehjvek7k4e244g6v8v3pgylmz5ea8jh\\\",\\\"ptestsapling1h0w73csah2aq0a32h42kr7tq4htlt5wfn4ejxfnm56f6ehjvek7k4e244g6v8v3pgylmz5ea8jh\\\"]\"")
         );
-
-    EnsureWallet();
 
     RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VNUM, UniValue::VBOOL, UniValue::VARR});
 
@@ -670,6 +682,9 @@ UniValue listshieldunspent(const JSONRPCRequest& request)
 
 UniValue delegatoradd(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
             "delegatoradd \"addr\" ( \"label\" )\n"
@@ -705,6 +720,9 @@ UniValue delegatoradd(const JSONRPCRequest& request)
 
 UniValue delegatorremove(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "delegatorremove \"addr\"\n"
@@ -742,7 +760,7 @@ UniValue delegatorremove(const JSONRPCRequest& request)
     return pwalletMain->SetAddressBook(*keyID, label, AddressBook::AddressBookPurpose::DELEGABLE);
 }
 
-UniValue ListaddressesForPurpose(const std::string strPurpose)
+static UniValue ListaddressesForPurpose(CWallet* const pwallet, const std::string strPurpose)
 {
     const CChainParams::Base58Type addrType = (
             AddressBook::IsColdStakingPurpose(strPurpose) ?
@@ -750,8 +768,8 @@ UniValue ListaddressesForPurpose(const std::string strPurpose)
                     CChainParams::PUBKEY_ADDRESS);
     UniValue ret(UniValue::VARR);
     {
-        LOCK(pwalletMain->cs_wallet);
-        for (auto it = pwalletMain->NewAddressBookIterator(); it.IsValid(); it.Next()) {
+        LOCK(pwallet->cs_wallet);
+        for (auto it = pwallet->NewAddressBookIterator(); it.IsValid(); it.Next()) {
             auto addrBook = it.GetValue();
             if (addrBook.purpose != strPurpose) continue;
             auto dest = it.GetCTxDestKey();
@@ -768,6 +786,9 @@ UniValue ListaddressesForPurpose(const std::string strPurpose)
 
 UniValue listdelegators(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "listdelegators ( fBlacklist )\n"
@@ -792,12 +813,15 @@ UniValue listdelegators(const JSONRPCRequest& request)
 
     const bool fBlacklist = (request.params.size() > 0 ? request.params[0].get_bool() : false);
     return (fBlacklist ?
-            ListaddressesForPurpose(AddressBook::AddressBookPurpose::DELEGABLE) :
-            ListaddressesForPurpose(AddressBook::AddressBookPurpose::DELEGATOR));
+            ListaddressesForPurpose(pwalletMain, AddressBook::AddressBookPurpose::DELEGABLE) :
+            ListaddressesForPurpose(pwalletMain, AddressBook::AddressBookPurpose::DELEGATOR));
 }
 
 UniValue liststakingaddresses(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error(
             "liststakingaddresses \"addr\"\n"
@@ -816,11 +840,14 @@ UniValue liststakingaddresses(const JSONRPCRequest& request)
             HelpExampleCli("liststakingaddresses" , "") +
             HelpExampleRpc("liststakingaddresses", ""));
 
-    return ListaddressesForPurpose(AddressBook::AddressBookPurpose::COLD_STAKING);
+    return ListaddressesForPurpose(pwalletMain, AddressBook::AddressBookPurpose::COLD_STAKING);
 }
 
 UniValue listshieldaddresses(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
                 "listshieldaddresses ( includeWatchonly )\n"
@@ -840,7 +867,6 @@ UniValue listshieldaddresses(const JSONRPCRequest& request)
                 + HelpExampleRpc("listshieldaddresses", "")
         );
 
-    EnsureWallet();
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
     bool fIncludeWatchonly = false;
@@ -864,6 +890,9 @@ UniValue listshieldaddresses(const JSONRPCRequest& request)
 
 UniValue getrawchangeaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "getrawchangeaddress\n"
@@ -896,6 +925,9 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
 UniValue setlabel(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
             "setlabel \"pivxaddress\" \"label\"\n"
@@ -922,52 +954,49 @@ UniValue setlabel(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-void SendMoney(const CTxDestination& address, CAmount nValue, CTransactionRef& tx)
+static void SendMoney(CWallet* const pwallet, const CTxDestination& address, CAmount nValue, CTransactionRef& tx)
 {
+    LOCK2(cs_main, pwallet->cs_wallet);
+
     // Check amount
     if (nValue <= 0)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid amount");
 
-    if (nValue > pwalletMain->GetAvailableBalance())
+    if (nValue > pwallet->GetAvailableBalance())
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
 
     if (!g_connman)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
 
-    std::string strError;
-    if (pwalletMain->IsLocked()) {
-        strError = "Error: Wallet locked, unable to create transaction!";
-        LogPrintf("SendMoney() : %s", strError);
-        throw JSONRPCError(RPC_WALLET_ERROR, strError);
-    }
-
     // Parse PIVX address
     CScript scriptPubKey = GetScriptForDestination(address);
 
     // Create and send the transaction
-    CReserveKey reservekey(pwalletMain);
+    CReserveKey reservekey(pwallet);
     CAmount nFeeRequired;
-    if (!pwalletMain->CreateTransaction(scriptPubKey, nValue, tx, reservekey, nFeeRequired, strError, nullptr, ALL_COINS, (CAmount)0)) {
-        if (nValue + nFeeRequired > pwalletMain->GetAvailableBalance())
+    std::string strError;
+    if (!pwallet->CreateTransaction(scriptPubKey, nValue, tx, reservekey, nFeeRequired, strError, nullptr, ALL_COINS, (CAmount)0)) {
+        if (nValue + nFeeRequired > pwallet->GetAvailableBalance())
             strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!", FormatMoney(nFeeRequired));
-        LogPrintf("SendMoney() : %s\n", strError);
+        LogPrintf("%s: %s\n", __func__, strError);
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
-    const CWallet::CommitResult&& res = pwalletMain->CommitTransaction(tx, reservekey, g_connman.get());
+    const CWallet::CommitResult&& res = pwallet->CommitTransaction(tx, reservekey, g_connman.get());
     if (res.status != CWallet::CommitStatus::OK)
         throw JSONRPCError(RPC_WALLET_ERROR, res.ToString());
 }
 
-static SaplingOperation CreateShieldedTransaction(const JSONRPCRequest& request);
+static SaplingOperation CreateShieldedTransaction(CWallet* const pwallet, const JSONRPCRequest& request);
 
 /*
  * redirect sendtoaddress/sendmany inputs to shieldsendmany implementation (CreateShieldedTransaction)
  */
-static UniValue ShieldSendManyTo(const UniValue& sendTo,
-                                   const std::string& commentStr,
-                                   const std::string& toStr,
-                                   int nMinDepth,
-                                   bool fIncludeDelegated)
+static UniValue ShieldSendManyTo(CWallet * const pwallet,
+                                 const UniValue& sendTo,
+                                 const std::string& commentStr,
+                                 const std::string& toStr,
+                                 int nMinDepth,
+                                 bool fIncludeDelegated)
 {
     // convert params to 'shieldsendmany' format
     JSONRPCRequest req;
@@ -988,7 +1017,7 @@ static UniValue ShieldSendManyTo(const UniValue& sendTo,
     req.params.push_back(nMinDepth);
 
     // send
-    SaplingOperation operation = CreateShieldedTransaction(req);
+    SaplingOperation operation = CreateShieldedTransaction(pwallet, req);
     std::string txid;
     auto res = operation.send(txid);
     if (!res)
@@ -996,12 +1025,12 @@ static UniValue ShieldSendManyTo(const UniValue& sendTo,
 
     // add comments
     const uint256& txHash = uint256S(txid);
-    assert(pwalletMain->mapWallet.count(txHash));
+    assert(pwallet->mapWallet.count(txHash));
     if (!commentStr.empty()) {
-        pwalletMain->mapWallet.at(txHash).mapValue["comment"] = commentStr;
+        pwallet->mapWallet.at(txHash).mapValue["comment"] = commentStr;
     }
     if (!toStr.empty()) {
-        pwalletMain->mapWallet.at(txHash).mapValue["to"] = toStr;
+        pwallet->mapWallet.at(txHash).mapValue["to"] = toStr;
     }
 
     return txid;
@@ -1009,11 +1038,14 @@ static UniValue ShieldSendManyTo(const UniValue& sendTo,
 
 UniValue sendtoaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
         throw std::runtime_error(
             "sendtoaddress \"pivxaddress\" amount ( \"comment\" \"comment-to\" )\n"
             "\nSend an amount to a given address. The amount is a real and is rounded to the nearest 0.00000001\n" +
-            HelpRequiringPassphrase() + "\n"
+            HelpRequiringPassphrase(pwalletMain) + "\n"
 
             "\nArguments:\n"
             "1. \"pivxaddress\"  (string, required) The pivx address to send to.\n"
@@ -1032,7 +1064,7 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
             HelpExampleCli("sendtoaddress", "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" 0.1 \"donation\" \"seans outpost\"") +
             HelpExampleRpc("sendtoaddress", "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\", 0.1, \"donation\", \"seans outpost\""));
 
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -1051,17 +1083,16 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
     if (isShielded) {
         UniValue sendTo(UniValue::VOBJ);
         sendTo.pushKV(addrStr, request.params[1]);
-        return ShieldSendManyTo(sendTo, commentStr, toStr, 1, false);
+        return ShieldSendManyTo(pwalletMain, sendTo, commentStr, toStr, 1, false);
     }
 
     const CTxDestination& address = *Standard::GetTransparentDestination(destination);
-    LOCK2(cs_main, pwalletMain->cs_wallet);
 
     // Amount
     CAmount nAmount = AmountFromValue(request.params[1]);
 
     CTransactionRef tx;
-    SendMoney(address, nAmount, tx);
+    SendMoney(pwalletMain, address, nAmount, tx);
 
     // Wallet comments
     CWalletTx& wtx = pwalletMain->mapWallet.at(tx->GetHash());
@@ -1073,9 +1104,9 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
     return wtx.GetHash().GetHex();
 }
 
-UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNew, CReserveKey& reservekey)
+static UniValue CreateColdStakeDelegation(CWallet* const pwallet, const UniValue& params, CTransactionRef& txNew, CReserveKey& reservekey)
 {
-    LOCK2(cs_main, pwalletMain->cs_wallet);
+    LOCK2(cs_main, pwallet->cs_wallet);
 
     // Check that Cold Staking has been enforced or fForceNotEnabled = true
     bool fForceNotEnabled = false;
@@ -1111,12 +1142,11 @@ UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNe
         fUseDelegated = params[4].get_bool();
 
     // Check amount
-    CAmount currBalance = pwalletMain->GetAvailableBalance() + (fUseDelegated ? pwalletMain->GetDelegatedBalance() : 0);
+    CAmount currBalance = pwallet->GetAvailableBalance() + (fUseDelegated ? pwallet->GetDelegatedBalance() : 0);
     if (nValue > currBalance)
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
 
     std::string strError;
-    EnsureWalletIsUnlocked();
 
     // Get Owner Address
     std::string ownerAddressStr;
@@ -1130,7 +1160,7 @@ UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNe
         ownerKey = *boost::get<CKeyID>(&dest);
         // Check that the owner address belongs to this wallet, or fForceExternalAddr is true
         bool fForceExternalAddr = params.size() > 3 && !params[3].isNull() ? params[3].get_bool() : false;
-        if (!fForceExternalAddr && !pwalletMain->HaveKey(ownerKey)) {
+        if (!fForceExternalAddr && !pwallet->HaveKey(ownerKey)) {
             std::string errMsg = strprintf("The provided owneraddress \"%s\" is not present in this wallet.\n", params[2].get_str());
             errMsg += "Set 'fExternalOwner' argument to true, in order to force the stake delegation to an external owner address.\n"
                     "e.g. delegatestake stakingaddress amount owneraddress true.\n"
@@ -1140,7 +1170,7 @@ UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNe
         ownerAddressStr = params[2].get_str();
     } else {
         // Get new owner address from keypool
-        CTxDestination ownerAddr = GetNewAddressFromLabel("delegated", NullUniValue);
+        CTxDestination ownerAddr = GetNewAddressFromLabel(pwallet, "delegated", NullUniValue);
         CKeyID* pOwnerKey = boost::get<CKeyID>(&ownerAddr);
         assert(pOwnerKey);
         ownerKey = *pOwnerKey;
@@ -1157,7 +1187,7 @@ UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNe
         CAmount nFeeRequired;
         CScript scriptPubKey = fV6Enforced ? GetScriptForStakeDelegation(*stakeKey, ownerKey)
                                            : GetScriptForStakeDelegationLOF(*stakeKey, ownerKey);
-        if (!pwalletMain->CreateTransaction(scriptPubKey, nValue, txNew, reservekey, nFeeRequired, strError, nullptr, ALL_COINS, (CAmount)0, fUseDelegated)) {
+        if (!pwallet->CreateTransaction(scriptPubKey, nValue, txNew, reservekey, nFeeRequired, strError, nullptr, ALL_COINS, (CAmount)0, fUseDelegated)) {
             if (nValue + nFeeRequired > currBalance)
                 strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!", FormatMoney(nFeeRequired));
             LogPrintf("%s : %s\n", __func__, strError);
@@ -1172,7 +1202,7 @@ UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNe
             throw JSONRPCError(RPC_INVALID_PARAMETER, "SHIELD in maintenance (SPORK 20)");
         }
         std::vector<SendManyRecipient> recipients = {SendManyRecipient(ownerKey, *stakeKey, nValue, fV6Enforced)};
-        SaplingOperation operation(consensus, nextBlockHeight, pwalletMain);
+        SaplingOperation operation(consensus, nextBlockHeight, pwallet);
         OperationResult res = operation.setSelectShieldedCoins(true)
                                        ->setRecipients(recipients)
                                        ->build();
@@ -1188,11 +1218,14 @@ UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNe
 
 UniValue delegatestake(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 7)
         throw std::runtime_error(
             "delegatestake \"stakingaddress\" amount ( \"owneraddress\" fExternalOwner fUseDelegated fFromShield fForceNotEnabled )\n"
             "\nDelegate an amount to a given address for cold staking. The amount is a real and is rounded to the nearest 0.00000001\n" +
-            HelpRequiringPassphrase() + "\n"
+            HelpRequiringPassphrase(pwalletMain) + "\n"
 
             "\nArguments:\n"
             "1. \"stakingaddress\"      (string, required) The pivx staking address to delegate.\n"
@@ -1217,6 +1250,8 @@ UniValue delegatestake(const JSONRPCRequest& request)
             HelpExampleCli("delegatestake", "\"S1t2a3kab9c8c71VA78xxxy4MxZg6vgeS6\" 1000 \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg34fk\"") +
             HelpExampleRpc("delegatestake", "\"S1t2a3kab9c8c71VA78xxxy4MxZg6vgeS6\", 1000, \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg34fk\""));
 
+    EnsureWalletIsUnlocked(pwalletMain);
+
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
@@ -1225,7 +1260,7 @@ UniValue delegatestake(const JSONRPCRequest& request)
 
     CTransactionRef wtx;
     CReserveKey reservekey(pwalletMain);
-    UniValue ret = CreateColdStakeDelegation(request.params, wtx, reservekey);
+    UniValue ret = CreateColdStakeDelegation(pwalletMain, request.params, wtx, reservekey);
 
     const CWallet::CommitResult& res = pwalletMain->CommitTransaction(wtx, reservekey, g_connman.get());
     if (res.status != CWallet::CommitStatus::OK)
@@ -1237,12 +1272,15 @@ UniValue delegatestake(const JSONRPCRequest& request)
 
 UniValue rawdelegatestake(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 7)
         throw std::runtime_error(
             "rawdelegatestake \"stakingaddress\" amount ( \"owneraddress\" fExternalOwner fUseDelegated fFromShield )\n"
             "\nDelegate an amount to a given address for cold staking. The amount is a real and is rounded to the nearest 0.00000001\n"
             "\nDelegate transaction is returned as json object." +
-            HelpRequiringPassphrase() + "\n"
+            HelpRequiringPassphrase(pwalletMain) + "\n"
 
             "\nArguments:\n"
             "1. \"stakingaddress\"      (string, required) The pivx staking address to delegate.\n"
@@ -1263,6 +1301,8 @@ UniValue rawdelegatestake(const JSONRPCRequest& request)
             HelpExampleCli("rawdelegatestake", "\"S1t2a3kab9c8c71VA78xxxy4MxZg6vgeS6\" 1000 \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg34fk\"") +
             HelpExampleRpc("rawdelegatestake", "\"S1t2a3kab9c8c71VA78xxxy4MxZg6vgeS6\", 1000, \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg34fk\""));
 
+    EnsureWalletIsUnlocked(pwalletMain);
+
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
@@ -1271,16 +1311,16 @@ UniValue rawdelegatestake(const JSONRPCRequest& request)
 
     CTransactionRef wtx;
     CReserveKey reservekey(pwalletMain);
-    CreateColdStakeDelegation(request.params, wtx, reservekey);
+    CreateColdStakeDelegation(pwalletMain, request.params, wtx, reservekey);
 
     return EncodeHexTx(*wtx);
 }
 
 
-CAmount getBalanceShieldedAddr(Optional<libzcash::SaplingPaymentAddress>& filterAddress, int minDepth = 1, bool ignoreUnspendable=true) {
+static CAmount getBalanceShieldedAddr(CWallet* const pwallet, Optional<libzcash::SaplingPaymentAddress>& filterAddress, int minDepth = 1, bool ignoreUnspendable=true) {
     CAmount balance = 0;
     std::vector<SaplingNoteEntry> saplingEntries;
-    LOCK2(cs_main, pwalletMain->cs_wallet);
+    LOCK2(cs_main, pwallet->cs_wallet);
     pwalletMain->GetSaplingScriptPubKeyMan()->GetFilteredNotes(saplingEntries, filterAddress, minDepth, true, ignoreUnspendable);
     for (auto & entry : saplingEntries) {
         balance += CAmount(entry.note.value());
@@ -1290,7 +1330,7 @@ CAmount getBalanceShieldedAddr(Optional<libzcash::SaplingPaymentAddress>& filter
 
 UniValue getshieldbalance(const JSONRPCRequest& request)
 {
-    if (!pwalletMain)
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
     if (request.fHelp || request.params.size() > 3)
@@ -1339,17 +1379,21 @@ UniValue getshieldbalance(const JSONRPCRequest& request)
     }
 
     const bool fIncludeWatchonly = request.params.size() > 2 && request.params[2].get_bool();
-    CAmount nBalance = getBalanceShieldedAddr(address, nMinDepth, !fIncludeWatchonly);
+    CAmount nBalance = getBalanceShieldedAddr(pwalletMain, address, nMinDepth, !fIncludeWatchonly);
     return ValueFromAmount(nBalance);
 }
 
 UniValue viewshieldtransaction(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
                 "viewshieldtransaction \"txid\"\n"
                 "\nGet detailed shield information about in-wallet transaction \"txid\"\n"
-                + HelpRequiringPassphrase() + "\n"
+                + HelpRequiringPassphrase(pwalletMain) + "\n"
+
                 "\nArguments:\n"
                 "1. \"txid\"    (string, required) The transaction id\n"
                 "\nResult:\n"
@@ -1390,7 +1434,7 @@ UniValue viewshieldtransaction(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, "Sapling wallet not initialized.");
     }
 
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -1518,12 +1562,11 @@ UniValue viewshieldtransaction(const JSONRPCRequest& request)
     return entry;
 }
 
-static SaplingOperation CreateShieldedTransaction(const JSONRPCRequest& request)
+static SaplingOperation CreateShieldedTransaction(CWallet* const pwallet, const JSONRPCRequest& request)
 {
-    EnsureWalletIsUnlocked();
-    LOCK2(cs_main, pwalletMain->cs_wallet);
+    LOCK2(cs_main, pwallet->cs_wallet);
     int nextBlockHeight = chainActive.Height() + 1;
-    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, pwalletMain);
+    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, pwallet);
 
     // Param 0: source of funds. Can either be a valid address, sapling address,
     // or the string "from_transparent"|"from_trans_cold"|"from_shield"
@@ -1547,7 +1590,7 @@ static SaplingOperation CreateShieldedTransaction(const JSONRPCRequest& request)
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid from address, should be a taddr or shield addr.");
             }
             libzcash::SaplingPaymentAddress fromShieldedAddress = *boost::get<libzcash::SaplingPaymentAddress>(&res);
-            if (!pwalletMain->HaveSpendingKeyForPaymentAddress(fromShieldedAddress)) {
+            if (!pwallet->HaveSpendingKeyForPaymentAddress(fromShieldedAddress)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "From address does not belong to this node, shield addr spending key not found.");
             }
             // send from user-supplied shield address
@@ -1674,13 +1717,17 @@ static SaplingOperation CreateShieldedTransaction(const JSONRPCRequest& request)
 
 UniValue shieldsendmany(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
         throw std::runtime_error(
                 "shieldsendmany \"fromaddress\" [{\"address\":... ,\"amount\":...},...] ( minconf fee )\n"
                 "\nSend to many recipients. Amounts are decimal numbers with at most 8 digits of precision."
                 "\nChange generated from a transparent addr flows to a new  transparent addr address, while change generated from a shield addr returns to itself."
                 "\nWhen sending coinbase UTXOs to a shield addr, change is not allowed. The entire value of the UTXO(s) must be consumed."
-                + HelpRequiringPassphrase() + "\n"
+                + HelpRequiringPassphrase(pwalletMain) + "\n"
+
                 "\nArguments:\n"
                 "1. \"fromaddress\"         (string, required) The transparent addr or shield addr to send the funds from.\n"
                 "                             It can also be the string \"from_transparent\"|\"from_shield\" to send the funds\n"
@@ -1706,11 +1753,13 @@ UniValue shieldsendmany(const JSONRPCRequest& request)
                                  "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\", [{\"address\": \"ps1ra969yfhvhp73rw5ak2xvtcm9fkuqsnmad7qln79mphhdrst3lwu9vvv03yuyqlh42p42st47qd\" ,\"amount\": 5.0}]")
         );
 
+    EnsureWalletIsUnlocked(pwalletMain);
+
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
 
-    SaplingOperation operation = CreateShieldedTransaction(request);
+    SaplingOperation operation = CreateShieldedTransaction(pwalletMain, request);
     std::string txHash;
     auto res = operation.send(txHash);
     if (!res)
@@ -1720,6 +1769,9 @@ UniValue shieldsendmany(const JSONRPCRequest& request)
 
 UniValue rawshieldsendmany(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
         throw std::runtime_error(
                 "rawshieldsendmany \"fromaddress\" [{\"address\":... ,\"amount\":...},...] ( minconf fee )\n"
@@ -1727,7 +1779,8 @@ UniValue rawshieldsendmany(const JSONRPCRequest& request)
                 "\nAmounts are decimal numbers with at most 8 digits of precision."
                 "\nChange generated from a transparent addr flows to a new  transparent addr address, while change generated from a shield addr returns to itself."
                 "\nWhen sending coinbase UTXOs to a shield addr, change is not allowed. The entire value of the UTXO(s) must be consumed."
-                + HelpRequiringPassphrase() + "\n"
+                + HelpRequiringPassphrase(pwalletMain) + "\n"
+
                 "\nArguments:\n"
                 "1. \"fromaddress\"         (string, required) The transparent addr or shield addr to send the funds from.\n"
                 "                             It can also be the string \"from_transparent\"|\"from_shield\" to send the funds\n"
@@ -1754,16 +1807,21 @@ UniValue rawshieldsendmany(const JSONRPCRequest& request)
                                  "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\", [{\"address\": \"ps1ra969yfhvhp73rw5ak2xvtcm9fkuqsnmad7qln79mphhdrst3lwu9vvv03yuyqlh42p42st47qd\" ,\"amount\": 5.0}]")
         );
 
+    EnsureWalletIsUnlocked(pwalletMain);
+
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
 
-    CTransaction tx = CreateShieldedTransaction(request).getFinalTx();
+    CTransaction tx = CreateShieldedTransaction(pwalletMain, request).getFinalTx();
     return EncodeHexTx(tx);
 }
 
 UniValue listaddressgroupings(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp)
         throw std::runtime_error(
             "listaddressgroupings\n"
@@ -1814,11 +1872,14 @@ UniValue listaddressgroupings(const JSONRPCRequest& request)
 
 UniValue signmessage(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
             "signmessage \"pivxaddress\" \"message\"\n"
             "\nSign a message with the private key of an address" +
-            HelpRequiringPassphrase() + "\n"
+            HelpRequiringPassphrase(pwalletMain) + "\n"
 
             "\nArguments:\n"
             "1. \"pivxaddress\"  (string, required) The pivx address to use for the private key.\n"
@@ -1839,7 +1900,7 @@ UniValue signmessage(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
 
     std::string strAddress = request.params[0].get_str();
     std::string strMessage = request.params[1].get_str();
@@ -1869,6 +1930,9 @@ UniValue signmessage(const JSONRPCRequest& request)
 
 UniValue getreceivedbyaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
             "getreceivedbyaddress \"pivxaddress\" ( minconf )\n"
@@ -1930,6 +1994,9 @@ UniValue getreceivedbyaddress(const JSONRPCRequest& request)
 
 UniValue getreceivedbylabel(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
             "getreceivedbylabel \"label\" ( minconf )\n"
@@ -1988,6 +2055,9 @@ UniValue getreceivedbylabel(const JSONRPCRequest& request)
 
 UniValue getbalance(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || (request.params.size() > 4 ))
         throw std::runtime_error(
             "getbalance ( minconf includeWatchonly includeDelegated includeShield )\n"
@@ -2033,6 +2103,9 @@ UniValue getbalance(const JSONRPCRequest& request)
 
 UniValue getcoldstakingbalance(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || (request.params.size() != 0))
         throw std::runtime_error(
             "getcoldstakingbalance\n"
@@ -2058,6 +2131,9 @@ UniValue getcoldstakingbalance(const JSONRPCRequest& request)
 
 UniValue getdelegatedbalance(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || (request.params.size() != 0))
         throw std::runtime_error(
             "getdelegatedbalance\n"
@@ -2084,6 +2160,9 @@ UniValue getdelegatedbalance(const JSONRPCRequest& request)
 
 UniValue getunconfirmedbalance(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 0)
         throw std::runtime_error(
             "getunconfirmedbalance\n"
@@ -2101,9 +2180,9 @@ UniValue getunconfirmedbalance(const JSONRPCRequest& request)
 /*
  * Only used for t->t transactions (via sendmany RPC)
  */
-static UniValue legacy_sendmany(const UniValue& sendTo, int nMinDepth, std::string comment, bool fIncludeDelegated)
+static UniValue legacy_sendmany(CWallet* const pwallet, const UniValue& sendTo, int nMinDepth, std::string comment, bool fIncludeDelegated)
 {
-    LOCK2(cs_main, pwalletMain->cs_wallet);
+    LOCK2(cs_main, pwallet->cs_wallet);
 
     if (!g_connman)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
@@ -2133,37 +2212,30 @@ static UniValue legacy_sendmany(const UniValue& sendTo, int nMinDepth, std::stri
         vecSend.emplace_back(scriptPubKey, nAmount, false);
     }
 
-    EnsureWalletIsUnlocked();
-
     // Check funds
-    if (totalAmount > pwalletMain->GetLegacyBalance(filter, nMinDepth)) {
+    if (totalAmount > pwallet->GetLegacyBalance(filter, nMinDepth)) {
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Wallet has insufficient funds");
     }
 
     // Send
-    CReserveKey keyChange(pwalletMain);
+    CReserveKey keyChange(pwallet);
     CAmount nFeeRequired = 0;
     std::string strFailReason;
     int nChangePosInOut = -1;
-    bool fCreated = pwalletMain->CreateTransaction(vecSend,
-                                                   txNew,
-                                                   keyChange,
-                                                   nFeeRequired,
-                                                   nChangePosInOut,
-                                                   strFailReason,
-                                                   nullptr,     // coinControl
-                                                   ALL_COINS,   // inputType
-                                                   true,        // sign
-                                                   0,           // nFeePay
-                                                   fIncludeDelegated);
+    bool fCreated = pwallet->CreateTransaction(vecSend, txNew, keyChange, nFeeRequired, nChangePosInOut, strFailReason,
+                                               nullptr,     // coinControl
+                                               ALL_COINS,   // inputType
+                                               true,        // sign
+                                               0,           // nFeePay
+                                               fIncludeDelegated);
     if (!fCreated)
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strFailReason);
-    const CWallet::CommitResult& res = pwalletMain->CommitTransaction(txNew, keyChange, g_connman.get());
+    const CWallet::CommitResult& res = pwallet->CommitTransaction(txNew, keyChange, g_connman.get());
     if (res.status != CWallet::CommitStatus::OK)
         throw JSONRPCError(RPC_WALLET_ERROR, res.ToString());
 
     // Set comment
-    CWalletTx& wtx = pwalletMain->mapWallet.at(txNew->GetHash());
+    CWalletTx& wtx = pwallet->mapWallet.at(txNew->GetHash());
     if (!comment.empty()) {
         wtx.mapValue["comment"] = comment;
     }
@@ -2177,12 +2249,15 @@ static UniValue legacy_sendmany(const UniValue& sendTo, int nMinDepth, std::stri
  */
 UniValue sendmany(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 5)
         throw std::runtime_error(
             "sendmany \"\" {\"address\":amount,...} ( minconf \"comment\" includeDelegated )\n"
             "\nSend to multiple destinations. Recipients are transparent or shield PIVX addresses.\n"
             "\nAmounts are double-precision floating point numbers.\n"
-            + HelpRequiringPassphrase() + "\n"
+            + HelpRequiringPassphrase(pwalletMain) + "\n"
 
             "\nArguments:\n"
             "1. \"dummy\"               (string, required) Must be set to \"\" for backwards compatibility.\n"
@@ -2211,7 +2286,7 @@ UniValue sendmany(const JSONRPCRequest& request)
             HelpExampleRpc("sendmany", "\"\", \"{\\\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\\\":0.01,\\\"DAD3Y6ivr8nPQLT1NEPX84DxGCw9jz9Jvg\\\":0.02}\", 6, \"testing\"")
         );
 
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -2239,18 +2314,21 @@ UniValue sendmany(const JSONRPCRequest& request)
     }
 
     if (fShieldSend) {
-        return ShieldSendManyTo(sendTo, comment, "", nMinDepth, fIncludeDelegated);
+        return ShieldSendManyTo(pwalletMain, sendTo, comment, "", nMinDepth, fIncludeDelegated);
     }
 
     // All recipients are transparent: use Legacy sendmany t->t
-    return legacy_sendmany(sendTo, nMinDepth, comment, fIncludeDelegated);
+    return legacy_sendmany(pwalletMain, sendTo, nMinDepth, comment, fIncludeDelegated);
 }
 
 // Defined in rpc/misc.cpp
-extern CScript _createmultisig_redeemScript(const UniValue& params);
+extern CScript _createmultisig_redeemScript(CWallet* const pwallet, const UniValue& params);
 
 UniValue addmultisigaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
         throw std::runtime_error(
             "addmultisigaddress nrequired [\"key\",...] ( \"label\" )\n"
@@ -2283,7 +2361,7 @@ UniValue addmultisigaddress(const JSONRPCRequest& request)
         label = LabelFromValue(request.params[2]);
 
     // Construct using pay-to-script-hash:
-    CScript inner = _createmultisig_redeemScript(request.params);
+    CScript inner = _createmultisig_redeemScript(pwalletMain, request.params);
     CScriptID innerID(inner);
     pwalletMain->AddCScript(inner);
 
@@ -2305,7 +2383,7 @@ struct tallyitem {
     }
 };
 
-UniValue ListReceived(const UniValue& params, bool by_label, int nBlockHeight)
+static UniValue ListReceived(CWallet* const pwallet, const UniValue& params, bool by_label, int nBlockHeight)
 {
     // Minimum confirmations
     int nMinDepth = 1;
@@ -2335,7 +2413,7 @@ UniValue ListReceived(const UniValue& params, bool by_label, int nBlockHeight)
 
     // Tally
     std::map<CTxDestination, tallyitem> mapTally;
-    for (std::map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it) {
+    for (std::map<uint256, CWalletTx>::iterator it = pwallet->mapWallet.begin(); it != pwallet->mapWallet.end(); ++it) {
         const CWalletTx& wtx = (*it).second;
 
         if (!IsFinalTx(wtx.tx, nBlockHeight)) {
@@ -2357,7 +2435,7 @@ UniValue ListReceived(const UniValue& params, bool by_label, int nBlockHeight)
                 continue;
             }
 
-            isminefilter mine = IsMine(*pwalletMain, address);
+            isminefilter mine = IsMine(*pwallet, address);
             if (!(mine & filter)) {
                 continue;
             }
@@ -2373,7 +2451,7 @@ UniValue ListReceived(const UniValue& params, bool by_label, int nBlockHeight)
 
     // Create mapAddressBook iterator
     // If we aren't filtering, go from begin() to end()
-    auto itAddr = pwalletMain->NewAddressBookIterator();
+    auto itAddr = pwallet->NewAddressBookIterator();
     // If we are filtering, find() the applicable entry
     if (has_filtered_address) {
         itAddr.SetFilter(filtered_address);
@@ -2449,6 +2527,9 @@ UniValue ListReceived(const UniValue& params, bool by_label, int nBlockHeight)
 
 UniValue listreceivedbyaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 4)
         throw std::runtime_error(
             "listreceivedbyaddress ( minconf includeempty includeWatchonly addressFilter)\n"
@@ -2485,11 +2566,14 @@ UniValue listreceivedbyaddress(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
     int nBlockHeight = chainActive.Height();
-    return ListReceived(request.params, false, nBlockHeight);
+    return ListReceived(pwalletMain, request.params, false, nBlockHeight);
 }
 
 UniValue listreceivedbyshieldaddress(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size()==0 || request.params.size() >2)
         throw std::runtime_error(
                 "listreceivedbyshieldaddress \"address\" ( minconf )\n"
@@ -2590,6 +2674,9 @@ UniValue listreceivedbyshieldaddress(const JSONRPCRequest& request)
 
 UniValue listreceivedbylabel(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 3)
         throw std::runtime_error(
             "listreceivedbylabel ( minconf includeempty includeWatchonly)\n"
@@ -2621,11 +2708,14 @@ UniValue listreceivedbylabel(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwalletMain->cs_wallet);
     int nBlockHeight = chainActive.Height();
-    return ListReceived(request.params, true, nBlockHeight);
+    return ListReceived(pwalletMain, request.params, true, nBlockHeight);
 }
 
 UniValue listcoldutxos(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "listcoldutxos ( nonWhitelistedOnly )\n"
@@ -2707,7 +2797,7 @@ static void MaybePushAddress(UniValue & entry, const CTxDestination &dest)
         entry.pushKV("address", EncodeDestination(dest));
 }
 
-void ListTransactions(const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue& ret, const isminefilter& filter)
+static void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue& ret, const isminefilter& filter)
 {
     CAmount nFee;
     std::list<COutputEntry> listReceived;
@@ -2721,13 +2811,13 @@ void ListTransactions(const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue&
     if ((!listSent.empty() || nFee != 0)) {
         for (const COutputEntry& s : listSent) {
             UniValue entry(UniValue::VOBJ);
-            if (involvesWatchonly || (::IsMine(*pwalletMain, s.destination) & ISMINE_WATCH_ONLY))
+            if (involvesWatchonly || (::IsMine(*pwallet, s.destination) & ISMINE_WATCH_ONLY))
                 entry.pushKV("involvesWatchonly", true);
             MaybePushAddress(entry, s.destination);
             entry.pushKV("category", "send");
             entry.pushKV("amount", ValueFromAmount(-s.amount));
-            if (pwalletMain->HasAddressBook(s.destination)) {
-                entry.pushKV("label", pwalletMain->GetNameForAddressBookEntry(s.destination));
+            if (pwallet->HasAddressBook(s.destination)) {
+                entry.pushKV("label", pwallet->GetNameForAddressBookEntry(s.destination));
             }
             entry.pushKV("vout", s.vout);
             entry.pushKV("fee", ValueFromAmount(-nFee));
@@ -2742,10 +2832,10 @@ void ListTransactions(const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue&
     if (listReceived.size() > 0 && depth >= nMinDepth) {
         for (const COutputEntry& r : listReceived) {
             std::string label;
-            if (pwalletMain->HasAddressBook(r.destination))
-                label = pwalletMain->GetNameForAddressBookEntry(r.destination);
+            if (pwallet->HasAddressBook(r.destination))
+                label = pwallet->GetNameForAddressBookEntry(r.destination);
             UniValue entry(UniValue::VOBJ);
-            if (involvesWatchonly || (::IsMine(*pwalletMain, r.destination) & ISMINE_WATCH_ONLY))
+            if (involvesWatchonly || (::IsMine(*pwallet, r.destination) & ISMINE_WATCH_ONLY))
                 entry.pushKV("involvesWatchonly", true);
             MaybePushAddress(entry, r.destination);
             if (wtx.IsCoinBase()) {
@@ -2759,7 +2849,7 @@ void ListTransactions(const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue&
                 entry.pushKV("category", "receive");
             }
             entry.pushKV("amount", ValueFromAmount(r.amount));
-            if (pwalletMain->HasAddressBook(r.destination)) {
+            if (pwallet->HasAddressBook(r.destination)) {
                 entry.pushKV("label", label);
             }
             entry.pushKV("vout", r.vout);
@@ -2772,6 +2862,9 @@ void ListTransactions(const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue&
 
 UniValue listtransactions(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 6) throw std::runtime_error(
             "listtransactions ( \"dummy\" count from includeWatchonly includeDelegated )\n"
             "\nReturns up to 'count' most recent transactions skipping the first 'from' transactions.\n"
@@ -2856,7 +2949,7 @@ UniValue listtransactions(const JSONRPCRequest& request)
     // iterate backwards until we have nCount items to return:
     for (CWallet::TxItems::const_reverse_iterator it = txOrdered.rbegin(); it != txOrdered.rend(); ++it) {
         CWalletTx* const pwtx = (*it).second;
-        ListTransactions(*pwtx, 0, true, ret, filter);
+        ListTransactions(pwalletMain, *pwtx, 0, true, ret, filter);
         if ((int)ret.size() >= (nCount + nFrom)) break;
     }
     // ret is newest to oldest
@@ -2887,6 +2980,9 @@ UniValue listtransactions(const JSONRPCRequest& request)
 
 UniValue listsinceblock(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp)
         throw std::runtime_error(
             "listsinceblock ( \"blockhash\" target-confirmations includeWatchonly)\n"
@@ -2964,7 +3060,7 @@ UniValue listsinceblock(const JSONRPCRequest& request)
         CWalletTx tx = (*it).second;
 
         if (depth == -1 || tx.GetDepthInMainChain() < depth)
-            ListTransactions(tx, 0, true, transactions, filter);
+            ListTransactions(pwalletMain, tx, 0, true, transactions, filter);
     }
 
     CBlockIndex* pblockLast = chainActive[chainActive.Height() + 1 - target_confirms];
@@ -2979,6 +3075,9 @@ UniValue listsinceblock(const JSONRPCRequest& request)
 
 UniValue gettransaction(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
             "gettransaction \"txid\" ( includeWatchonly )\n"
@@ -3048,7 +3147,7 @@ UniValue gettransaction(const JSONRPCRequest& request)
     WalletTxToJSON(wtx, entry);
 
     UniValue details(UniValue::VARR);
-    ListTransactions(wtx, 0, false, details, filter);
+    ListTransactions(pwalletMain, wtx, 0, false, details, filter);
     entry.pushKV("details", details);
 
     std::string strHex = EncodeHexTx(*wtx.tx);
@@ -3059,6 +3158,9 @@ UniValue gettransaction(const JSONRPCRequest& request)
 
 UniValue abandontransaction(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
                 "abandontransaction \"txid\"\n"
@@ -3076,9 +3178,6 @@ UniValue abandontransaction(const JSONRPCRequest& request)
                 + HelpExampleRpc("abandontransaction",
                                  "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
         );
-
-    EnsureWallet();
-    EnsureWalletIsUnlocked();
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
@@ -3100,6 +3199,9 @@ UniValue abandontransaction(const JSONRPCRequest& request)
 
 UniValue backupwallet(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "backupwallet \"destination\"\n"
@@ -3127,11 +3229,14 @@ UniValue backupwallet(const JSONRPCRequest& request)
 
 UniValue keypoolrefill(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "keypoolrefill ( newsize )\n"
             "\nFills the keypool." +
-            HelpRequiringPassphrase() + "\n"
+            HelpRequiringPassphrase(pwalletMain) + "\n"
 
             "\nArguments\n"
             "1. newsize     (numeric, optional, default=100) The new keypool size\n"
@@ -3149,7 +3254,7 @@ UniValue keypoolrefill(const JSONRPCRequest& request)
         kpSize = (unsigned int)request.params[0].get_int();
     }
 
-    EnsureWalletIsUnlocked();
+    EnsureWalletIsUnlocked(pwalletMain);
     pwalletMain->TopUpKeyPool(kpSize);
 
     if (pwalletMain->GetKeyPoolSize() < kpSize)
@@ -3169,6 +3274,9 @@ static void LockWallet(CWallet* pWallet)
 
 UniValue walletpassphrase(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (pwalletMain->IsCrypted() && (request.fHelp || request.params.size() < 2 || request.params.size() > 3))
         throw std::runtime_error(
             "walletpassphrase \"passphrase\" timeout ( stakingonly )\n"
@@ -3243,6 +3351,9 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
 
 UniValue walletpassphrasechange(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (pwalletMain->IsCrypted() && (request.fHelp || request.params.size() != 2))
         throw std::runtime_error(
             "walletpassphrasechange \"oldpassphrase\" \"newpassphrase\"\n"
@@ -3286,6 +3397,9 @@ UniValue walletpassphrasechange(const JSONRPCRequest& request)
 
 UniValue walletlock(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (pwalletMain->IsCrypted() && (request.fHelp || request.params.size() != 0))
         throw std::runtime_error(
             "walletlock\n"
@@ -3326,6 +3440,9 @@ UniValue walletlock(const JSONRPCRequest& request)
 
 UniValue encryptwallet(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (!pwalletMain->IsCrypted() && (request.fHelp || request.params.size() != 1))
         throw std::runtime_error(
             "encryptwallet \"passphrase\"\n"
@@ -3381,6 +3498,9 @@ UniValue encryptwallet(const JSONRPCRequest& request)
 
 UniValue listunspent(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 5)
         throw std::runtime_error(
                 "listunspent ( minconf maxconf  [\"address\",...] watchonlyconfig [query_options])\n"
@@ -3556,6 +3676,9 @@ UniValue listunspent(const JSONRPCRequest& request)
 
 UniValue lockunspent(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
             "lockunspent unlock [{\"txid\":\"txid\",\"vout\":n},...]\n"
@@ -3680,6 +3803,9 @@ UniValue lockunspent(const JSONRPCRequest& request)
 
 UniValue listlockunspent(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 0)
         throw std::runtime_error(
             "listlockunspent\n"
@@ -3725,6 +3851,9 @@ UniValue listlockunspent(const JSONRPCRequest& request)
 
 UniValue settxfee(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 1)
         throw std::runtime_error(
             "settxfee amount\n"
@@ -3751,6 +3880,9 @@ UniValue settxfee(const JSONRPCRequest& request)
 
 UniValue getwalletinfo(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error(
             "getwalletinfo\n"
@@ -3829,6 +3961,9 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
 
 UniValue getstakingstatus(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error(
             "getstakingstatus\n"
@@ -3887,6 +4022,9 @@ UniValue getstakingstatus(const JSONRPCRequest& request)
 
 UniValue setstakesplitthreshold(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "setstakesplitthreshold value\n\n"
@@ -3895,7 +4033,7 @@ UniValue setstakesplitthreshold(const JSONRPCRequest& request)
             "higher than the threshold) as possible.\n"
             "E.g. If the coinstake input + the block reward is 2000, and the split threshold is 499, the corresponding\n"
             "coinstake transaction will have 4 outputs (of 500 PIV each)."
-            + HelpRequiringPassphrase() + "\n"
+            + HelpRequiringPassphrase(pwalletMain) + "\n"
 
             "\nArguments:\n"
             "1. value                   (numeric, required) Threshold value (in PIV).\n"
@@ -3924,6 +4062,9 @@ UniValue setstakesplitthreshold(const JSONRPCRequest& request)
 
 UniValue getstakesplitthreshold(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error(
             "getstakesplitthreshold\n"
@@ -3940,6 +4081,9 @@ UniValue getstakesplitthreshold(const JSONRPCRequest& request)
 
 UniValue autocombinerewards(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     bool fEnable;
     if (request.params.size() >= 1)
         fEnable = request.params[0].get_bool();
@@ -3978,6 +4122,9 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
 
 UniValue setautocombinethreshold(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.empty() || request.params.size() > 2)
         throw std::runtime_error(
             "setautocombinethreshold enable ( value )\n"
@@ -3998,8 +4145,6 @@ UniValue setautocombinethreshold(const JSONRPCRequest& request)
 
             "\nExamples:\n" +
             HelpExampleCli("setautocombinethreshold", "500.12") + HelpExampleRpc("setautocombinethreshold", "500.12"));
-
-    EnsureWallet();
 
     RPCTypeCheck(request.params, {UniValue::VBOOL, UniValue::VNUM});
 
@@ -4037,6 +4182,9 @@ UniValue setautocombinethreshold(const JSONRPCRequest& request)
 
 UniValue getautocombinethreshold(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
             "getautocombinethreshold\n"
@@ -4050,8 +4198,6 @@ UniValue getautocombinethreshold(const JSONRPCRequest& request)
 
             "\nExamples:\n" +
             HelpExampleCli("getautocombinethreshold", "") + HelpExampleRpc("getautocombinethreshold", ""));
-
-    EnsureWallet();
 
     LOCK(pwalletMain->cs_wallet);
 
@@ -4093,6 +4239,9 @@ UniValue printAddresses()
 
 UniValue getsaplingnotescount(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
                 "getsaplingnotescount ( minconf )\n"
@@ -4129,6 +4278,9 @@ UniValue getsaplingnotescount(const JSONRPCRequest& request)
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() > 2) {
         throw std::runtime_error(
                 "rescanblockchain (start_height) (stop_height)\n"
@@ -4147,7 +4299,6 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
         );
     }
 
-    EnsureWallet();
     WalletRescanReserver reserver(pwalletMain);
     if (!reserver.reserve()) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");

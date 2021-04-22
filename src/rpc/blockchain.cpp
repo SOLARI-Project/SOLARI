@@ -42,7 +42,7 @@ static std::mutex cs_blockchange;
 static std::condition_variable cond_blockchange;
 static CUpdatedBlock latestblock;
 
-extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
+extern void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
 
 UniValue syncwithvalidationinterfacequeue(const JSONRPCRequest& request)
 {
@@ -147,7 +147,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
         const CTransaction& tx = *txIn;
         if (txDetails) {
             UniValue objTx(UniValue::VOBJ);
-            TxToJSON(tx, UINT256_ZERO, objTx);
+            TxToJSON(nullptr, tx, UINT256_ZERO, objTx);
             txs.push_back(objTx);
         } else
             txs.push_back(tx.GetHash().GetHex());

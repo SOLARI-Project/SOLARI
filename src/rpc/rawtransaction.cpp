@@ -54,7 +54,8 @@ static void PayloadToJSON(const CTransaction& tx, UniValue& entry)
     }
 }
 
-void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
+// pwallet can be nullptr. If not null, the json could include information available only to the wallet.
+void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
 {
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
@@ -64,11 +65,11 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
     TxToUniv(tx, uint256(), entry);
 
     // Sapling
-    if (pwalletMain && tx.IsShieldedTx()) {
+    if (pwallet && tx.IsShieldedTx()) {
         // Add information that only this wallet knows about the transaction if is possible
-        if (pwalletMain->HasSaplingSPKM()) {
+        if (pwallet->HasSaplingSPKM()) {
             std::vector<libzcash::SaplingPaymentAddress> addresses =
-                    pwalletMain->GetSaplingScriptPubKeyMan()->FindMySaplingAddresses(tx);
+                    pwallet->GetSaplingScriptPubKeyMan()->FindMySaplingAddresses(tx);
             UniValue addrs(UniValue::VARR);
             for (const auto& addr : addresses) {
                 addrs.push_back(KeyIO::EncodePaymentAddress(addr));
@@ -252,7 +253,7 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
     if (blockindex) result.pushKV("in_active_chain", in_active_chain);
-    TxToJSON(*tx, hash_block, result);
+    TxToJSON(pwalletMain, *tx, hash_block, result);
     return result;
 }
 
@@ -420,7 +421,7 @@ UniValue decoderawtransaction(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
 
     UniValue result(UniValue::VOBJ);
-    TxToJSON(CTransaction(std::move(mtx)), UINT256_ZERO, result);
+    TxToJSON(pwalletMain, CTransaction(std::move(mtx)), UINT256_ZERO, result);
 
     return result;
 }
@@ -610,7 +611,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
             "The third optional argument (may be null) is an array of base58-encoded private\n"
             "keys that, if given, will be the only keys used to sign the transaction.\n"
 #ifdef ENABLE_WALLET
-            + HelpRequiringPassphrase() + "\n"
+            + HelpRequiringPassphrase(pwalletMain) + "\n"
 #endif
 
             "\nArguments:\n"
@@ -728,7 +729,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
     }
 #ifdef ENABLE_WALLET
     else if (pwalletMain)
-        EnsureWalletIsUnlocked();
+        EnsureWalletIsUnlocked(pwalletMain);
 #endif
 
     // Add previous txouts given in the RPC call:

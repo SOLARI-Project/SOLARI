@@ -76,6 +76,9 @@ UniValue generateBlocks(const Consensus::Params& consensus,
 
 UniValue generate(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 1)
         throw std::runtime_error(
             "generate numblocks\n"
@@ -113,7 +116,7 @@ UniValue generate(const JSONRPCRequest& request)
 
     if (fPoS) {
         // If we are in PoS, wallet must be unlocked.
-        EnsureWalletIsUnlocked();
+        EnsureWalletIsUnlocked(pwalletMain);
     } else {
         // Coinbase key
         reservekey = MakeUnique<CReserveKey>(pwalletMain);
@@ -273,6 +276,9 @@ UniValue getgenerate(const JSONRPCRequest& request)
 
 UniValue setgenerate(const JSONRPCRequest& request)
 {
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
             "setgenerate generate ( genproclimit )\n"
@@ -290,8 +296,6 @@ UniValue setgenerate(const JSONRPCRequest& request)
             "\nCheck the setting\n" + HelpExampleCli("getgenerate", "") +
             "\nTurn off generation\n" + HelpExampleCli("setgenerate", "false") +
             "\nUsing json rpc\n" + HelpExampleRpc("setgenerate", "true, 1"));
-
-    EnsureWallet();
 
     if (Params().IsRegTestNet())
         throw JSONRPCError(RPC_INVALID_REQUEST, "Use the generate method instead of setgenerate on regtest");
