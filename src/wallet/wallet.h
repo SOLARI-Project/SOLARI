@@ -1128,6 +1128,9 @@ public:
     //! Get wallet transactions that conflict with given transaction (spend same outputs)
     std::set<uint256> GetConflicts(const uint256& txid) const;
 
+    //! Flush wallet (bitdb flush)
+    void Flush(bool shutdown=false);
+
     //! Verify the wallet database and perform salvage if required
     static bool Verify();
 

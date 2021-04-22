@@ -2069,6 +2069,11 @@ std::set<uint256> CWalletTx::GetConflicts() const
     return result;
 }
 
+void CWallet::Flush(bool shutdown)
+{
+    bitdb.Flush(shutdown);
+}
+
 bool CWallet::Verify()
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
