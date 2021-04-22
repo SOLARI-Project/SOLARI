@@ -375,6 +375,8 @@ static ProRegPL ParseProRegPLParams(const UniValue& params, unsigned int paramId
 // handles protx_register, and protx_register_prepare
 static UniValue ProTxRegister(const JSONRPCRequest& request, bool fSignAndSend)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -493,6 +495,8 @@ UniValue protx_register_prepare(const JSONRPCRequest& request)
 
 UniValue protx_register_submit(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -541,6 +545,8 @@ UniValue protx_register_submit(const JSONRPCRequest& request)
 
 UniValue protx_register_fund(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -706,7 +712,7 @@ UniValue protx_list(const JSONRPCRequest& request)
     CheckEvoUpgradeEnforcement();
 
 #ifdef ENABLE_WALLET
-    CWallet* const pwallet = pwalletMain;
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
 #else
     CWallet* const pwallet = nullptr;
 #endif

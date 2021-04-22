@@ -76,6 +76,8 @@ bool IsStakingDerPath(KeyOriginInfo keyOrigin)
 
 UniValue importprivkey(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -149,6 +151,8 @@ UniValue importprivkey(const JSONRPCRequest& request)
 
 UniValue abortrescan(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -201,6 +205,8 @@ static void ImportAddress(CWallet* const pwallet, const CTxDestination& dest, co
 
 UniValue importaddress(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -266,6 +272,8 @@ UniValue importaddress(const JSONRPCRequest& request)
 
 UniValue importpubkey(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -321,6 +329,8 @@ UniValue importpubkey(const JSONRPCRequest& request)
 // TODO: Needs further review over the HD flow, staking addresses and multisig import.
 UniValue importwallet(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -446,6 +456,8 @@ UniValue importwallet(const JSONRPCRequest& request)
 
 UniValue dumpprivkey(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -484,6 +496,8 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
 
 UniValue dumpwallet(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -943,6 +957,8 @@ static int64_t GetImportTimestamp(const UniValue& data, int64_t now)
 
 UniValue importmulti(const JSONRPCRequest& mainRequest)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(mainRequest);
+
     if (!EnsureWalletIsAvailable(pwalletMain, mainRequest.fHelp))
         return NullUniValue;
 
@@ -1097,6 +1113,8 @@ UniValue importmulti(const JSONRPCRequest& mainRequest)
 
 UniValue bip38encrypt(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -1146,6 +1164,8 @@ UniValue bip38encrypt(const JSONRPCRequest& request)
 
 UniValue bip38decrypt(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -1220,6 +1240,8 @@ UniValue bip38decrypt(const JSONRPCRequest& request)
 
 UniValue importsaplingkey(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -1320,6 +1342,8 @@ UniValue importsaplingkey(const JSONRPCRequest& request)
 
 UniValue importsaplingviewingkey(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -1424,6 +1448,8 @@ UniValue importsaplingviewingkey(const JSONRPCRequest& request)
 
 UniValue exportsaplingviewingkey(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -1465,6 +1491,8 @@ UniValue exportsaplingviewingkey(const JSONRPCRequest& request)
 
 UniValue exportsaplingkey(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 

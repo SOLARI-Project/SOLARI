@@ -47,6 +47,8 @@ UniValue getsupplyinfo(const JSONRPCRequest& request);
  **/
 UniValue getinfo(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error(
             "getinfo\n"
@@ -376,6 +378,8 @@ private:
 
 UniValue validateaddress(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "validateaddress \"pivxaddress\"\n"
@@ -502,6 +506,8 @@ CScript _createmultisig_redeemScript(CWallet * const pwallet, const UniValue& pa
 
 UniValue createmultisig(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 2)
         throw std::runtime_error(
             "createmultisig nrequired [\"key\",...]\n"

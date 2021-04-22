@@ -253,7 +253,8 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
     if (blockindex) result.pushKV("in_active_chain", in_active_chain);
-    TxToJSON(pwalletMain, *tx, hash_block, result);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    TxToJSON(pwallet, *tx, hash_block, result);
     return result;
 }
 
@@ -421,7 +422,8 @@ UniValue decoderawtransaction(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
 
     UniValue result(UniValue::VOBJ);
-    TxToJSON(pwalletMain, CTransaction(std::move(mtx)), UINT256_ZERO, result);
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    TxToJSON(pwallet, CTransaction(std::move(mtx)), UINT256_ZERO, result);
 
     return result;
 }

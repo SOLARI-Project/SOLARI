@@ -97,6 +97,8 @@ void checkBudgetInputs(const UniValue& params, std::string &strProposalName, std
 
 UniValue preparebudget(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 

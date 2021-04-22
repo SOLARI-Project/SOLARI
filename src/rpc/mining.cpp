@@ -76,6 +76,8 @@ UniValue generateBlocks(const Consensus::Params& consensus,
 
 UniValue generate(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -276,6 +278,8 @@ UniValue getgenerate(const JSONRPCRequest& request)
 
 UniValue setgenerate(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
@@ -442,6 +446,8 @@ static UniValue BIP22ValidationResult(const CValidationState& state)
 #ifdef ENABLE_MINING_RPC
 UniValue getblocktemplate(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "getblocktemplate ( \"jsonrequestobject\" )\n"

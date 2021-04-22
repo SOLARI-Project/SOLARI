@@ -355,6 +355,11 @@ UniValue startmasternode(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_MISC_ERROR, "startmasternode is not supported when deterministic masternode list is active (DIP3)");
     }
 
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     std::string strCommand;
     if (request.params.size() >= 1) {
         strCommand = request.params[0].get_str();
@@ -512,6 +517,11 @@ UniValue createmasternodekey (const JSONRPCRequest& request)
 
 UniValue getmasternodeoutputs (const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || (request.params.size() != 0))
         throw std::runtime_error(
             "getmasternodeoutputs\n"
@@ -807,6 +817,8 @@ bool DecodeHexMnb(CMasternodeBroadcast& mnb, std::string strHexMnb) {
 }
 UniValue createmasternodebroadcast(const JSONRPCRequest& request)
 {
+    CWallet * const pwalletMain = GetWalletForJSONRPCRequest(request);
+
     if (!EnsureWalletIsAvailable(pwalletMain, request.fHelp))
         return NullUniValue;
 
