@@ -10,6 +10,8 @@
 #include "wallet/rpcwallet.h"
 #include "wallet/wallet.h"
 
+CWallet *pwalletMain;
+
 WalletTestingSetup::WalletTestingSetup(const std::string& chainName):
         SaplingTestingSetup(chainName)
 {

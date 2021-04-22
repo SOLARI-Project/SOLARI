@@ -25,6 +25,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+extern CWallet* pwalletMain;
+
 void setupWallet(CWallet& wallet)
 {
     wallet.SetMinVersion(FEATURE_SAPLING);

@@ -17,6 +17,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+extern CWallet* pwalletMain;
+
 // future: this should be MAINNET.
 BOOST_FIXTURE_TEST_SUITE(miner_tests, WalletRegTestingSetup)
 

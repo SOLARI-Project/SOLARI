@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2014 The Bitcoin developers
-// Copyright (c) 2019-2020 The PIVX developers
+// Copyright (c) 2009-2021 The Bitcoin developers
+// Copyright (c) 2019-2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -96,13 +96,13 @@ class CWalletDBWrapper
     friend class CDB;
 public:
     /** Create dummy DB handle */
-    CWalletDBWrapper(): env(nullptr)
+    CWalletDBWrapper() : nLastSeen(0), nLastFlushed(0), nLastWalletUpdate(0), env(nullptr)
     {
     }
 
     /** Create DB handle to real database */
     CWalletDBWrapper(CDBEnv *env_in, const std::string &strFile_in):
-        env(env_in), strFile(strFile_in)
+        nLastSeen(0), nLastFlushed(0), nLastWalletUpdate(0), env(env_in), strFile(strFile_in)
     {
     }
 
@@ -123,13 +123,16 @@ public:
     void Flush(bool shutdown);
 
     void IncrementUpdateCounter();
+    std::atomic<unsigned int> nUpdateCounter;
+    unsigned int nLastSeen;
+    unsigned int nLastFlushed;
+    int64_t nLastWalletUpdate;
     unsigned int GetUpdateCounter();
 
 private:
     /** BerkeleyDB specific */
     CDBEnv *env;
     std::string strFile;
-    std::atomic<unsigned int> nUpdateCounter;
 
     /** Return whether this database handle is a dummy for testing.
      * Only to be used at a low level, application should ideally not care

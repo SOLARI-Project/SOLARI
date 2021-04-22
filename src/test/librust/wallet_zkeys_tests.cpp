@@ -12,6 +12,8 @@
 #include "util/system.h"
 #include <boost/test/unit_test.hpp>
 
+extern CWallet* pwalletMain;
+
 /**
  * This test covers methods on CWallet
  * GenerateNewZKey()

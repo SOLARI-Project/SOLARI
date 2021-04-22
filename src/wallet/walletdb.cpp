@@ -797,6 +797,7 @@ void MaybeCompactWalletDB()
         return;
     }
 
+    /* TODO: fix me
     CWalletDBWrapper& dbh = pwalletMain->GetDBHandle();
 
     static unsigned int nLastSeen = dbh.GetUpdateCounter();
@@ -813,6 +814,7 @@ void MaybeCompactWalletDB()
             nLastFlushed = dbh.GetUpdateCounter();
         }
     }
+    */
     fOneThread = false;
 }
 

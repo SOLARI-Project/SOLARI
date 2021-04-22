@@ -45,7 +45,7 @@
 #include <vector>
 
 typedef CWallet* CWalletRef;
-extern CWalletRef pwalletMain;
+extern std::vector<CWalletRef> vpwallets;
 
 /**
  * Settings

@@ -25,7 +25,7 @@
 #include <future>
 #include <boost/algorithm/string/replace.hpp>
 
-CWallet* pwalletMain = nullptr;
+std::vector<CWalletRef> vpwallets;
 /**
  * Settings
  */
@@ -4344,7 +4344,6 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
 bool CWallet::InitLoadWallet()
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
-        pwalletMain = nullptr;
         LogPrintf("Wallet disabled!\n");
         return true;
     }
@@ -4361,7 +4360,7 @@ bool CWallet::InitLoadWallet()
     if (!pwallet) {
         return false;
     }
-    pwalletMain = pwallet;
+    vpwallets.emplace_back(pwallet);
     return true;
 }
 

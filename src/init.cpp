@@ -221,8 +221,9 @@ void PrepareShutdown()
     StopRPC();
     StopHTTPServer();
 #ifdef ENABLE_WALLET
-    if (pwalletMain)
-        pwalletMain->Flush(false);
+    for (CWalletRef pwallet : vpwallets) {
+        pwallet->Flush(false);
+    }
     GenerateBitcoins(false, NULL, 0);
 #endif
     StopMapPort();
@@ -301,8 +302,9 @@ void PrepareShutdown()
         evoDb.reset();
     }
 #ifdef ENABLE_WALLET
-    if (pwalletMain)
-        pwalletMain->Flush(true);
+    for (CWalletRef pwallet : vpwallets) {
+        pwallet->Flush(true);
+    }
 #endif
 
     if (pEvoNotificationInterface) {
@@ -354,8 +356,10 @@ void Shutdown()
         PrepareShutdown();
     }
 #ifdef ENABLE_WALLET
-    delete pwalletMain;
-    pwalletMain = NULL;
+    for (CWalletRef pwallet : vpwallets) {
+        delete pwallet;
+    }
+    vpwallets.clear();
 #endif
     globalVerifyHandle.reset();
     ECC_Stop();
@@ -1877,14 +1881,15 @@ bool AppInitMain()
     strBudgetMode = gArgs.GetArg("-budgetvotemode", "auto");
 
 #ifdef ENABLE_WALLET
-    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK) && pwalletMain) {
-        LOCK(pwalletMain->cs_wallet);
+    // use only the first wallet here. This section can be removed after transition to DMN
+    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK) && !vpwallets.empty() && vpwallets[0]) {
+        LOCK(vpwallets[0]->cs_wallet);
         LogPrintf("Locking Masternodes collateral utxo:\n");
         uint256 mnTxHash;
         for (const auto& mne : masternodeConfig.getEntries()) {
             mnTxHash.SetHex(mne.getTxHash());
             COutPoint outpoint = COutPoint(mnTxHash, (unsigned int) std::stoul(mne.getOutputIndex()));
-            pwalletMain->LockCoin(outpoint);
+            vpwallets[0]->LockCoin(outpoint);
             LogPrintf("Locked collateral, MN: %s, tx hash: %s, output index: %s\n",
                       mne.getAlias(), mne.getTxHash(), mne.getOutputIndex());
         }
@@ -1918,11 +1923,13 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     {
-        if (pwalletMain) {
-            LOCK(pwalletMain->cs_wallet);
-            LogPrintf("setKeyPool.size() = %u\n", pwalletMain ? pwalletMain->GetKeyPoolSize() : 0);
-            LogPrintf("mapWallet.size() = %u\n", pwalletMain ? pwalletMain->mapWallet.size() : 0);
-            LogPrintf("mapAddressBook.size() = %u\n", pwalletMain ? pwalletMain->GetAddressBookSize() : 0);
+        int idx = 0;
+        for (CWalletRef pwallet : vpwallets) {
+            LogPrintf("Wallet %d\n", idx++);
+            LOCK(pwallet->cs_wallet);
+            LogPrintf("setKeyPool.size() = %u\n", pwallet->GetKeyPoolSize());
+            LogPrintf("mapWallet.size() = %u\n", pwallet->mapWallet.size());
+            LogPrintf("mapAddressBook.size() = %u\n", pwallet->GetAddressBookSize());
         }
     }
 #endif
@@ -1953,22 +1960,21 @@ bool AppInitMain()
         return UIError(strNodeError);
 
 #ifdef ENABLE_WALLET
-    // Generate coins in the background
-    if (pwalletMain)
-        GenerateBitcoins(gArgs.GetBoolArg("-gen", DEFAULT_GENERATE), pwalletMain, gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_PROCLIMIT));
+    // Generate coins in the background (disabled on mainnet. use only wallet 0)
+    if (!vpwallets.empty())
+        GenerateBitcoins(gArgs.GetBoolArg("-gen", DEFAULT_GENERATE), vpwallets[0], gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_PROCLIMIT));
 #endif
 
     // ********************************************************* Step 12: finished
 
 #ifdef ENABLE_WALLET
-    if (pwalletMain) {
-        uiInterface.InitMessage(_("Reaccepting wallet transactions..."));
-        pwalletMain->postInitProcess(scheduler);
-
-        // StakeMiner thread disabled by default on regtest
-        if (gArgs.GetBoolArg("-staking", !Params().IsRegTestNet() && DEFAULT_STAKING)) {
-            threadGroup.create_thread(std::bind(&ThreadStakeMinter));
-        }
+    uiInterface.InitMessage(_("Reaccepting wallet transactions..."));
+    for (CWalletRef pwallet : vpwallets) {
+        pwallet->postInitProcess(scheduler);
+    }
+    // StakeMiner thread disabled by default on regtest
+    if (!vpwallets.empty() && gArgs.GetBoolArg("-staking", !Params().IsRegTestNet() && DEFAULT_STAKING)) {
+        threadGroup.create_thread(std::bind(&ThreadStakeMinter));
     }
 #endif
 

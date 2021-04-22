@@ -13,6 +13,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+extern CWallet* pwalletMain;
+
 /*
  * A text fixture with a preloaded 100-blocks regtest chain, with sapling activating at block 101,
  * and a wallet containing the key used for the coinbase outputs.

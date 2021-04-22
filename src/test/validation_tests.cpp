@@ -122,7 +122,7 @@ BOOST_FIXTURE_TEST_CASE(zerocoin_rejection_tests, RegTestingSetup)
 
     std::unique_ptr<CBlockTemplate> pblocktemplate;
     CScript scriptPubKey = CScript() << OP_DUP << OP_HASH160 << ParseHex("8d5b4f83212214d6ef693e02e6d71969fddad976") << OP_EQUALVERIFY << OP_CHECKSIG;
-    BOOST_CHECK(pblocktemplate = BlockAssembler(Params(), false).CreateNewBlock(scriptPubKey, pwalletMain, false));
+    BOOST_CHECK(pblocktemplate = BlockAssembler(Params(), false).CreateNewBlock(scriptPubKey, vpwallets[0], false));
     pblocktemplate->block.hashPrevBlock = chainparams.GetConsensus().hashGenesisBlock;
 
     // Base tx

@@ -25,6 +25,8 @@
 
 #include <univalue.h>
 
+extern CWallet* pwalletMain;
+
 extern UniValue CallRPC(std::string args); // Implemented in rpc_tests.cpp
 
 namespace {

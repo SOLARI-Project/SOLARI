@@ -22,6 +22,7 @@ extern UniValue importmulti(const JSONRPCRequest& request);
 extern UniValue dumpwallet(const JSONRPCRequest& request);
 extern UniValue importwallet(const JSONRPCRequest& request);
 
+extern CWallet* pwalletMain;
 
 // how many times to run all the tests to have a chance to catch errors that only show up with particular random shuffles
 #define RUN_TESTS 100
@@ -365,8 +366,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     {
         CWallet wallet;
         WITH_LOCK(wallet.cs_wallet, wallet.SetLastBlockProcessed(newTip); );
-        CWallet *backup = ::pwalletMain;
-        ::pwalletMain = &wallet;
+        vpwallets.insert(vpwallets.begin(), &wallet);
         UniValue keys;
         keys.setArray();
         UniValue key;
@@ -390,7 +390,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         UniValue response = importmulti(request);
         // !TODO: after pruning, check that the rescan for the first key fails.
         BOOST_CHECK_EQUAL(response.write(), "[{\"success\":true},{\"success\":true}]");
-        ::pwalletMain = backup;
+        vpwallets.erase(vpwallets.begin());
     }
 }
 
@@ -400,7 +400,6 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
 // than or equal to key birthday.
 BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 {
-    CWallet *pwalletMainBackup = ::pwalletMain;
     // Create one block
     const int64_t BLOCK_TIME = chainActive.Tip()->GetBlockTimeMax() + 15;
     SetMockTime(BLOCK_TIME);
@@ -426,7 +425,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
         JSONRPCRequest request;
         request.params.setArray();
         request.params.push_back(backup_file);
-        ::pwalletMain = &wallet;
+        vpwallets.insert(vpwallets.begin(), &wallet);
         ::dumpwallet(request);
     }
 
@@ -438,7 +437,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
         JSONRPCRequest request;
         request.params.setArray();
         request.params.push_back(backup_file);
-        ::pwalletMain = &wallet;
+        vpwallets[0] = &wallet;
         ::importwallet(request);
 
         LOCK(wallet.cs_wallet);
@@ -452,7 +451,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     }
 
     SetMockTime(0);
-    ::pwalletMain = pwalletMainBackup;
+    vpwallets.erase(vpwallets.begin());
 }
 
 void removeTxFromMempool(CWalletTx& wtx)
