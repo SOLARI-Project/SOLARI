@@ -6,7 +6,7 @@
 
 #include "fs.h"
 #include "netbase.h"
-#include "util.h"
+#include "util/system.h"
 #include "guiinterface.h"
 #include <base58.h>
 

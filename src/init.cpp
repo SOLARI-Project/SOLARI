@@ -50,7 +50,7 @@
 #include "torcontrol.h"
 #include "guiinterface.h"
 #include "guiinterfaceutil.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilmoneystr.h"
 #include "util/threadnames.h"
 #include "validation.h"

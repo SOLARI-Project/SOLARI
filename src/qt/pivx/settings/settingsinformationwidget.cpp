@@ -8,7 +8,7 @@
 #include "clientmodel.h"
 #include "chainparams.h"
 #include "db.h"
-#include "util.h"
+#include "util/system.h"
 #include "guiutil.h"
 #include "qt/pivx/qtutils.h"
 

@@ -14,7 +14,7 @@
 #include "sync.h"
 #include "timedata.h"
 #include "guiinterface.h"
-#include "util.h"
+#include "util/system.h"
 #include "version.h"
 #include "validation.h"
 

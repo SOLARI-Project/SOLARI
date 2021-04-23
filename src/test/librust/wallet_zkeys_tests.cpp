@@ -9,7 +9,7 @@
 #include "sapling/address.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
-#include "util.h"
+#include "util/system.h"
 #include <boost/test/unit_test.hpp>
 
 /**

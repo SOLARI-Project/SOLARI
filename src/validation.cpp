@@ -45,7 +45,7 @@
 #include "txdb.h"
 #include "txmempool.h"
 #include "undo.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilmoneystr.h"
 #include "validationinterface.h"
 #include "warnings.h"

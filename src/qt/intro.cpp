@@ -10,7 +10,7 @@
 #include "fs.h"
 #include "guiutil.h"
 
-#include "util.h"
+#include "util/system.h"
 #include "qt/pivx/qtutils.h"
 
 #include <QFileDialog>

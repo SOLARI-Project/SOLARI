@@ -20,7 +20,7 @@
 #include "primitives/block.h"
 #include "primitives/transaction.h"
 #include "timedata.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilmoneystr.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"

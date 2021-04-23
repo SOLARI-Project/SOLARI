@@ -9,8 +9,8 @@
  * Server/client environment: argument handling, config file parsing,
  * thread wrappers
  */
-#ifndef BITCOIN_UTIL_H
-#define BITCOIN_UTIL_H
+#ifndef BITCOIN_UTIL_SYSTEM_H
+#define BITCOIN_UTIL_SYSTEM_H
 
 #if defined(HAVE_CONFIG_H)
 #include "config/pivx-config.h"
@@ -293,4 +293,4 @@ fs::path AbsPathForConfigVal(const fs::path& path, bool net_specific = true);
  */
 int ScheduleBatchPriority(void);
 
-#endif // BITCOIN_UTIL_H
+#endif // BITCOIN_UTIL_SYSTEM_H

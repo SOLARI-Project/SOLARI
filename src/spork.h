@@ -13,7 +13,7 @@
 #include "net.h"
 #include "sporkid.h"
 #include "sync.h"
-#include "util.h"
+#include "util/system.h"
 
 #include "protocol.h"
 

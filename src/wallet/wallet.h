@@ -24,7 +24,7 @@
 #include "primitives/transaction.h"
 #include "sapling/address.h"
 #include "guiinterface.h"
-#include "util.h"
+#include "util/system.h"
 #include "util/memory.h"
 #include "utilstrencodings.h"
 #include "validationinterface.h"

@@ -15,7 +15,7 @@
 #include "intro.h"
 #include "guiutil.h"
 #include "qt/pivx/qtutils.h"
-#include "util.h"
+#include "util/system.h"
 
 #include <stdio.h>
 

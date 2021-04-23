@@ -11,7 +11,7 @@
 #include "miner.h"
 #include "pubkey.h"
 #include "uint256.h"
-#include "util.h"
+#include "util/system.h"
 #include "validation.h"
 #include "wallet/wallet.h"
 

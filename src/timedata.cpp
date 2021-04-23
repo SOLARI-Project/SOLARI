@@ -9,7 +9,7 @@
 #include "guiinterface.h"
 #include "netaddress.h"
 #include "sync.h"
-#include "util.h"
+#include "util/system.h"
 #include "warnings.h"
 
 

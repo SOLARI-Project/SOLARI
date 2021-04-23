@@ -14,7 +14,7 @@
 #include "script/script.h"
 #include "script/sign.h"
 #include <univalue.h>
-#include "util.h"
+#include "util/system.h"
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
 

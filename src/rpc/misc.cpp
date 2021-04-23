@@ -16,7 +16,7 @@
 #include "rpc/server.h"
 #include "spork.h"
 #include "timedata.h"
-#include "util.h"
+#include "util/system.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"

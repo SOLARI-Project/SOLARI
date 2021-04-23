@@ -417,7 +417,7 @@ set(UTIL_SOURCES
         ./src/arith_uint256.cpp
         ./src/uint256.cpp
         ./src/util/threadnames.cpp
-        ./src/util.cpp
+        ./src/util/system.cpp
         ./src/utilstrencodings.cpp
         ./src/utilmoneystr.cpp
         ./src/utiltime.cpp

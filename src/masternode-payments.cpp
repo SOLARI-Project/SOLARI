@@ -15,7 +15,7 @@
 #include "net_processing.h"
 #include "spork.h"
 #include "sync.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilmoneystr.h"
 
 
