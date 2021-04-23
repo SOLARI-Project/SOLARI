@@ -651,6 +651,10 @@ za staking</translation>
         <translation>da</translation>
     </message>
     <message>
+        <source>This label turns red, if recipient receives an amount smaller than %1 (transparent) / %2 (shield).</source>
+        <translation>Ova oznaka postaje crvena ako primatelj primi iznos manji od %1 (transparentan) / %2 (zaštićeni).</translation>
+    </message>
+    <message>
         <source>Can vary +/- %1 u%2 per input.</source>
         <translation>Može varirati +/- %1 u%2 po unosu.</translation>
     </message>
@@ -668,7 +672,7 @@ za staking</translation>
     </message>
     <message>
         <source>no</source>
-        <translation>ne</translation>
+        <translation>nema</translation>
     </message>
     <message>
         <source>This label turns red, if the transaction size is greater than 1000 bytes.</source>
@@ -744,7 +748,8 @@ za staking</translation>
     <message>
         <source>You can delegate your PIVs, letting a hot node (24/7 online node)
 stake on your behalf, while you keep the keys securely offline.</source>
-        <translation>Možete delegirati vaše novčiće, dozvoljavajući drugom novčaniku (koji radi 24/7) staking u vaše ime, dok su vaši novčići spremljeni na sigurnom.</translation>
+        <translation>Možete delegirati vaše novčiće, dozvoljavajući drugom novčaniku (koji radi 24/7)
+staking u vaše ime, dok su vaši novčići spremljeni na sigurnom.</translation>
     </message>
     <message>
         <source>Enter owner address</source>
@@ -780,7 +785,7 @@ stake on your behalf, while you keep the keys securely offline.</source>
     </message>
     <message>
         <source>Select %1 outputs to delegate.</source>
-        <translation>Označi %1 izlaze za delegirati.</translation>
+        <translation>Označi %1 novčiće za delegirati.</translation>
     </message>
     <message>
         <source>Create Cold Staking Address</source>
@@ -953,7 +958,7 @@ vlasnika</translation>
     </message>
     <message>
         <source>View your account's history</source>
-        <translation>Pogledajte vašu povijest računa</translation>
+        <translation>Pogledajte povijest vašeg novčanika</translation>
     </message>
     <message>
         <source>How to get PIV</source>
@@ -978,10 +983,6 @@ vlasnika</translation>
     <message>
         <source>Filter by</source>
         <translation>Filtriraj prema</translation>
-    </message>
-    <message>
-        <source>Amount of PIV and zPIV staked.</source>
-        <translation>Iznos PIV i zPIV koji se stake-a.</translation>
     </message>
     <message>
         <source>Please wait until the wallet is fully synced to see your correct balance</source>
@@ -2080,6 +2081,10 @@ https://www.transifex.com/pivx-project/pivx-project-translations</translation>
         <translation>PIVIX Core Klijent</translation>
     </message>
     <message>
+        <source>Alert!</source>
+        <translation>Oprez!</translation>
+    </message>
+    <message>
         <source>Error</source>
         <translation>Greška</translation>
     </message>
@@ -2297,16 +2302,8 @@ Adresa: %4
         <translation>Greška: Ne mogu parsirati konfiguracijsku datoteku: %1. Koristite samo sintaksu key=value.</translation>
     </message>
     <message>
-        <source>Error: Invalid combination of -regtest and -testnet.</source>
-        <translation>Greška: Neispravna kombinacija -regtest i -testnet.</translation>
-    </message>
-    <message>
         <source>Error reading masternode configuration file: %1</source>
         <translation>Greška pri čitanju masternode konfiguracijske datoteke: %1</translation>
-    </message>
-    <message>
-        <source>PIVX Core didn't yet exit safely...</source>
-        <translation>PIVX Core nije ugašen sigurno...</translation>
     </message>
     <message>
         <source>Contact</source>
@@ -2993,7 +2990,7 @@ pokušajte otključati novčanik</translation>
     </message>
     <message>
         <source>Address label saved</source>
-        <translation>Naziv adrese spremljen</translation>
+        <translation>Oznaka adrese spremljena</translation>
     </message>
     <message>
         <source>Error storing address label</source>
@@ -3048,7 +3045,7 @@ pokušajte otključati novčanik</translation>
     </message>
     <message>
         <source>(no label)</source>
-        <translation>(bez oznake)</translation>
+        <translation>(nema oznake)</translation>
     </message>
     <message>
         <source>(no message)</source>
@@ -3546,7 +3543,7 @@ Uz naknadu %2
         <source>Keep your wallet safe by doing regular backups and storing your backup file externally.
 This option creates a wallet.dat file that can be used to recover your whole balance (transactions and addresses) on another device</source>
         <translation>Čuvajte svoj novčanik redovitim sigurnosnim kopijama i vanjskom pohranom sigurnosne kopije.
-Ova opcija stvara datoteku wallet.dat koja se može koristiti za oporavak cijelog stanja (transakcija i adresa) na drugom uređaju</translation>
+Ova opcija stvara datoteku wallet.dat koja se može koristiti za oporavak cijelog stanja (transakcija i adresa) na drugom računalu</translation>
     </message>
     <message>
         <source>Select folder...</source>
@@ -3556,7 +3553,7 @@ Ova opcija stvara datoteku wallet.dat koja se može koristiti za oporavak cijelo
         <source>This will decrypt the whole wallet data and encrypt it back with the new passphrase.
 Remember to write it down and store it safely, otherwise you might lose access to your funds</source>
         <translation>Ovo će dekriptirati cijele podatke novčanika i kriptirati ih nazad s novom lozinkom.
-Ne zaboravite zapisati i sigurno pohraniti lozinku, jer u protivnom možete izgubiti pristup svojim sredstvima</translation>
+Ne zaboravite zapisati i sigurno pohraniti novu lozinku, jer u protivnom ćete izgubiti pristup svojim sredstvima</translation>
     </message>
     <message>
         <source>Change Passphrase</source>
@@ -3852,7 +3849,8 @@ Provjerite jeste li instalirali unaprijed određjeni uređjivač teksta.</transl
     </message>
     <message>
         <source>Export Accounting</source>
-        <translation>Izvezi računovodstvene podatke</translation>
+        <translation>Izvezi računovodstvene
+podatke</translation>
     </message>
     <message>
         <source>Export your wallet's accounting data to a csv file.</source>
@@ -4061,28 +4059,6 @@ vodjenje Masternode-ova za stvaranje i glasanje o prijedlozima.
 </translation>
     </message>
     <message>
-        <source>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           We have support channels in most of our official chat groups, for example
-                           &lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
-                           #support in our Discord&lt;/a&gt;.
-                           If you prefer to submit a ticket, You can do so at
-                           &lt;a style='color: #b088ff' href='https://PIVX.freshdesk.com'&gt;
-                           our Freshdesk support site&lt;/a&gt;.
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </source>
-        <translation>
-&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-Imamo korisničku podršku u većini naših službenih chat grupa, na primjer
-&lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
-#support na Discordu&lt;/a&gt;.
-Možete i podnijeti zahtjev, a to možete
-&lt;a style='color: #b088ff' href='https://PIVX.freshdesk.com'&gt;
-na našoj Freshdesk stranici za podršku&lt;/a&gt;.
-&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-</translation>
-    </message>
-    <message>
         <source>What is a Masternode?</source>
         <translation>Što je Masternode?</translation>
     </message>
@@ -4095,94 +4071,9 @@ na našoj Freshdesk stranici za podršku&lt;/a&gt;.
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;Masternode Controller novčanik je mjesto gdje zalog od 10,000 PIV može stajati tijekom Controller-Remote podešavanja masternode-a. To je novčanik koji može aktivirati Remote masternode novčanik(e) i omogućiti Vam držanje zaloga novčića offline dok Remote masternode novčanik ostaje online.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <source>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           A masternode is a computer running a full node PIVX core wallet with a
-                           requirement of 10,000 PIV secured collateral to provide extra services
-                           to the network and in return, receive a portion of the block reward
-                           regularly.  These services include:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           &lt;ul&gt;
-                           &lt;li&gt;Instant transactions (SwiftX)&lt;/li&gt;
-                           &lt;li&gt;A decentralized governance (Proposal Voting)&lt;/li&gt;
-                           &lt;li&gt;A decentralized budgeting system (Treasury)&lt;/li&gt;
-                           &lt;li&gt;Validation of transactions within each block&lt;/li&gt;
-                           &lt;li&gt;Act as an additional full node in the network&lt;/li&gt;
-                           &lt;/ul&gt;
-
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           For providing such services, masternodes are also paid a certain portion
-                           of reward for each block. This can serve as a passive income to the
-                           masternode owners minus their running cost.
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Masternode Perks:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;Participate in PIVX Governance&lt;/li&gt;
-                           &lt;li&gt;Earn Masternode Rewards&lt;/li&gt;
-                           &lt;li&gt;Commodity option for future sale&lt;/li&gt;
-                           &lt;li&gt;Help secure the PIVX network&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Requirements:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;10,000 PIV per single Masternode instance&lt;/li&gt;
-                           &lt;li&gt;Must be stored in a core wallet&lt;/li&gt;
-                           &lt;li&gt;Need dedicated IP address&lt;/li&gt;
-                           &lt;li&gt;Masternode wallet to remain online&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </source>
-        <translation>
-&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-Masternode je računalo koje pokreće full node PIVX Core novčanik sa
-zahtjevanih 10,000 PIV-a osiguranog zaloga da pruži dodatne usluge
-mreži, i zauzvrat redovito primi dio nagrade blokova.
-Te usluge uključuju:
-&lt;/p&gt;&lt;p align="justify"&gt;
-
-&lt;ul&gt;
-&lt;li&gt;Trenutne transakcije (SwiftX)&lt;/li&gt;
-&lt;li&gt;Decentralizirano upravljanje (glasanje o zahtjevima)&lt;/li&gt;
-&lt;li&gt;Decentralizirani sustav proračuna (riznica)&lt;/li&gt;
-&lt;li&gt;Validacija transakcija unutar svakog bloka&lt;/li&gt;
-&lt;li&gt;Djeluje kao dodatni full node u mreži&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;/p&gt;&lt;p align="justify"&gt;
-Za pružanje takvih usluga, masternode-ovi bivaju plaćeni odredjenim
-dijelom nagrade za svaki blok. To može služiti kao pasivan dohodak
-vlasnicima masternode-ova umanjeno za troškove održavanja.
-&lt;/p&gt;&lt;p align="justify"&gt;
-
-Povlastice masternode-ova:
-&lt;/p&gt;&lt;p align="justify"&gt;
-&lt;ul&gt;
-&lt;li&gt;Sudjelovanje u upravljanju PIVX-a&lt;/li&gt;
-&lt;li&gt;Zaradjivanje Masternode nagrada&lt;/li&gt;
-&lt;li&gt;Robna opcija za buduću prodaju&lt;/li&gt;
-&lt;li&gt;Pomaže u osiguravanju PIVX mreže&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/p&gt;&lt;p align="justify"&gt;
-
-Zahtjevi:
-&lt;/p&gt;&lt;p align="justify"&gt;
-&lt;ul&gt;
-&lt;li&gt;10,000 PIV po svakom Masternode-u&lt;/li&gt;
-&lt;li&gt;Mora biti pohranjem u Core novčaniku&lt;/li&gt;
-&lt;li&gt;Mora biti jedinstvena IP adresa&lt;/li&gt;
-&lt;li&gt;Masternode novčanik treba ostati online&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-</translation>
-    </message>
-    <message>
         <source>Frequently Asked Questions</source>
-        <translation>Najčešće postavljena pitanja</translation>
+        <translation>Najčešće postavljena
+pitanja</translation>
     </message>
     <message>
         <source>Close FAQ</source>
@@ -4319,7 +4210,11 @@ Zahtjevi:
         <source>Out:</source>
         <translation>Iz:</translation>
     </message>
-    </context>
+    <message>
+        <source>No available data</source>
+        <translation>Nema dostupnih podataka</translation>
+    </message>
+</context>
 <context>
     <name>SettingsMainOptionsWidget</name>
     <message>
@@ -4555,7 +4450,7 @@ Označite jedan ili oba polja za potvrdu da biste poslali staking i/ili masterno
     </message>
     <message>
         <source>Sign/Verify Message</source>
-        <translation>Potpiši/Ovjeri poruku</translation>
+        <translation>Potpiši/Ovjeri Poruku</translation>
     </message>
     <message>
         <source>Sign</source>
@@ -4765,7 +4660,7 @@ Označite jedan ili oba polja za potvrdu da biste poslali staking i/ili masterno
     </message>
     <message>
         <source>Rescan blockchain file</source>
-        <translation>Preskenirajte blockchain datoteku</translation>
+        <translation>Pretraži blockchain datoteku</translation>
     </message>
     <message>
         <source>Rescan the blockchain for missing wallet transactions</source>
@@ -4848,7 +4743,8 @@ Označite jedan ili oba polja za potvrdu da biste poslali staking i/ili masterno
     </message>
     <message>
         <source>Export Accounting</source>
-        <translation>Izvezi računovodstvene podatke</translation>
+        <translation>Izvezi računovodstvene
+podatke</translation>
     </message>
     <message>
         <source>Tools</source>
@@ -4938,7 +4834,7 @@ Označite jedan ili oba polja za potvrdu da biste poslali staking i/ili masterno
     </message>
     <message>
         <source>Restart Later</source>
-        <translation>Ponovno pokreni kasnije</translation>
+        <translation>Pokreni kasnije</translation>
     </message>
     <message>
         <source>Options will be applied on next wallet restart</source>
@@ -5080,33 +4976,13 @@ Jeste li sigurni?
         <source>Staking not active</source>
         <translation>Staking nije aktivan</translation>
     </message>
-    <message numerus="yes">
-        <source>%n active connection(s)</source>
-        <translation><numerusform>%n aktivna veza</numerusform><numerusform>%n aktivnih veza</numerusform><numerusform>%n aktivnih veza</numerusform></translation>
-    </message>
     <message>
         <source>Synchronized - Block: %1</source>
         <translation>Sinkronizirano - Blok: %1</translation>
     </message>
-    <message numerus="yes">
-        <source>%n hour(s)</source>
-        <translation><numerusform>%n sat</numerusform><numerusform>%n sati</numerusform><numerusform>%n sati</numerusform></translation>
-    </message>
-    <message numerus="yes">
-        <source>%n day(s)</source>
-        <translation><numerusform>%n dan</numerusform><numerusform>%n dana</numerusform><numerusform>%n dana</numerusform></translation>
-    </message>
-    <message numerus="yes">
-        <source>%n week(s)</source>
-        <translation><numerusform>%n tjedan</numerusform><numerusform>%n tjedana</numerusform><numerusform>%n tjedana</numerusform></translation>
-    </message>
     <message>
         <source>%1 and %2</source>
         <translation>%1 i %2</translation>
-    </message>
-    <message numerus="yes">
-        <source>%n year(s)</source>
-        <translation><numerusform>%n godina</numerusform><numerusform>%n godina</numerusform><numerusform>%n godina</numerusform></translation>
     </message>
     <message>
         <source>Wallet Upgrade</source>
@@ -5213,7 +5089,7 @@ stvorit će se nova sigurnosna kopija.
     </message>
     <message>
         <source>Available (Locked included)</source>
-        <translation>Raspoloživo (Zaključani uključeni)</translation>
+        <translation>Raspoloživo (Uključujući zaključane)</translation>
     </message>
     <message>
         <source>The wallet has been successfully upgraded to HD.</source>
@@ -5280,10 +5156,6 @@ stvorit će se nova sigurnosna kopija.
     <message>
         <source>Address</source>
         <translation>Adresa</translation>
-    </message>
-    <message numerus="yes">
-        <source>Open for %n more block(s)</source>
-        <translation><numerusform>Otvoreno još %n blok</numerusform><numerusform>Otvoreno još %n blokova</numerusform><numerusform>Otvoreno još %n blokova</numerusform></translation>
     </message>
     <message>
         <source>Open until %1</source>
@@ -5400,6 +5272,10 @@ stvorit će se nova sigurnosna kopija.
     <message>
         <source>Shielded send to</source>
         <translation>Zaštićeno slanje na</translation>
+    </message>
+    <message>
+        <source>Burned PIVs</source>
+        <translation>Uništeni PIVovi</translation>
     </message>
     <message>
         <source>watch-only</source>
@@ -5687,10 +5563,6 @@ PIVX temeljni novčanik</translation>
         <translation>Pridržavajte se na navedenu adresu da biste slušali veze JSON-RPC. Koristite [host]: port notation za IPv6. Ova se opcija može odrediti više puta (zadano: vezati se na sva sučelja)</translation>
     </message>
     <message>
-        <source>Cannot obtain a lock on data directory %s. PIVX Core is probably already running.</source>
-        <translation>Nije moguće dobiti zaključavanje na direktoriju podataka %s. PIVX Core vjerojatno već radi.</translation>
-    </message>
-    <message>
         <source>Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)</source>
         <translation>Promjena ponašanja glasova na automatskom finaliziranom proračunu. mode = auto: Glasujte samo za točan završeni proračun s mojim generiranim proračunom. (niz, zadani: automatski)</translation>
     </message>
@@ -5717,10 +5589,6 @@ PIVX temeljni novčanik</translation>
     <message>
         <source>Enable spork administration functionality with the appropriate private key.</source>
         <translation>Omogućite funkcionalnost administracije s odgovarajućim privatnim ključem.</translation>
-    </message>
-    <message>
-        <source>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</source>
-        <translation>Unesite način rada regresije, koji koristi poseban lanac u kojem blokovi mogu biti riješeni odmah.</translation>
     </message>
     <message>
         <source>Error: Listening for incoming connections failed (listen returned error %s)</source>
@@ -5753,10 +5621,6 @@ PIVX temeljni novčanik</translation>
     <message>
         <source>If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: %u)</source>
         <translation>Ako paytxfee nije postavljen, uključite dovoljnu naknadu kako bi transakcije započele potvrdu u prosjeku unutar n blokova (zadana vrijednost: %u)</translation>
-    </message>
-    <message>
-        <source>In this mode -genproclimit controls how many blocks are generated immediately.</source>
-        <translation>U ovom načinu rada -genproclimit kontrolira koliko blokova se generiraju odmah.</translation>
     </message>
     <message>
         <source>Invalid amount for -maxtxfee=&lt;amount&gt;: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)</source>
@@ -6044,12 +5908,12 @@ PIVX temeljni novčanik</translation>
         <translation>Informacije</translation>
     </message>
     <message>
-        <source>Initialization sanity check failed. PIVX Core is shutting down.</source>
-        <translation>Provjera ispravnosti inicijalizacije nije uspjela. PIVX Core se zatvara.</translation>
-    </message>
-    <message>
         <source>Insufficient funds.</source>
         <translation>Nedovoljna sredstva.</translation>
+    </message>
+    <message>
+        <source>Invalid -masternodeaddr port %d, isn't the same as the peer port %d</source>
+        <translation>Neispravan -masternodeaddr port %d, nije isti kao peer port %d</translation>
     </message>
     <message>
         <source>Invalid -onion address or hostname: '%s'</source>
@@ -6070,10 +5934,6 @@ PIVX temeljni novčanik</translation>
     <message>
         <source>Error: Unsupported argument -checklevel found. Checklevel must be level 4.</source>
         <translation>Pogreška: pronađen je nepotpuni argument. Checklevel mora biti razina 4.</translation>
-    </message>
-    <message>
-        <source>Execute command when the best block changes and its size is over (%s in cmd is replaced by block hash, %d with the block size)</source>
-        <translation>Izvrši naredbu kada se najbolji blok promjeni i kada njegova veličina premaši (%s u cmd je zamijenjen s blok hashom, %d s veličinom bloka)</translation>
     </message>
     <message>
         <source>Specify custom backup path to add a copy of any wallet backup. If set as dir, every backup generates a timestamped file. If set as file, will rewrite to that file every backup.</source>
@@ -6644,10 +6504,6 @@ Pokrenite 'sapling-fetch-params' ili '.util/fetch-params.sh' te ponovno pokrenit
         <translation>Ovo je eksperimentalni softver.</translation>
     </message>
     <message>
-        <source>This is intended for regression testing tools and app development.</source>
-        <translation>To je namijenjeno alatima za test regresije i razvoju aplikacija.</translation>
-    </message>
-    <message>
         <source>This is not a masternode. 'local' option disabled.</source>
         <translation>Ovo nije masternode. 'lokalna' opcija isključena.</translation>
     </message>
@@ -6716,16 +6572,8 @@ Pokrenite 'sapling-fetch-params' ili '.util/fetch-params.sh' te ponovno pokrenit
         <translation>Nadogradnja novčanika u najnoviji format</translation>
     </message>
     <message>
-        <source>Upgrading coins database...</source>
-        <translation>Nadograđjujem novčanu bazu podataka...</translation>
-    </message>
-    <message>
         <source>Use UPnP to map the listening port (default: %u)</source>
         <translation>Koristite UPnP za mapiranje priključka za slušanje (zadano: %u)</translation>
-    </message>
-    <message>
-        <source>Use the test network</source>
-        <translation>Koristi testnu mrežu</translation>
     </message>
     <message>
         <source>User Agent comment (%s) contains unsafe characters.</source>

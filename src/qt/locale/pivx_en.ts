@@ -926,12 +926,12 @@ for staking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/coldstakingwidget.cpp" line="+797"/>
+        <location filename="../pivx/coldstakingwidget.cpp" line="+801"/>
         <source>Total Staking: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-507"/>
+        <location line="-508"/>
         <source>Error loading delegations: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -977,7 +977,7 @@ stake on your behalf, while you keep the keys securely offline.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-290"/>
+        <location line="-293"/>
         <source>Coin Control</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1008,7 +1008,7 @@ and stake them on their owner&apos;s behalf.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+254"/>
+        <location line="+257"/>
         <source>Invalid entry</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1054,7 +1054,7 @@ Do you wish to proceed?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+26"/>
+        <location line="+27"/>
         <source>You don&apos;t have any %1 to select.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1243,23 +1243,23 @@ It will start automatically as soon as the wallet has enough confirmations on an
     </message>
     <message>
         <location filename="../pivx/dashboardwidget.cpp" line="+36"/>
-        <location line="+278"/>
+        <location line="+274"/>
         <source>You have no staking rewards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-276"/>
+        <location line="-272"/>
         <source>No charts library</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+276"/>
+        <location line="+272"/>
         <source>Loading chart..</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+123"/>
-        <location line="+220"/>
+        <location line="+127"/>
+        <location line="+222"/>
         <location line="+88"/>
         <source>Error loading chart, invalid show option</source>
         <translation type="unfinished"></translation>
@@ -1270,7 +1270,7 @@ It will start automatically as soon as the wallet has enough confirmations on an
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+133"/>
+        <location line="+150"/>
         <source>Error loading chart: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2814,12 +2814,12 @@ Address: %4
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../pivx.cpp" line="+530"/>
+        <location filename="../pivx.cpp" line="+535"/>
         <source>A fatal error occurred. PIVX can no longer continue safely and will quit.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+73"/>
+        <location line="+75"/>
         <location line="+7"/>
         <location line="+15"/>
         <location line="+19"/>
@@ -3022,7 +3022,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/dashboardwidget.cpp" line="-507"/>
+        <location filename="../pivx/dashboardwidget.cpp" line="-530"/>
         <source>Jan</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3082,7 +3082,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/coldstakingwidget.cpp" line="-707"/>
+        <location filename="../pivx/coldstakingwidget.cpp" line="-711"/>
         <source>Address with no label</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4052,12 +4052,12 @@ try unlocking the wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/sendcustomfeedialog.cpp" line="+89"/>
+        <location filename="../pivx/sendcustomfeedialog.cpp" line="+90"/>
         <source>Fee too high. Must be below: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+10"/>
         <source>Fee too low. Must be at least: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4140,13 +4140,13 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>SendWidget</name>
     <message>
-        <location filename="../pivx/send.cpp" line="+157"/>
+        <location filename="../pivx/send.cpp" line="+159"/>
         <source>Total remaining from the selected UTXO</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+219"/>
-        <location line="+227"/>
+        <location line="+228"/>
+        <location line="+239"/>
         <source>Warning!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4158,12 +4158,12 @@ Do you want to continue?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+368"/>
+        <location line="+370"/>
         <source>Customize Fee</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-688"/>
+        <location line="-696"/>
         <source>Maximum amount of outputs reached</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4173,7 +4173,7 @@ Do you want to continue?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+36"/>
         <source>Possibly spend coins delegated for cold-staking (currently available: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4193,19 +4193,19 @@ Do you want to continue?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+84"/>
+        <location line="+86"/>
         <source>WARNING:
 Transaction spends a cold-stake delegation, voiding it.
 These coins will no longer be cold-staked.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+20"/>
         <source>Transaction sent</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+63"/>
         <source>Address label update failed for address: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4220,7 +4220,7 @@ These coins will no longer be cold-staked.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+290"/>
+        <location line="+292"/>
         <source>Memo</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4230,7 +4230,7 @@ These coins will no longer be cold-staked.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-905"/>
+        <location line="-929"/>
         <source>Coin Control</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4261,22 +4261,22 @@ These coins will no longer be cold-staked.</source>
     </message>
     <message>
         <location line="+3"/>
-        <location line="+637"/>
+        <location line="+661"/>
         <source>Shield Coins</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-636"/>
+        <location line="-660"/>
         <source>Convert all transparent coins into shielded coins</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+83"/>
+        <location line="+92"/>
         <source>Unlocked remaining</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+215"/>
+        <location line="+216"/>
         <source>Cannot send memo to address
 %1
 
@@ -4288,13 +4288,13 @@ Do you wish to proceed without memo?
     </message>
     <message>
         <location line="+31"/>
-        <location line="+273"/>
+        <location line="+287"/>
         <location line="+92"/>
         <source>Cannot perform shielded operations, v5 upgrade isn&apos;t being enforced yet!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-360"/>
+        <location line="-374"/>
         <source>Sapling Protocol temporarily in maintenance. Shielded transactions disabled (SPORK 20)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4309,7 +4309,12 @@ Do you wish to proceed without memo?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+236"/>
+        <location line="+135"/>
+        <source>Processing full, refreshing amounts later</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+115"/>
         <source>You don&apos;t have any %1 to select.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5259,7 +5264,7 @@ There was an error trying to save the address list to %1. Please try again.</sou
         <translation type="unfinished">Out:</translation>
     </message>
     <message>
-        <location line="+56"/>
+        <location line="+59"/>
         <source>No available data</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6168,7 +6173,7 @@ Are you sure?
     </message>
     <message>
         <location line="+213"/>
-        <location filename="../pivx/topbar.cpp" line="+689"/>
+        <location filename="../pivx/topbar.cpp" line="+668"/>
         <source>Available</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6183,13 +6188,13 @@ Are you sure?
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/topbar.cpp" line="-388"/>
-        <location line="+360"/>
+        <location filename="../pivx/topbar.cpp" line="-369"/>
+        <location line="+341"/>
         <source>Wallet Unlocked for staking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-330"/>
+        <location line="-311"/>
         <source>Error generating address</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6217,7 +6222,7 @@ Are you sure?
         </translation>
     </message>
     <message>
-        <location line="+34"/>
+        <location line="+15"/>
         <source>Synchronized - Block: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6291,13 +6296,13 @@ backup will be created.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-527"/>
-        <location line="+532"/>
+        <location line="-508"/>
+        <location line="+513"/>
         <source>Tor Disabled</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-542"/>
+        <location line="-523"/>
         <source>FAQ</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6345,13 +6350,13 @@ backup will be created.
     </message>
     <message>
         <location line="+119"/>
-        <location line="+395"/>
+        <location line="+376"/>
         <source>Wallet Locked</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-379"/>
-        <location line="+387"/>
+        <location line="-360"/>
+        <location line="+368"/>
         <source>Wallet Unlocked</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6450,7 +6455,7 @@ backup will be created.
 <context>
     <name>TransactionTableModel</name>
     <message>
-        <location filename="../transactiontablemodel.cpp" line="+335"/>
+        <location filename="../transactiontablemodel.cpp" line="+330"/>
         <source>Date</source>
         <translation>Date</translation>
     </message>
@@ -6850,7 +6855,7 @@ backup will be created.
 <context>
     <name>WalletModel</name>
     <message>
-        <location filename="../walletmodel.cpp" line="+456"/>
+        <location filename="../walletmodel.cpp" line="+500"/>
         <source>Send Coins</source>
         <translation>Send Coins</translation>
     </message>
@@ -7039,7 +7044,7 @@ PIVX Core Wallet</source>
         <translation type="unfinished">Execute command when the best block changes (%s in cmd is replaced by block hash)</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+9"/>
         <source>Flush database activity from memory pool to disk log every &lt;n&gt; megabytes (default: %u)</source>
         <translation type="unfinished">Flush database activity from memory pool to disk log every &lt;n&gt; megabytes (default: %u)</translation>
     </message>
@@ -7434,17 +7439,12 @@ PIVX Core Wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-100"/>
+        <location line="-97"/>
         <source>Error: Unsupported argument -checklevel found. Checklevel must be level 4.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+18"/>
-        <source>Execute command when the best block changes and its size is over (%s in cmd is replaced by block hash, %d with the block size)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+62"/>
+        <location line="+77"/>
         <source>Specify custom backup path to add a copy of any wallet backup. If set as dir, every backup generates a timestamped file. If set as file, will rewrite to that file every backup.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7499,7 +7499,7 @@ PIVX Core Wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-275"/>
+        <location line="-272"/>
         <source>(1 = keep tx meta data e.g. payment request information, 2 = drop tx meta data)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7526,7 +7526,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+123"/>
+        <location line="+120"/>
         <source>This file contains all of your private keys in plain text. DO NOT send this file to anyone!</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7652,7 +7652,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished">Loading wallet...</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Location of the auth cookie (default: data dir)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7697,12 +7697,12 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+47"/>
+        <location line="+48"/>
         <source>Specify zk params directory (default: %s)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-46"/>
+        <location line="-47"/>
         <source>Need to specify a port with -whitebind: &apos;%s&apos;</source>
         <translation type="unfinished">Need to specify a port with -whitebind: &apos;%s&apos;</translation>
     </message>
@@ -7752,7 +7752,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+64"/>
+        <location line="+65"/>
         <source>Upgrading coins database if needed...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7777,12 +7777,12 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-82"/>
+        <location line="-83"/>
         <source>Preparing for resync...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-314"/>
+        <location line="-312"/>
         <source>Cannot obtain a lock on data directory %s. %s is probably already running.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7817,7 +7817,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+26"/>
         <source>Fees (in %s/Kb) smaller than this are considered zero fee for relaying, mining and transaction creation (default: %s)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7963,7 +7963,12 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+22"/>
+        <location line="+12"/>
+        <source>Loading/Pruning invalid outputs...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+11"/>
         <source>No error</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7996,6 +8001,11 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <location line="+1"/>
         <source>Randomly fuzz 1 of every &lt;n&gt; network messages</source>
         <translation type="unfinished">Randomly fuzz 1 of every &lt;n&gt; network messages</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Reaccepting wallet transactions...</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>

@@ -966,10 +966,6 @@ proprietario</translation>
         <translation>Filtra per</translation>
     </message>
     <message>
-        <source>Amount of PIV and zPIV staked.</source>
-        <translation>Quantità di PIV e zPIV dallo stake.</translation>
-    </message>
-    <message>
         <source>Please wait until the wallet is fully synced to see your correct balance</source>
         <translation>Attendi fino a quando il portafoglio non è completamente sincronizzato per vedere il tuo saldo corretto</translation>
     </message>
@@ -2279,16 +2275,8 @@ Indirizzo: %4
         <translation>Errore: impossibile analizzare il file di configurazione: %1. Utilizzare solo la sintassi key=value.</translation>
     </message>
     <message>
-        <source>Error: Invalid combination of -regtest and -testnet.</source>
-        <translation>Errore: combinazione non valida di -regtest e -testnet.</translation>
-    </message>
-    <message>
         <source>Error reading masternode configuration file: %1</source>
         <translation>Errore durante la lettura del file di configurazione del Masternode: %1</translation>
-    </message>
-    <message>
-        <source>PIVX Core didn't yet exit safely...</source>
-        <translation>PIVX Core non è ancora uscito in modo sicuro...</translation>
     </message>
     <message>
         <source>Contact</source>
@@ -3871,28 +3859,6 @@ per vedere e spendere i saldi sulla rete.
         <translation>Dove dovrei andare se ho bisogno di supporto?</translation>
     </message>
     <message>
-        <source>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           We have support channels in most of our official chat groups, for example
-                           &lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
-                           #support in our Discord&lt;/a&gt;.
-                           If you prefer to submit a ticket, You can do so at
-                           &lt;a style='color: #b088ff' href='https://PIVX.freshdesk.com'&gt;
-                           our Freshdesk support site&lt;/a&gt;.
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </source>
-        <translation>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           Abbiamo canali di supporto nella maggior parte dei nostri gruppi di chat ufficiali, ad esempio
-                           &lt;a style='color: #b088ff' href='https://Discord.PIVX.com'&gt;
-                           #support nel nostro Discord&lt;/a&gt;.
-                           Se preferisci aprire un ticket, puoi farlo su
-                           &lt;a style='color: #b088ff' href='https://PIVX.FreshDesk.com'&gt;
-                           il nostro sito di supporto Freshdesk&lt;/a&gt;.
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </translation>
-    </message>
-    <message>
         <source>What is a Masternode?</source>
         <translation>Cos'è un Masternode?</translation>
     </message>
@@ -3903,92 +3869,6 @@ per vedere e spendere i saldi sulla rete.
     <message>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;A Masternode Controller wallet is where the 10,000 PIV collateral can reside during a Controller-Remote masternode setup. It is a wallet that can activate the remote masternode wallet(s) and allows you to keep your collateral coins offline while the remote masternode remains online. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;Un Masternode Controller wallet è dove i 10.000 PIV collaterali possono risiedere durante l'impostazione del Masternode Controller remoto. È un portafoglio che può attivare uno o più portafogli masternode remoti e ti consente di mantenere offline le tue valute collaterali mentre il masternode remoto rimane online.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
-        <source>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           A masternode is a computer running a full node PIVX core wallet with a
-                           requirement of 10,000 PIV secured collateral to provide extra services
-                           to the network and in return, receive a portion of the block reward
-                           regularly.  These services include:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           &lt;ul&gt;
-                           &lt;li&gt;Instant transactions (SwiftX)&lt;/li&gt;
-                           &lt;li&gt;A decentralized governance (Proposal Voting)&lt;/li&gt;
-                           &lt;li&gt;A decentralized budgeting system (Treasury)&lt;/li&gt;
-                           &lt;li&gt;Validation of transactions within each block&lt;/li&gt;
-                           &lt;li&gt;Act as an additional full node in the network&lt;/li&gt;
-                           &lt;/ul&gt;
-
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           For providing such services, masternodes are also paid a certain portion
-                           of reward for each block. This can serve as a passive income to the
-                           masternode owners minus their running cost.
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Masternode Perks:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;Participate in PIVX Governance&lt;/li&gt;
-                           &lt;li&gt;Earn Masternode Rewards&lt;/li&gt;
-                           &lt;li&gt;Commodity option for future sale&lt;/li&gt;
-                           &lt;li&gt;Help secure the PIVX network&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Requirements:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;10,000 PIV per single Masternode instance&lt;/li&gt;
-                           &lt;li&gt;Must be stored in a core wallet&lt;/li&gt;
-                           &lt;li&gt;Need dedicated IP address&lt;/li&gt;
-                           &lt;li&gt;Masternode wallet to remain online&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </source>
-        <translation>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           Un masternode è un computer che esegue un portafoglio core PIVX a nodo completo
-con un requisito di 10.000 PIV a garanzia per fornire servizi extra
-alla rete e, in cambio, riceve una parte del premio del blocco
-regolarmente. Questi servizi includono:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           &lt;ul&gt;
-                           &lt;li&gt;Transazioni istantanee (SwiftX)&lt;/li&gt;
-                           &lt;li&gt;Una governance decentrata (votazione della proposta)&lt;/li&gt;
-                           &lt;li&gt;Un sistema di bilancio decentralizzato (Tesoreria)&lt;/li&gt;
-                           &lt;li&gt;Convalida delle transazioni all'interno di ciascun blocco&lt;/li&gt;
-                           &lt;li&gt;Funziona come un nodo completo aggiuntivo nella rete&lt;/li&gt;
-                           &lt;/ul&gt;
-
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           Per fornire tali servizi, i masternode vengono pagati anche una determinata porzione
- di ricompensa per ogni blocco. Questo può servire come reddito passivo per il
- proprietari di masternode detratti i loro costi di gestione.
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Vantaggi del Masternode:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;Partecipare alla Governance di PIVX &lt;/li&gt;
-                           &lt;li&gt;Guadagnare i premi del Masternode&lt;/li&gt;
-                           &lt;li&gt;Opzione di una commodity per vendita futura&lt;/li&gt;
-                           &lt;li&gt;Aiuta a proteggere la rete PIVX&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Requisiti:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;10,000 PIV per singolo Masternode
-                           &lt;li&gt;Devono essere conservati in un portafoglio core&lt;/li&gt;
-                           &lt;li&gt;Necessita un indirizzo IP dedicato&lt;/li&gt;
-                           &lt;li&gt;Il portafoglio del Masternode deve rimanere online&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </translation>
     </message>
     <message>
         <source>Frequently Asked Questions</source>
@@ -5394,10 +5274,6 @@ Portafoglio PIVX Core.</translation>
         <translation>Associa l'indirizzo indicato per ascoltare le connessioni JSON-RPC. Usa la notazione [host]:porta per IPv6. Questa opzione può essere specificata più volte (impostazione predefinita: associa a tutte le interfacce)</translation>
     </message>
     <message>
-        <source>Cannot obtain a lock on data directory %s. PIVX Core is probably already running.</source>
-        <translation>Impossibile allocare la directory di dati %s. Probabilmente PIVX Core è già in esecuzione.</translation>
-    </message>
-    <message>
         <source>Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)</source>
         <translation>Modifica il comportamento di votazione automatica del budget finalizzato. mode=auto: vota solo per la corrispondenza esatta del budget finalizzato al mio budget generato. (stringa, impostazione predefinita: auto)</translation>
     </message>
@@ -5424,10 +5300,6 @@ Portafoglio PIVX Core.</translation>
     <message>
         <source>Enable spork administration functionality with the appropriate private key.</source>
         <translation>Abilitare la funzionalità di amministrazione di spork con la chiave privata appropriata.</translation>
-    </message>
-    <message>
-        <source>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</source>
-        <translation>Entra nella modalità test di regressione, che utilizza una catena speciale in cui i blocchi possono essere risolti istantaneamente.</translation>
     </message>
     <message>
         <source>Error: Listening for incoming connections failed (listen returned error %s)</source>
@@ -5460,10 +5332,6 @@ Portafoglio PIVX Core.</translation>
     <message>
         <source>If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: %u)</source>
         <translation>Se paytxfee non è impostato, includere una commissione sufficiente in modo che le transazioni inizino la conferma in media entro n blocchi (impostazione predefinita: %u)</translation>
-    </message>
-    <message>
-        <source>In this mode -genproclimit controls how many blocks are generated immediately.</source>
-        <translation>In questa modalità -genproclimit controlla quanti blocchi vengono generati immediatamente.</translation>
     </message>
     <message>
         <source>Invalid amount for -maxtxfee=&lt;amount&gt;: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)</source>
@@ -5750,10 +5618,6 @@ Portafoglio PIVX Core.</translation>
         <translation>Informazioni</translation>
     </message>
     <message>
-        <source>Initialization sanity check failed. PIVX Core is shutting down.</source>
-        <translation>Verifica dell'integrità dell'inizializzazione non riuscita. PIVX Core si sta spegnendo.</translation>
-    </message>
-    <message>
         <source>Insufficient funds.</source>
         <translation>Fondi insufficienti.</translation>
     </message>
@@ -5776,10 +5640,6 @@ Portafoglio PIVX Core.</translation>
     <message>
         <source>Error: Unsupported argument -checklevel found. Checklevel must be level 4.</source>
         <translation>Errore: argomento non supportato -checklevel trovato. Il livello di controllo deve essere di livello 4.</translation>
-    </message>
-    <message>
-        <source>Execute command when the best block changes and its size is over (%s in cmd is replaced by block hash, %d with the block size)</source>
-        <translation>Esegui comando quando il blocco migliore cambia e la sua dimensione è finita (%s in cmd è sostituito dall'hash del blocco, %d con la dimensione del blocco)</translation>
     </message>
     <message>
         <source>Specify custom backup path to add a copy of any wallet backup. If set as dir, every backup generates a timestamped file. If set as file, will rewrite to that file every backup.</source>
@@ -6256,10 +6116,6 @@ Portafoglio PIVX Core.</translation>
         <translation>Questo è un software sperimentale.</translation>
     </message>
     <message>
-        <source>This is intended for regression testing tools and app development.</source>
-        <translation>Questo è destinato agli strumenti di test di regressione e allo sviluppo di app.</translation>
-    </message>
-    <message>
         <source>This is not a masternode. 'local' option disabled.</source>
         <translation>Questo non è un masternode. opzione "locale" disattivata.</translation>
     </message>
@@ -6330,10 +6186,6 @@ Portafoglio PIVX Core.</translation>
     <message>
         <source>Use UPnP to map the listening port (default: %u)</source>
         <translation>Utilizzare UPnP per mappare la porta di ascolto (default: %u)</translation>
-    </message>
-    <message>
-        <source>Use the test network</source>
-        <translation>Usa la rete di test</translation>
     </message>
     <message>
         <source>User Agent comment (%s) contains unsafe characters.</source>
