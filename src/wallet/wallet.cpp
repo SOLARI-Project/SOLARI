@@ -2121,8 +2121,9 @@ bool CWallet::Verify()
         }
 
         std::string strError;
-        if (!CWalletDB::VerifyEnvironment(walletFile, GetDataDir().string(), strError))
+        if (!CWalletDB::VerifyEnvironment(walletFile, GetDataDir().string(), strError)) {
             return UIError(strError);
+        }
 
         if (gArgs.GetBoolArg("-salvagewallet", false)) {
             // Recover readable keypairs:
@@ -2133,14 +2134,16 @@ bool CWallet::Verify()
             // tx status. If lock can't be taken, tx confirmation status may be not
             // reliable.
             LOCK(cs_main);
-            if (!CWalletDB::Recover(walletFile, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter, backup_filename))
+            if (!CWalletDB::Recover(walletFile, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter, backup_filename)) {
                 return false;
+            }
         }
 
         std::string strWarning;
         bool dbV = CWalletDB::VerifyDatabaseFile(walletFile, GetDataDir().string(), strWarning, strError);
-        if (!strWarning.empty())
+        if (!strWarning.empty()) {
             UIWarning(strWarning);
+        }
         if (!dbV) {
             return UIError(strError);
         }
@@ -2153,16 +2156,19 @@ void CWallet::ResendWalletTransactions(CConnman* connman)
 {
     // Do this infrequently and randomly to avoid giving away
     // that these are our transactions.
-    if (GetTime() < nNextResend)
+    if (GetTime() < nNextResend) {
         return;
+    }
     bool fFirst = (nNextResend == 0);
     nNextResend = GetTime() + GetRand(30 * 60);
-    if (fFirst)
+    if (fFirst) {
         return;
+    }
 
     // Only do it if there's been a new block since last time
-    if (nTimeBestReceived < nLastResend)
+    if (nTimeBestReceived < nLastResend) {
         return;
+    }
     nLastResend = GetTime();
 
     // Rebroadcast any of our txes that aren't in a block yet
@@ -2175,8 +2181,9 @@ void CWallet::ResendWalletTransactions(CConnman* connman)
             CWalletTx& wtx = item.second;
             // Don't rebroadcast until it's had plenty of time that
             // it should have gotten in already by now.
-            if (nTimeBestReceived - (int64_t)wtx.nTimeReceived > 5 * 60)
+            if (nTimeBestReceived - (int64_t)wtx.nTimeReceived > 5 * 60) {
                 mapSorted.emplace(wtx.nTimeReceived, &wtx);
+            }
         }
         for (std::pair<const unsigned int, CWalletTx*> & item : mapSorted) {
             CWalletTx& wtx = *item.second;
@@ -4256,8 +4263,9 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
             LogPrintf("Performing wallet upgrade to %i\n", FEATURE_LATEST);
             nMaxVersion = FEATURE_LATEST;
             walletInstance->SetMinVersion(FEATURE_LATEST); // permanently upgrade the wallet immediately
-        } else
+        } else {
             LogPrintf("Allowing wallet upgrade up to %i\n", nMaxVersion);
+        }
         if (nMaxVersion < walletInstance->GetVersion()) {
             UIError("Cannot downgrade wallet\n");
             return nullptr;

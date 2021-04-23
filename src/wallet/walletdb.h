@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2013 The Bitcoin developers
-// Copyright (c) 2016-2020 The PIVX developers
+// Copyright (c) 2009-2021 The Bitcoin developers
+// Copyright (c) 2016-2021 The PIVX developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLETDB_H
-#define BITCOIN_WALLETDB_H
+#ifndef PIVX_WALLETDB_H
+#define PIVX_WALLETDB_H
 
 #include "amount.h"
 #include "wallet/db.h"
@@ -247,4 +247,4 @@ bool AutoBackupWallet(const std::string& strWalletFile, std::string& strBackupWa
 //! Compacts BDB state so that wallet.dat is self-contained (if there are changes)
 void MaybeCompactWalletDB();
 
-#endif // BITCOIN_WALLETDB_H
+#endif // PIVX_WALLETDB_H
