@@ -936,24 +936,6 @@ void InitParameterInteraction()
         if (gArgs.SoftSetBoolArg("-discover", false))
             LogPrintf("%s : parameter interaction: -externalip set -> setting -discover=0\n", __func__);
     }
-
-    if (gArgs.GetBoolArg("-salvagewallet", false)) {
-        // Rewrite just private keys: rescan to find transactions
-        if (gArgs.SoftSetBoolArg("-rescan", true))
-            LogPrintf("%s : parameter interaction: -salvagewallet=1 -> setting -rescan=1\n", __func__);
-    }
-
-    int zapwallettxes = gArgs.GetArg("-zapwallettxes", 0);
-    // -zapwallettxes implies dropping the mempool on startup
-    if (zapwallettxes != 0 && gArgs.SoftSetBoolArg("-persistmempool", false)) {
-        LogPrintf("%s: parameter interaction: -zapwallettxes=%s -> setting -persistmempool=0\n", __func__, zapwallettxes);
-    }
-
-    // -zapwallettxes implies a rescan
-    if (zapwallettxes != 0) {
-        if (gArgs.SoftSetBoolArg("-rescan", true))
-            LogPrintf("%s : parameter interaction: -zapwallettxes=%s -> setting -rescan=1\n", __func__, zapwallettxes);
-    }
 }
 
 bool InitNUParams()
