@@ -79,6 +79,7 @@ find_package(GMP REQUIRED)
 
 find_package(ZMQ)
 find_package(Miniupnp)
+find_package(NAT-PMP)
 find_package(Boost COMPONENTS system filesystem thread REQUIRED)
 find_package(Sodium REQUIRED)
 
@@ -559,6 +560,10 @@ if(MINIUPNP_FOUND)
     target_compile_definitions(pivxd PUBLIC "-DSTATICLIB -DMINIUPNP_STATICLIB")
     target_link_libraries(pivxd ${MINIUPNP_LIBRARY})
     target_include_directories(pivxd PUBLIC ${MINIUPNP_INCLUDE_DIR})
+endif()
+if(NAT-PMP_FOUND)
+    target_link_libraries(pivxd ${NAT-PMP_LIBRARY})
+    target_include_directories(pivxd PUBLIC ${NAT-PMP_INCLUDE_DIR})
 endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

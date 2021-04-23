@@ -146,6 +146,18 @@ AC_ARG_ENABLE([upnp-default],
   [use_upnp_default=$enableval],
   [use_upnp_default=no])
 
+AC_ARG_WITH([natpmp],
+  [AS_HELP_STRING([--with-natpmp],
+  [enable NAT-PMP (default is yes if libnatpmp is found)])],
+  [use_natpmp=$withval],
+  [use_natpmp=auto])
+
+AC_ARG_ENABLE([natpmp-default],
+  [AS_HELP_STRING([--enable-natpmp-default],
+  [if NAT-PMP is enabled, turn it on at startup (default is no)])],
+  [use_natpmp_default=$enableval],
+  [use_natpmp_default=no])
+
 AC_ARG_ENABLE(tests,
     AS_HELP_STRING([--disable-tests],[do not compile tests (default is to compile)]),
     [use_tests=$enableval],
@@ -1011,6 +1023,7 @@ if test "x$enable_fuzz" = "xyes"; then
   enable_wallet=yes # needs to be built for now.
   use_bench=no
   use_upnp=no
+  use_natpmp=no
   use_zmq=no
 else
   BITCOIN_QT_INIT
@@ -1051,6 +1064,13 @@ if test x$have_miniupnpc != xno; then
     have_miniupnpc=no
   ])
 fi
+fi
+
+dnl Check for libnatpmp (optional).
+if test "x$use_natpmp" != xno; then
+  AC_CHECK_HEADERS([natpmp.h],
+                   [AC_CHECK_LIB([natpmp], [initnatpmp], [NATPMP_LIBS=-lnatpmp], [have_natpmp=no])],
+                   [have_natpmp=no])
 fi
 
 if test x$build_bitcoin_utils$build_bitcoind$bitcoin_enable_qt$use_tests$use_bench = xnonononono; then
@@ -1358,6 +1378,31 @@ else
   fi
 fi
 
+dnl Enable NAT-PMP support.
+AC_MSG_CHECKING([whether to build with support for NAT-PMP])
+if test "x$have_natpmp" = xno; then
+  if test "x$use_natpmp" = xyes; then
+     AC_MSG_ERROR([NAT-PMP requested but cannot be built. Use --without-natpmp])
+  fi
+  AC_MSG_RESULT([no])
+  use_natpmp=no
+else
+  if test "x$use_natpmp" != xno; then
+    AC_MSG_RESULT([yes])
+    AC_MSG_CHECKING([whether to build with NAT-PMP enabled by default])
+    use_natpmp=yes
+    natpmp_setting=0
+    if test "x$use_natpmp_default" != xno; then
+      use_natpmp_default=yes
+      natpmp_setting=1
+    fi
+    AC_MSG_RESULT($use_natpmp_default)
+    AC_DEFINE_UNQUOTED([USE_NATPMP], [$natpmp_setting], [NAT-PMP support not compiled if undefined, otherwise value (0 or 1) determines default state])
+  else
+    AC_MSG_RESULT([no])
+  fi
+fi
+
 dnl these are only used when qt is enabled
 BUILD_TEST_QT=""
 if test x$bitcoin_enable_qt != xno; then
@@ -1492,6 +1537,7 @@ AC_SUBST(BOOST_LIBS)
 AC_SUBST(TESTDEFS)
 AC_SUBST(MINIUPNPC_CPPFLAGS)
 AC_SUBST(MINIUPNPC_LIBS)
+AC_SUBST(NATPMP_LIBS)
 AC_SUBST(EVENT_LIBS)
 AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(SODIUM_LIBS)
@@ -1580,6 +1626,7 @@ if test x$use_tests != xno; then
 fi
 echo "  with bench    = $use_bench"
 echo "  with upnp     = $use_upnp"
+echo "  with natpmp   = $use_natpmp"
 echo "  with params   = $params_path"
 echo "  use asm       = $use_asm"
 echo "  sanitizers    = $use_sanitizers"
