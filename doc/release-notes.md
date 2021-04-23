@@ -83,6 +83,13 @@ Note that while multi-wallet is now fully supported, the RPC multi-wallet interf
 GUI changes
 -----------
 
+### Settings
+
+A new checkbox has been added to the wallet settings UI to enable or disable automatic port mapping with NAT-PMP.
+If both UPnP and NAT-PMP are enabled, a successful allocation from UPnP prevails over one from NAT-PMP.
+
+Note: Successful automatic port mapping requires a router that supports either UPnP or NAT-PMP.
+
 ### RPC-Console
 
 The GUI RPC-Console now accepts "parenthesized syntax", nested commands, and simple queries (see [PR #2282](https://github.com/PIVX-Project/PIVX/pull/2282).
@@ -221,6 +228,12 @@ The minimum supported miniUPnPc API version is set to 10. This keeps compatibili
 OpenSSL is no longer used by PIVX Core
 
 
+P2P and network changes
+-----------------------
+
+- Added NAT-PMP port mapping support via [`libnatpmp`](https://miniupnp.tuxfamily.org/libnatpmp.html)
+
+
 Configuration changes
 ---------------------
 
@@ -247,6 +260,11 @@ A new init option flag '-blocksdir' will allow one to keep the blockfiles extern
 ### Disable PoW mining RPC Commands
 
 A new configure flag has been introduced to allow more granular control over weather or not the PoW mining RPC commands are compiled into the wallet. By default they are not. This behavior can be overridden by passing `--enable-mining-rpc` to the `configure` script.
+
+### Enable NAT-PMP port mapping at startup
+
+The `-natpmp` option has been added to use NAT-PMP to map the listening port. If both UPnP
+and NAT-PMP are enabled, a successful allocation from UPnP prevails over one from NAT-PMP.
 
 ### Removed startup options
 
