@@ -55,6 +55,10 @@ SettingsWalletOptionsWidget::SettingsWalletOptionsWidget(PIVXGUI* _window, QWidg
     connect(ui->pushButtonSave, &QPushButton::clicked, [this] { Q_EMIT saveSettings(); });
     connect(ui->pushButtonReset, &QPushButton::clicked, this, &SettingsWalletOptionsWidget::onResetClicked);
     connect(ui->pushButtonClean, &QPushButton::clicked, [this] { Q_EMIT discardSettings(); });
+
+    connect(ui->pushButtonSave, &QPushButton::clicked, [this](){
+        ClientModel::mapPort(ui->checkBoxMap->isChecked());
+    });
 }
 
 void SettingsWalletOptionsWidget::onResetClicked()

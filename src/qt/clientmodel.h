@@ -9,6 +9,8 @@
 
 #include "uint256.h"
 #include "chain.h"
+#include "mapport.h"
+
 #include <QObject>
 #include <QDateTime>
 
@@ -93,6 +95,8 @@ public:
     void setCacheInitialSync(bool _initialSync) { cachedInitialSync = _initialSync; }
 
     bool getTorInfo(std::string& ip_port) const;
+
+    static void mapPort(bool use_upnp) { StartMapPort(use_upnp); }
 
     // Start/Stop the masternode polling timer
     void startMasternodesTimer();
