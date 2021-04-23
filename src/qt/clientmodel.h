@@ -96,7 +96,7 @@ public:
 
     bool getTorInfo(std::string& ip_port) const;
 
-    static void mapPort(bool use_upnp) { StartMapPort(use_upnp); }
+    static void mapPort(bool use_upnp, bool use_natpmp) { StartMapPort(use_upnp, use_natpmp); }
 
     // Start/Stop the masternode polling timer
     void startMasternodesTimer();
