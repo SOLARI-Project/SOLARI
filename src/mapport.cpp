@@ -38,7 +38,7 @@ static std::thread g_upnp_thread;
 
 static constexpr auto PORT_MAPPING_REANNOUNCE_PERIOD = std::chrono::minutes(20);
 
-void ThreadMapPort()
+static void ThreadMapPort()
 {
     std::string port = strprintf("%u", GetListenPort());
     const char* multicastif = 0;
