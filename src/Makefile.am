@@ -216,6 +216,7 @@ BITCOIN_CORE_H = \
   budget/budgetvote.h \
   budget/finalizedbudget.h \
   budget/finalizedbudgetvote.h \
+  mapport.h \
   memusage.h \
   masternode.h \
   masternode-payments.h \
@@ -343,6 +344,7 @@ libbitcoin_server_a_SOURCES = \
   sapling/sapling_validation.cpp \
   merkleblock.cpp \
   blockassembler.cpp \
+  mapport.cpp \
   miner.cpp \
   net.cpp \
   net_processing.cpp \

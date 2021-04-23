@@ -29,6 +29,7 @@
 #include "httprpc.h"
 #include "invalid.h"
 #include "key.h"
+#include "mapport.h"
 #include "masternode-payments.h"
 #include "masternodeconfig.h"
 #include "masternodeman.h"

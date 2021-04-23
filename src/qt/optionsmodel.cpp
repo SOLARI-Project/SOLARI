@@ -15,6 +15,7 @@
 
 #include "amount.h"
 #include "init.h"
+#include "mapport.h"
 #include "net.h"
 #include "netbase.h"
 #include "txdb.h" // for -dbcache defaults

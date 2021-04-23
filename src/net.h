@@ -61,12 +61,6 @@ static const unsigned int MAX_SUBVERSION_LENGTH = 256;
 static const int MAX_OUTBOUND_CONNECTIONS = 16;
 /** -listen default */
 static const bool DEFAULT_LISTEN = true;
-/** -upnp default */
-#ifdef USE_UPNP
-static const bool DEFAULT_UPNP = USE_UPNP;
-#else
-static const bool DEFAULT_UPNP = false;
-#endif
 /** The maximum number of entries in mapAskFor */
 static const size_t MAPASKFOR_MAX_SZ = MAX_INV_SZ;
 /** The maximum number of entries in setAskFor (larger due to getdata latency)*/
@@ -389,9 +383,6 @@ private:
 };
 extern std::unique_ptr<CConnman> g_connman;
 void Discover();
-void StartMapPort();
-void InterruptMapPort();
-void StopMapPort();
 unsigned short GetListenPort();
 bool BindListenPort(const CService& bindAddr, std::string& strError, bool fWhitelisted = false);
 void CheckOffsetDisconnectedPeers(const CNetAddr& ip);

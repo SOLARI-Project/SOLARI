@@ -195,6 +195,7 @@ set(SERVER_SOURCES
         ./src/interfaces/wallet.cpp
         ./src/dbwrapper.cpp
         ./src/legacy/validation_zerocoin_legacy.cpp
+        ./src/mapport.cpp
         ./src/merkleblock.cpp
         ./src/miner.cpp
         ./src/blockassembler.cpp
