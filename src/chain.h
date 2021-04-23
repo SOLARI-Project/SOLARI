@@ -213,8 +213,8 @@ public:
 
     std::string ToString() const;
 
-    CDiskBlockPos GetBlockPos() const;
-    CDiskBlockPos GetUndoPos() const;
+    FlatFilePos GetBlockPos() const;
+    FlatFilePos GetUndoPos() const;
     CBlockHeader GetBlockHeader() const;
     uint256 GetBlockHash() const { return *phashBlock; }
     int64_t GetBlockTime() const { return (int64_t)nTime; }
