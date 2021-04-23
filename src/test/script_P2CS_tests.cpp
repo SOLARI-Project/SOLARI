@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(fake_script_test)
 {
     BOOST_ASSERT(!g_IsV6Active);
 
-    CWallet& wallet = *vpwallets[0];
+    CWallet& wallet = *pwalletMain;
     LOCK(wallet.cs_wallet);
     setupWallet(wallet);
     CKey stakerKey;         // dummy staker key (not in the wallet)

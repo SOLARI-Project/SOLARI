@@ -13,14 +13,14 @@
 
 #include <boost/test/unit_test.hpp>
 
-extern CWallet* pwalletMain;
-
 /*
  * A text fixture with a preloaded 100-blocks regtest chain, with sapling activating at block 101,
  * and a wallet containing the key used for the coinbase outputs.
  */
 struct TestSaplingChainSetup: public TestChain100Setup
 {
+    std::unique_ptr<CWallet> pwalletMain;
+
     TestSaplingChainSetup() : TestChain100Setup()
     {
         initZKSNARKS(); // init zk-snarks lib
@@ -28,9 +28,9 @@ struct TestSaplingChainSetup: public TestChain100Setup
         bitdb.MakeMock();
         bool fFirstRun;
         std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
-        pwalletMain = new CWallet(std::move(dbw));
+        pwalletMain = MakeUnique<CWallet>(std::move(dbw));
         pwalletMain->LoadWallet(fFirstRun);
-        RegisterValidationInterface(pwalletMain);
+        RegisterValidationInterface(pwalletMain.get());
 
         int SAPLING_ACTIVATION_HEIGHT = 101;
         UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, SAPLING_ACTIVATION_HEIGHT);
@@ -45,16 +45,14 @@ struct TestSaplingChainSetup: public TestChain100Setup
             // import coinbase key used to generate the 100-blocks chain
             BOOST_CHECK(pwalletMain->AddKeyPubKey(coinbaseKey, coinbaseKey.GetPubKey()));
         }
-        WalletRescanReserver reserver(pwalletMain);
+        WalletRescanReserver reserver(pwalletMain.get());
         BOOST_CHECK(reserver.reserve());
         pwalletMain->RescanFromTime(0, reserver, true /* update */);
     }
 
     ~TestSaplingChainSetup()
     {
-        UnregisterValidationInterface(pwalletMain);
-        delete pwalletMain;
-        pwalletMain = nullptr;
+        UnregisterValidationInterface(pwalletMain.get());
         bitdb.Flush(true);
         bitdb.Reset();
     }
@@ -62,12 +60,13 @@ struct TestSaplingChainSetup: public TestChain100Setup
 
 BOOST_FIXTURE_TEST_SUITE(wallet_sapling_transactions_validations_tests, TestSaplingChainSetup)
 
-SaplingOperation createOperationAndBuildTx(std::vector<SendManyRecipient> recipients,
-                                           int nextBlockHeight,
-                                           bool selectTransparentCoins)
+static SaplingOperation createOperationAndBuildTx(std::unique_ptr<CWallet>& pwallet,
+                                                  std::vector<SendManyRecipient> recipients,
+                                                  int nextBlockHeight,
+                                                  bool selectTransparentCoins)
 {
     // Create the operation
-    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, pwalletMain);
+    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, pwallet.get());
     auto operationResult = operation.setRecipients(recipients)
             ->setSelectTransparentCoins(selectTransparentCoins)
             ->setSelectShieldedCoins(!selectTransparentCoins)
@@ -114,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_in_block_and_mempool_notes_double_spend)
     recipients.emplace_back(pa, CAmount(100 * COIN), "");
 
     // Create the operation and build the transaction
-    SaplingOperation operation = createOperationAndBuildTx(recipients, tipHeight + 1, true);
+    SaplingOperation operation = createOperationAndBuildTx(pwalletMain, recipients, tipHeight + 1, true);
     // broadcast the tx to the network
     std::string retHash;
     BOOST_ASSERT_MSG(operation.send(retHash), "error committing and broadcasting the transaction");
@@ -137,14 +136,14 @@ BOOST_AUTO_TEST_CASE(test_in_block_and_mempool_notes_double_spend)
     pwalletMain->getNewAddress(tDest2, "receiveValid");
     std::vector<SendManyRecipient> recipients2;
     recipients2.emplace_back(tDest2, CAmount(90 * COIN));
-    SaplingOperation operation2 = createOperationAndBuildTx(recipients2, tipHeight + 1, false);
+    SaplingOperation operation2 = createOperationAndBuildTx(pwalletMain, recipients2, tipHeight + 1, false);
 
     // Create a second transaction that spends the same note with a different output now
     CTxDestination tDest3;
     pwalletMain->getNewAddress(tDest3, "receiveInvalid");
     std::vector<SendManyRecipient> recipients3;
     recipients3.emplace_back(tDest3, CAmount(5 * COIN));
-    SaplingOperation operation3 = createOperationAndBuildTx(recipients3, tipHeight + 1, false);
+    SaplingOperation operation3 = createOperationAndBuildTx(pwalletMain, recipients3, tipHeight + 1, false);
 
     // Now that both transactions were created, broadcast the first one
     std::string retTxHash2;

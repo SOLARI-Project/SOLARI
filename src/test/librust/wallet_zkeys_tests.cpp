@@ -12,8 +12,6 @@
 #include "util/system.h"
 #include <boost/test/unit_test.hpp>
 
-extern CWallet* pwalletMain;
-
 /**
  * This test covers methods on CWallet
  * GenerateNewZKey()
@@ -172,7 +170,7 @@ BOOST_AUTO_TEST_CASE(WriteCryptedSaplingZkeyDirectToDb) {
     BOOST_CHECK_EQUAL(DB_LOAD_OK, wallet2.LoadWallet(fFirstRun));
 
     // Confirm it's not the same as the other wallet
-    BOOST_CHECK(pwalletMain != &wallet2);
+    BOOST_CHECK(pwalletMain.get() != &wallet2);
     BOOST_CHECK(wallet2.HasSaplingSPKM());
 
     // wallet should have two keys

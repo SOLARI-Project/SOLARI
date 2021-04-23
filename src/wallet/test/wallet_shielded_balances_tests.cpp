@@ -17,8 +17,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-extern CWallet* pwalletMain;
-
 CAmount fee = COIN; // Hardcoded fee
 
 BOOST_FIXTURE_TEST_SUITE(wallet_shielded_balances_tests, WalletTestingSetup)
