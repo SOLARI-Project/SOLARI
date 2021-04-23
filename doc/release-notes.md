@@ -49,12 +49,24 @@ Cold-Staking Re-Activation
 PIVX Core v6.0.0 includes a fix for the vulnerability identified within the cold-staking protocol (see PR [#2258](https://github.com/PIVX-Project/PIVX/pull/2258)).
 Therefore the feature will be re-enabled on the network, via `SPORK_19`, shortly after the upgrade enforcement.
 
-#### Protocol changes
+### Protocol changes
 
 A new opcode (`0xd2`) is introduced (see PR [#2275](https://github.com/PIVX-Project/PIVX/pull/2275)). It enforces the same rules as the legacy cold-staking opcode, but without allowing a "free" script for the last output of the transaction.
 This is in accord with the consensus change introduced with the "Deterministic Masternodes" update, as masternode/budget payments are now outputs of the *coinbase* transaction (rather than the *coinstake*), therefore a "free" output for the coinstake is no longer needed.
 The new opcode takes the name of `OP_CHECKCOLDSTAKEVERIFY`, and the legacy opcode (`0xd1`) is renamed to `OP_CHECKCOLDSTAKEVERIFY_LOF` (last-output-free).
 Scripts with the old opcode are still accepted on the network (the restriction on the last-output is enforced after the script validation in this case), but the client creates new delegations with the new opcode, by default, after the upgrade enforcement.
+
+
+Multi-wallet support
+--------------------
+
+PIVX Core now supports loading multiple, separate wallets (See [PR 2337](https://github.com/PIVX-Project/PIVX/pull/2337)). The wallets are completely separated, with individual balances, keys and received transactions.
+
+Multi-wallet is enabled by using more than one `-wallet` argument when starting PIVX client, either on the command line or in the pivx.conf config file.
+
+**In pivx-qt, only the first wallet will be displayed and accessible for creating and signing transactions.** GUI selectable multiple wallets will be supported in a future version. However, even in 6.0 other loaded wallets will remain synchronized to the node's current tip in the background.
+
+!TODO: update after endpoint support and multi-wallet RPC support
 
 
 GUI changes
@@ -100,6 +112,7 @@ Low-level RPC changes
   - `maximumAmount` - a number specifying the maximum value of each UTXO
   - `maximumCount` - a number specifying the minimum number of UTXOs
   - `minimumSumAmount` - a number specifying the minimum sum value of all UTXOs
+
 
 #### Show wallet's auto-combine settings in getwalletinfo
 
