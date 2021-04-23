@@ -966,6 +966,10 @@ address</translation>
         <translation>How to get PIV</translation>
     </message>
     <message>
+        <source>Amount of staking rewards received.</source>
+        <translation>Amount of staking rewards received.</translation>
+    </message>
+    <message>
         <source>Sort by</source>
         <translation>Sort by</translation>
     </message>
@@ -984,10 +988,6 @@ address</translation>
     <message>
         <source>Filter by</source>
         <translation>Filter by</translation>
-    </message>
-    <message>
-        <source>Amount of PIV and zPIV staked.</source>
-        <translation>Amount of PIV and zPIV staked.</translation>
     </message>
     <message>
         <source>Please wait until the wallet is fully synced to see your correct balance</source>
@@ -2307,16 +2307,16 @@ Address: %4
         <translation>Error: Cannot parse configuration file: %1. Only use key=value syntax.</translation>
     </message>
     <message>
-        <source>Error: Invalid combination of -regtest and -testnet.</source>
-        <translation>Error: Invalid combination of -regtest and -testnet.</translation>
+        <source>Error: %1</source>
+        <translation>Error: %1</translation>
+    </message>
+    <message>
+        <source>%1 didn't yet exit safely...</source>
+        <translation>%1 didn't yet exit safely...</translation>
     </message>
     <message>
         <source>Error reading masternode configuration file: %1</source>
         <translation>Error reading masternode configuration file: %1</translation>
-    </message>
-    <message>
-        <source>PIVX Core didn't yet exit safely...</source>
-        <translation>PIVX Core didn't yet exit safely...</translation>
     </message>
     <message>
         <source>Contact</source>
@@ -3467,6 +3467,10 @@ Do you wish to proceed without memo?
         <translation>Preparing transaction</translation>
     </message>
     <message>
+        <source>Processing full, refreshing amounts later</source>
+        <translation>Processing full, refreshing amounts later</translation>
+    </message>
+    <message>
         <source>You don't have any %1 to select.</source>
         <translation>You don't have any %1 to select.</translation>
     </message>
@@ -4029,8 +4033,108 @@ There was an error trying to save the address list to %1. Please try again.</tra
         <translation>4</translation>
     </message>
     <message>
+        <source>
+                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
+                           We have support channels in most of our official chat groups, for example
+                           &lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
+                           #support in our Discord&lt;/a&gt;.
+                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
+                         </source>
+        <translation>
+                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
+                           We have support channels in most of our official chat groups, for example
+                           &lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
+                           #support in our Discord&lt;/a&gt;.
+                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
+                         </translation>
+    </message>
+    <message>
         <source>5</source>
         <translation>5</translation>
+    </message>
+    <message>
+        <source>
+                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
+                           A masternode is a computer running a full node PIVX core wallet with a
+                           requirement of 10,000 PIV secured collateral to provide extra services
+                           to the network and in return, receive a portion of the block reward
+                           regularly.  These services include:
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+
+                           &lt;ul&gt;
+                           &lt;li&gt;A decentralized governance (Proposal Voting)&lt;/li&gt;
+                           &lt;li&gt;A decentralized budgeting system (Treasury)&lt;/li&gt;
+                           &lt;li&gt;Validation of transactions within each block&lt;/li&gt;
+                           &lt;li&gt;Act as an additional full node in the network&lt;/li&gt;
+                           &lt;/ul&gt;
+
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+                           For providing such services, masternodes are also paid a certain portion
+                           of reward for each block. This can serve as a passive income to the
+                           masternode owners minus their running cost.
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+
+                           Masternode Perks:
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+                           &lt;ul&gt;
+                           &lt;li&gt;Participate in PIVX Governance&lt;/li&gt;
+                           &lt;li&gt;Earn Masternode Rewards&lt;/li&gt;
+                           &lt;li&gt;Commodity option for future sale&lt;/li&gt;
+                           &lt;li&gt;Help secure the PIVX network&lt;/li&gt;
+                           &lt;/ul&gt;
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+
+                           Requirements:
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+                           &lt;ul&gt;
+                           &lt;li&gt;10,000 PIV per single Masternode instance&lt;/li&gt;
+                           &lt;li&gt;Must be stored in a core wallet&lt;/li&gt;
+                           &lt;li&gt;Need dedicated IP address&lt;/li&gt;
+                           &lt;li&gt;Masternode wallet to remain online&lt;/li&gt;
+                           &lt;/ul&gt;
+                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
+                         </source>
+        <translation>
+                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
+                           A masternode is a computer running a full node PIVX core wallet with a
+                           requirement of 10,000 PIV secured collateral to provide extra services
+                           to the network and in return, receive a portion of the block reward
+                           regularly.  These services include:
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+
+                           &lt;ul&gt;
+                           &lt;li&gt;A decentralized governance (Proposal Voting)&lt;/li&gt;
+                           &lt;li&gt;A decentralized budgeting system (Treasury)&lt;/li&gt;
+                           &lt;li&gt;Validation of transactions within each block&lt;/li&gt;
+                           &lt;li&gt;Act as an additional full node in the network&lt;/li&gt;
+                           &lt;/ul&gt;
+
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+                           For providing such services, masternodes are also paid a certain portion
+                           of reward for each block. This can serve as a passive income to the
+                           masternode owners minus their running cost.
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+
+                           Masternode Perks:
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+                           &lt;ul&gt;
+                           &lt;li&gt;Participate in PIVX Governance&lt;/li&gt;
+                           &lt;li&gt;Earn Masternode Rewards&lt;/li&gt;
+                           &lt;li&gt;Commodity option for future sale&lt;/li&gt;
+                           &lt;li&gt;Help secure the PIVX network&lt;/li&gt;
+                           &lt;/ul&gt;
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+
+                           Requirements:
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+                           &lt;ul&gt;
+                           &lt;li&gt;10,000 PIV per single Masternode instance&lt;/li&gt;
+                           &lt;li&gt;Must be stored in a core wallet&lt;/li&gt;
+                           &lt;li&gt;Need dedicated IP address&lt;/li&gt;
+                           &lt;li&gt;Masternode wallet to remain online&lt;/li&gt;
+                           &lt;/ul&gt;
+                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
+                         </translation>
     </message>
     <message>
         <source>6</source>
@@ -4071,28 +4175,6 @@ There was an error trying to save the address list to %1. Please try again.</tra
                          </translation>
     </message>
     <message>
-        <source>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           We have support channels in most of our official chat groups, for example
-                           &lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
-                           #support in our Discord&lt;/a&gt;.
-                           If you prefer to submit a ticket, You can do so at
-                           &lt;a style='color: #b088ff' href='https://PIVX.freshdesk.com'&gt;
-                           our Freshdesk support site&lt;/a&gt;.
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </source>
-        <translation>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           We have support channels in most of our official chat groups, for example
-                           &lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
-                           #support in our Discord&lt;/a&gt;.
-                           If you prefer to submit a ticket, You can do so at
-                           &lt;a style='color: #b088ff' href='https://PIVX.freshdesk.com'&gt;
-                           our Freshdesk support site&lt;/a&gt;.
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </translation>
-    </message>
-    <message>
         <source>What is a Masternode?</source>
         <translation>What is a Masternode?</translation>
     </message>
@@ -4103,92 +4185,6 @@ There was an error trying to save the address list to %1. Please try again.</tra
     <message>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;A Masternode Controller wallet is where the 10,000 PIV collateral can reside during a Controller-Remote masternode setup. It is a wallet that can activate the remote masternode wallet(s) and allows you to keep your collateral coins offline while the remote masternode remains online. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;A Masternode Controller wallet is where the 10,000 PIV collateral can reside during a Controller-Remote masternode setup. It is a wallet that can activate the remote masternode wallet(s) and allows you to keep your collateral coins offline while the remote masternode remains online. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
-        <source>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           A masternode is a computer running a full node PIVX core wallet with a
-                           requirement of 10,000 PIV secured collateral to provide extra services
-                           to the network and in return, receive a portion of the block reward
-                           regularly.  These services include:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           &lt;ul&gt;
-                           &lt;li&gt;Instant transactions (SwiftX)&lt;/li&gt;
-                           &lt;li&gt;A decentralized governance (Proposal Voting)&lt;/li&gt;
-                           &lt;li&gt;A decentralized budgeting system (Treasury)&lt;/li&gt;
-                           &lt;li&gt;Validation of transactions within each block&lt;/li&gt;
-                           &lt;li&gt;Act as an additional full node in the network&lt;/li&gt;
-                           &lt;/ul&gt;
-
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           For providing such services, masternodes are also paid a certain portion
-                           of reward for each block. This can serve as a passive income to the
-                           masternode owners minus their running cost.
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Masternode Perks:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;Participate in PIVX Governance&lt;/li&gt;
-                           &lt;li&gt;Earn Masternode Rewards&lt;/li&gt;
-                           &lt;li&gt;Commodity option for future sale&lt;/li&gt;
-                           &lt;li&gt;Help secure the PIVX network&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Requirements:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;10,000 PIV per single Masternode instance&lt;/li&gt;
-                           &lt;li&gt;Must be stored in a core wallet&lt;/li&gt;
-                           &lt;li&gt;Need dedicated IP address&lt;/li&gt;
-                           &lt;li&gt;Masternode wallet to remain online&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </source>
-        <translation>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           A masternode is a computer running a full node PIVX core wallet with a
-                           requirement of 10,000 PIV secured collateral to provide extra services
-                           to the network and in return, receive a portion of the block reward
-                           regularly.  These services include:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           &lt;ul&gt;
-                           &lt;li&gt;Instant transactions (SwiftX)&lt;/li&gt;
-                           &lt;li&gt;A decentralized governance (Proposal Voting)&lt;/li&gt;
-                           &lt;li&gt;A decentralized budgeting system (Treasury)&lt;/li&gt;
-                           &lt;li&gt;Validation of transactions within each block&lt;/li&gt;
-                           &lt;li&gt;Act as an additional full node in the network&lt;/li&gt;
-                           &lt;/ul&gt;
-
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           For providing such services, masternodes are also paid a certain portion
-                           of reward for each block. This can serve as a passive income to the
-                           masternode owners minus their running cost.
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Masternode Perks:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;Participate in PIVX Governance&lt;/li&gt;
-                           &lt;li&gt;Earn Masternode Rewards&lt;/li&gt;
-                           &lt;li&gt;Commodity option for future sale&lt;/li&gt;
-                           &lt;li&gt;Help secure the PIVX network&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Requirements:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;10,000 PIV per single Masternode instance&lt;/li&gt;
-                           &lt;li&gt;Must be stored in a core wallet&lt;/li&gt;
-                           &lt;li&gt;Need dedicated IP address&lt;/li&gt;
-                           &lt;li&gt;Masternode wallet to remain online&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </translation>
     </message>
     <message>
         <source>Frequently Asked Questions</source>
@@ -5706,10 +5702,6 @@ PIVX Core Wallet</translation>
         <translation>Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6. This option can be specified multiple times (default: bind to all interfaces)</translation>
     </message>
     <message>
-        <source>Cannot obtain a lock on data directory %s. PIVX Core is probably already running.</source>
-        <translation>Cannot obtain a lock on data directory %s. PIVX Core is probably already running.</translation>
-    </message>
-    <message>
         <source>Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)</source>
         <translation>Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)</translation>
     </message>
@@ -5736,10 +5728,6 @@ PIVX Core Wallet</translation>
     <message>
         <source>Enable spork administration functionality with the appropriate private key.</source>
         <translation>Enable spork administration functionality with the appropriate private key.</translation>
-    </message>
-    <message>
-        <source>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</source>
-        <translation>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</translation>
     </message>
     <message>
         <source>Error: Listening for incoming connections failed (listen returned error %s)</source>
@@ -5772,10 +5760,6 @@ PIVX Core Wallet</translation>
     <message>
         <source>If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: %u)</source>
         <translation>If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: %u)</translation>
-    </message>
-    <message>
-        <source>In this mode -genproclimit controls how many blocks are generated immediately.</source>
-        <translation>In this mode -genproclimit controls how many blocks are generated immediately.</translation>
     </message>
     <message>
         <source>Invalid amount for -maxtxfee=&lt;amount&gt;: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)</source>
@@ -6062,10 +6046,6 @@ PIVX Core Wallet</translation>
         <translation>Information</translation>
     </message>
     <message>
-        <source>Initialization sanity check failed. PIVX Core is shutting down.</source>
-        <translation>Initialization sanity check failed. PIVX Core is shutting down.</translation>
-    </message>
-    <message>
         <source>Insufficient funds.</source>
         <translation>Insufficient funds.</translation>
     </message>
@@ -6092,10 +6072,6 @@ PIVX Core Wallet</translation>
     <message>
         <source>Error: Unsupported argument -checklevel found. Checklevel must be level 4.</source>
         <translation>Error: Unsupported argument -checklevel found. Checklevel must be level 4.</translation>
-    </message>
-    <message>
-        <source>Execute command when the best block changes and its size is over (%s in cmd is replaced by block hash, %d with the block size)</source>
-        <translation>Execute command when the best block changes and its size is over (%s in cmd is replaced by block hash, %d with the block size)</translation>
     </message>
     <message>
         <source>Specify custom backup path to add a copy of any wallet backup. If set as dir, every backup generates a timestamped file. If set as file, will rewrite to that file every backup.</source>
@@ -6348,8 +6324,16 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
         <translation>Peers are being disconnected due time differences.</translation>
     </message>
     <message>
+        <source>Upgrading coins database if needed...</source>
+        <translation>Upgrading coins database if needed...</translation>
+    </message>
+    <message>
         <source>Use block spam filter (default: %u)</source>
         <translation>Use block spam filter (default: %u)</translation>
+    </message>
+    <message>
+        <source>Use the test chain</source>
+        <translation>Use the test chain</translation>
     </message>
     <message>
         <source>Wallet debugging/testing options:</source>
@@ -6362,6 +6346,10 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
     <message>
         <source>Preparing for resync...</source>
         <translation>Preparing for resync...</translation>
+    </message>
+    <message>
+        <source>Cannot obtain a lock on data directory %s. %s is probably already running.</source>
+        <translation>Cannot obtain a lock on data directory %s. %s is probably already running.</translation>
     </message>
     <message>
         <source>Connect only to the specified node(s); -noconnect or -connect=0 alone to disable automatic connections</source>
@@ -6412,8 +6400,20 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
         <translation>Specify location of debug log file: this can be an absolute path or a path relative to the data directory (default: %s)</translation>
     </message>
     <message>
+        <source>System error while flushing the chainstate after pruning invalid entries. Possible corrupt database.</source>
+        <translation>System error while flushing the chainstate after pruning invalid entries. Possible corrupt database.</translation>
+    </message>
+    <message>
+        <source>Unable to replay blocks. You will need to rebuild the database using -reindex.</source>
+        <translation>Unable to replay blocks. You will need to rebuild the database using -reindex.</translation>
+    </message>
+    <message>
         <source>WARNING: The transaction has been signed and recorded, so the wallet will try to re-send it. Use 'abandontransaction' to cancel it. (txid: %s)</source>
         <translation>WARNING: The transaction has been signed and recorded, so the wallet will try to re-send it. Use 'abandontransaction' to cancel it. (txid: %s)</translation>
+    </message>
+    <message>
+        <source>Whether to save the mempool on shutdown and load on restart (default: %u)</source>
+        <translation>Whether to save the mempool on shutdown and load on restart (default: %u)</translation>
     </message>
     <message>
         <source>(must be %d for %s-net)</source>
@@ -6436,6 +6436,10 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
         <translation>Cannot resolve -%s address: '%s'</translation>
     </message>
     <message>
+        <source>Chain selection options:</source>
+        <translation>Chain selection options:</translation>
+    </message>
+    <message>
         <source>Change index out of range</source>
         <translation>Change index out of range</translation>
     </message>
@@ -6456,6 +6460,10 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
     <message>
         <source>Fee (in %s/kB) to add to transactions you send (default: %s)</source>
         <translation>Fee (in %s/kB) to add to transactions you send (default: %s)</translation>
+    </message>
+    <message>
+        <source>Initialization sanity check failed. %s is shutting down.</source>
+        <translation>Initialization sanity check failed. %s is shutting down.</translation>
     </message>
     <message>
         <source>Invalid -masternodeaddr address: %s</source>
@@ -6486,6 +6494,10 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
         <translation>Limit size of signature cache to &lt;n&gt; MiB (default: %u)</translation>
     </message>
     <message>
+        <source>Loading/Pruning invalid outputs...</source>
+        <translation>Loading/Pruning invalid outputs...</translation>
+    </message>
+    <message>
         <source>No error</source>
         <translation>No error</translation>
     </message>
@@ -6514,6 +6526,10 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
         <translation>Randomly fuzz 1 of every &lt;n&gt; network messages</translation>
     </message>
     <message>
+        <source>Reaccepting wallet transactions...</source>
+        <translation>Reaccepting wallet transactions...</translation>
+    </message>
+    <message>
         <source>Rebuild block chain index from current blk000??.dat files</source>
         <translation>Rebuild block chain index from current blk000??.dat files</translation>
     </message>
@@ -6524,6 +6540,10 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
     <message>
         <source>Relay non-P2SH multisig (default: %u)</source>
         <translation>Relay non-P2SH multisig (default: %u)</translation>
+    </message>
+    <message>
+        <source>Replaying blocks...</source>
+        <translation>Replaying blocks...</translation>
     </message>
     <message>
         <source>Rescan the block chain for missing wallet transactions</source>
@@ -6666,10 +6686,6 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
         <translation>This is experimental software.</translation>
     </message>
     <message>
-        <source>This is intended for regression testing tools and app development.</source>
-        <translation>This is intended for regression testing tools and app development.</translation>
-    </message>
-    <message>
         <source>This is not a masternode. 'local' option disabled.</source>
         <translation>This is not a masternode. 'local' option disabled.</translation>
     </message>
@@ -6738,16 +6754,8 @@ Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.<
         <translation>Upgrade wallet to latest format</translation>
     </message>
     <message>
-        <source>Upgrading coins database...</source>
-        <translation>Upgrading coins database...</translation>
-    </message>
-    <message>
         <source>Use UPnP to map the listening port (default: %u)</source>
         <translation>Use UPnP to map the listening port (default: %u)</translation>
-    </message>
-    <message>
-        <source>Use the test network</source>
-        <translation>Use the test network</translation>
     </message>
     <message>
         <source>User Agent comment (%s) contains unsafe characters.</source>

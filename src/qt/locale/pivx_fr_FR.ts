@@ -434,7 +434,15 @@ pour le staking</translation>
         <source>Form</source>
         <translation>Formulaire</translation>
     </message>
-    </context>
+    <message>
+        <source>Transparent</source>
+        <translation>Transparent</translation>
+    </message>
+    <message>
+        <source>Shielded</source>
+        <translation>Protégé</translation>
+    </message>
+</context>
 <context>
     <name>BanTableModel</name>
     <message>
@@ -637,6 +645,10 @@ pour le staking</translation>
     <message>
         <source>yes</source>
         <translation>oui</translation>
+    </message>
+    <message>
+        <source>This label turns red, if recipient receives an amount smaller than %1 (transparent) / %2 (shield).</source>
+        <translation>Ce libellé devient rouge, si le destinataire reçoit un montant plus bas que %1 (transparent) / %2 (protégé).</translation>
     </message>
     <message>
         <source>Can vary +/- %1 u%2 per input.</source>
@@ -963,10 +975,6 @@ propriétaire</translation>
     <message>
         <source>Filter by</source>
         <translation>Filtrer par</translation>
-    </message>
-    <message>
-        <source>Amount of PIV and zPIV staked.</source>
-        <translation>Le montant de PIV et de zPIV en staking</translation>
     </message>
     <message>
         <source>Please wait until the wallet is fully synced to see your correct balance</source>
@@ -2062,6 +2070,10 @@ https://www.transifex.com/pivx-project/pivx-project-translations</translation>
         <translation>PIVX Core client</translation>
     </message>
     <message>
+        <source>Alert!</source>
+        <translation>Alerte!</translation>
+    </message>
+    <message>
         <source>Error</source>
         <translation>Erreur</translation>
     </message>
@@ -2275,16 +2287,8 @@ Adresse : %4
         <translation>Erreur: impossible d'analyser le fichier de configuration: %1. Utilisez uniquement la syntaxe clé=valeur.</translation>
     </message>
     <message>
-        <source>Error: Invalid combination of -regtest and -testnet.</source>
-        <translation>Erreur: Combinaison non valide de -regtest et -testnet.</translation>
-    </message>
-    <message>
         <source>Error reading masternode configuration file: %1</source>
         <translation>Erreur de lecture du fichier de configuration Masternode: %1</translation>
-    </message>
-    <message>
-        <source>PIVX Core didn't yet exit safely...</source>
-        <translation>PIVX Core n'a pas encore quitté en toute sécurité ...</translation>
     </message>
     <message>
         <source>Contact</source>
@@ -2311,6 +2315,14 @@ Adresse : %4
         <translation>Contact cold-staking</translation>
     </message>
     <message>
+        <source>Receiving Shielded</source>
+        <translation>Réception protégée</translation>
+    </message>
+    <message>
+        <source>Contact Shielded</source>
+        <translation>Contact protégé</translation>
+    </message>
+    <message>
         <source>Hidden</source>
         <translation>Caché</translation>
     </message>
@@ -2329,6 +2341,14 @@ Adresse : %4
     <message>
         <source>Staking Contacts</source>
         <translation>Contacts staking</translation>
+    </message>
+    <message>
+        <source>Shielded Recv</source>
+        <translation>Recep protégée</translation>
+    </message>
+    <message>
+        <source>Shielded Contact</source>
+        <translation>Contact protégé</translation>
     </message>
     <message>
         <source>Date desc</source>
@@ -2353,6 +2373,10 @@ Adresse : %4
     <message>
         <source>Sent</source>
         <translation>Envoyé</translation>
+    </message>
+    <message>
+        <source>Shield</source>
+        <translation>Protéger</translation>
     </message>
     <message>
         <source>Mined</source>
@@ -2888,6 +2912,18 @@ Adresse : %4
         <translation>Balayez le QR code ou copiez l'adresse pour recevoir les PIV</translation>
     </message>
     <message>
+        <source>Transparent</source>
+        <translation>Transparent</translation>
+    </message>
+    <message>
+        <source>Shielded</source>
+        <translation>Protégé</translation>
+    </message>
+    <message>
+        <source>Accept transparent or shielded PIV</source>
+        <translation>Accepte des PIV transparents ou protégés</translation>
+    </message>
+    <message>
         <source>Add Label</source>
         <translation>Ajouter un libellé</translation>
     </message>
@@ -2918,6 +2954,12 @@ Adresse : %4
     <message>
         <source>Request payment with a fixed amount</source>
         <translation>Demander un paiement avec un montant défini</translation>
+    </message>
+    <message>
+        <source>No available address
+try unlocking the wallet</source>
+        <translation>Aucune adresse disponible
+essayez de dévérouiller le portefeuille</translation>
     </message>
     <message>
         <source>Error generating address</source>
@@ -3102,11 +3144,11 @@ Adresse : %4
     </message>
     <message>
         <source>Custom Change Address</source>
-        <translation>Adresse de changement personnalisée</translation>
+        <translation>Adresse personnalisée pour el change</translation>
     </message>
     <message>
         <source>The remainder of the value resultant from the inputs minus the outputs value goes to the "change" PIVX address</source>
-        <translation>Le reste de la valeur résultante des entrées moins la valeur des sorties est envoyé à l'adresse "change" PIVX </translation>
+        <translation>Le reste de la valeur résultant des entrées moins les sorties sera envoyé à l'adresse "change" de PIVX </translation>
     </message>
     <message>
         <source>SAVE</source>
@@ -3191,6 +3233,10 @@ Adresse : %4
         <translation>Dialogue</translation>
     </message>
     <message>
+        <source>Private message only visible for the recipient(s)</source>
+        <translation>Message privé visible uniquement par le(s) destinataire(s)</translation>
+    </message>
+    <message>
         <source>SAVE</source>
         <translation>SAUVEGARDER</translation>
     </message>
@@ -3221,7 +3267,19 @@ Adresse : %4
         <source>Enter label</source>
         <translation>Entrer un libellé</translation>
     </message>
-    </context>
+    <message>
+        <source>Update memo</source>
+        <translation>Mise à jour mémo</translation>
+    </message>
+    <message>
+        <source>Add encrypted memo</source>
+        <translation>Ajout mémo chiffré</translation>
+    </message>
+    <message>
+        <source>Memo field reset</source>
+        <translation>Réinitialiser champs mémo</translation>
+    </message>
+</context>
 <context>
     <name>SendWidget</name>
     <message>
@@ -3293,6 +3351,10 @@ Ces pièces ne pourront plus être utilisées pour le staking à froid.</transla
         <translation>Adresse invalide dans l'URI</translation>
     </message>
     <message>
+        <source>Memo</source>
+        <translation>Mémo</translation>
+    </message>
+    <message>
         <source>Custom Fee %1</source>
         <translation>Frais personnalisé %1</translation>
     </message>
@@ -3306,11 +3368,11 @@ Ces pièces ne pourront plus être utilisées pour le staking à froid.</transla
     </message>
     <message>
         <source>Change Address</source>
-        <translation>Changer adresse</translation>
+        <translation>Adresse de change</translation>
     </message>
     <message>
         <source>Customize the change address</source>
-        <translation>Personnalisez l'adresse de changement</translation>
+        <translation>Personnalisez l'adresse pour le change</translation>
     </message>
     <message>
         <source>Open URI</source>
@@ -3321,16 +3383,88 @@ Ces pièces ne pourront plus être utilisées pour le staking à froid.</transla
         <translation>Analyser une demande de paiement</translation>
     </message>
     <message>
+        <source>Shield Coins</source>
+        <translation>Pièces protégées</translation>
+    </message>
+    <message>
+        <source>Convert all transparent coins into shielded coins</source>
+        <translation>Converti toutes les pièces transparentes en pièces protégées</translation>
+    </message>
+    <message>
         <source>Unlocked remaining</source>
         <translation>Débloqué restant</translation>
+    </message>
+    <message>
+        <source>Cannot send memo to address
+%1
+
+Encrypted memo messages are available only for shielded recipients.
+
+Do you wish to proceed without memo?
+</source>
+        <translation>Impossble d'envoyer mémo à l'adresse
+%1
+
+Les mémos chiffrés ne sont disponibles que pour les destinataires protégés.
+
+Voulez-vous envoyer la transaction sans mémo ?
+</translation>
+    </message>
+    <message>
+        <source>Cannot perform shielded operations, v5 upgrade isn't being enforced yet!</source>
+        <translation>Impossible de réaliser une opération protégée, la mise à jour v5 n'est pas encore active !</translation>
+    </message>
+    <message>
+        <source>Sapling Protocol temporarily in maintenance. Shielded transactions disabled (SPORK 20)</source>
+        <translation>Protocole Sapling temporairement en maintenance. Transactions protégées désactivées (SPORK 20)</translation>
+    </message>
+    <message>
+        <source>On going process being executed, please wait until it's finished to create a new transaction</source>
+        <translation>Processus en cours d'exécution, veuillez patienter jusqu'à ce qu'il soit terminé pour créer une nouvelle transaction</translation>
+    </message>
+    <message>
+        <source>Preparing transaction</source>
+        <translation>Transaction en préparation</translation>
     </message>
     <message>
         <source>You don't have any %1 to select.</source>
         <translation>Vous n'avez aucun %1 à sélectionner</translation>
     </message>
     <message>
+        <source>You are just about to anonymize all of your balance!
+Available %1
+With fee %2
+
+Meaning that you will be able to perform completely
+anonymous transactions
+
+Do you want to continue?
+</source>
+        <translation>Vous êtes sur le point d'anonymiser tout votre solde!
+Disponible %1
+Avec frais %2
+
+Cela signifie que vous serez en mesure d'effectuer 
+des transactions complètement anonymes
+
+Voulez-vous continuer?
+</translation>
+    </message>
+    <message>
+        <source>Error generating address to shield PIVs</source>
+        <translation>Erreur lors de la génération de l'adresse pour protéger les PIV</translation>
+    </message>
+    <message>
+        <source>You don't have any transparent PIVs to shield.</source>
+        <translation>Vous n'avez aucun PIV transparent à convertir.</translation>
+    </message>
+    <message>
         <source>No contacts available, you can go to the contacts screen and add some there!</source>
         <translation>Aucun contact enregistré, vous pouvez aller dans l'écran des contacts et en ajouter!</translation>
+    </message>
+    <message>
+        <source>Add Memo</source>
+        <translation>Ajouter mémo</translation>
     </message>
     <message>
         <source>Save contact</source>
@@ -3869,24 +4003,31 @@ pour voir votre solde de monnaie dépensable sur le réseau.
     <message>
         <source>
                            &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           We have support channels in most of our official chat groups, for example
-                           &lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
-                           #support in our Discord&lt;/a&gt;.
-                           If you prefer to submit a ticket, You can do so at
-                           &lt;a style='color: #b088ff' href='https://PIVX.freshdesk.com'&gt;
-                           our Freshdesk support site&lt;/a&gt;.
+                           PIVX is a form of digital online money using blockchain technology
+                           that can be easily transferred globally, instantly, and with near
+                           zero fees.  PIVX incorporates market leading security &amp;
+                           privacy and is also the first PoS (Proof of Stake) Cryptocurrency
+                           to implement Sapling(SHIELD), a zk-SNARKs based privacy protocol.
+                           &lt;/p&gt;&lt;p align="justify"&gt;
+                           PIVX utilizes a Proof of Stake (PoS) consensus system algorithm,
+                           allowing all owners of PIVX to participate in earning block rewards
+                           while securing the network with full node wallets, as well as to
+                           run Masternodes to create and vote on proposals.
                            &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
                          </source>
-        <translation>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           We have support channels in most of our official chat groups, for example
-                           &lt;a style='color: #b088ff' href='https://discord.PIVX.org'&gt;
-                           #support in our Discord&lt;/a&gt;.
-                           If you prefer to submit a ticket, You can do so at
-                           &lt;a style='color: #b088ff' href='https://PIVX.freshdesk.com'&gt;
-                           our Freshdesk support site&lt;/a&gt;.
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </translation>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
+PIVX est une forme de monnaie numérique utilisant la technologie blockchain
+qui peut être facilement transférée partout dans le monde, instantanément, et presque
+sans frais. PIVX est un chef de file en matière de sécurité &amp;
+confidentialité, elle est aussi la première crypto-monnaie PoS (Proof od Stake)
+à implémenter Sapling (SHIELD), un protocole de confidentialité basé sur zk-SNARKs. 
+&lt;/p&gt;&lt;p align="justify"&gt;
+PIVX utilises un système de consensus Proof of Stake (PoS),
+qui permet à tous les détenteurs de PIVX d'obtenir des récompenses
+tout en sécurisant le réseau avec leur portefeuille full node, ainsi qu'en
+exécutant des Maternodes pour créer et voter des propositions.
+&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
+</translation>
     </message>
     <message>
         <source>What is a Masternode?</source>
@@ -3901,88 +4042,12 @@ pour voir votre solde de monnaie dépensable sur le réseau.
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt; Un contrôleur de masternode est un portefeuille dans lequel le dépôt de garantie de 10 000 PIV réside pendant la configuration d'un masternode contrôleur-distant. C'est un portefeuille qui peut activer le portefeuille masternode distant et vous permet de conserver le dépôt de garantie hors ligne tandis que le masternode restera en ligne.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <source>
-                           &lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-                           A masternode is a computer running a full node PIVX core wallet with a
-                           requirement of 10,000 PIV secured collateral to provide extra services
-                           to the network and in return, receive a portion of the block reward
-                           regularly.  These services include:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           &lt;ul&gt;
-                           &lt;li&gt;Instant transactions (SwiftX)&lt;/li&gt;
-                           &lt;li&gt;A decentralized governance (Proposal Voting)&lt;/li&gt;
-                           &lt;li&gt;A decentralized budgeting system (Treasury)&lt;/li&gt;
-                           &lt;li&gt;Validation of transactions within each block&lt;/li&gt;
-                           &lt;li&gt;Act as an additional full node in the network&lt;/li&gt;
-                           &lt;/ul&gt;
-
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           For providing such services, masternodes are also paid a certain portion
-                           of reward for each block. This can serve as a passive income to the
-                           masternode owners minus their running cost.
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Masternode Perks:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;Participate in PIVX Governance&lt;/li&gt;
-                           &lt;li&gt;Earn Masternode Rewards&lt;/li&gt;
-                           &lt;li&gt;Commodity option for future sale&lt;/li&gt;
-                           &lt;li&gt;Help secure the PIVX network&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-
-                           Requirements:
-                           &lt;/p&gt;&lt;p align="justify"&gt;
-                           &lt;ul&gt;
-                           &lt;li&gt;10,000 PIV per single Masternode instance&lt;/li&gt;
-                           &lt;li&gt;Must be stored in a core wallet&lt;/li&gt;
-                           &lt;li&gt;Need dedicated IP address&lt;/li&gt;
-                           &lt;li&gt;Masternode wallet to remain online&lt;/li&gt;
-                           &lt;/ul&gt;
-                           &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-                         </source>
-        <translation>
-&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align="justify"&gt;
-Un masternode est un ordinateur qui exécute un noeud complet du portefeuille PIVX core avec une
-exigence de 10 000 PIV déposé en garantie pour fournir au réseau des services aditionnels et recevoir, en retour et régulièrement, une partie des récompense de blocs.
-Ces services comprennent:
-&lt;/p&gt;&lt;p align="justify"&gt;
-&lt;ul&gt;
-&lt;li&gt;des transactions instantanées (SwiftX)&lt;/li&gt;
-&lt;li&gt;une gouvernance décentralisée (vote des motions)&lt;/li&gt;
-&lt;li&gt;un système de budget décentralisé (financement)&lt;/li&gt;
-&lt;li&gt;validation des transactions dans chaque bloc&lt;/li&gt;
-&lt;li&gt;Agit comme un noeud supplémentaire pour sécuriser le réseau&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/p&gt;&lt;p align="justify"&gt;
-Pour fournir ces services, les masternodes sont payés avec une certaine portion des récompenses de chaque bloc. Cela permet de distribuer des revenus passifs aux propriétaires de masternodes déduction faite de leur frais d'opérations.
-&lt;/p&gt;&lt;p align="justify"&gt;
-Avantages du Masternode:
-&lt;/p&gt;&lt;p align="justify"&gt;
-&lt;ul&gt;
-&lt;li&gt;Participer à la gouvernance de PIVX&lt;/li&gt;
-&lt;li&gt;Gagner les récompences prévues pour les masternodes&lt;/li&gt;
-&lt;li&gt;Option de marchandise pour vente future&lt;/li&gt;
-&lt;li&gt;Aider à sécuriser le réseau PIVX&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/p&gt;&lt;p align="justify"&gt;
-
-Exigences:
-&lt;/p&gt;&lt;p align="justify"&gt;
-&lt;ul&gt;
-&lt;li&gt;10 000 PIV pour chaque instance de masternode&lt;/li&gt;
-&lt;li&gt;Montant conservé dans un portefeuille core&lt;/li&gt;
-&lt;li&gt;Nécessite une IP fixe dédiée&lt;/li&gt;
-&lt;li&gt;Le portefeuille masternode doit rester en ligne&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-</translation>
-    </message>
-    <message>
         <source>Frequently Asked Questions</source>
         <translation>Foire Aux Questions</translation>
+    </message>
+    <message>
+        <source>Close FAQ</source>
+        <translation>Fermer FAQ</translation>
     </message>
     <message>
         <source>3) How do I stake PIV?</source>
@@ -4115,7 +4180,11 @@ Exigences:
         <source>Out:</source>
         <translation>Sortie:</translation>
     </message>
-    </context>
+    <message>
+        <source>No available data</source>
+        <translation>Pas de données</translation>
+    </message>
+</context>
 <context>
     <name>SettingsMainOptionsWidget</name>
     <message>
@@ -4837,6 +4906,14 @@ Confirmez-vous ?
         <translation>Formulaire</translation>
     </message>
     <message>
+        <source>transparent</source>
+        <translation>transparent</translation>
+    </message>
+    <message>
+        <source>shielded</source>
+        <translation>protégé</translation>
+    </message>
+    <message>
         <source>Available</source>
         <translation>Disponible</translation>
     </message>
@@ -4957,6 +5034,26 @@ sauvegarde sera créée.
         <translation>Portefeuille déverrouillé</translation>
     </message>
     <message>
+        <source>Upgrade to Sapling Wallet</source>
+        <translation>Migre vers protefeuille Sapling</translation>
+    </message>
+    <message>
+        <source>Upgrading to Sapling wallet will enable
+all of the privacy features!
+
+
+NOTE: after the upgrade, a new
+backup will be created.
+</source>
+        <translation>La migration vers un portefeuille Sapling activera
+toutes les fonctionalités de confidentialité!
+
+
+NOTE: après la migration, une
+nouvelle sauvegarde sera créée.
+</translation>
+    </message>
+    <message>
         <source>Wallet Unencrypted</source>
         <translation>Portefeuille déchiffré</translation>
     </message>
@@ -4999,6 +5096,10 @@ sauvegarde sera créée.
     <message>
         <source>Wallet upgraded successfully, but no backup created.</source>
         <translation>Portefeuille mis à jour avec succès, mais aucune sauvegarde créée.</translation>
+    </message>
+    <message>
+        <source>WARNING: remember to make a copy of your wallet file!</source>
+        <translation>ATTENTION: pensez à faire une copie de votre portefeuille!</translation>
     </message>
     <message>
         <source>Upgrade Wallet Error</source>
@@ -5095,6 +5196,18 @@ sauvegarde sera créée.
         <translation>Paiement à vous-même</translation>
     </message>
     <message>
+        <source>Shielding coins to yourself</source>
+        <translation>Anonymisation de vos pièces</translation>
+    </message>
+    <message>
+        <source>Unshielding coins to yourself</source>
+        <translation>Désanonymisation de vos pièces</translation>
+    </message>
+    <message>
+        <source>Shielded change, transfer between own shielded addresses</source>
+        <translation>Change protégé, transfert entre vos adresses protégées</translation>
+    </message>
+    <message>
         <source>Stake delegation spent by</source>
         <translation>Délégation stake passée par</translation>
     </message>
@@ -5121,6 +5234,18 @@ sauvegarde sera créée.
     <message>
         <source>Converted z%1 to %1</source>
         <translation>Converti z%1 vers %1</translation>
+    </message>
+    <message>
+        <source>Received with shielded</source>
+        <translation>Reçu avec protection</translation>
+    </message>
+    <message>
+        <source>Shielded send to</source>
+        <translation>Envoi protégé vers</translation>
+    </message>
+    <message>
+        <source>Burned PIVs</source>
+        <translation>PIVs détruits</translation>
     </message>
     <message>
         <source>watch-only</source>
@@ -5234,6 +5359,10 @@ sauvegarde sera créée.
         <translation>Date</translation>
     </message>
     <message>
+        <source>Memo</source>
+        <translation>Mémo</translation>
+    </message>
+    <message>
         <source>TextLabel</source>
         <translation>Libellé</translation>
     </message>
@@ -5254,12 +5383,28 @@ sauvegarde sera créée.
         <translation>ENVOYER</translation>
     </message>
     <message>
+        <source>Note From Address</source>
+        <translation>Note de l'adresse</translation>
+    </message>
+    <message>
+        <source>Index</source>
+        <translation>Index</translation>
+    </message>
+    <message>
         <source>ID copied</source>
         <translation>ID copié</translation>
     </message>
     <message>
+        <source>Memo copied</source>
+        <translation>Mémo copié</translation>
+    </message>
+    <message>
         <source>Delegating to</source>
         <translation>Délégation à</translation>
+    </message>
+    <message>
+        <source>Shielding to</source>
+        <translation>Protection vers</translation>
     </message>
     <message>
         <source>Unknown</source>
@@ -5276,7 +5421,11 @@ sauvegarde sera créée.
         <source>+0.000585 PIV</source>
         <translation>+0.000585 PIV</translation>
     </message>
-    </context>
+    <message>
+        <source>-0.000585 PIV</source>
+        <translation>-0.000585 PIV</translation>
+    </message>
+</context>
 <context>
     <name>WalletModel</name>
     <message>
@@ -5383,10 +5532,6 @@ Portefeuille PIVX Core</translation>
         <translation>Relier à une adresse spécifique pour écouter les connections JSON-RPC. Utilisez la notation [host]:port pour IPv6. Cette option peut être spécifiée plusieurs fois (par défaut: liaison à toutes les interfaces)</translation>
     </message>
     <message>
-        <source>Cannot obtain a lock on data directory %s. PIVX Core is probably already running.</source>
-        <translation>Impossible de vérouiller le répertoire de données %s. PIVX Core est probablement déjà en cours d'exécution.</translation>
-    </message>
-    <message>
         <source>Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)</source>
         <translation>Modifier le comportement du vote budgétaire automatique. mode = auto: ne votez que pour une correspondance exacte avec votre budget généré. (chaîne, par défaut: auto)</translation>
     </message>
@@ -5413,10 +5558,6 @@ Portefeuille PIVX Core</translation>
     <message>
         <source>Enable spork administration functionality with the appropriate private key.</source>
         <translation>Activer la fonctionnalité d'administration de spork avec la clé privée appropriée.</translation>
-    </message>
-    <message>
-        <source>Enter regression test mode, which uses a special chain in which blocks can be solved instantly.</source>
-        <translation>Entrer dans le mode de test de régression, qui utilise une chaîne spéciale dans laquelle les blocs peuvent être résolus instantanément.</translation>
     </message>
     <message>
         <source>Error: Listening for incoming connections failed (listen returned error %s)</source>
@@ -5449,10 +5590,6 @@ Portefeuille PIVX Core</translation>
     <message>
         <source>If paytxfee is not set, include enough fee so transactions begin confirmation on average within n blocks (default: %u)</source>
         <translation>Si paytxfee n'est pas défini, incluez suffisamment de frais pour que les transactions commencent la confirmation en moyenne dans les n blocs (par défaut: %u)</translation>
-    </message>
-    <message>
-        <source>In this mode -genproclimit controls how many blocks are generated immediately.</source>
-        <translation>Dans ce mode, -genproclimit contrôle le nombre de blocs générés immédiatement.</translation>
     </message>
     <message>
         <source>Invalid amount for -maxtxfee=&lt;amount&gt;: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)</source>
@@ -5739,12 +5876,12 @@ Portefeuille PIVX Core</translation>
         <translation>Information</translation>
     </message>
     <message>
-        <source>Initialization sanity check failed. PIVX Core is shutting down.</source>
-        <translation>Échec de la vérification de l'initialisation. PIVX Core va fermer.</translation>
-    </message>
-    <message>
         <source>Insufficient funds.</source>
         <translation>Fonds insuffisants.</translation>
+    </message>
+    <message>
+        <source>Invalid -masternodeaddr port %d, isn't the same as the peer port %d</source>
+        <translation>-masternodeaddr port %d incorrect, est différent du port du pair %d</translation>
     </message>
     <message>
         <source>Invalid -onion address or hostname: '%s'</source>
@@ -5765,10 +5902,6 @@ Portefeuille PIVX Core</translation>
     <message>
         <source>Error: Unsupported argument -checklevel found. Checklevel must be level 4.</source>
         <translation>Erreur: argument -checklevel non pris en charge. Checklevel doit être de niveau 4.</translation>
-    </message>
-    <message>
-        <source>Execute command when the best block changes and its size is over (%s in cmd is replaced by block hash, %d with the block size)</source>
-        <translation>Exécute la commande lorsque le meilleur bloc change et que sa taille est finalisée (%s dans cmd est remplacé par le hash du bloc, %d avec la taille du bloc)</translation>
     </message>
     <message>
         <source>Specify custom backup path to add a copy of any wallet backup. If set as dir, every backup generates a timestamped file. If set as file, will rewrite to that file every backup.</source>
@@ -5815,8 +5948,70 @@ Portefeuille PIVX Core</translation>
         <translation>Erreur: Une erreur interne fatale est survenue, voir debug.log pour plus de détails</translation>
     </message>
     <message>
+        <source>Accept connections from outside (default: %u if no -proxy or -connect/-noconnect)</source>
+        <translation>Accepter les connections externes (défaut: %u si pas de -proxy ou -connect/-noconnect)</translation>
+    </message>
+    <message>
+        <source>Cannot find the Sapling parameters in the following directory:
+%s
+Please run 'sapling-fetch-params' or './util/fetch-params.sh' and then restart.</source>
+        <translation>Imposible de trouver les paramètres Sapling dans le répertoire:
+%s
+SVP éxécutez 'sapling-fetch-params' ou './util/fetch-params.sh' et redémarrez.</translation>
+    </message>
+    <message>
+        <source>Cannot upgrade to Sapling wallet (already running Sapling support). Version: %d</source>
+        <translation>Impossible de mettre à niveau vers le portefeuille Sapling (exécute déjà le support Sapling). Version: %d</translation>
+    </message>
+    <message>
+        <source>Disable all PIVX specific functionality (Masternodes, Budgeting) (0-1, default: %u)</source>
+        <translation>Désactiver toutes les fonctionnalités spécifiques de PIVX (Masternodes,  Budget) (0-1, défaut: %u)</translation>
+    </message>
+    <message>
+        <source>This file contains all of your private keys in plain text. DO NOT send this file to anyone!</source>
+        <translation>Ce fichier contient toutes vos clés privées en texte plein. N'ENVOYEZ PAS ce fichier à quiconque !</translation>
+    </message>
+    <message>
+        <source>Warning: error reading %s! All keys read correctly, but transaction data or address book entries might be missing or incorrect.</source>
+        <translation>Attention: erreur de lecture %s! Toutes les clés sont lues correctement, mais les données de transaction ou les entrées du carnet d'adresse pourraient être manquantes ou incorrectes.</translation>
+    </message>
+    <message>
+        <source>A fatal internal error occurred, see debug.log for details</source>
+        <translation>Une erreur interne fatale est survenue, voir debug.log pour plus de détails</translation>
+    </message>
+    <message>
+        <source>Allow DNS lookups for -addnode, -seednode and -connect (default: %u)</source>
+        <translation>Autoriser les recherches DNS pour -addnode, -seednode et -connect (défaut: %u)</translation>
+    </message>
+    <message>
+        <source>Attempt to recover private keys from a corrupt wallet file</source>
+        <translation>Tentative de récupération des clés privées depuis un fichier corrompu.</translation>
+    </message>
+    <message>
+        <source>Calculating money supply...</source>
+        <translation>Calcule de la masse monétaire...</translation>
+    </message>
+    <message>
+        <source>Error loading %s: Wallet corrupted</source>
+        <translation>Erreur de chargement %s: Portefeuille corrompu</translation>
+    </message>
+    <message>
+        <source>Error loading %s: Wallet requires newer version of PIVX Core</source>
+        <translation>Erreur de chargement %s: Le portefeuille nécessite une version plus récente du PIVX core</translation>
+    </message>
+    <message>
+        <source>Error loading %s
+</source>
+        <translation>Erreur de chargement %s
+</translation>
+    </message>
+    <message>
         <source>Invalid amount for -%s=&lt;amount&gt;: '%s'</source>
         <translation>Montant incorrect pour -%s=&lt;amount&gt;: '%s'</translation>
+    </message>
+    <message>
+        <source>Invalid masternodeprivkey. Please see the documentation.</source>
+        <translation>Masternodeprivkey incorrecte. Regardez la documentation SVP.</translation>
     </message>
     <message>
         <source>Keep at most &lt;n&gt; unconnectable transactions in memory (default: %u)</source>
@@ -5899,6 +6094,14 @@ Portefeuille PIVX Core</translation>
         <translation>Tampon d'envoi maximum par connection, &lt;n&gt;* 1000 octets (par défaut: %u)</translation>
     </message>
     <message>
+        <source>Mining/Staking options:</source>
+        <translation>Options de staking/mining:</translation>
+    </message>
+    <message>
+        <source>Specify zk params directory (default: %s)</source>
+        <translation>Spécifiez le répertoire zk params (par défaut: %s)</translation>
+    </message>
+    <message>
         <source>Need to specify a port with -whitebind: '%s'</source>
         <translation>Nécessite de vérifier un port avec -whitebind: '%s'</translation>
     </message>
@@ -5941,6 +6144,10 @@ Portefeuille PIVX Core</translation>
     <message>
         <source>Use block spam filter (default: %u)</source>
         <translation>Utilise le filtre pour bloquer spams (par défaut: %u)</translation>
+    </message>
+    <message>
+        <source>Wallet debugging/testing options:</source>
+        <translation>Options de déboguage/test portefeuille:</translation>
     </message>
     <message>
         <source>isValid(): Invalid -proxy address or hostname: '%s'</source>
@@ -6077,6 +6284,10 @@ Portefeuille PIVX Core</translation>
         <translation>Pas d'erreur</translation>
     </message>
     <message>
+        <source>Number of automatic wallet backups (default: %d)</source>
+        <translation>Nombre de sauvegardes automatiques du portefeuille (par défaut: %d)</translation>
+    </message>
+    <message>
         <source>Prepend debug output with timestamp (default: %u)</source>
         <translation>Ajouter une sortie de débogage avec l'horodatage (par défaut: %u)</translation>
     </message>
@@ -6169,6 +6380,10 @@ Portefeuille PIVX Core</translation>
         <translation>Réduire le fichier debug.log au démarrage du client (défaut: 1 quand pas de  -debug)</translation>
     </message>
     <message>
+        <source>Shutdown requested over the txs scan. Exiting.</source>
+        <translation>Arrêt demandé lors de l'analyse des txs. Sortie.</translation>
+    </message>
+    <message>
         <source>Signing transaction failed</source>
         <translation>Signature de la transaction échouée</translation>
     </message>
@@ -6245,10 +6460,6 @@ Portefeuille PIVX Core</translation>
         <translation>Ceci est un logiciel expérimental.</translation>
     </message>
     <message>
-        <source>This is intended for regression testing tools and app development.</source>
-        <translation>Ceci est destiné aux outils de test de régression et au développement d'applications.</translation>
-    </message>
-    <message>
         <source>This is not a masternode. 'local' option disabled.</source>
         <translation>Ce n'est pas un masternode. Option 'local' désactivée.</translation>
     </message>
@@ -6321,10 +6532,6 @@ Portefeuille PIVX Core</translation>
         <translation>Utiliser UPnP pour mapper le port d'écoute (par défaut: %u)</translation>
     </message>
     <message>
-        <source>Use the test network</source>
-        <translation>Utiliser le réseau test</translation>
-    </message>
-    <message>
         <source>User Agent comment (%s) contains unsafe characters.</source>
         <translation>Le commentaire de l'Agent Utilisateur (%s) contient des caractères non sécurisés.</translation>
     </message>
@@ -6394,6 +6601,22 @@ Portefeuille PIVX Core</translation>
     <message>
         <source>Send</source>
         <translation>Envoyer</translation>
+    </message>
+    <message>
+        <source>Transfer coins publicly or privately</source>
+        <translation>Envoyer des pièces publiques ou privées</translation>
+    </message>
+    <message>
+        <source>Transparent</source>
+        <translation>Transparent</translation>
+    </message>
+    <message>
+        <source>Shielded</source>
+        <translation>Protégé</translation>
+    </message>
+    <message>
+        <source>Select which coins to spend</source>
+        <translation>Choisir quelles pièces dépenser</translation>
     </message>
     <message>
         <source>PIVX address or contact label</source>
