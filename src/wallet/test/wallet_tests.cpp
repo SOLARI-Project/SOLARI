@@ -412,6 +412,8 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     SetMockTime(KEY_TIME);
     coinbaseTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0]);
 
+    std::string backup_file = (SetDataDir("importwallet_rescan") / "wallet.backup").string();
+
     // Import key into wallet and call dumpwallet to create backup file.
     {
         CWallet wallet;
@@ -423,7 +425,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 
         JSONRPCRequest request;
         request.params.setArray();
-        request.params.push_back((pathTemp / "wallet.backup").string());
+        request.params.push_back(backup_file);
         ::pwalletMain = &wallet;
         ::dumpwallet(request);
     }
@@ -435,7 +437,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 
         JSONRPCRequest request;
         request.params.setArray();
-        request.params.push_back((pathTemp / "wallet.backup").string());
+        request.params.push_back(backup_file);
         ::pwalletMain = &wallet;
         ::importwallet(request);
 
