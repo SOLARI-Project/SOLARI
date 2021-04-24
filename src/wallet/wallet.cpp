@@ -4783,7 +4783,7 @@ void CWalletTx::SetSaplingNoteData(mapSaplingNoteData_t &noteData)
 
 Optional<std::pair<
         libzcash::SaplingNotePlaintext,
-        libzcash::SaplingPaymentAddress>> CWalletTx::DecryptSaplingNote(SaplingOutPoint op) const
+        libzcash::SaplingPaymentAddress>> CWalletTx::DecryptSaplingNote(const SaplingOutPoint& op) const
 {
     // Check whether we can decrypt this SaplingOutPoint with the ivk
     auto it = this->mapSaplingNoteData.find(op);
@@ -4811,8 +4811,7 @@ Optional<std::pair<
 
 Optional<std::pair<
         libzcash::SaplingNotePlaintext,
-        libzcash::SaplingPaymentAddress>> CWalletTx::RecoverSaplingNote(
-        SaplingOutPoint op, std::set<uint256>& ovks) const
+        libzcash::SaplingPaymentAddress>> CWalletTx::RecoverSaplingNote(const SaplingOutPoint& op, const std::set<uint256>& ovks) const
 {
     auto output = this->tx->sapData->vShieldedOutput[op.n];
 

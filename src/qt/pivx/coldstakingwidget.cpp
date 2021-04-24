@@ -212,10 +212,10 @@ void ColdStakingWidget::loadWalletModel()
 
         addressTableModel = walletModel->getAddressTableModel();
         addressesFilter = new AddressFilterProxyModel(AddressTableModel::ColdStaking, this);
-        addressesFilter->sort(sortType, sortOrder);
         addressesFilter->setSourceModel(addressTableModel);
-        ui->listViewStakingAddress->setModelColumn(AddressTableModel::Address);
+        addressesFilter->sort(sortType, sortOrder);
         ui->listViewStakingAddress->setModel(addressesFilter);
+        ui->listViewStakingAddress->setModelColumn(AddressTableModel::Address);
 
         connect(txModel, &TransactionTableModel::txArrived, this, &ColdStakingWidget::onTxArrived);
 
