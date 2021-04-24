@@ -317,6 +317,7 @@ parts:
       - libsodium-dev
       - cargo
       - libminiupnpc-dev
+      - libnatpmp-dev
       - libzmq3-dev
       - libqt5gui5
       - libqt5core5a
@@ -352,6 +353,7 @@ parts:
       - libevent-2.1-6
       - libevent-pthreads-2.1-6
       - libminiupnpc10
+      - libnatpmp1
       - libnorm1
       - libpgm-5.2-0
       - libprotobuf10
