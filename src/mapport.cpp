@@ -123,7 +123,7 @@ static bool ProcessNatpmp()
 {
     bool ret = false;
     natpmp_t natpmp;
-    struct in_addr external_ipv4_addr;
+    struct in_addr external_ipv4_addr{};
     if (NatpmpInit(&natpmp) && NatpmpDiscover(&natpmp, external_ipv4_addr)) {
         bool external_ip_discovered = false;
         const uint16_t private_port = GetListenPort();
@@ -151,9 +151,9 @@ static bool ProcessUpnp()
 {
     bool ret = false;
     std::string port = strprintf("%u", GetListenPort());
-    const char* multicastif = 0;
-    const char* minissdpdpath = 0;
-    struct UPNPDev* devlist = 0;
+    const char* multicastif = nullptr;
+    const char* minissdpdpath = nullptr;
+    struct UPNPDev* devlist = nullptr;
     char lanaddr[64];
 
     int error = 0;
@@ -163,8 +163,8 @@ static bool ProcessUpnp()
     devlist = upnpDiscover(2000, multicastif, minissdpdpath, 0, 0, 2, &error);
 #endif
 
-    struct UPNPUrls urls;
-    struct IGDdatas data;
+    struct UPNPUrls urls{};
+    struct IGDdatas data{};
     int r;
 
     r = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
@@ -190,7 +190,7 @@ static bool ProcessUpnp()
         std::string strDesc = PACKAGE_NAME " " + FormatFullVersion();
 
         do {
-            r = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype, port.c_str(), port.c_str(), lanaddr, strDesc.c_str(), "TCP", 0, "0");
+            r = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype, port.c_str(), port.c_str(), lanaddr, strDesc.c_str(), "TCP", nullptr, "0");
 
             if (r != UPNPCOMMAND_SUCCESS) {
                 ret = false;
@@ -203,14 +203,14 @@ static bool ProcessUpnp()
         } while (g_mapport_interrupt.sleep_for(PORT_MAPPING_REANNOUNCE_PERIOD));
         g_mapport_interrupt.reset();
 
-        r = UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype, port.c_str(), "TCP", 0);
+        r = UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype, port.c_str(), "TCP", nullptr);
         LogPrintf("UPNP_DeletePortMapping() returned: %d\n", r);
         freeUPNPDevlist(devlist); devlist = nullptr;
         FreeUPNPUrls(&urls);
     } else {
         LogPrintf("No valid UPnP IGDs found\n");
         freeUPNPDevlist(devlist);
-        devlist = 0;
+        devlist = nullptr;
         if (r != 0)
             FreeUPNPUrls(&urls);
     }
