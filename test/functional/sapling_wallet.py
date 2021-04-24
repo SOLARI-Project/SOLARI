@@ -153,6 +153,7 @@ class WalletSaplingTest(PivxTestFramework):
         sleep(1)
         self.deactivate_spork(0, SPORK_20)
         self.nodes[0].reconsiderblock(tip_hash)
+        self.nodes[0].syncwithvalidationinterfacequeue()
         assert_equal(tip_hash, self.nodes[0].getbestblockhash())    # Block connected
         assert_equal(self.nodes[0].getshieldbalance(saplingAddr0), Decimal('30'))
         self.log.info("Reconnected after deactivation of SPORK_20. Balance restored.")
