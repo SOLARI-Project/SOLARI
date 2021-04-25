@@ -2439,6 +2439,8 @@ void CWallet::GetAvailableP2CSCoins(std::vector<COutput>& vCoins) const {
             if (fConflicted || nDepth < 0)
                 continue;
 
+            bool fSafe = pcoin->IsTrusted();
+
             if (pcoin->tx->HasP2CSOutputs()) {
                 for (int i = 0; i < (int) pcoin->tx->vout.size(); i++) {
                     const auto &utxo = pcoin->tx->vout[i];
@@ -2451,7 +2453,7 @@ void CWallet::GetAvailableP2CSCoins(std::vector<COutput>& vCoins) const {
                         bool isMineSpendable = mine & ISMINE_SPENDABLE_DELEGATED;
                         if (mine & ISMINE_COLD || isMineSpendable)
                             // Depth and solvability members are not used, no need waste resources and set them for now.
-                            vCoins.emplace_back(pcoin, i, 0, isMineSpendable, true);
+                            vCoins.emplace_back(pcoin, i, 0, isMineSpendable, true, fSafe);
                     }
                 }
             }
@@ -2463,9 +2465,9 @@ void CWallet::GetAvailableP2CSCoins(std::vector<COutput>& vCoins) const {
 /**
  * Test if the transaction is spendable.
  */
-static bool CheckTXAvailabilityInternal(const CWalletTx* pcoin, bool fOnlyConfirmed, int& nDepth)
+static bool CheckTXAvailabilityInternal(const CWalletTx* pcoin, bool fOnlySafe, int& nDepth)
 {
-    if (fOnlyConfirmed && !pcoin->IsTrusted()) return false;
+    if (fOnlySafe && !pcoin->IsTrusted()) return false;
     if (pcoin->GetBlocksToMaturity() > 0) return false;
 
     nDepth = pcoin->GetDepthInMainChain();
@@ -2478,22 +2480,22 @@ static bool CheckTXAvailabilityInternal(const CWalletTx* pcoin, bool fOnlyConfir
 }
 
 // cs_main lock required
-static bool CheckTXAvailability(const CWalletTx* pcoin, bool fOnlyConfirmed, int& nDepth)
+static bool CheckTXAvailability(const CWalletTx* pcoin, bool fOnlySafe, int& nDepth)
 {
     AssertLockHeld(cs_main);
     if (!CheckFinalTx(pcoin->tx)) return false;
-    return CheckTXAvailabilityInternal(pcoin, fOnlyConfirmed, nDepth);
+    return CheckTXAvailabilityInternal(pcoin, fOnlySafe, nDepth);
 }
 
 // cs_main lock NOT required
 static bool CheckTXAvailability(const CWalletTx* pcoin,
-                         bool fOnlyConfirmed,
+                         bool fOnlySafe,
                          int& nDepth,
                          int nBlockHeight)
 {
     // Mimic CheckFinalTx without cs_main lock
     if (!IsFinalTx(pcoin->tx, nBlockHeight + 1, GetAdjustedTime())) return false;
-    return CheckTXAvailabilityInternal(pcoin, fOnlyConfirmed, nDepth);
+    return CheckTXAvailabilityInternal(pcoin, fOnlySafe, nDepth);
 }
 
 bool CWallet::GetMasternodeVinAndKeys(CTxIn& txinRet, CPubKey& pubKeyRet, CKey& keyRet, std::string strTxHash, std::string strOutputIndex, std::string& strError)
@@ -2566,7 +2568,7 @@ bool CWallet::GetMasternodeVinAndKeys(CTxIn& txinRet, CPubKey& pubKeyRet, CKey& 
     }
 
     return GetVinAndKeysFromOutput(
-            COutput(wtx, nOutputIndex, nDepth, true, true),
+            COutput(wtx, nOutputIndex, nDepth, true, true, true),
             txinRet,
             pubKeyRet,
             keyRet);
@@ -2639,11 +2641,13 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
 
             // Check if the tx is selectable
             int nDepth;
-            if (!CheckTXAvailability(pcoin, coinsFilter.fOnlyConfirmed, nDepth, m_last_block_processed_height))
+            if (!CheckTXAvailability(pcoin, coinsFilter.fOnlySafe, nDepth, m_last_block_processed_height))
                 continue;
 
             // Check min depth filtering requirements
             if (nDepth < coinsFilter.minDepth) continue;
+
+            bool safeTx = pcoin->IsTrusted();
 
             for (unsigned int i = 0; i < pcoin->tx->vout.size(); i++) {
                 const auto& output = pcoin->tx->vout[i];
@@ -2680,7 +2684,7 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
 
                 // found valid coin
                 if (!pCoins) return true;
-                pCoins->emplace_back(pcoin, (int) i, nDepth, res.spendable, res.solvable);
+                pCoins->emplace_back(pcoin, (int) i, nDepth, res.spendable, res.solvable, safeTx);
 
                 // Checks the sum amount of all UTXO's.
                 if (coinsFilter.nMinimumSumAmount != 0) {
@@ -2701,11 +2705,11 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
     }
 }
 
-std::map<CTxDestination , std::vector<COutput> > CWallet::AvailableCoinsByAddress(bool fConfirmed, CAmount maxCoinValue, bool fIncludeColdStaking)
+std::map<CTxDestination , std::vector<COutput> > CWallet::AvailableCoinsByAddress(bool fOnlySafe, CAmount maxCoinValue, bool fIncludeColdStaking)
 {
     CWallet::AvailableCoinsFilter coinFilter;
     coinFilter.fIncludeColdStaking = true;
-    coinFilter.fOnlyConfirmed = fConfirmed;
+    coinFilter.fOnlySafe = fOnlySafe;
     coinFilter.fIncludeColdStaking = fIncludeColdStaking;
     coinFilter.nMaxOutValue = maxCoinValue;
     std::vector<COutput> vCoins;
@@ -2810,7 +2814,7 @@ bool CWallet::StakeableCoins(std::vector<CStakeableOutput>* pCoins)
             // found valid coin
             if (!pCoins) return true;
             if (!pindex) pindex = mapBlockIndex.at(pcoin->m_confirm.hashBlock);
-            pCoins->emplace_back(CStakeableOutput(pcoin, (int) index, nDepth, res.spendable, res.solvable, pindex));
+            pCoins->emplace_back(pcoin, (int) index, nDepth, pindex);
         }
     }
     return (pCoins && !pCoins->empty());
@@ -4959,7 +4963,10 @@ const CWDestination* CAddressBookIterator::GetDestKey()
     return &it->first;
 }
 
-CStakeableOutput::CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn,
-                                   const CBlockIndex*& _pindex) : COutput(txIn, iIn, nDepthIn, fSpendableIn, fSolvableIn),
-                                                                pindex(_pindex) {}
-
+CStakeableOutput::CStakeableOutput(const CWalletTx* txIn,
+                                   int iIn,
+                                   int nDepthIn,
+                                   const CBlockIndex*& _pindex) :
+                       COutput(txIn, iIn, nDepthIn, true /*fSpendable*/, true/*fSolvable*/, true/*fSafe*/),
+                       pindex(_pindex)
+{}

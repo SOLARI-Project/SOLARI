@@ -766,7 +766,7 @@ public:
         AvailableCoinsFilter() {}
         AvailableCoinsFilter(bool _fIncludeDelegated,
                              bool _fIncludeColdStaking,
-                             bool _fOnlyConfirmed,
+                             bool _fOnlySafe,
                              bool _fOnlySpendable,
                              std::set<CTxDestination>* _onlyFilteredDest,
                              int _minDepth,
@@ -774,7 +774,7 @@ public:
                              CAmount _nMaxOutValue = 0) :
                 fIncludeDelegated(_fIncludeDelegated),
                 fIncludeColdStaking(_fIncludeColdStaking),
-                fOnlyConfirmed(_fOnlyConfirmed),
+                fOnlySafe(_fOnlySafe),
                 fOnlySpendable(_fOnlySpendable),
                 onlyFilteredDest(_onlyFilteredDest),
                 minDepth(_minDepth),
@@ -783,7 +783,7 @@ public:
 
         bool fIncludeDelegated{true};
         bool fIncludeColdStaking{false};
-        bool fOnlyConfirmed{true};
+        bool fOnlySafe{true};
         bool fOnlySpendable{false};
         std::set<CTxDestination>* onlyFilteredDest{nullptr};
         int minDepth{0};
@@ -1238,11 +1238,23 @@ public:
     const CWalletTx* tx;
     int i;
     int nDepth;
+
+    /** Whether we have the private keys to spend this output */
     bool fSpendable;
+
+    /** Whether we know how to spend this output, ignoring the lack of keys */
     bool fSolvable;
 
-    COutput(const CWalletTx* txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn) :
-        tx(txIn), i(iIn), nDepth(nDepthIn), fSpendable(fSpendableIn), fSolvable(fSolvableIn) {}
+    /**
+     * Whether this output is considered safe to spend. Unconfirmed transactions
+     * from outside keys and unconfirmed replacement transactions are considered
+     * unsafe and will not be used to fund new spending transactions.
+     */
+    bool fSafe;
+
+    COutput(const CWalletTx *txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn, bool fSafeIn) :
+        tx(txIn), i(iIn), nDepth(nDepthIn), fSpendable(fSpendableIn), fSolvable(fSolvableIn), fSafe(fSafeIn)
+    {}
 
     CAmount Value() const { return tx->tx->vout[i].nValue; }
     std::string ToString() const;
@@ -1253,7 +1265,7 @@ class CStakeableOutput : public COutput
 public:
     const CBlockIndex* pindex{nullptr};
 
-    CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn,
+    CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn,
                      const CBlockIndex*& pindex);
 
 };

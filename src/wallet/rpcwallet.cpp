@@ -3713,11 +3713,12 @@ UniValue listunspent(const JSONRPCRequest& request)
     CCoinControl coinControl;
     coinControl.fAllowWatchOnly = nWatchonlyConfig == 2;
 
+    coinFilter.fOnlySafe = false;
+
     UniValue results(UniValue::VARR);
     std::vector<COutput> vecOutputs;
 
     LOCK2(cs_main, pwallet->cs_wallet);
-    coinFilter.fOnlyConfirmed = false;
     pwallet->AvailableCoins(&vecOutputs, &coinControl, coinFilter);
     for (const COutput& out : vecOutputs) {
         if (out.nDepth < nMinDepth || out.nDepth > nMaxDepth)

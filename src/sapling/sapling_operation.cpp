@@ -287,7 +287,7 @@ OperationResult SaplingOperation::loadUtxos(TxValues& txValues)
             const auto* tx = wallet->GetWalletTx(outpoint.outPoint.hash);
             if (!tx) continue;
             nSelectedValue += tx->tx->vout[outpoint.outPoint.n].nValue;
-            selectedUTXOInputs.emplace_back(tx, outpoint.outPoint.n, 0, true, true);
+            selectedUTXOInputs.emplace_back(tx, outpoint.outPoint.n, 0, true, true, true);
         }
         return loadUtxos(txValues, selectedUTXOInputs, nSelectedValue);
     }
