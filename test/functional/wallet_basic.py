@@ -87,7 +87,12 @@ class WalletTest(PivxTestFramework):
         assert_equal(len(self.nodes[1].listlockunspent()), 0)
 
         # Send 21 PIV from 1 to 0 using sendtoaddress call.
+        # Locked memory should use at least 32 bytes to sign the transaction
+        self.log.info("test getmemoryinfo")
+        memory_before = self.nodes[0].getmemoryinfo()
         self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 21)
+        memory_after = self.nodes[0].getmemoryinfo()
+        assert(memory_before['locked']['used'] + 32 <= memory_after['locked']['used'])
         self.sync_mempools(self.nodes[0:3])
 
         # Node0 should have two unspent outputs.
