@@ -1,10 +1,10 @@
-// Copyright (c) 2014 The Bitcoin developers
-// Copyright (c) 2017-2020 The PIVX developers
+// Copyright (c) 2014-2021 The Bitcoin developers
+// Copyright (c) 2017-2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CHAINPARAMSBASE_H
-#define BITCOIN_CHAINPARAMSBASE_H
+#ifndef PIVX_CHAINPARAMSBASE_H
+#define PIVX_CHAINPARAMSBASE_H
 
 #include <memory>
 #include <string>
@@ -62,4 +62,4 @@ void SelectBaseParams(const std::string& chain);
  */
 std::string ChainNameFromCommandLine();
 
-#endif // BITCOIN_CHAINPARAMSBASE_H
+#endif // PIVX_CHAINPARAMSBASE_H

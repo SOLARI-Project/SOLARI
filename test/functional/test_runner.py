@@ -94,8 +94,9 @@ BASE_SCRIPTS= [
     'mempool_reorg.py',                         # ~ 92 sec
     'interface_zmq.py',                         # ~ 90 sec
     'wallet_encryption.py',                     # ~ 89 sec
-    'wallet_import_stakingaddress.py',          # ~ 86 sec
+    'wallet_import_stakingaddress.py',          # ~ 88 sec
     'wallet_keypool.py',                        # ~ 88 sec
+    'feature_config_args.py',                   # ~ 85 sec
     'wallet_dump.py',                           # ~ 83 sec
     'rpc_net.py',                               # ~ 83 sec
     'rpc_bip38.py',                             # ~ 82 sec
@@ -104,6 +105,7 @@ BASE_SCRIPTS= [
     'mempool_packages.py',                      # ~ 63 sec
 
     # vv Tests less than 60s vv
+    'rpc_users.py',
     'wallet_labels.py',                         # ~ 57 sec
     'rpc_signmessage.py',                       # ~ 54 sec
     'mempool_resurrect.py',                     # ~ 51 sec
@@ -122,7 +124,6 @@ BASE_SCRIPTS= [
     # 'feature_block.py',
     # 'mempool_limit.py', # We currently don't limit our mempool_reorg
     # 'rpc_getchaintips.py',
-    # 'rpc_users.py',
     # 'mining_prioritisetransaction.py',
     # 'p2p_invalid_block.py',
     # 'p2p_invalid_tx.py',
@@ -134,8 +135,6 @@ BASE_SCRIPTS= [
     # 'feature_minchainwork.py',
     # 'p2p_fingerprint.py',
     # 'p2p_unrequested_blocks.py',
-    # 'feature_config_args.py',
-
 ]
 
 TIERTWO_SCRIPTS = [
@@ -182,6 +181,7 @@ EXTENDED_SCRIPTS = [
 LEGACY_SKIP_TESTS = [
     # These tests are not run when the flag --legacywallet is used
     'feature_blockindexstats.py',
+    'feature_config_args.py',
     'feature_help.py',
     'feature_logging.py',
     'feature_reindex.py',
@@ -203,6 +203,7 @@ LEGACY_SKIP_TESTS = [
     'rpc_net.py',
     'rpc_signmessage.py',
     'rpc_spork.py',
+    'rpc_users.py',
     'wallet_hd.py',         # no HD tests for pre-HD wallets
     'wallet_upgrade.py',    # can't upgrade to pre-HD wallet
     'sapling_wallet_persistence.py',

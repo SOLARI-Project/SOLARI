@@ -27,6 +27,8 @@
 #include <atomic>
 #include <exception>
 #include <map>
+#include <memory>
+#include <set>
 #include <stdint.h>
 #include <string>
 #include <unordered_set>
@@ -93,7 +95,7 @@ const fs::path &ZC_GetParamsDir();
 // Init sapling library
 void initZKSNARKS();
 void ClearDatadirCache();
-fs::path GetConfigFile();
+fs::path GetConfigFile(const std::string& confPath);
 fs::path GetMasternodeConfigFile();
 #ifndef WIN32
 fs::path GetPidFile();
@@ -118,14 +120,34 @@ inline bool IsSwitchChar(char c)
 class ArgsManager
 {
 protected:
+    friend class ArgsManagerHelper;
+
     mutable RecursiveMutex cs_args;
-    std::map<std::string, std::string> mapArgs;
-    std::map<std::string, std::vector<std::string>> mapMultiArgs;
-    std::unordered_set<std::string> m_negated_args;
+    std::map<std::string, std::vector<std::string>> m_override_args;
+    std::map<std::string, std::vector<std::string>> m_config_args;
+    std::string m_network;
+    std::set<std::string> m_network_only_args;
+
+    void ReadConfigStream(std::istream& stream);
 
 public:
+    ArgsManager();
+
+    /**
+     * Select the network in use
+     */
+    void SelectConfigNetwork(const std::string& network);
+
     void ParseParameters(int argc, const char* const argv[]);
-    void ReadConfigFile();
+    void ReadConfigFile(const std::string& confPath);
+
+    /**
+     * Log warnings for options in m_section_only_args when
+     * they are specified in the default section but not overridden
+     * on the command line or in a network-specific section in the
+     * config file.
+     */
+    void WarnForSectionOnlyArgs();
 
     /**
      * Return a vector of strings of the given argument
@@ -200,10 +222,11 @@ public:
     // Forces a arg setting, used only in testing
     void ForceSetArg(const std::string& strArg, const std::string& strValue);
 
-private:
-
-    // Munge -nofoo into -foo=0 and track the value as negated.
-    void InterpretNegatedOption(std::string &key, std::string &val);
+    /**
+     * Looks for -regtest, -testnet and returns the appropriate BIP70 chain name.
+     * @return CBaseChainParams::MAIN by default; raises runtime error if an invalid combination is given.
+     */
+    std::string GetChainName() const;
 };
 
 extern ArgsManager gArgs;

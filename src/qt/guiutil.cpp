@@ -422,7 +422,7 @@ bool openDebugLogfile()
 
 bool openConfigfile()
 {
-    return openFile(GetConfigFile(), true);
+    return openFile(GetConfigFile(gArgs.GetArg("-conf", PIVX_CONF_FILENAME)), true);
 }
 
 bool openMNConfigfile()
@@ -630,9 +630,10 @@ bool DHMSTableWidgetItem::operator<(QTableWidgetItem const& item) const
 #ifdef WIN32
 fs::path static StartupShortcutPath()
 {
-    if (gArgs.GetBoolArg("-testnet", false))
+    std::string chain = gArgs.GetChainName();
+    if (chain == CBaseChainParams::TESTNET)
         return GetSpecialFolderPath(CSIDL_STARTUP) / "PIVX (testnet).lnk";
-    else if (gArgs.GetBoolArg("-regtest", false))
+    else if (chain == CBaseChainParams::REGTEST)
         return GetSpecialFolderPath(CSIDL_STARTUP) / "PIVX (regtest).lnk";
 
     return GetSpecialFolderPath(CSIDL_STARTUP) / "PIVX.lnk";

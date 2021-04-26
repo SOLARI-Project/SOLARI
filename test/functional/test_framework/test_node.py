@@ -121,9 +121,12 @@ class TestNode():
         for _ in range(poll_per_s * self.rpc_timeout):
             assert self.process.poll() is None, "pivxd exited with status %i during initialization" % self.process.returncode
             try:
-                self.rpc = get_rpc_proxy(rpc_url(self.datadir, self.index, self.rpchost), self.index, timeout=self.rpc_timeout, coveragedir=self.coverage_dir)
-                self.rpc.getblockcount()
-                wait_until(lambda: self.rpc.getmempoolinfo()['loaded'])
+                rpc = get_rpc_proxy(rpc_url(self.datadir, self.index, self.rpchost),
+                                    self.index,
+                                    timeout=self.rpc_timeout,
+                                    coveragedir=self.coverage_dir)
+                rpc.getblockcount()
+                wait_until(lambda: rpc.getmempoolinfo()['loaded'])
                 # Wait for the node to finish reindex, block import, and
                 # loading the mempool. Usually importing happens fast or
                 # even "immediate" when the node is started. However, there
@@ -142,9 +145,12 @@ class TestNode():
                 # overhead is trivial, and the added gurantees are worth
                 # the minimal performance cost.
                 # If the call to getblockcount() succeeds then the RPC connection is up
+                self.log.debug("RPC successfully started")
+                if self.use_cli:
+                    return
+                self.rpc = rpc
                 self.rpc_connected = True
                 self.url = self.rpc.url
-                self.log.debug("RPC successfully started")
                 return
             except IOError as e:
                 if e.errno != errno.ECONNREFUSED:  # Port not yet open?

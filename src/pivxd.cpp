@@ -82,14 +82,14 @@ bool AppInit(int argc, char* argv[])
             return false;
         }
         try {
-            gArgs.ReadConfigFile();
+            gArgs.ReadConfigFile(gArgs.GetArg("-conf", PIVX_CONF_FILENAME));
         } catch (const std::exception& e) {
             fprintf(stderr, "Error reading configuration file: %s\n", e.what());
             return false;
         }
         // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
         try {
-            SelectParams(ChainNameFromCommandLine());
+            SelectParams(gArgs.GetChainName());
         } catch(const std::exception& e) {
             fprintf(stderr, "Error: %s\n", e.what());
             return false;

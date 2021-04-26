@@ -608,7 +608,7 @@ int main(int argc, char* argv[])
         return 1;
     }
     try {
-        gArgs.ReadConfigFile();
+        gArgs.ReadConfigFile(gArgs.GetArg("-conf", PIVX_CONF_FILENAME));
     } catch (const std::exception& e) {
         QMessageBox::critical(0, QObject::tr("PIVX Core"),
             QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
@@ -623,7 +623,7 @@ int main(int argc, char* argv[])
 
     // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
     try {
-        SelectParams(ChainNameFromCommandLine());
+        SelectParams(gArgs.GetChainName());
     } catch(const std::exception& e) {
         QMessageBox::critical(0, QObject::tr("PIVX Core"), QObject::tr("Error: %1").arg(e.what()));
         return 1;
