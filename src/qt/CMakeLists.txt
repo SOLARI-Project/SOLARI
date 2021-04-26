@@ -198,22 +198,18 @@ QT5_ADD_RESOURCES(QRC_LOCALE_RESOURCE pivx_locale.qrc)
 
 add_executable(pivx-qt pivx.cpp ${QM} ${QRC_RESOURCE} ${QRC_LOCALE_RESOURCE})
 add_dependencies(pivx-qt translations_target libunivalue libsecp256k1 libzcashrust leveldb crc32c)
-target_include_directories(pivx-qt PUBLIC ${ENDIAN_INCLUDES})
+target_include_directories(pivx-qt PUBLIC ${ENDIAN_INCLUDES} ${GMP_INCLUDE_DIR})
 target_link_libraries(pivx-qt
         qt_stuff
         univalue
         SERVER_A WALLET_A COMMON_A ZEROCOIN_A UTIL_A SAPLING_A BITCOIN_CRYPTO_A CLI_A
         leveldb crc32c secp256k1 rustzcash
         ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${LIBEVENT_LIB}
-        ${sodium_LIBRARY_RELEASE}
+        ${sodium_LIBRARY_RELEASE} ${GMP_LIBRARY}
         -ldl pthread
         )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(pivx-qt "-framework Cocoa")
-endif()
-if(GMP_FOUND)
-    target_link_libraries(pivx-qt ${GMP_LIBRARY})
-    target_include_directories(pivx-qt PUBLIC ${GMP_INCLUDE_DIR})
 endif()
 if(ZMQ_FOUND)
     target_link_libraries(pivx-qt ZMQ_A ${ZMQ_LIB})
