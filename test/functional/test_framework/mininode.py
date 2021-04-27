@@ -464,8 +464,6 @@ class P2PDataStore(P2PInterface):
 
     def __init__(self):
         super().__init__()
-        self.reject_code_received = None
-        self.reject_reason_received = None
         # store of blocks. key is block hash, value is a CBlock object
         self.block_store = {}
         self.last_block_hash = ''
@@ -484,72 +482,63 @@ class P2PDataStore(P2PInterface):
             else:
                 logger.debug('getdata message type {} received.'.format(hex(inv.type)))
 
-    def on_reject(self, message):
-        """Store reject reason and code for testing."""
-        self.reject_code_received = message.code
-        self.reject_reason_received = message.reason
-
-    def send_blocks_and_test(self, blocks, rpc, success=True, reject_code=None, reject_reason=None, timeout=60):
+    def send_blocks_and_test(self, blocks, node, success=True, reject_reason=None, expect_disconnect=False, timeout=60):
         """Send blocks to test node and test whether the tip advances.
 
          - add all blocks to our block_store
          - send the blocks
          - if success is True: assert that the node's tip advances to the most recent block
          - if success is False: assert that the node's tip doesn't advance
-         - if reject_code and reject_reason are set: assert that the correct reject message is received"""
+         - if reject_reason is set: assert that the correct reject message is logged"""
 
         with mininode_lock:
-            self.reject_code_received = None
-            self.reject_reason_received = None
-
             for block in blocks:
                 self.block_store[block.sha256] = block
                 self.last_block_hash = block.sha256
 
-        self.send_message(msg_block(blocks[-1]))
+        reject_reason = [reject_reason] if reject_reason else []
+        with node.assert_debug_log(reject_reason):
+            self.send_message(msg_block(blocks[-1]))
 
-        if success:
-            wait_until(lambda: rpc.getbestblockhash() == blocks[-1].hash, timeout=timeout)
-        else:
-            assert rpc.getbestblockhash() != blocks[-1].hash
+            if expect_disconnect:
+                self.wait_for_disconnect()
+            else:
+                self.sync_with_ping()
 
-        if reject_code is not None:
-            wait_until(lambda: self.reject_code_received == reject_code, lock=mininode_lock)
-        if reject_reason is not None:
-            wait_until(lambda: self.reject_reason_received == reject_reason, lock=mininode_lock)
+            if success:
+                wait_until(lambda: node.getbestblockhash() == blocks[-1].hash, timeout=timeout)
+            else:
+                assert node.getbestblockhash() != blocks[-1].hash
 
-    def send_txs_and_test(self, txs, rpc, success=True, reject_code=None, reject_reason=None):
+    def send_txs_and_test(self, txs, node, *, success=True, expect_disconnect=False, reject_reason=None):
         """Send txs to test node and test whether they're accepted to the mempool.
 
          - add all txs to our tx_store
          - send tx messages for all txs
-         - if success is True: assert that the tx is accepted to the mempool
-         - if success is False: assert that the tx is not accepted to the mempool
-         - if reject_code and reject_reason are set: assert that the correct reject message is received."""
+         - if success is True/False: assert that the txs are/are not accepted to the mempool
+         - if expect_disconnect is True: Skip the sync with ping
+         - if reject_reason is set: assert that the correct reject message is logged."""
 
         with mininode_lock:
-            self.reject_code_received = None
-            self.reject_reason_received = None
-
             for tx in txs:
                 self.tx_store[tx.sha256] = tx
 
-        for tx in txs:
-            self.send_message(msg_tx(tx))
-
-        self.sync_with_ping()
-
-        raw_mempool = rpc.getrawmempool()
-        if success:
-            # Check that all txs are now in the mempool
+        reject_reason = [reject_reason] if reject_reason else []
+        with node.assert_debug_log(expected_msgs=reject_reason):
             for tx in txs:
-                assert tx.hash in raw_mempool, "{} not found in mempool".format(tx.hash)
-        else:
-            # Check that none of the txs are now in the mempool
-            for tx in txs:
-                assert tx.hash not in raw_mempool, "{} tx found in mempool".format(tx.hash)
+                self.send_message(msg_tx(tx))
 
-        if reject_code is not None:
-            wait_until(lambda: self.reject_code_received == reject_code, lock=mininode_lock)
-        if reject_reason is not None:
-            wait_until(lambda: self.reject_reason_received == reject_reason, lock=mininode_lock)
+            if expect_disconnect:
+                self.wait_for_disconnect()
+            else:
+                self.sync_with_ping()
+
+            raw_mempool = node.getrawmempool()
+            if success:
+                # Check that all txs are now in the mempool
+                for tx in txs:
+                    assert tx.hash in raw_mempool, "{} not found in mempool".format(tx.hash)
+            else:
+                # Check that none of the txs are now in the mempool
+                for tx in txs:
+                    assert tx.hash not in raw_mempool, "{} tx found in mempool".format(tx.hash)
