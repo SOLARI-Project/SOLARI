@@ -5,7 +5,7 @@
 """Utilities for manipulating blocks and transactions."""
 
 from test_framework.mininode import *
-from test_framework.script import CScript, OP_TRUE, OP_CHECKSIG
+from test_framework.script import CScript, CScriptNum, CScriptOp, OP_TRUE, OP_CHECKSIG, OP_1
 
 
 # Create a block (with regtest difficulty)
@@ -42,19 +42,23 @@ def serialize_script_num(value):
         r[-1] |= 0x80
     return r
 
-def cbase_scriptsig(height):
-    return ser_string(serialize_script_num(height))
-
 def cbase_value(height):
     #return ((50 * COIN) >> int(height/150))
     return (250 * COIN)
+
+def script_BIP34_coinbase_height(height):
+    if height <= 16:
+        res = CScriptOp.encode_op_n(height)
+        # Append dummy to increase scriptSig size above 2 (see bad-cb-length consensus rule)
+        return CScript([res, OP_1])
+    return CScript([CScriptNum(height)])
 
 # Create a coinbase transaction, assuming no miner fees.
 # If pubkey is passed in, the coinbase output will be a P2PK output;
 # otherwise an anyone-can-spend output.
 def create_coinbase(height, pubkey = None):
     coinbase = CTransaction()
-    coinbase.vin = [CTxIn(NullOutPoint, cbase_scriptsig(height), 0xffffffff)]
+    coinbase.vin = [CTxIn(NullOutPoint, script_BIP34_coinbase_height(height), 0xffffffff)]
     coinbaseoutput = CTxOut()
     coinbaseoutput.nValue = cbase_value(height)
     if (pubkey != None):
@@ -100,7 +104,7 @@ def get_legacy_sigopcount_tx(tx, fAccurate=True):
 ### PIVX specific blocktools ###
 def create_coinbase_pos(height):
     coinbase = CTransaction()
-    coinbase.vin = [CTxIn(NullOutPoint, cbase_scriptsig(height), 0xffffffff)]
+    coinbase.vin = [CTxIn(NullOutPoint, script_BIP34_coinbase_height(height), 0xffffffff)]
     coinbase.vout = [CTxOut(0, b"")]
     coinbase.calc_sha256()
     return coinbase
