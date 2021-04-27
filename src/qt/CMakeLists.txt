@@ -180,7 +180,6 @@ target_include_directories(qt_stuff PUBLIC ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings
-        ${OPENSSL_INCLUDE_DIR}
         ${BerkeleyDB_INCLUDE_DIRS}
         )
 set_property(TARGET qt_stuff PROPERTY CXX_STANDARD 14)
@@ -204,7 +203,7 @@ target_link_libraries(pivx-qt
         univalue
         SERVER_A WALLET_A COMMON_A ZEROCOIN_A UTIL_A SAPLING_A BITCOIN_CRYPTO_A CLI_A
         leveldb crc32c secp256k1 rustzcash
-        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${LIBEVENT_LIB}
+        ${BerkeleyDB_LIBRARIES} ${Boost_LIBRARIES} ${LIBEVENT_LIB}
         ${sodium_LIBRARY_RELEASE} ${GMP_LIBRARY}
         -ldl pthread
         )

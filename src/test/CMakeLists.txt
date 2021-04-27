@@ -167,7 +167,7 @@ target_link_libraries(test_pivx PRIVATE
         crc32c
         secp256k1
         rustzcash
-        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${LIBEVENT_LIB} ${GMP_LIBRARY} pthread
+        ${BerkeleyDB_LIBRARIES} ${Boost_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} ${LIBEVENT_LIB} ${GMP_LIBRARY} pthread
         )
 if(ZMQ_FOUND)
     target_link_libraries(test_pivx PRIVATE ZMQ_A ${ZMQ_LIB})
