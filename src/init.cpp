@@ -558,6 +558,12 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-budgetvotemode=<mode>", _("Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)"));
 
     strUsage += HelpMessageGroup(_("Node relay options:"));
+    if (showDebug) {
+        strUsage += HelpMessageOpt("-acceptnonstdtxn",
+                                   strprintf("Relay and mine \"non-standard\" transactions (%sdefault: %u)",
+                                             "testnet/regtest only; ",
+                                             !CreateChainParams(CBaseChainParams::TESTNET)->RequireStandard()));
+    }
     strUsage += HelpMessageOpt("-datacarrier", strprintf(_("Relay and mine data carrier transactions (default: %u)"), DEFAULT_ACCEPT_DATACARRIER));
     strUsage += HelpMessageOpt("-datacarriersize", strprintf(_("Maximum size of data in data carrier transactions we relay and mine (default: %u)"), MAX_OP_RETURN_RELAY));
     if (showDebug) {
@@ -1134,6 +1140,11 @@ bool AppInitParameterInteraction()
         else
             return UIError(AmountErrMsg("minrelaytxfee", gArgs.GetArg("-minrelaytxfee", "")));
     }
+
+    const CChainParams& chainparams = Params();
+    fRequireStandard = !gArgs.GetBoolArg("-acceptnonstdtxn", !chainparams.RequireStandard());
+    if (!chainparams.IsTestChain() && !fRequireStandard)
+        return UIError(strprintf("acceptnonstdtxn is not currently supported for %s chain", chainparams.NetworkIDString()));
 
 #ifdef ENABLE_WALLET
     strWalletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);

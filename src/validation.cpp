@@ -98,6 +98,7 @@ int nScriptCheckThreads = 0;
 std::atomic<bool> fImporting{false};
 std::atomic<bool> fReindex{false};
 bool fTxIndex = true;
+bool fRequireStandard = true;
 bool fCheckBlockIndex = false;
 bool fVerifyingBlocks = false;
 size_t nCoinCacheUsage = 5000 * 300;
@@ -440,7 +441,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
     // Rather not work on nonstandard transactions
     std::string reason;
-    if (!IsStandardTx(_tx, nextBlockHeight, reason))
+    if (fRequireStandard && !IsStandardTx(_tx, nextBlockHeight, reason))
         return state.DoS(0, false, REJECT_NONSTANDARD, reason);
     // is it already in the memory pool?
     const uint256& hash = tx.GetHash();
@@ -518,7 +519,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         view.SetBackend(dummy);
 
         // Check for non-standard pay-to-script-hash in inputs
-        if (!Params().IsRegTestNet() && !AreInputsStandard(tx, view))
+        if (fRequireStandard && !AreInputsStandard(tx, view))
             return state.Invalid(false, REJECT_NONSTANDARD, "bad-txns-nonstandard-inputs");
 
         // Check that the transaction doesn't have an excessive number of
