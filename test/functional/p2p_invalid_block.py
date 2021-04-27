@@ -44,7 +44,7 @@ class InvalidBlockRequestTest(PivxTestFramework):
         # Save the coinbase for later
         block1 = block
         tip = block.sha256
-        node.p2p.send_blocks_and_test([block1], node, True)
+        node.p2p.send_blocks_and_test([block1], node, success=True)
 
         self.log.info("Mature the block.")
         node.generate(100)
@@ -134,6 +134,16 @@ class InvalidBlockRequestTest(PivxTestFramework):
         block4.solve()
         self.log.info("Test inflation by duplicating input")
         node.p2p.send_blocks_and_test([block4], node, success=False,  reject_reason='bad-txns-inputs-duplicate')
+
+        self.log.info("Test output value > input value out of range")
+        # Can be removed when 'feature_block.py' is added to the suite.
+        tx4 = create_transaction(tx2, 0, b'\x51', 260 * COIN)
+        block4 = create_block(tip, create_coinbase(height), block_time)
+        block4.vtx.extend([tx4])
+        block4.hashMerkleRoot = block4.calc_merkle_root()
+        block4.rehash()
+        block4.solve()
+        node.p2p.send_blocks_and_test([block4], node, success=False, reject_reason='bad-txns-in-belowout')
 
 if __name__ == '__main__':
     InvalidBlockRequestTest().main()
