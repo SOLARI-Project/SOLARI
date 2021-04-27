@@ -41,8 +41,7 @@ void ComputePassfactor(std::string ownersalt, uint256 prefactor, uint256& passfa
 {
     //concat prefactor and ownersalt
     uint512 temp = uint512S(ReverseEndianString(HexStr(prefactor) + ownersalt));
-    Hash(temp.begin(), 40, passfactor.begin()); //40 bytes is the length of prefactor + salt
-    Hash(passfactor.begin(), 32, passfactor.begin());
+    Hash(temp.begin(), temp.end(), passfactor.begin(), passfactor.end());
 }
 
 bool ComputePasspoint(uint256 passfactor, CPubKey& passpoint)
@@ -88,15 +87,12 @@ void ComputeSeedBPass(CPubKey passpoint, std::string strAddressHash, std::string
 void ComputeFactorB(uint256 seedB, uint256& factorB)
 {
     //factorB - a double sha256 hash of seedb
-    Hash(seedB.begin(), 24, factorB.begin()); //seedB is only 24 bytes
-    Hash(factorB.begin(), 32, factorB.begin());
+    Hash(seedB.begin(), seedB.end(), factorB.begin(), factorB.end());
 }
 
-std::string AddressToBip38Hash(std::string address)
+std::string AddressToBip38Hash(const std::string& address)
 {
-    uint256 addrCheck;
-    Hash((void*)address.c_str(), address.size(), addrCheck.begin());
-    Hash(addrCheck.begin(), 32, addrCheck.begin());
+    uint256 addrCheck = Hash(address.begin(), address.end());
 
     return HexStr(addrCheck).substr(0, 8);
 }
