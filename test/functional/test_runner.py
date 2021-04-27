@@ -85,6 +85,7 @@ BASE_SCRIPTS= [
     # vv Tests less than 2m vv
     'wallet_upgrade.py',                        # ~ 119 sec
     'p2p_disconnect_ban.py',                    # ~ 118 sec
+    'p2p_invalid_block.py',
     'feature_reindex.py',                       # ~ 110 sec
     'interface_http.py',                        # ~ 105 sec
     'feature_blockhashcache.py',                # ~ 100 sec
@@ -124,7 +125,6 @@ BASE_SCRIPTS= [
     # 'rpc_getchaintips.py',
     # 'rpc_users.py',
     # 'mining_prioritisetransaction.py',
-    # 'p2p_invalid_block.py',
     # 'p2p_invalid_tx.py',
     # 'mining_basic.py',
     # 'wallet_bumpfee.py',
