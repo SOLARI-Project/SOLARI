@@ -41,6 +41,10 @@ NODE_NETWORK = (1 << 0)
 # NODE_GETUTXO = (1 << 1)
 NODE_BLOOM = (1 << 2)
 
+MSG_TX = 1
+MSG_BLOCK = 2
+MSG_TYPE_MASK = 0xffffffff >> 2
+
 # Serialization/deserialization tools
 def sha256(s):
     return hashlib.new('sha256', s).digest()
@@ -208,7 +212,6 @@ class CAddress():
     def __repr__(self):
         return "CAddress(nServices=%i ip=%s port=%i)" % (self.nServices,
                                                          self.ip, self.port)
-
 
 class CInv():
     typemap = {
