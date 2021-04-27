@@ -9,6 +9,7 @@
 
 #include "blockassembler.h"
 #include "guiinterface.h"
+#include "evo/deterministicmns.h"
 #include "evo/evodb.h"
 #include "miner.h"
 #include "net_processing.h"
@@ -45,11 +46,13 @@ BasicTestingSetup::BasicTestingSetup()
         fCheckBlockIndex = true;
         SelectParams(CBaseChainParams::MAIN);
         evoDb.reset(new CEvoDB(1 << 20, true, true));
+        deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
 }
 BasicTestingSetup::~BasicTestingSetup()
 {
         ECC_Stop();
         g_connman.reset();
+        deterministicMNManager.reset();
         evoDb.reset();
 }
 

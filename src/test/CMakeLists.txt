@@ -68,6 +68,7 @@ set(BITCOIN_TESTS
         ${CMAKE_CURRENT_SOURCE_DIR}/arith_uint256_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/addrman_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/allocator_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/evo_specialtx_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/librust/libsapling_utils_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/librust/sapling_key_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/librust/pedersen_hash_tests.cpp
@@ -93,6 +94,8 @@ set(BITCOIN_TESTS
         ${CMAKE_CURRENT_SOURCE_DIR}/crypto_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/cuckoocache_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/DoS_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/evo_deterministicmns_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/evo_specialtx_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/getarg_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/hash_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/key_tests.cpp

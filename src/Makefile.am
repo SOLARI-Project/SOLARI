@@ -182,7 +182,10 @@ BITCOIN_CORE_H = \
   cuckoocache.h \
   crypter.h \
   cyclingvector.h \
+  evo/deterministicmns.h \
   evo/evodb.h \
+  evo/evonotificationinterface.h \
+  evo/providertx.h \
   evo/specialtx.h \
   pairresult.h \
   addressbook.h \
@@ -247,6 +250,7 @@ BITCOIN_CORE_H = \
   rpc/protocol.h \
   rpc/register.h \
   rpc/server.h \
+  saltedhasher.h \
   scheduler.h \
   script/interpreter.h \
   script/keyorigin.h \
@@ -325,7 +329,10 @@ libbitcoin_server_a_SOURCES = \
   consensus/params.cpp \
   consensus/tx_verify.cpp \
   consensus/zerocoin_verify.cpp \
+  evo/deterministicmns.cpp \
   evo/evodb.cpp \
+  evo/evonotificationinterface.cpp \
+  evo/providertx.cpp \
   evo/specialtx.cpp \
   httprpc.cpp \
   httpserver.cpp \
@@ -506,6 +513,7 @@ libbitcoin_common_a_SOURCES = \
   policy/feerate.cpp \
   protocol.cpp \
   pubkey.cpp \
+  saltedhasher.cpp \
   scheduler.cpp \
   script/interpreter.cpp \
   script/script.cpp \
@@ -729,7 +737,10 @@ CTAES_DIST += crypto/ctaes/ctaes.h
 CTAES_DIST += crypto/ctaes/README.md
 CTAES_DIST += crypto/ctaes/test.c
 
+IMMER_DIST = immer
+
 EXTRA_DIST = $(CTAES_DIST) rust
+EXTRA_DIST += $(IMMER_DIST)
 
 
 config/pivx-config.h: config/stamp-h1

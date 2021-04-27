@@ -29,6 +29,38 @@ bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state);
 
 // Update internal tiertwo data when blocks containing special txes get connected/disconnected
 bool ProcessSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex, CValidationState& state, bool fJustCheck);
-bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindexPrev);
+bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex);
+
+template <typename T>
+inline bool GetTxPayload(const std::vector<unsigned char>& payload, T& obj)
+{
+    CDataStream ds(payload, SER_NETWORK, PROTOCOL_VERSION);
+    try {
+        ds >> obj;
+    } catch (std::exception& e) {
+        return false;
+    }
+    return ds.empty();
+}
+template <typename T>
+inline bool GetTxPayload(const CMutableTransaction& tx, T& obj)
+{
+    return tx.hasExtraPayload() && GetTxPayload(*tx.extraPayload, obj);
+}
+template <typename T>
+inline bool GetTxPayload(const CTransaction& tx, T& obj)
+{
+    return tx.hasExtraPayload() && GetTxPayload(*tx.extraPayload, obj);
+}
+
+template <typename T>
+void SetTxPayload(CMutableTransaction& tx, const T& payload)
+{
+    CDataStream ds(SER_NETWORK, PROTOCOL_VERSION);
+    ds << payload;
+    tx.extraPayload.emplace(ds.begin(), ds.end());
+}
+
+uint256 CalcTxInputsHash(const CTransaction& tx);
 
 #endif // PIVX_SPECIALTX_H

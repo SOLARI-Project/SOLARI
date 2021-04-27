@@ -22,6 +22,7 @@
 #include "checkpoints.h"
 #include "compat/sanity.h"
 #include "consensus/upgrades.h"
+#include "evo/evonotificationinterface.h"
 #include "fs.h"
 #include "httpserver.h"
 #include "httprpc.h"
@@ -44,6 +45,7 @@
 #include "scheduler.h"
 #include "spork.h"
 #include "sporkdb.h"
+#include "evo/deterministicmns.h"
 #include "evo/evodb.h"
 #include "txdb.h"
 #include "torcontrol.h"
@@ -103,6 +105,8 @@ std::unique_ptr<PeerLogicValidation> peerLogic;
 #if ENABLE_ZMQ
 static CZMQNotificationInterface* pzmqNotificationInterface = NULL;
 #endif
+
+static EvoNotificationInterface* pEvoNotificationInterface = nullptr;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -298,6 +302,7 @@ void PrepareShutdown()
         zerocoinDB = NULL;
         delete pSporkDB;
         pSporkDB = NULL;
+        deterministicMNManager.reset();
         evoDb.reset();
     }
 #ifdef ENABLE_WALLET
@@ -305,11 +310,23 @@ void PrepareShutdown()
         bitdb.Flush(true);
 #endif
 
+    if (pEvoNotificationInterface) {
+        UnregisterValidationInterface(pEvoNotificationInterface);
+        delete pEvoNotificationInterface;
+        pEvoNotificationInterface = nullptr;
+    }
+
+    if (activeMasternodeManager) {
+        UnregisterValidationInterface(activeMasternodeManager);
+        delete activeMasternodeManager;
+        activeMasternodeManager = nullptr;
+    }
+
 #if ENABLE_ZMQ
     if (pzmqNotificationInterface) {
         UnregisterValidationInterface(pzmqNotificationInterface);
         delete pzmqNotificationInterface;
-        pzmqNotificationInterface = NULL;
+        pzmqNotificationInterface = nullptr;
     }
 #endif
 
@@ -556,6 +573,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-masternodeprivkey=<n>", _("Set the masternode private key"));
     strUsage += HelpMessageOpt("-masternodeaddr=<n>", strprintf(_("Set external address:port to get to this masternode (example: %s)"), "128.127.106.235:51472"));
     strUsage += HelpMessageOpt("-budgetvotemode=<mode>", _("Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)"));
+    strUsage += HelpMessageOpt("-mnoperatorprivatekey=<WIF>", _("Set the masternode operator private key. Only valid with -masternode=1. When set, the masternode acts as a deterministic masternode."));
 
     strUsage += HelpMessageGroup(_("Node relay options:"));
     strUsage += HelpMessageOpt("-datacarrier", strprintf(_("Relay and mine data carrier transactions (default: %u)"), DEFAULT_ACCEPT_DATACARRIER));
@@ -717,6 +735,10 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
         LogPrintf("Stopping after block import\n");
         StartShutdown();
     }
+
+    // force UpdatedBlockTip to initialize nCachedBlockHeight for DS, MN payments and budgets
+    // but don't call it directly to prevent triggering of other listeners like zmq etc.
+    pEvoNotificationInterface->InitializeCurrentBlockTip();
 
     if (gArgs.GetBoolArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         LoadMempool(::mempool);
@@ -1540,6 +1562,9 @@ bool AppInitMain()
     }
 #endif
 
+    pEvoNotificationInterface = new EvoNotificationInterface(connman);
+    RegisterValidationInterface(pEvoNotificationInterface);
+
     // ********************************************************* Step 7: load block chain
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
@@ -1588,8 +1613,10 @@ bool AppInitMain()
                 zerocoinDB = new CZerocoinDB(0, false, fReindex);
                 pSporkDB = new CSporkDB(0, false, false);
 
+                deterministicMNManager.reset();
                 evoDb.reset();
                 evoDb.reset(new CEvoDB(nEvoDbCache, false, fReindex));
+                deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
 
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
 
@@ -1879,9 +1906,34 @@ bool AppInitMain()
     }
 
     if (fMasterNode) {
-        LogPrintf("IS MASTER NODE\n");
-        auto res = initMasternode(gArgs.GetArg("-masternodeprivkey", ""), gArgs.GetArg("-masternodeaddr", ""), true);
-        if (!res) { return UIError(res.getError()); }
+        const std::string& mnoperatorkeyStr = gArgs.GetArg("-mnoperatorprivatekey", "");
+        const bool fDeterministic = !mnoperatorkeyStr.empty();
+        LogPrintf("IS %sMASTERNODE\n", (fDeterministic ? "DETERMINISTIC " : ""));
+
+        if (fDeterministic) {
+            // Check enforcement
+            if (!deterministicMNManager->IsDIP3Enforced()) {
+                const std::string strError = strprintf(_("Cannot start deterministic masternode before enforcement. Remove %s to start as legacy masternode"), "-mnoperatorprivatekey");
+                LogPrintf("-- ERROR: %s\n", strError);
+                return UIError(strError);
+            }
+            // Create and register activeMasternodeManager
+            activeMasternodeManager = new CActiveDeterministicMasternodeManager();
+            auto res = activeMasternodeManager->SetOperatorKey(mnoperatorkeyStr);
+            if (!res) { return UIError(res.getError()); }
+            RegisterValidationInterface(activeMasternodeManager);
+            // Init active masternode
+            activeMasternodeManager->Init();
+        } else {
+            // Check enforcement
+            if (deterministicMNManager->LegacyMNObsolete()) {
+                const std::string strError = strprintf(_("Legacy masternode system disabled. Use %s to start as deterministic masternode"), "-mnoperatorprivatekey");
+                LogPrintf("-- ERROR: %s\n", strError);
+                return UIError(strError);
+            }
+            auto res = initMasternode(gArgs.GetArg("-masternodeprivkey", ""), gArgs.GetArg("-masternodeaddr", ""), true);
+            if (!res) { return UIError(res.getError()); }
+        }
     }
 
     //get the mode of budget voting for this masternode
@@ -1926,6 +1978,7 @@ bool AppInitMain()
     //// debug print
     LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
     LogPrintf("chainActive.Height() = %d\n", chainActive.Height());
+
 #ifdef ENABLE_WALLET
     {
         if (pwalletMain) {

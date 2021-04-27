@@ -22,6 +22,7 @@
 #include "consensus/tx_verify.h"
 #include "consensus/validation.h"
 #include "consensus/zerocoin_verify.h"
+#include "evo/deterministicmns.h"
 #include "evo/specialtx.h"
 #include "fs.h"
 #include "guiinterface.h"
@@ -431,6 +432,10 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
     //Coinstake is also only valid in a block, not as a loose transaction
     if (tx.IsCoinStake())
         return state.DoS(100, false, REJECT_INVALID, "coinstake");
+
+    if (pool.existsProviderTxConflict(tx)) {
+        return state.DoS(0, false, REJECT_DUPLICATE, "protx-dup");
+    }
 
     // Only accept nLockTime-using transactions that can be mined in the next
     // block; we don't want our mempool filled up with transactions that can't
@@ -1339,6 +1344,10 @@ DisconnectResult DisconnectBlock(CBlock& block, const CBlockIndex* pindex, CCoin
 
     if (blockUndo.vtxundo.size() + 1 != block.vtx.size()) {
         error("%s: block and undo data inconsistent", __func__);
+        return DISCONNECT_FAILED;
+    }
+
+    if (!UndoSpecialTxsInBlock(block, pindex)) {
         return DISCONNECT_FAILED;
     }
 

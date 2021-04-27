@@ -22,6 +22,16 @@ bool CMessageSigner::GetKeysFromSecret(const std::string& strSecret, CKey& keyRe
     return true;
 }
 
+bool CMessageSigner::GetKeysFromSecret(const std::string& strSecret, CKey& keyRet, CKeyID& keyIDRet)
+{
+    CPubKey pubkey;
+    if (!GetKeysFromSecret(strSecret, keyRet, pubkey)) {
+        return false;
+    }
+    keyIDRet = pubkey.GetID();
+    return true;
+}
+
 uint256 CMessageSigner::GetMessageHash(const std::string& strMessage)
 {
     CHashWriter ss(SER_GETHASH, 0);

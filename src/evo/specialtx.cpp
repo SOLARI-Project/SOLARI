@@ -1,4 +1,3 @@
-
 // Copyright (c) 2017 The Dash Core developers
 // Copyright (c) 2020 The PIVX Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -10,9 +9,13 @@
 #include "chainparams.h"
 #include "clientversion.h"
 #include "consensus/validation.h"
+#include "evo/deterministicmns.h"
+#include "evo/providertx.h"
+#include "primitives/transaction.h"
 #include "primitives/block.h"
 
-bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state)
+// Basic non-contextual checks for all tx types
+static bool CheckSpecialTxBasic(const CTransaction& tx, CValidationState& state)
 {
     bool hasExtraPayload = tx.hasExtraPayload();
 
@@ -32,8 +35,6 @@ bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state)
                          REJECT_INVALID, "bad-txns-type-version");
     }
 
-    // --- From here on, tx has nVersion>=2 and nType!=0
-
     // Cannot be coinbase/coinstake tx
     if (tx.IsCoinBase() || tx.IsCoinStake()) {
         return state.DoS(10, error("%s: Special tx is coinbase or coinstake", __func__),
@@ -52,8 +53,26 @@ bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state)
                          REJECT_INVALID, "bad-txns-payload-oversize");
     }
 
+    return true;
+}
+
+bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state)
+{
+    if (!CheckSpecialTxBasic(tx, state)) {
+        // pass the state returned by the function above
+        return false;
+    }
+
+    // non-contextual per-type checks
     switch (tx.nType) {
-    /* per-tx-type non-contextual checking */
+        case CTransaction::TxType::NORMAL: {
+            // nothing to check
+            return true;
+        }
+        case CTransaction::TxType::PROREG: {
+            // provider-register
+            return CheckProRegTx(tx, nullptr, state);
+        }
     }
 
     return state.DoS(10, error("%s: special tx %s with invalid type %d", __func__, tx.GetHash().ToString(), tx.nType),
@@ -62,9 +81,10 @@ bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state)
 
 bool CheckSpecialTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
 {
+    // This function is not called when connecting the genesis block
     assert(pindexPrev != nullptr);
 
-    if (!CheckSpecialTxNoContext(tx, state)) {
+    if (!CheckSpecialTxBasic(tx, state)) {
         // pass the state returned by the function above
         return false;
     }
@@ -74,13 +94,19 @@ bool CheckSpecialTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CVali
         return true;
     }
 
-    // !TODO: Add enforcement-height check
-
-    switch (tx.nType) {
-    /* per-tx-type contextual checking */
+    if (!Params().GetConsensus().NetworkUpgradeActive(pindexPrev->nHeight + 1, Consensus::UPGRADE_V6_0)) {
+        return state.DoS(100, error("%s: Special tx when v6 upgrade not enforced yet", __func__),
+                         REJECT_INVALID, "bad-txns-v6-not-active");
     }
 
-    // should never get here, as we already checked the type in CheckSpecialTxNoContext
+    // contextual and non-contextual per-type checks
+    switch (tx.nType) {
+        case CTransaction::TxType::PROREG: {
+            // provider-register
+            return CheckProRegTx(tx, pindexPrev, state);
+        }
+    }
+
     return state.DoS(10, error("%s: special tx %s with invalid type %d", __func__, tx.GetHash().ToString(), tx.nType),
                      REJECT_INVALID, "bad-tx-type");
 }
@@ -94,13 +120,37 @@ bool ProcessSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex, CV
             return false;
         }
     }
-    // !TODO: Process batch of special txes in deterministic manager
+
+    if (!deterministicMNManager->ProcessBlock(block, pindex, state, fJustCheck)) {
+        // pass the state returned by the function above
+        return false;
+    }
+
+    // !TODO: ProcessBlock llmq quorum block processor
     return true;
 }
 
-bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindexPrev)
+bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex)
 {
-    /* undo special txes in batches */
+    if (!deterministicMNManager->UndoBlock(block, pindex)) {
+        return false;
+    }
+    // !TODO: UndoBlock llmq quorum block processor
     return true;
 }
 
+uint256 CalcTxInputsHash(const CTransaction& tx)
+{
+    CHashWriter hw(CLIENT_VERSION, SER_GETHASH);
+    // transparent inputs
+    for (const CTxIn& in: tx.vin) {
+        hw << in.prevout;
+    }
+    // shield inputs
+    if (tx.hasSaplingData()) {
+        for (const SpendDescription& sd: tx.sapData->vShieldedSpend) {
+            hw << sd.nullifier;
+        }
+    }
+    return hw.GetHash();
+}

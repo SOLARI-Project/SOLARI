@@ -6,6 +6,8 @@
 #include "activemasternode.h"
 
 #include "addrman.h"
+#include "evo/providertx.h"
+#include "evo/deterministicmns.h"
 #include "masternode-sync.h"
 #include "masternode.h"
 #include "masternodeconfig.h"
@@ -13,6 +15,180 @@
 #include "messagesigner.h"
 #include "netbase.h"
 #include "protocol.h"
+
+// Keep track of the active Masternode
+CActiveDeterministicMasternodeManager* activeMasternodeManager{nullptr};
+
+static bool GetLocalAddress(CService& addrRet)
+{
+    // First try to find whatever local address is specified by externalip option
+    bool fFound = GetLocal(addrRet) && CActiveDeterministicMasternodeManager::IsValidNetAddr(addrRet);
+    if (!fFound && Params().IsRegTestNet()) {
+        if (Lookup("127.0.0.1", addrRet, GetListenPort(), false)) {
+            fFound = true;
+        }
+    }
+    if(!fFound) {
+        // If we have some peers, let's try to find our local address from one of them
+        g_connman->ForEachNodeContinueIf([&fFound, &addrRet](CNode* pnode) {
+            if (pnode->addr.IsIPv4())
+                fFound = GetLocal(addrRet, &pnode->addr) && CActiveDeterministicMasternodeManager::IsValidNetAddr(addrRet);
+            return !fFound;
+        });
+    }
+    return fFound;
+}
+
+std::string CActiveDeterministicMasternodeManager::GetStatus() const
+{
+    switch (state) {
+        case MASTERNODE_WAITING_FOR_PROTX:    return "Waiting for ProTx to appear on-chain";
+        case MASTERNODE_POSE_BANNED:          return "Masternode was PoSe banned";
+        case MASTERNODE_REMOVED:              return "Masternode removed from list";
+        case MASTERNODE_OPERATOR_KEY_CHANGED: return "Operator key changed or revoked";
+        case MASTERNODE_PROTX_IP_CHANGED:     return "IP address specified in ProTx changed";
+        case MASTERNODE_READY:                return "Ready";
+        case MASTERNODE_ERROR:                return "Error. " + strError;
+        default:                              return "Unknown";
+    }
+}
+
+OperationResult CActiveDeterministicMasternodeManager::SetOperatorKey(const std::string& strMNOperatorPrivKey)
+{
+
+    LOCK(cs_main); // Lock cs_main so the node doesn't perform any action while we setup the Masternode
+    LogPrintf("Initializing deterministic masternode...\n");
+    if (strMNOperatorPrivKey.empty()) {
+        return errorOut("ERROR: Masternode operator priv key cannot be empty.");
+    }
+    if (!CMessageSigner::GetKeysFromSecret(strMNOperatorPrivKey, info.keyOperator, info.keyIDOperator)) {
+        return errorOut(_("Invalid mnoperatorprivatekey. Please see the documentation."));
+    }
+    return OperationResult(true);
+}
+
+void CActiveDeterministicMasternodeManager::Init()
+{
+    if (!fMasterNode || !deterministicMNManager->IsDIP3Enforced())
+        return;
+
+    LOCK(cs_main);
+
+    // Check that our local network configuration is correct
+    if (!fListen) {
+        // listen option is probably overwritten by smth else, no good
+        state = MASTERNODE_ERROR;
+        strError = "Masternode must accept connections from outside. Make sure listen configuration option is not overwritten by some another parameter.";
+        LogPrintf("%s ERROR: %s\n", __func__, strError);
+        return;
+    }
+
+    if (!GetLocalAddress(info.service)) {
+        state = MASTERNODE_ERROR;
+        strError = "Can't detect valid external address. Please consider using the externalip configuration option if problem persists. Make sure to use IPv4 address only.";
+        LogPrintf("%s ERROR: %s\n", __func__, strError);
+        return;
+    }
+
+    CDeterministicMNList mnList = deterministicMNManager->GetListAtChainTip();
+
+    CDeterministicMNCPtr dmn = mnList.GetMNByOperatorKey(info.keyIDOperator);
+    if (!dmn) {
+        // MN not appeared on the chain yet
+        return;
+    }
+
+    if (!mnList.IsMNValid(dmn->proTxHash)) {
+        if (mnList.IsMNPoSeBanned(dmn->proTxHash)) {
+            state = MASTERNODE_POSE_BANNED;
+        } else {
+            state = MASTERNODE_REMOVED;
+        }
+        return;
+    }
+
+    LogPrintf("%s: proTxHash=%s, proTx=%s\n", __func__, dmn->proTxHash.ToString(), dmn->ToString());
+
+    if (info.service != dmn->pdmnState->addr) {
+        state = MASTERNODE_ERROR;
+        strError = strprintf("Local address %s does not match the address from ProTx (%s)",
+                             info.service.ToStringIPPort(), dmn->pdmnState->addr.ToStringIPPort());
+        LogPrintf("%s ERROR: %s\n", __func__, strError);
+        return;
+    }
+
+    if (!Params().IsRegTestNet()) {
+        // Check socket connectivity
+        const std::string& strService = info.service.ToString();
+        LogPrintf("%s: Checking inbound connection to '%s'\n", __func__, strService);
+        SOCKET hSocket;
+        bool fConnected = ConnectSocket(info.service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
+        CloseSocket(hSocket);
+
+        if (!fConnected) {
+            state = MASTERNODE_ERROR;
+            LogPrintf("%s ERROR: Could not connect to %s\n", __func__, strService);
+            return;
+        }
+    }
+
+    info.proTxHash = dmn->proTxHash;
+    state = MASTERNODE_READY;
+}
+
+void CActiveDeterministicMasternodeManager::Reset(masternode_state_t _state)
+{
+    state = _state;
+    SetNullProTx();
+    // MN might have reappeared in same block with a new ProTx
+    Init();
+}
+
+void CActiveDeterministicMasternodeManager::UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload)
+{
+    if (fInitialDownload)
+        return;
+
+    if (!fMasterNode || !deterministicMNManager->IsDIP3Enforced())
+        return;
+
+    if (state == MASTERNODE_READY) {
+        auto oldMNList = deterministicMNManager->GetListForBlock(pindexNew->pprev);
+        auto newMNList = deterministicMNManager->GetListForBlock(pindexNew);
+        if (!newMNList.IsMNValid(info.proTxHash)) {
+            // MN disappeared from MN list
+            Reset(MASTERNODE_REMOVED);
+            return;
+        }
+
+        auto oldDmn = oldMNList.GetMN(info.proTxHash);
+        auto newDmn = newMNList.GetMN(info.proTxHash);
+        if (newDmn->pdmnState->keyIDOperator != oldDmn->pdmnState->keyIDOperator) {
+            // MN operator key changed or revoked
+            Reset(MASTERNODE_OPERATOR_KEY_CHANGED);
+            return;
+        }
+
+        if (newDmn->pdmnState->addr != oldDmn->pdmnState->addr) {
+            // MN IP changed
+            Reset(MASTERNODE_PROTX_IP_CHANGED);
+            return;
+        }
+    } else {
+        // MN might have (re)appeared with a new ProTx or we've found some peers
+        // and figured out our local address
+        Init();
+    }
+}
+
+bool CActiveDeterministicMasternodeManager::IsValidNetAddr(const CService& addrIn)
+{
+    // TODO: check IPv6 and TOR addresses
+    return Params().IsRegTestNet() || (addrIn.IsIPv4() && IsReachable(addrIn) && addrIn.IsRoutable());
+}
+
+
+/********* LEGACY *********/
 
 OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const std::string& _strMasterNodeAddr, bool isFromInit)
 {
@@ -79,6 +255,10 @@ OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const s
 void CActiveMasternode::ManageStatus()
 {
     if (!fMasterNode) return;
+    if (activeMasternodeManager != nullptr) {
+        // Deterministic masternode
+        return;
+    }
 
     LogPrint(BCLog::MASTERNODE, "CActiveMasternode::ManageStatus() - Begin\n");
 

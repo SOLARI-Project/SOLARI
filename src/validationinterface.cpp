@@ -22,6 +22,7 @@ struct ValidationInterfaceConnections {
     boost::signals2::scoped_connection SetBestChain;
     boost::signals2::scoped_connection Broadcast;
     boost::signals2::scoped_connection BlockChecked;
+    boost::signals2::scoped_connection NotifyMasternodeListChanged;
 };
 
 struct MainSignalsInstance {
@@ -45,6 +46,8 @@ struct MainSignalsInstance {
     boost::signals2::signal<void (CConnman* connman)> Broadcast;
     /** Notifies listeners of a block validation result */
     boost::signals2::signal<void (const CBlock&, const CValidationState&)> BlockChecked;
+    /** Notifies listeners of updated deterministic masternode list */
+    boost::signals2::signal<void (bool undo, const CDeterministicMNList& oldMNList, const CDeterministicMNListDiff& diff)> NotifyMasternodeListChanged;
 
     std::unordered_map<CValidationInterface*, ValidationInterfaceConnections> m_connMainSignals;
 
@@ -94,6 +97,7 @@ void RegisterValidationInterface(CValidationInterface* pwalletIn)
     conns.SetBestChain = g_signals.m_internals->SetBestChain.connect(std::bind(&CValidationInterface::SetBestChain, pwalletIn, std::placeholders::_1));
     conns.Broadcast = g_signals.m_internals->Broadcast.connect(std::bind(&CValidationInterface::ResendWalletTransactions, pwalletIn, std::placeholders::_1));
     conns.BlockChecked = g_signals.m_internals->BlockChecked.connect(std::bind(&CValidationInterface::BlockChecked, pwalletIn, std::placeholders::_1, std::placeholders::_2));
+    conns.NotifyMasternodeListChanged = g_signals.m_internals->NotifyMasternodeListChanged.connect(std::bind(&CValidationInterface::NotifyMasternodeListChanged, pwalletIn, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 }
 
 void UnregisterValidationInterface(CValidationInterface* pwalletIn)
@@ -174,4 +178,8 @@ void CMainSignals::Broadcast(CConnman* connman) {
 
 void CMainSignals::BlockChecked(const CBlock& block, const CValidationState& state) {
     m_internals->BlockChecked(block, state);
+}
+
+void CMainSignals::NotifyMasternodeListChanged(bool undo, const CDeterministicMNList& oldMNList, const CDeterministicMNListDiff& diff) {
+    m_internals->NotifyMasternodeListChanged(undo, oldMNList, diff);
 }
