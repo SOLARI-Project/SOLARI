@@ -27,8 +27,7 @@ class MultiWalletTest(PivxTestFramework):
         wallet_dir = lambda *p: data_dir('wallets', *p)
         wallet = lambda name: node.get_wallet_rpc(name)
 
-        # !TODO: implement listwallets (bitcoin#11310)
-        #assert_equal(set(node.listwallets()), {"w1", "w2", "w3", "w"})
+        assert_equal(set(node.listwallets()), {"w1", "w2", "w3", "w"})
 
         self.stop_nodes()
 
@@ -105,29 +104,30 @@ class MultiWalletTest(PivxTestFramework):
         assert_raises_rpc_error(-8, "Requested wallet does not exist or is not loaded", wallet_bad.getwalletinfo)
 
         # accessing wallet RPC without using wallet endpoint fails
+        assert_raises_rpc_error(-32601, "Method not found", self.nodes[0].getwalletinfo)
         # !TODO: backport bitcoin#11970
         #assert_raises_rpc_error(-19, "Wallet file not specified", node.getwalletinfo)
 
-        # !TODO: implement listwallets (bitcoin#11310) and backport bitcoin#11473
+        # !TODO: backport bitcoin#11473
         # to un-comment wallet-name checks
 
         # check w1 wallet balance
         w1_info = w1.getwalletinfo()
         assert_equal(w1_info['immature_balance'], 250)
-        #w1_name = w1_info['walletname']
-        #assert_equal(w1_name, "w1")
+        w1_name = w1_info['walletname']
+        assert_equal(w1_name, "w1")
 
         # check w2 wallet balance
         w2_info = w2.getwalletinfo()
         assert_equal(w2_info['immature_balance'], 0)
-        #w2_name = w2_info['walletname']
-        #assert_equal(w2_name, "w2")
+        w2_name = w2_info['walletname']
+        assert_equal(w2_name, "w2")
 
-        #w3_name = w3.getwalletinfo()['walletname']
-        #assert_equal(w3_name, "w3")
+        w3_name = w3.getwalletinfo()['walletname']
+        assert_equal(w3_name, "w3")
 
-        #w4_name = w4.getwalletinfo()['walletname']
-        #assert_equal(w4_name, "w")
+        w4_name = w4.getwalletinfo()['walletname']
+        assert_equal(w4_name, "w")
 
         w1.generate(101)
         assert_equal(w1.getbalance(), 500)
