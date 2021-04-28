@@ -366,13 +366,13 @@ UniValue getmininginfo(const JSONRPCRequest& request)
             "  \"currentblocksize\": nnn,   (numeric) The last block size\n"
             "  \"currentblocktx\": nnn,     (numeric) The last block transaction\n"
             "  \"difficulty\": xxx.xxxxx    (numeric) The current difficulty\n"
-            "  \"errors\": \"...\"          (string) Current errors\n"
             "  \"generate\": true|false     (boolean) If the generation is on or off (see getgenerate or setgenerate calls)\n"
             "  \"genproclimit\": n          (numeric) The processor limit for generation. -1 if no generation. (see getgenerate or setgenerate calls)\n"
             "  \"hashespersec\": n          (numeric) The hashes per second of the generation, or 0 if no generation.\n"
             "  \"pooledtx\": n              (numeric) The size of the mem pool\n"
             "  \"testnet\": true|false      (boolean) If using testnet or not\n"
             "  \"chain\": \"xxxx\",         (string) current network name (main, test, regtest)\n"
+            "  \"errors\": \"...\"            (string) (string) any network and blockchain warnings\n"
             "}\n"
 
             "\nExamples:\n" +
@@ -385,12 +385,12 @@ UniValue getmininginfo(const JSONRPCRequest& request)
     obj.pushKV("currentblocksize", (uint64_t)nLastBlockSize);
     obj.pushKV("currentblocktx", (uint64_t)nLastBlockTx);
     obj.pushKV("difficulty", (double)GetDifficulty());
-    obj.pushKV("errors", GetWarnings("statusbar"));
     obj.pushKV("genproclimit", (int)gArgs.GetArg("-genproclimit", -1));
     obj.pushKV("networkhashps", getnetworkhashps(request));
     obj.pushKV("pooledtx", (uint64_t)mempool.size());
     obj.pushKV("testnet", Params().IsTestnet());
     obj.pushKV("chain", Params().NetworkIDString());
+    obj.pushKV("errors", GetWarnings("statusbar"));
 #ifdef ENABLE_WALLET
     obj.pushKV("generate", getgenerate(request));
     obj.pushKV("hashespersec", gethashespersec(request));

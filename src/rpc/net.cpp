@@ -17,6 +17,7 @@
 #include "util/system.h"
 #include "version.h"
 #include "validation.h"
+#include "warnings.h"
 
 #include <univalue.h>
 
@@ -391,6 +392,7 @@ UniValue getnetworkinfo(const JSONRPCRequest& request)
             "  }\n"
             "  ,...\n"
             "  ]\n"
+            "  \"warnings\": \"...\"                    (string) any network and blockchain warnings\n"
             "}\n"
 
             "\nExamples:\n" +
@@ -420,6 +422,7 @@ UniValue getnetworkinfo(const JSONRPCRequest& request)
         }
     }
     obj.pushKV("localaddresses", localAddresses);
+    obj.pushKV("warnings", GetWarnings("statusbar"));
     return obj;
 }
 

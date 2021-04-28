@@ -1011,7 +1011,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             "        \"info\": \"xxxx\",        (string) additional information about upgrade\n"
             "     }, ...\n"
             "}\n"
-            "  \"warnings\" : \"...\",         (string) any network and blockchain errors.\n"
+            "  \"warnings\" : \"...\",         (string) any network and blockchain warnings.\n"
 
             "\nExamples:\n" +
             HelpExampleCli("getblockchaininfo", "") + HelpExampleRpc("getblockchaininfo", ""));
