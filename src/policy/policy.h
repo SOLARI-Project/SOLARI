@@ -29,12 +29,12 @@ static const unsigned int DEFAULT_MAX_MEMPOOL_SIZE = 300;
 /** Default for -permitbaremultisig */
 static const bool DEFAULT_PERMIT_BAREMULTISIG = true;
 extern bool fIsBareMultisigStd;
-/** Min feerate for defining dust. Historically this has been the same as the
+/** Min feerate for defining dust. Historically this has been based on the
  * minRelayTxFee, however changing the dust limit changes which transactions are
  * standard and should be done with care and ideally rarely. It makes sense to
  * only increase the dust limit after prior releases were already not creating
  * outputs below the new threshold */
-static const unsigned int DUST_RELAY_TX_FEE = 10000;
+static const unsigned int DUST_RELAY_TX_FEE = 30000;
 
 /**
  * Standard script verification flags that standard transactions will comply

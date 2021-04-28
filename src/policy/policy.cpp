@@ -22,7 +22,7 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
     // "Dust" is defined in terms of dustRelayFee,
     // which has units satoshis-per-kilobyte.
-    // If you'd pay more than 1/3 in fees
+    // If you'd pay more in fees than the value of the output
     // to spend something, then we consider it dust.
     // A typical spendable txout is 34 bytes big, and will
     // need a CTxIn of at least 148 bytes to spend:
@@ -33,13 +33,13 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 
     size_t nSize = GetSerializeSize(txout, SER_DISK, 0);
     nSize += (32 + 4 + 1 + 107 + 4); // the 148 mentioned above
-    return 3 * dustRelayFeeIn.GetFee(nSize);
+    return dustRelayFeeIn.GetFee(nSize);
 }
 
 CAmount GetDustThreshold(const CFeeRate& dustRelayFeeIn)
 {
     // return the dust threshold for a typical 34 bytes output
-    return 3 * dustRelayFeeIn.GetFee(182);
+    return dustRelayFeeIn.GetFee(182);
 }
 
 bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
@@ -50,9 +50,9 @@ bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 CAmount GetShieldedDustThreshold(const CFeeRate& dustRelayFeeIn)
 {
     unsigned int K = DEFAULT_SHIELDEDTXFEE_K;   // Fixed (100) for now
-    return 3 * K * dustRelayFeeIn.GetFee(SPENDDESCRIPTION_SIZE +
-                                         CTXOUT_REGULAR_SIZE +
-                                         BINDINGSIG_SIZE);
+    return K * dustRelayFeeIn.GetFee(SPENDDESCRIPTION_SIZE +
+                                     CTXOUT_REGULAR_SIZE +
+                                     BINDINGSIG_SIZE);
 }
 
 /**

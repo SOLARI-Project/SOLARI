@@ -425,11 +425,26 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     std::string reason;
     BOOST_CHECK(IsStandardTx(t, 0, reason));
 
-    t.vout[0].nValue = 5011; // dust
+    // Check dust with default relay fee:
+    CAmount nDustThreshold = GetDustThreshold(dustRelayFee);
+    BOOST_CHECK_EQUAL(nDustThreshold, 5460);
+    // dust:
+    t.vout[0].nValue = nDustThreshold - 1;
     BOOST_CHECK(!IsStandardTx(t, 0, reason));
-
-    t.vout[0].nValue = 6011; // not dust
+    // not dust:
+    t.vout[0].nValue = nDustThreshold;
     BOOST_CHECK(IsStandardTx(t, 0, reason));
+
+    // Check dust with odd relay fee to verify rounding:
+    // nDustThreshold = 182 * 3702 / 1000
+    dustRelayFee = CFeeRate(3702);
+    // dust:
+    t.vout[0].nValue = 673 - 1;
+    BOOST_CHECK(!IsStandardTx(t, 0, reason));
+    // not dust:
+    t.vout[0].nValue = 673;
+    BOOST_CHECK(IsStandardTx(t, 0, reason));
+    dustRelayFee = CFeeRate(DUST_RELAY_TX_FEE);
 
     t.vout[0].scriptPubKey = CScript() << OP_1;
     BOOST_CHECK(!IsStandardTx(t, 0, reason));
