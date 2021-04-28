@@ -535,7 +535,7 @@ TotalAmounts CoinControlDialog::getTotals() const
             if (shieldedOut) nShieldOuts++;
             else nTransOuts++;
             if (a.first > 0 && !t.fDust) {
-                if (a.first < (shieldedOut ? GetShieldedDustThreshold(minRelayTxFee) : GetDustThreshold(minRelayTxFee)))
+                if (a.first < (shieldedOut ? GetShieldedDustThreshold(dustRelayFee) : GetDustThreshold(dustRelayFee)))
                     t.fDust = true;
             }
             t.nBytes += (shieldedOut ? OUTPUTDESCRIPTION_SIZE
@@ -566,8 +566,8 @@ TotalAmounts CoinControlDialog::getTotals() const
             t.nChange = t.nAmount - t.nPayFee - t.nPayAmount;
 
             // Never create dust outputs; if we would, just add the dust to the fee.
-            CAmount dustThreshold = fSelectTransparent ? GetDustThreshold(minRelayTxFee) :
-                                                         GetShieldedDustThreshold(minRelayTxFee);
+            CAmount dustThreshold = fSelectTransparent ? GetDustThreshold(dustRelayFee)
+                                                       : GetShieldedDustThreshold(dustRelayFee);
             if (t.nChange > 0 && t.nChange < dustThreshold) {
                 t.nPayFee += t.nChange;
                 t.nChange = 0;
@@ -636,7 +636,7 @@ void CoinControlDialog::updateLabels()
     toolTip1 += tr("Can vary +/- 1 byte per input.");
 
     QString toolTip3 = tr("This label turns red, if recipient receives an amount smaller than %1 (transparent) / %2 (shield)."
-            ).arg(BitcoinUnits::formatWithUnit(nDisplayUnit, GetDustThreshold(minRelayTxFee))).arg(BitcoinUnits::formatWithUnit(nDisplayUnit, GetShieldedDustThreshold(minRelayTxFee)));
+            ).arg(BitcoinUnits::formatWithUnit(nDisplayUnit, GetDustThreshold(dustRelayFee))).arg(BitcoinUnits::formatWithUnit(nDisplayUnit, GetShieldedDustThreshold(dustRelayFee)));
 
     // how many satoshis the estimated fee can vary per byte we guess wrong
     double dFeeVary;

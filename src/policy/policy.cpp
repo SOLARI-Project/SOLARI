@@ -16,7 +16,9 @@
 
 bool fIsBareMultisigStd = DEFAULT_PERMIT_BAREMULTISIG;
 
-CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFee)
+CFeeRate dustRelayFee = CFeeRate(DUST_RELAY_TX_FEE);
+
+CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
     // "Dust" is defined in terms of dustRelayFee,
     // which has units satoshis-per-kilobyte.
@@ -31,26 +33,26 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFee)
 
     size_t nSize = GetSerializeSize(txout, SER_DISK, 0);
     nSize += (32 + 4 + 1 + 107 + 4); // the 148 mentioned above
-    return 3 * dustRelayFee.GetFee(nSize);
+    return 3 * dustRelayFeeIn.GetFee(nSize);
 }
 
-CAmount GetDustThreshold(const CFeeRate& dustRelayFee)
+CAmount GetDustThreshold(const CFeeRate& dustRelayFeeIn)
 {
     // return the dust threshold for a typical 34 bytes output
-    return 3 * dustRelayFee.GetFee(182);
+    return 3 * dustRelayFeeIn.GetFee(182);
 }
 
-bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFee)
+bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
-    return (txout.nValue < GetDustThreshold(txout, dustRelayFee));
+    return (txout.nValue < GetDustThreshold(txout, dustRelayFeeIn));
 }
 
-CAmount GetShieldedDustThreshold(const CFeeRate& dustRelayFee)
+CAmount GetShieldedDustThreshold(const CFeeRate& dustRelayFeeIn)
 {
     unsigned int K = DEFAULT_SHIELDEDTXFEE_K;   // Fixed (100) for now
-    return 3 * K * dustRelayFee.GetFee(SPENDDESCRIPTION_SIZE +
-                                       CTXOUT_REGULAR_SIZE +
-                                       BINDINGSIG_SIZE);
+    return 3 * K * dustRelayFeeIn.GetFee(SPENDDESCRIPTION_SIZE +
+                                         CTXOUT_REGULAR_SIZE +
+                                         BINDINGSIG_SIZE);
 }
 
 /**
@@ -174,7 +176,7 @@ bool IsStandardTx(const CTransactionRef& tx, int nBlockHeight, std::string& reas
         else if ((whichType == TX_MULTISIG) && (!fIsBareMultisigStd)) {
             reason = "bare-multisig";
             return false;
-        } else if (IsDust(txout, ::minRelayTxFee)) {
+        } else if (IsDust(txout, dustRelayFee)) {
             reason = "dust";
             return false;
         }

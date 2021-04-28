@@ -313,7 +313,7 @@ OperationResult SaplingOperation::loadUtxos(TxValues& txValues)
     // Final step, append utxo to the transaction
 
     // Get dust threshold
-    CAmount dustThreshold = GetDustThreshold(minRelayTxFee);
+    CAmount dustThreshold = GetDustThreshold(dustRelayFee);
     CAmount dustChange = -1;
 
     CAmount selectedUTXOAmount = 0;
@@ -445,7 +445,7 @@ OperationResult SaplingOperation::loadUnspentNotes(TxValues& txValues, uint256& 
     std::vector<libzcash::SaplingNote> notes;
     std::vector<libzcash::SaplingExpandedSpendingKey> spendingKeys;
     txValues.shieldedInTotal = 0;
-    CAmount dustThreshold = GetShieldedDustThreshold(minRelayTxFee);
+    CAmount dustThreshold = GetShieldedDustThreshold(dustRelayFee);
     CAmount dustChange = -1;
     for (const auto& t : shieldedInputs) {
         // Get the spending key for the address.
