@@ -7,6 +7,12 @@
 
 #include "rpc/client.h"
 
+#ifdef ENABLE_WALLET
+#include "wallet/wallet.h"
+#endif
+
+#include <QUrlQuery>
+
 #include <univalue.h>
 
 QString RPCExecutor::categoryClass(int category)
@@ -218,6 +224,14 @@ bool RPCExecutor::ExecuteCommandLine(std::string& strResult, const std::string& 
                         JSONRPCRequest req;
                         req.params = RPCConvertValues(stack.back()[0], std::vector<std::string>(stack.back().begin() + 1, stack.back().end()));
                         req.strMethod = stack.back()[0];
+#ifdef ENABLE_WALLET
+                        // TODO: Move this logic to WalletModel
+                        if (!vpwallets.empty()) {
+                            // in Qt, use always the wallet with index 0 when running with multiple wallets
+                            QByteArray encodedName = QUrl::toPercentEncoding(QString::fromStdString(vpwallets[0]->GetName()));
+                            req.URI = "/wallet/"+std::string(encodedName.constData(), encodedName.length());
+                        }
+#endif
                         lastResult = tableRPC.execute(req);
                         state = STATE_COMMAND_EXECUTED;
                         curarg.clear();
