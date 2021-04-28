@@ -2126,20 +2126,20 @@ bool CWallet::Verify()
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         if (fs::path(walletFile).filename() != walletFile) {
-            return UIError(strprintf(_("%s parameter must only specify a filename (not a path)"), "-wallet"));
+            return UIError(strprintf(_("Error loading wallet %s. %s parameter must only specify a filename (not a path)."), walletFile, "-wallet"));
         }
         if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
-            return UIError(strprintf(_("Invalid characters in %s filename"), "-wallet"));
+            return UIError(strprintf(_("Error loading wallet %s. Invalid characters in %s filename."), walletFile, "-wallet"));
         }
 
         fs::path wallet_path = fs::absolute(walletFile, GetDataDir());
 
         if (fs::exists(wallet_path) && (!fs::is_regular_file(wallet_path) || fs::is_symlink(wallet_path))) {
-            return UIError(_("Invalid -wallet file"));
+            return UIError(strprintf(_("Error loading wallet %s. %s filename must be a regular file."), walletFile, "-wallet"));
         }
 
         if (!wallet_paths.insert(wallet_path).second) {
-            return UIError(strprintf(_("Duplicate %s filename"), "-wallet"));
+            return UIError(strprintf(_("Error loading wallet %s. Duplicate %s filename specified."), walletFile, "-wallet"));
         }
 
         std::string strError;

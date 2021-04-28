@@ -37,25 +37,23 @@ class MultiWalletTest(PivxTestFramework):
         #self.assert_start_raises_init_error(0, ['-walletdir=debug.log'], 'Error: Specified -walletdir "debug.log" is not a directory', cwd=data_dir())
 
         # should not initialize if there are duplicate wallets
-        self.assert_start_raises_init_error(0, ['-wallet=w1', '-wallet=w1'], 'Duplicate -wallet filename')
+        self.assert_start_raises_init_error(0, ['-wallet=w1', '-wallet=w1'], 'Error loading wallet w1. Duplicate -wallet filename specified.')
 
         # should not initialize if wallet file is a directory
-        # !TODO: backport bitcoin#11476 + bitcoin#11970
         os.mkdir(os.path.join(self.options.tmpdir, 'node0', 'regtest', 'w11'))
-        self.assert_start_raises_init_error(0, ['-wallet=w11'], 'Invalid -wallet file')
         #os.mkdir(wallet_dir('w11'))
-        #self.assert_start_raises_init_error(0, ['-wallet=w11'], 'Error loading wallet w11. -wallet filename must be a regular file.')
+        self.assert_start_raises_init_error(0, ['-wallet=w11'], 'Error loading wallet w11. -wallet filename must be a regular file.')
 
-        # should not initialize if one wallet is a copy of another
-        # shutil.copyfile(wallet_dir('w2'), wallet_dir('w22'))
-        # self.assert_start_raises_init_error(0, ['-wallet=w2', '-wallet=w22'], 'duplicates fileid')
+        # !TODO: backport bitcoin#11476 + bitcoin#11970
+        #should not initialize if one wallet is a copy of another
+        #shutil.copyfile(wallet_dir('w2'), wallet_dir('w22'))
+        #self.assert_start_raises_init_error(0, ['-wallet=w2', '-wallet=w22'], 'duplicates fileid')
 
         # should not initialize if wallet file is a symlink
         os.symlink(os.path.join(self.options.tmpdir, 'node0', 'regtest', 'w1'),
                    os.path.join(self.options.tmpdir, 'node0', 'regtest', 'w12'))
-        self.assert_start_raises_init_error(0, ['-wallet=w12'], 'Invalid -wallet file')
         # os.symlink(wallet_dir('w1'), wallet_dir('w12'))
-        # self.assert_start_raises_init_error(0, ['-wallet=w12'], 'Error loading wallet w12. -wallet filename must be a regular file.')
+        self.assert_start_raises_init_error(0, ['-wallet=w12'], 'Error loading wallet w12. -wallet filename must be a regular file.')
 
         self.log.info("Do not allow -zapwallettxes with multiwallet")
         self.assert_start_raises_init_error(0, ['-zapwallettxes', '-wallet=w1', '-wallet=w2'], "Error: -zapwallettxes is only allowed with a single wallet file")
