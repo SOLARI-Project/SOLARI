@@ -75,6 +75,8 @@ PIVX Core 6.0.0 contains the following changes to the RPC interface and pivx-cli
 
 * A new *node-level* `listwallets` RPC method is added to display which wallets are currently loaded. The names returned by this method are the same as those used in the HTTP endpoint and for the `rpcwallet` argument.
 
+The `getwalletinfo` RPC method returns the name of the wallet used for the query.
+
 Note that while multi-wallet is now fully supported, the RPC multi-wallet interface should be considered unstable for version 6.0.0, and there may backwards-incompatible changes in future versions.
 
 
