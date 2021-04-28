@@ -70,6 +70,7 @@ BASE_SCRIPTS= [
     'wallet_import_rescan.py',                  # ~ 204 sec
     'p2p_invalid_block.py',                     # ~ 213 sec
     'feature_logging.py',                       # ~ 195 sec
+    'wallet_multiwallet.py',                    # ~ 190 sec
     'wallet_abandonconflict.py',                # ~ 188 sec
     'feature_blockindexstats.py',               # ~ 167 sec
     'wallet_importmulti.py',                    # ~ 157 sec
@@ -223,6 +224,7 @@ LEGACY_SKIP_TESTS = [
     'sapling_mempool.py',
     'wallet_importmulti.py',
     'wallet_import_rescan.py',
+    'wallet_multiwallet.py',
 ]
 
 # Place the lists with the longest tests (on average) first
