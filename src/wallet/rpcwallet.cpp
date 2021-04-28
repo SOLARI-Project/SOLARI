@@ -13,7 +13,6 @@
 #include "coincontrol.h"
 #include "core_io.h"
 #include "destination_io.h"
-#include "init.h"
 #include "httpserver.h"
 #include "key_io.h"
 #include "masternode-sync.h"
@@ -29,6 +28,8 @@
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
 #include "zpivchain.h"
+
+#include  <init.h>    // for StartShutdown
 
 #include <stdint.h>
 #include <univalue.h>

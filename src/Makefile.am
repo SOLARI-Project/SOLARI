@@ -297,6 +297,8 @@ BITCOIN_CORE_H = \
   wallet/rpcwallet.h \
   wallet/scriptpubkeyman.h \
   destination_io.h \
+  wallet/fees.h \
+  wallet/init.h \
   wallet/wallet.h \
   wallet/walletdb.h \
   warnings.h \
@@ -395,6 +397,8 @@ libbitcoin_wallet_a_SOURCES = \
   legacy/stakemodifier.cpp \
   kernel.cpp \
   wallet/db.cpp \
+  wallet/fees.cpp \
+  wallet/init.cpp \
   wallet/rpcdump.cpp \
   wallet/rpcwallet.cpp \
   wallet/hdchain.cpp \

@@ -15,6 +15,7 @@
 #include "optionsmodel.h"
 #include "policy/policy.h"
 #include "txmempool.h"
+#include "wallet/fees.h"
 #include "wallet/wallet.h"
 #include "walletmodel.h"
 
@@ -632,7 +633,7 @@ void CoinControlDialog::updateLabels()
 
     // tool tips
     QString toolTip1 = tr("This label turns red, if the transaction size is greater than 1000 bytes.") + "<br /><br />";
-    toolTip1 += tr("This means a fee of at least %1 per kB is required.").arg(BitcoinUnits::formatWithUnit(nDisplayUnit, CWallet::GetRequiredFee(1000))) + "<br /><br />";
+    toolTip1 += tr("This means a fee of at least %1 per kB is required.").arg(BitcoinUnits::formatWithUnit(nDisplayUnit, GetRequiredFee(1000))) + "<br /><br />";
     toolTip1 += tr("Can vary +/- 1 byte per input.");
 
     QString toolTip3 = tr("This label turns red, if recipient receives an amount smaller than %1 (transparent) / %2 (shield)."
@@ -641,9 +642,9 @@ void CoinControlDialog::updateLabels()
     // how many satoshis the estimated fee can vary per byte we guess wrong
     double dFeeVary;
     if (payTxFee.GetFeePerK() > 0)
-        dFeeVary = (double)std::max(CWallet::GetRequiredFee(1000), payTxFee.GetFeePerK()) / 1000;
+        dFeeVary = (double)std::max(GetRequiredFee(1000), payTxFee.GetFeePerK()) / 1000;
     else
-        dFeeVary = (double)std::max(CWallet::GetRequiredFee(1000), mempool.estimateSmartFee(nTxConfirmTarget).GetFeePerK()) / 1000;
+        dFeeVary = (double)std::max(GetRequiredFee(1000), mempool.estimateSmartFee(nTxConfirmTarget).GetFeePerK()) / 1000;
     QString toolTip4 = tr("Can vary +/- %1 u%2 per input.").arg(dFeeVary).arg(CURRENCY_UNIT.c_str());
 
     ui->labelCoinControlFee->setToolTip(toolTip4);

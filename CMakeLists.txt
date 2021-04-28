@@ -259,6 +259,8 @@ set(WALLET_SOURCES
         ./src/wallet/hdchain.cpp
         ./src/wallet/rpcdump.cpp
         ./src/zpiv/zerocoin.cpp
+        ./src/wallet/fees.cpp
+        ./src/wallet/init.cpp
         ./src/wallet/scriptpubkeyman.cpp
         ./src/wallet/rpcwallet.cpp
         ./src/kernel.cpp

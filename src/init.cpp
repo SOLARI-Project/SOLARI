@@ -57,13 +57,13 @@
 #include "validation.h"
 #include "validationinterface.h"
 #include "zpivchain.h"
+#include "warnings.h"
 
 #ifdef ENABLE_WALLET
+#include "wallet/init.h"
 #include "wallet/wallet.h"
 #include "wallet/rpcwallet.h"
-
 #endif
-#include "warnings.h"
 
 #include <atomic>
 #include <fstream>
@@ -507,7 +507,7 @@ std::string HelpMessage(HelpMessageMode mode)
         " " + _("Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway"));
 
 #if ENABLE_WALLET
-    strUsage += CWallet::GetWalletHelpString(showDebug);
+    strUsage += GetWalletHelpString(showDebug);
 #endif
 
     if (mode == HMM_BITCOIN_QT) {
@@ -1158,7 +1158,7 @@ bool AppInitParameterInteraction()
 
 #ifdef ENABLE_WALLET
     strWalletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
-    if (!CWallet::ParameterInteraction())
+    if (!WalletParameterInteraction())
         return false;
 #endif // ENABLE_WALLET
 
@@ -1332,7 +1332,7 @@ bool AppInitMain()
 
 // ********************************************************* Step 5: Verify wallet database integrity
 #ifdef ENABLE_WALLET
-    if (!CWallet::Verify()) {
+    if (!WalletVerify()) {
         return false;
     }
 #endif
@@ -1721,7 +1721,7 @@ bool AppInitMain()
 
 // ********************************************************* Step 8: Backup and Load wallet
 #ifdef ENABLE_WALLET
-    if (!CWallet::InitLoadWallet())
+    if (!InitLoadWallet())
         return false;
 #else
     LogPrintf("No wallet compiled in!\n");

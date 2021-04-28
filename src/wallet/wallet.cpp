@@ -9,8 +9,11 @@
 
 #include "budget/budgetmanager.h"
 #include "coincontrol.h"
+<<<<<<< Upstream, based on master
 #include "evo/deterministicmns.h"
 #include "init.h"
+=======
+>>>>>>> 834e2bb Move some static functions out of wallet.h/cpp
 #include "guiinterfaceutil.h"
 #include "masternode.h"
 #include "masternode-payments.h"
@@ -21,7 +24,11 @@
 #include "spork.h"
 #include "util/system.h"
 #include "utilmoneystr.h"
+#include "wallet/init.h"
+#include "wallet/fees.h"
 #include "zpivchain.h"
+
+#include  <init.h>    // for StartShutdown/ShutdownRequested
 
 #include <future>
 #include <boost/algorithm/string/replace.hpp>
@@ -692,7 +699,7 @@ void CWallet::SyncMetaData(std::pair<typename TxSpendMap<T>::iterator, typename 
 
 ///////// Init ////////////////
 
-bool CWallet::ParameterInteraction()
+bool WalletParameterInteraction()
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         return true;
@@ -2160,7 +2167,7 @@ void CWallet::Flush(bool shutdown)
     bitdb.Flush(shutdown);
 }
 
-bool CWallet::Verify()
+bool WalletVerify()
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         return true;
@@ -3591,12 +3598,12 @@ CWallet::CommitResult CWallet::CommitTransaction(CTransactionRef tx, CReserveKey
     return res;
 }
 
-CAmount CWallet::GetRequiredFee(unsigned int nTxBytes)
+CAmount GetRequiredFee(unsigned int nTxBytes)
 {
-    return std::max(minTxFee.GetFee(nTxBytes), ::minRelayTxFee.GetFee(nTxBytes));
+    return std::max(CWallet::minTxFee.GetFee(nTxBytes), ::minRelayTxFee.GetFee(nTxBytes));
 }
 
-CAmount CWallet::GetMinimumFee(unsigned int nTxBytes, unsigned int nConfirmTarget, const CTxMemPool& pool)
+CAmount GetMinimumFee(unsigned int nTxBytes, unsigned int nConfirmTarget, const CTxMemPool& pool)
 {
     // payTxFee is user-set "I want to pay this much"
     CAmount nFeeNeeded = payTxFee.GetFee(nTxBytes);
@@ -4259,7 +4266,7 @@ void CWallet::LockIfMyCollateral(const CTransactionRef& ptx)
     }
 }
 
-std::string CWallet::GetWalletHelpString(bool showDebug)
+std::string GetWalletHelpString(bool showDebug)
 {
     std::string strUsage = HelpMessageGroup(_("Wallet options:"));
     strUsage += HelpMessageOpt("-backuppath=<dir|file>", _("Specify custom backup path to add a copy of any wallet backup. If set as dir, every backup generates a timestamped file. If set as file, will rewrite to that file every backup."));
@@ -4490,7 +4497,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
     return walletInstance;
 }
 
-bool CWallet::InitLoadWallet()
+bool InitLoadWallet()
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         LogPrintf("Wallet disabled!\n");
@@ -4509,7 +4516,7 @@ bool CWallet::InitLoadWallet()
             }
         }
 
-        CWallet * const pwallet = CreateWalletFromFile(walletFile);
+        CWallet * const pwallet = CWallet::CreateWalletFromFile(walletFile);
         if (!pwallet) {
             return false;
         }
