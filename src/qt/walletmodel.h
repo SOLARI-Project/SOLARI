@@ -323,6 +323,11 @@ public:
 
     class ListCoinsValue {
     public:
+        ListCoinsValue() = delete;
+        ListCoinsValue(const uint256& _txhash, int _outIndex, CAmount _nValue, int64_t _nTime, int _nDepth) :
+            txhash(_txhash), outIndex(_outIndex), nValue(_nValue), nTime(_nTime), nDepth(_nDepth)
+        {}
+
         uint256 txhash;
         int outIndex;
         CAmount nValue;

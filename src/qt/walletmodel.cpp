@@ -1063,44 +1063,25 @@ void WalletModel::listAvailableNotes(std::map<ListCoinsKey, std::vector<ListCoin
 // AvailableCoins + LockedCoins grouped by wallet address (put change in one group with wallet address)
 void WalletModel::listCoins(std::map<ListCoinsKey, std::vector<ListCoinsValue>>& mapCoins) const
 {
-    CWallet::AvailableCoinsFilter filter;
-    filter.fIncludeLocked = true;
-    std::vector<COutput> vCoins;
-    wallet->AvailableCoins(&vCoins, nullptr, filter);
+    for (const auto& it: wallet->ListCoins()) {
+        const std::pair<CTxDestination, Optional<CTxDestination>>& addresses = it.first;
+        const std::vector<COutput>& coins = it.second;
 
-    for (const COutput& out : vCoins) {
-        if (!out.fSpendable) continue;
+        const QString& address = QString::fromStdString(EncodeDestination(addresses.first));
+        const Optional<QString>& stakerAddr = addresses.second == nullopt ? nullopt : Optional<QString>(
+                QString::fromStdString(EncodeDestination(*addresses.second, CChainParams::STAKING_ADDRESS)));
+        // P2CS cannot be "change"
+        const bool isChange = stakerAddr == nullopt ? wallet->IsChange(addresses.first) : false;
 
-        const CScript& scriptPubKey = out.tx->tx->vout[out.i].scriptPubKey;
-        const bool isP2CS = scriptPubKey.IsPayToColdStaking();
+        const ListCoinsKey key{address, isChange, stakerAddr};
 
-        CTxDestination outputAddress;
-        CTxDestination outputAddressStaker;
-        if (isP2CS) {
-            txnouttype type; std::vector<CTxDestination> addresses; int nRequired;
-            if(!ExtractDestinations(scriptPubKey, type, addresses, nRequired)
-                        || addresses.size() != 2) throw std::runtime_error("Cannot extract P2CS addresses from a stored transaction");
-            outputAddressStaker = addresses[0];
-            outputAddress = addresses[1];
-        } else {
-            if (!ExtractDestination(scriptPubKey, outputAddress))
-                continue;
+        for (const COutput& out: coins) {
+            mapCoins[key].emplace_back(out.tx->GetHash(),
+                                       out.i,
+                                       out.tx->tx->vout[out.i].nValue,
+                                       out.tx->GetTxTime(),
+                                       out.nDepth);
         }
-
-        QString address = QString::fromStdString(EncodeDestination(outputAddress));
-        Optional<QString> stakerAddr = IsValidDestination(outputAddressStaker) ?
-            Optional<QString>(QString::fromStdString(EncodeDestination(outputAddressStaker, CChainParams::STAKING_ADDRESS))) :
-            nullopt;
-
-        ListCoinsKey key{address, wallet->IsChange(outputAddress), stakerAddr};
-        ListCoinsValue value{
-                out.tx->GetHash(),
-                out.i,
-                out.tx->tx->vout[out.i].nValue,
-                out.tx->GetTxTime(),
-                out.nDepth
-        };
-        mapCoins[key].emplace_back(value);
     }
 }
 
@@ -1130,12 +1111,7 @@ std::set<COutPoint> WalletModel::listLockedCoins()
 
 void WalletModel::loadReceiveRequests(std::vector<std::string>& vReceiveRequests)
 {
-    LOCK(wallet->cs_wallet);
-    for (auto it = wallet->NewAddressBookIterator(); it.IsValid(); it.Next()) {
-        for (const std::pair<std::string, std::string> &item2 : it.GetValue().destdata)
-            if (item2.first.size() > 2 && item2.first.substr(0, 2) == "rr") // receive request
-                vReceiveRequests.push_back(item2.second);
-    }
+    vReceiveRequests = wallet->GetDestValues("rr"); // receive request
 }
 
 bool WalletModel::saveReceiveRequest(const std::string& sAddress, const int64_t nId, const std::string& sRequest)

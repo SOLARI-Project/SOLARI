@@ -2969,6 +2969,36 @@ bool CWallet::SelectCoinsToSpend(const std::vector<COutput>& vAvailableCoins, co
     return res;
 }
 
+std::map<std::pair<CTxDestination, Optional<CTxDestination>>, std::vector<COutput>> CWallet::ListCoins() const
+{
+    std::map<std::pair<CTxDestination, Optional<CTxDestination>>, std::vector<COutput>> result;
+
+    CWallet::AvailableCoinsFilter filter;
+    filter.fIncludeLocked = true;
+    filter.fOnlySpendable = true;
+    std::vector<COutput> availableCoins;
+    AvailableCoins(&availableCoins, nullptr, filter);
+
+    for (const COutput& coin : availableCoins) {
+        const CScript& scriptPubKey = coin.tx->tx->vout[coin.i].scriptPubKey;
+        txnouttype type; std::vector<CTxDestination> addresses; int nRequired;
+        if (ExtractDestinations(scriptPubKey, type, addresses, nRequired)) {
+            if (addresses.size() == 1) {
+                // P2PK, P2PKH scripts
+                const auto& addrpair = std::make_pair(addresses[0], nullopt);
+                result[addrpair].emplace_back(std::move(coin));
+            } else if (type == TX_COLDSTAKE) {
+                // P2CS scripts
+                assert(addresses.size() == 2);
+                const auto& addrpair = std::make_pair(addresses[1], Optional<CTxDestination>(addresses[0]));
+                result[addrpair].emplace_back(std::move(coin));
+            }
+        }
+    }
+
+    return result;
+}
+
 bool CWallet::CreateBudgetFeeTX(CTransactionRef& tx, const uint256& hash, CReserveKey& keyChange, bool fFinalization)
 {
     CScript scriptChange;
@@ -4045,6 +4075,20 @@ bool CWallet::LoadDestData(const CTxDestination& dest, const std::string& key, c
 {
     mapAddressBook[dest].destdata.emplace(key, value);
     return true;
+}
+
+std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const
+{
+    LOCK(cs_wallet);
+    std::vector<std::string> values;
+    for (const auto& address : mapAddressBook) {
+        for (const auto& data : address.second.destdata) {
+            if (!data.first.compare(0, prefix.size(), prefix)) {
+                values.emplace_back(data.second);
+            }
+        }
+    }
+    return values;
 }
 
 void CWallet::AutoCombineDust(CConnman* connman)
