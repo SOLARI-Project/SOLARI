@@ -2121,11 +2121,21 @@ bool CWallet::Verify()
 
     uiInterface.InitMessage(_("Verifying wallet(s)..."));
 
+    // Keep track of each wallet absolute path to detect duplicates.
+    std::set<fs::path> wallet_paths;
+
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         if (fs::path(walletFile).filename() != walletFile) {
             return UIError(strprintf(_("%s parameter must only specify a filename (not a path)"), "-wallet"));
-        } else if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
+        }
+        if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
             return UIError(strprintf(_("Invalid characters in %s filename"), "-wallet"));
+        }
+
+        fs::path wallet_path = fs::absolute(walletFile, GetDataDir());
+
+        if (!wallet_paths.insert(wallet_path).second) {
+            return UIError(strprintf(_("Duplicate %s filename"), "-wallet"));
         }
 
         std::string strError;

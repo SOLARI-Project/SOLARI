@@ -37,8 +37,7 @@ class MultiWalletTest(PivxTestFramework):
         #self.assert_start_raises_init_error(0, ['-walletdir=debug.log'], 'Error: Specified -walletdir "debug.log" is not a directory', cwd=data_dir())
 
         # should not initialize if there are duplicate wallets
-        # !TODO: backport bitcoin#10885
-        #self.assert_start_raises_init_error(0, ['-wallet=w1', '-wallet=w1'], 'Error loading wallet w1. Duplicate -wallet filename specified.')
+        self.assert_start_raises_init_error(0, ['-wallet=w1', '-wallet=w1'], 'Duplicate -wallet filename')
 
         # should not initialize if wallet file is a directory
         # !TODO: backport bitcoin#11476 + bitcoin#11970
