@@ -98,6 +98,7 @@ class CScheduler;
 class ScriptPubKeyMan;
 class SaplingScriptPubKeyMan;
 class SaplingNoteData;
+struct SaplingNoteEntry;
 class CDeterministicMNList;
 
 /** (client) version numbers for particular wallet features */
@@ -816,6 +817,10 @@ public:
      * is reserved for the staker address in case of P2CS.
      */
     std::map<std::pair<CTxDestination, Optional<CTxDestination>>, std::vector<COutput>> ListCoins() const;
+    /**
+     * Return list of available shield notes grouped by sapling address.
+     */
+    std::map<libzcash::SaplingPaymentAddress, std::vector<SaplingNoteEntry>> ListNotes() const;
 
     /// Get 10000 PIV output and keys which can be used for the Masternode
     bool GetMasternodeVinAndKeys(CTxIn& txinRet, CPubKey& pubKeyRet,

@@ -2999,6 +2999,11 @@ std::map<std::pair<CTxDestination, Optional<CTxDestination>>, std::vector<COutpu
     return result;
 }
 
+std::map<libzcash::SaplingPaymentAddress, std::vector<SaplingNoteEntry>> CWallet::ListNotes() const
+{
+    return m_sspk_man->ListNotes();
+}
+
 bool CWallet::CreateBudgetFeeTX(CTransactionRef& tx, const uint256& hash, CReserveKey& keyChange, bool fFinalization)
 {
     CScript scriptChange;

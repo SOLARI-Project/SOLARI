@@ -1044,19 +1044,16 @@ void WalletModel::listCoins(std::map<ListCoinsKey, std::vector<ListCoinsValue>>&
 
 void WalletModel::listAvailableNotes(std::map<ListCoinsKey, std::vector<ListCoinsValue>>& mapCoins) const
 {
-    std::vector<SaplingNoteEntry> notes;
-    Optional<libzcash::SaplingPaymentAddress> dummy = nullopt;
-    wallet->GetSaplingScriptPubKeyMan()->GetFilteredNotes(notes, dummy);
-    for (const auto& note : notes) {
-        ListCoinsKey key{QString::fromStdString(KeyIO::EncodePaymentAddress(note.address)), false, nullopt};
-        ListCoinsValue value{
-            note.op.hash,
-            (int)note.op.n,
-            (CAmount)note.note.value(),
-            0,
-            note.confirmations
-        };
-        mapCoins[key].emplace_back(value);
+    for (const auto& it: wallet->ListNotes()) {
+        const ListCoinsKey key{QString::fromStdString(KeyIO::EncodePaymentAddress(it.first)), false, nullopt};
+
+        for (const SaplingNoteEntry& note : it.second) {
+            mapCoins[key].emplace_back(note.op.hash,
+                                       (int)note.op.n,
+                                       (CAmount)note.note.value(),
+                                       0,
+                                       note.confirmations);
+        }
     }
 }
 
