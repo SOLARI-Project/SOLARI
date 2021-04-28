@@ -20,7 +20,6 @@
 #include "spork.h"
 #include "util/system.h"
 #include "utilmoneystr.h"
-#include "wallet/init.h"
 #include "wallet/fees.h"
 #include "zpivchain.h"
 
@@ -692,12 +691,6 @@ void CWallet::SyncMetaData(std::pair<typename TxSpendMap<T>::iterator, typename 
         // cached members not copied on purpose
     }
 }
-
-///////// Init ////////////////
-
-
-
-//////// End Init ////////////
 
 const CKeyingMaterial& CWallet::GetEncryptionKey() const
 {
