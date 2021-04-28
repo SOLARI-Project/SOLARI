@@ -251,24 +251,10 @@ if(ZMQ_FOUND)
 endif()
 
 set(WALLET_SOURCES
-        ./src/activemasternode.cpp
         ./src/bip38.cpp
         ./src/wallet/db.cpp
         ./src/addressbook.cpp
         ./src/crypter.cpp
-        ./src/budget/budgetdb.cpp
-        ./src/budget/budgetmanager.cpp
-        ./src/budget/budgetproposal.cpp
-        ./src/budget/budgetvote.cpp
-        ./src/budget/finalizedbudget.cpp
-        ./src/budget/finalizedbudgetvote.cpp
-        ./src/masternode.cpp
-        ./src/masternode-payments.cpp
-        ./src/masternode-sync.cpp
-        ./src/tiertwo_networksync.cpp
-        ./src/masternodeconfig.cpp
-        ./src/masternodeman.cpp
-        ./src/messagesigner.cpp
         ./src/zpiv/mintpool.cpp
         ./src/wallet/hdchain.cpp
         ./src/wallet/rpcdump.cpp
@@ -353,8 +339,15 @@ add_library(ZEROCOIN_A STATIC ${ZEROCOIN_SOURCES})
 target_include_directories(ZEROCOIN_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(COMMON_SOURCES
+        ./src/activemasternode.cpp
         ./src/base58.cpp
         ./src/bip38.cpp
+        ./src/budget/budgetdb.cpp
+        ./src/budget/budgetmanager.cpp
+        ./src/budget/budgetproposal.cpp
+        ./src/budget/budgetvote.cpp
+        ./src/budget/finalizedbudget.cpp
+        ./src/budget/finalizedbudgetvote.cpp
         ./src/consensus/params.cpp
         ./src/consensus/upgrades.cpp
         ./src/chainparams.cpp
@@ -377,6 +370,12 @@ set(COMMON_SOURCES
         ./src/invalid.cpp
         ./src/key.cpp
         ./src/keystore.cpp
+        ./src/masternode.cpp
+        ./src/masternode-payments.cpp
+        ./src/masternode-sync.cpp
+        ./src/masternodeconfig.cpp
+        ./src/masternodeman.cpp
+        ./src/messagesigner.cpp
         ./src/netaddress.cpp
         ./src/netbase.cpp
         ./src/policy/feerate.cpp
@@ -391,6 +390,7 @@ set(COMMON_SOURCES
         ./src/script/script_error.cpp
         ./src/spork.cpp
         ./src/sporkdb.cpp
+        ./src/tiertwo_networksync.cpp
         ./src/warnings.cpp
         )
 add_library(COMMON_A STATIC ${BitcoinHeaders} ${COMMON_SOURCES})
