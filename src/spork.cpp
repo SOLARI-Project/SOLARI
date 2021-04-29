@@ -211,13 +211,18 @@ bool CSporkManager::UpdateSpork(SporkId nSporkID, int64_t nValue)
 
     if(spork.Sign(strMasterPrivKey)){
         spork.Relay();
-        LOCK(cs);
-        mapSporks[spork.GetHash()] = spork;
-        mapSporksActive[nSporkID] = spork;
+        AddSporkMessage(spork);
         return true;
     }
 
     return false;
+}
+
+void CSporkManager::AddSporkMessage(const CSporkMessage& spork)
+{
+    LOCK(cs);
+    mapSporks[spork.GetHash()] = spork;
+    mapSporksActive[spork.nSporkID] = spork;
 }
 
 // grab the spork value, and see if it's off

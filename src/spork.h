@@ -109,7 +109,10 @@ public:
     void ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     int64_t GetSporkValue(SporkId nSporkID);
     void ExecuteSpork(SporkId nSporkID, int nValue);
+    // Create/Sign/Relay the spork message, and update the maps
     bool UpdateSpork(SporkId nSporkID, int64_t nValue);
+    // Add spork message to mapSporks and mapSporksActive
+    void AddSporkMessage(const CSporkMessage& spork);
 
     bool IsSporkActive(SporkId nSporkID);
     std::string GetSporkNameByID(SporkId id);
