@@ -1748,8 +1748,9 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     }
 
     // For blocks v10+: Check that the coinbase pays the exact amount
-    if (isPoSActive && pindex->nVersion >= 10 && !IsCoinbaseValueValid(block.vtx[0], nBudgetAmt)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-cb-amount");
+    if (isPoSActive && pindex->nVersion >= 10 && !IsCoinbaseValueValid(block.vtx[0], nBudgetAmt, state)) {
+        // pass the state returned by the function above
+        return false;
     }
 
     if (!control.Wait())

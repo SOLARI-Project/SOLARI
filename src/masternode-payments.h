@@ -17,6 +17,7 @@ extern RecursiveMutex cs_mapMasternodePayeeVotes;
 class CMasternodePayments;
 class CMasternodePaymentWinner;
 class CMasternodeBlockPayees;
+class CValidationState;
 
 extern CMasternodePayments masternodePayments;
 
@@ -33,7 +34,7 @@ void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoin
  * Check coinbase output value for blocks v10+.
  * It must pay the masternode for regular blocks and a proposal during superblocks.
  */
-bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt);
+bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt, CValidationState& _state);
 
 void DumpMasternodePayments();
 

@@ -742,7 +742,7 @@ std::string CMasternodePayments::ToString() const
     return info.str();
 }
 
-bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt)
+bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt, CValidationState& _state)
 {
     assert(tx->IsCoinBase());
     if (masternodeSync.IsSynced()) {
@@ -750,8 +750,9 @@ bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt)
         if (nBudgetAmt > 0) {
             // Superblock
             if (nCBaseOutAmt != nBudgetAmt) {
-                return error("%s: invalid coinbase payment for budget (%s vs expected=%s)",
-                             __func__, FormatMoney(nCBaseOutAmt), FormatMoney(nBudgetAmt));
+                const std::string strError = strprintf("%s: invalid coinbase payment for budget (%s vs expected=%s)",
+                                                       __func__, FormatMoney(nCBaseOutAmt), FormatMoney(nBudgetAmt));
+                return _state.DoS(100, error(strError.c_str()), REJECT_INVALID, "bad-superblock-cb-amt");
             }
             return true;
         } else {
@@ -759,9 +760,13 @@ bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt)
             CAmount nMnAmt = GetMasternodePayment();
             // if enforcement is disabled, there could be no masternode payment
             bool sporkEnforced = sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT);
-            if ((sporkEnforced && nCBaseOutAmt != nMnAmt) || (!sporkEnforced && nCBaseOutAmt > nMnAmt)) {
-                return error("%s: invalid coinbase payment for masternode (%s vs expected=%s)",
-                             __func__, FormatMoney(nCBaseOutAmt), FormatMoney(nMnAmt));
+            const std::string strError = strprintf("%s: invalid coinbase payment for masternode (%s vs expected=%s)",
+                                                   __func__, FormatMoney(nCBaseOutAmt), FormatMoney(nMnAmt));
+            if (sporkEnforced && nCBaseOutAmt != nMnAmt) {
+                return _state.DoS(100, error(strError.c_str()), REJECT_INVALID, "bad-cb-amt");
+            }
+            if (!sporkEnforced && nCBaseOutAmt > nMnAmt) {
+                return _state.DoS(100, error(strError.c_str()), REJECT_INVALID, "bad-cb-amt-spork8-disabled");
             }
             return true;
         }
