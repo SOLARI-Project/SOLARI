@@ -44,6 +44,9 @@ Notable Changes
 
 (Developers: add your notes here as part of your pull requests whenever possible)
 
+#### Allow to optional specify the directory for the blocks storage
+
+A new init option flag '-blocksdir' will allow one to keep the blockfiles external from the data directory.
 
 #### Disable PoW mining RPC Commands
 
