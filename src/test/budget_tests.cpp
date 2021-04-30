@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(block_value)
     // enable SPORK_13
     int64_t nTime = GetTime() - 10;
     const CSporkMessage& spork = CSporkMessage(SPORK_13_ENABLE_SUPERBLOCKS, nTime + 1, nTime);
-    sporkManager.AddSporkMessage(spork);
+    sporkManager.AddOrUpdateSporkMessage(spork);
     BOOST_CHECK(sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS));
 
     // regular block
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(block_value)
 
     // disable SPORK_13
     const CSporkMessage& spork2 = CSporkMessage(SPORK_13_ENABLE_SUPERBLOCKS, 4070908800ULL, nTime + 1);
-    sporkManager.AddSporkMessage(spork2);
+    sporkManager.AddOrUpdateSporkMessage(spork2);
     BOOST_CHECK(!sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS));
 
     // check with spork disabled
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(IsCoinbaseValueValid_test)
     // enable SPORK_8
     int64_t nTime = GetTime() - 10;
     const CSporkMessage& spork = CSporkMessage(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT, nTime + 1, nTime);
-    sporkManager.AddSporkMessage(spork);
+    sporkManager.AddOrUpdateSporkMessage(spork);
     BOOST_CHECK(sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT));
 
     // Underpaying with SPORK_8 enabled
