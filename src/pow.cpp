@@ -18,7 +18,9 @@
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader* pblock)
 {
-    if (Params().IsRegTestNet())
+    const Consensus::Params& consensus = Params().GetConsensus();
+
+    if (consensus.fPowNoRetargeting)
         return pindexLast->nBits;
 
     /* current difficulty formula, pivx - DarkGravity v3, written by Evan Duffield - evan@dashpay.io */
@@ -31,7 +33,6 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     int64_t CountBlocks = 0;
     arith_uint256 PastDifficultyAverage;
     arith_uint256 PastDifficultyAveragePrev;
-    const Consensus::Params& consensus = Params().GetConsensus();
     const arith_uint256& powLimit = UintToArith256(consensus.powLimit);
 
     if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || BlockLastSolved->nHeight < PastBlocksMin) {
@@ -123,8 +124,6 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits)
     bool fNegative;
     bool fOverflow;
     arith_uint256 bnTarget;
-
-    if (Params().IsRegTestNet()) return true;
 
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
