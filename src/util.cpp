@@ -77,9 +77,6 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-#include <boost/program_options/detail/config_file.hpp>
-#include <boost/program_options/parsers.hpp>
-
 const char * const PIVX_CONF_FILENAME = "pivx.conf";
 const char * const PIVX_PID_FILENAME = "pivx.pid";
 const char * const PIVX_MASTERNODE_CONF_FILENAME = "masternode.conf";
@@ -688,16 +685,48 @@ fs::path GetMasternodeConfigFile()
     return AbsPathForConfigVal(pathConfigFile);
 }
 
+static std::string TrimString(const std::string& str, const std::string& pattern)
+{
+    std::string::size_type front = str.find_first_not_of(pattern);
+    if (front == std::string::npos) {
+        return std::string();
+    }
+    std::string::size_type end = str.find_last_not_of(pattern);
+    return str.substr(front, end - front + 1);
+}
+
+static std::vector<std::pair<std::string, std::string>> GetConfigOptions(std::istream& stream)
+{
+    std::vector<std::pair<std::string, std::string>> options;
+    std::string str, prefix;
+    std::string::size_type pos;
+    while (std::getline(stream, str)) {
+        if ((pos = str.find('#')) != std::string::npos) {
+            str = str.substr(0, pos);
+        }
+        const static std::string pattern = " \t\r\n";
+        str = TrimString(str, pattern);
+        if (!str.empty()) {
+            if (*str.begin() == '[' && *str.rbegin() == ']') {
+                prefix = str.substr(1, str.size() - 2) + '.';
+            } else if ((pos = str.find('=')) != std::string::npos) {
+                std::string name = prefix + TrimString(str.substr(0, pos), pattern);
+                std::string value = TrimString(str.substr(pos + 1), pattern);
+                options.emplace_back(name, value);
+            }
+        }
+    }
+    return options;
+}
+
 void ArgsManager::ReadConfigStream(std::istream& stream)
 {
     LOCK(cs_args);
 
-    std::set<std::string> setOptions;
-    setOptions.insert("*");
+    for (const std::pair<std::string, std::string>& option : GetConfigOptions(stream)) {
+        std::string strKey = std::string("-") + option.first;
+        std::string strValue = option.second;
 
-    for (boost::program_options::detail::config_file_iterator it(stream, setOptions), end; it != end; ++it) {
-        std::string strKey = std::string("-") + it->string_key;
-        std::string strValue = it->value[0];
         if (InterpretNegatedOption(strKey, strValue)) {
             m_config_args[strKey].clear();
         } else {

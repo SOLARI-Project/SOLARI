@@ -346,7 +346,6 @@ parts:
       - ca-certificates
       - libboost-chrono1.65.1
       - libboost-filesystem1.65.1
-      - libboost-program-options1.65.1
       - libboost-system1.65.1
       - libboost-test1.65.1
       - libboost-thread1.65.1
