@@ -74,6 +74,7 @@ void CSporkManager::LoadSporksFromDB()
         }
 
         // add spork to memory
+        AddSporkMessage(spork);
         mapSporks[spork.GetHash()] = spork;
         mapSporksActive[spork.nSporkID] = spork;
         std::time_t result = spork.nValue;
@@ -131,7 +132,6 @@ int CSporkManager::ProcessSporkMsg(CSporkMessage& spork)
         return 0;
     }
 
-    uint256 hash = spork.GetHash();
     std::string sporkName = sporkManager.GetSporkNameByID(spork.nSporkID);
     std::string strStatus;
     {
@@ -173,11 +173,7 @@ int CSporkManager::ProcessSporkMsg(CSporkMessage& spork)
     LogPrintf("%s : got %s spork %d (%s) with value %d (signed at %d)\n", __func__,
               strStatus, spork.nSporkID, sporkName, spork.nValue, spork.nTimeSigned);
 
-    {
-        LOCK(cs);
-        mapSporks[hash] = spork;
-        mapSporksActive[spork.nSporkID] = spork;
-    }
+    AddSporkMessage(spork);
     spork.Relay();
 
     // PIVX: add to spork database.
