@@ -2169,7 +2169,7 @@ CWallet::Balance CWallet::GetBalance(const int min_depth) const
     return ret;
 }
 
-CAmount CWallet::loopTxsBalance(std::function<void(const uint256&, const CWalletTx&, CAmount&)> method) const
+CAmount CWallet::loopTxsBalance(const std::function<void(const uint256&, const CWalletTx&, CAmount&)>& method) const
 {
     CAmount nTotal = 0;
     {
@@ -3227,9 +3227,6 @@ bool CWallet::CreateCoinStake(
     pStakerStatus->SetLastTip(pindexPrev);
     pStakerStatus->SetLastCoins((int) availableCoins->size());
 
-    // P2PKH block signatures were not accepted before v5 update.
-    bool onlyP2PK = !consensus.NetworkUpgradeActive(pindexPrev->nHeight + 1, Consensus::UPGRADE_V5_0);
-
     // Kernel Search
     CAmount nCredit;
     CScript scriptPubKeyKernel;
@@ -3251,13 +3248,6 @@ bool CWallet::CreateCoinStake(
         if (WITH_LOCK(cs_wallet, return IsSpent(outPoint))) {
             // remove it from the available coins
             it = availableCoins->erase(it);
-            continue;
-        }
-
-        // This should never happen
-        if (stakeInput.IsZPIV()) {
-            LogPrintf("%s: ERROR - zPOS is disabled\n", __func__);
-            it++;
             continue;
         }
 
@@ -3284,7 +3274,7 @@ bool CWallet::CreateCoinStake(
 
         // Create the output transaction(s)
         std::vector<CTxOut> vout;
-        if (!stakeInput.CreateTxOuts(this, vout, nCredit, onlyP2PK)) {
+        if (!stakeInput.CreateTxOuts(this, vout, nCredit)) {
             LogPrintf("%s : failed to create output\n", __func__);
             it++;
             continue;
@@ -3913,7 +3903,7 @@ std::vector<CKeyID> CWallet::GetAffectedKeys(const CScript& spk)
     std::vector<CKeyID> vAffected;
     CAffectedKeysVisitor(*this, vAffected).Process(spk);
     for (const CKeyID& keyid : vAffected) {
-        ret.push_back(keyid);
+        ret.emplace_back(keyid);
     }
     return ret;
 }
@@ -4787,7 +4777,7 @@ Optional<std::pair<
 {
     auto output = this->tx->sapData->vShieldedOutput[op.n];
 
-    for (auto ovk : ovks) {
+    for (const auto& ovk : ovks) {
         auto outPt = libzcash::SaplingOutgoingPlaintext::decrypt(
                 output.outCiphertext,
                 ovk,
