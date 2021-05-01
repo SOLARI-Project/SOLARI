@@ -87,8 +87,10 @@ bool TruncateFile(FILE* file, unsigned int length);
 int RaiseFileDescriptorLimit(int nMinFD);
 void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length);
 bool RenameOver(fs::path src, fs::path dest);
-bool TryCreateDirectory(const fs::path& p);
+bool TryCreateDirectories(const fs::path& p);
 fs::path GetDefaultDataDir();
+// The blocks directory is always net specific.
+const fs::path &GetBlocksDir();
 const fs::path &GetDataDir(bool fNetSpecific = true);
 // Sapling network dir
 const fs::path &ZC_GetParamsDir();
@@ -104,7 +106,6 @@ void CreatePidFile(const fs::path& path, pid_t pid);
 #ifdef WIN32
 fs::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
 #endif
-fs::path GetTempPath();
 
 void runCommand(std::string strCommand);
 
