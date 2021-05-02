@@ -21,7 +21,7 @@ def create_block(hashprev, coinbase, nTime=None, nVersion=None, hashFinalSapling
     if hashFinalSaplingRoot is not None:
         block.hashFinalSaplingRoot = hashFinalSaplingRoot
     block.hashPrevBlock = hashprev
-    block.nBits = 0x1e0ffff0 # Will break after a difficulty adjustment...
+    block.nBits = 0x207fffff  # difficulty retargeting is disabled in REGTEST chainparams
     block.vtx.append(coinbase)
     block.hashMerkleRoot = block.calc_merkle_root()
     block.calc_sha256()
