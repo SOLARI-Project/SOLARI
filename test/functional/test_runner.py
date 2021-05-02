@@ -77,6 +77,7 @@ BASE_SCRIPTS= [
     'rpc_spork.py',                             # ~ 144 sec
     'wallet_txn_doublespend.py --mineblock',    # ~ 143 sec
     'wallet_txn_clone.py --mineblock',          # ~ 143 sec
+    'feature_block.py',                         # ~ 140 sec
     'feature_proxy.py',                         # ~ 138 sec
     'rpc_rawtransaction.py',                    # ~ 134 sec
     'mining_pos_reorg.py',                      # ~ 128 sec
@@ -125,7 +126,6 @@ BASE_SCRIPTS= [
 
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
-    # 'feature_block.py',
     # 'mempool_limit.py', # We currently don't limit our mempool_reorg
     # 'rpc_getchaintips.py',
     # 'mining_prioritisetransaction.py',
@@ -182,6 +182,7 @@ EXTENDED_SCRIPTS = [
 
 LEGACY_SKIP_TESTS = [
     # These tests are not run when the flag --legacywallet is used
+    'feature_block.py',
     'feature_blockindexstats.py',
     'feature_config_args.py',
     'feature_help.py',
