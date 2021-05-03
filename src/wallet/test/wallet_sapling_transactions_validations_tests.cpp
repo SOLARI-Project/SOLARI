@@ -13,30 +13,52 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(wallet_sapling_transactions_validations_tests, WalletTestingSetup)
-
-void setupWallet()
+/*
+ * A text fixture with a preloaded 100-blocks regtest chain, with sapling activating at block 101,
+ * and a wallet containing the key used for the coinbase outputs.
+ */
+struct TestSaplingChainSetup: public TestChain100Setup
 {
-    LOCK(pwalletMain->cs_wallet);
-    pwalletMain->SetMinVersion(FEATURE_SAPLING);
-    gArgs.ForceSetArg("-keypool", "5");
-    pwalletMain->SetupSPKM(true);
-}
+    TestSaplingChainSetup() : TestChain100Setup()
+    {
+        initZKSNARKS(); // init zk-snarks lib
 
-void generateBlock(const CScript& scriptPubKey, int expectedBlockHeight)
-{
-    std::unique_ptr<CBlockTemplate> pblocktemplate;
-    BOOST_CHECK(pblocktemplate = BlockAssembler(Params(), false).CreateNewBlock(scriptPubKey, pwalletMain, false));
-    std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
-    pblock->nTime = WITH_LOCK(cs_main, return chainActive.Tip()->GetMedianTimePast() + 60);
-    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
-    CValidationState state;
-    BOOST_CHECK_MESSAGE(ProcessNewBlock(state, nullptr, pblock, nullptr), strprintf("Failed creating block at height %d", expectedBlockHeight));
-    BOOST_CHECK(state.IsValid());
+        bitdb.MakeMock();
+        bool fFirstRun;
+        std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
+        pwalletMain = new CWallet(std::move(dbw));
+        pwalletMain->LoadWallet(fFirstRun);
+        RegisterValidationInterface(pwalletMain);
 
-    // Let the wallet sync the blocks
-    SyncWithValidationInterfaceQueue();
-}
+        int SAPLING_ACTIVATION_HEIGHT = 101;
+        UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, SAPLING_ACTIVATION_HEIGHT);
+
+        // setup wallet
+        {
+            LOCK(pwalletMain->cs_wallet);
+            pwalletMain->SetMinVersion(FEATURE_SAPLING);
+            gArgs.ForceSetArg("-keypool", "5");
+            pwalletMain->SetupSPKM(true);
+
+            // import coinbase key used to generate the 100-blocks chain
+            BOOST_CHECK(pwalletMain->AddKeyPubKey(coinbaseKey, coinbaseKey.GetPubKey()));
+        }
+        WalletRescanReserver reserver(pwalletMain);
+        BOOST_CHECK(reserver.reserve());
+        pwalletMain->RescanFromTime(0, reserver, true /* update */);
+    }
+
+    ~TestSaplingChainSetup()
+    {
+        UnregisterValidationInterface(pwalletMain);
+        delete pwalletMain;
+        pwalletMain = nullptr;
+        bitdb.Flush(true);
+        bitdb.Reset();
+    }
+};
+
+BOOST_FIXTURE_TEST_SUITE(wallet_sapling_transactions_validations_tests, TestSaplingChainSetup)
 
 SaplingOperation createOperationAndBuildTx(std::vector<SendManyRecipient> recipients,
                                            int nextBlockHeight,
@@ -60,11 +82,6 @@ SaplingOperation createOperationAndBuildTx(std::vector<SendManyRecipient> recipi
 // Test double spend notes in the mempool and in blocks.
 BOOST_AUTO_TEST_CASE(test_in_block_and_mempool_notes_double_spend)
 {
-    SelectParams(CBaseChainParams::REGTEST);
-    int SAPLING_ACTIVATION_HEIGHT = 99;
-    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, SAPLING_ACTIVATION_HEIGHT);
-    setupWallet();
-
     CTxDestination coinbaseDest;
     auto ret = pwalletMain->getNewAddress(coinbaseDest, "coinbase");
     BOOST_ASSERT_MSG(ret.result, "cannot create address");
@@ -72,14 +89,17 @@ BOOST_AUTO_TEST_CASE(test_in_block_and_mempool_notes_double_spend)
     BOOST_ASSERT_MSG(IsMine(*pwalletMain, coinbaseDest), "destination not from wallet");
 
     // create the chain
+    int tipHeight = WITH_LOCK(cs_main, return chainActive.Tip()->nHeight);
+    BOOST_CHECK_EQUAL(tipHeight, 100);
     const CScript& scriptPubKey = GetScriptForDestination(coinbaseDest);
     int nGenerateBlocks = 110;
-    for (int i = 0; i < nGenerateBlocks; ++i) {
-        generateBlock(scriptPubKey, (int) i);
+    for (int i = tipHeight; i < nGenerateBlocks; ++i) {
+        CreateAndProcessBlock({}, scriptPubKey);
+        SyncWithValidationInterfaceQueue();
     }
 
     // Verify that we are at block 110
-    int tipHeight = WITH_LOCK(cs_main, return chainActive.Tip()->nHeight);
+    tipHeight = WITH_LOCK(cs_main, return chainActive.Tip()->nHeight);
     BOOST_CHECK_EQUAL(tipHeight, nGenerateBlocks);
     // Verify that the wallet has all of the coins
     BOOST_CHECK_EQUAL(pwalletMain->GetAvailableBalance(), CAmount(250 * COIN * 10)); // 10 blocks available
@@ -98,7 +118,10 @@ BOOST_AUTO_TEST_CASE(test_in_block_and_mempool_notes_double_spend)
     BOOST_ASSERT_MSG(operation.send(retHash), "error committing and broadcasting the transaction");
 
     // Generate a five blocks to fully confirm the tx and test balance
-    for (int i = 0; i < 5; ++i) { generateBlock(scriptPubKey, WITH_LOCK(cs_main, return chainActive.Tip()->nHeight + 1)); }
+    for (int i = 1; i <= 5; ++i) {
+        CreateAndProcessBlock({}, scriptPubKey, false /*fNoMempoolTx*/);
+    }
+    SyncWithValidationInterfaceQueue();
     BOOST_CHECK_EQUAL(pwalletMain->GetAvailableShieldedBalance(), CAmount(100 * COIN)); // 100 shield PIVs
     BOOST_CHECK_EQUAL(pwalletMain->GetUnconfirmedShieldedBalance(), CAmount(0)); // 0 shield PIVs
 
@@ -133,21 +156,13 @@ BOOST_AUTO_TEST_CASE(test_in_block_and_mempool_notes_double_spend)
 
     // let's now test it inside a block
     // create the block with the two transactions and test validity
-    std::unique_ptr<CBlockTemplate> pblocktemplate;
-    BOOST_CHECK(pblocktemplate = BlockAssembler(Params(), false).CreateNewBlock(scriptPubKey, pwalletMain, false));
-    std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
-    pblock->nTime = WITH_LOCK(cs_main, return chainActive.Tip()->GetMedianTimePast() + 60);
-    pblock->vtx.emplace_back(MakeTransactionRef(operation3.getFinalTx())); // Force the invalid tx append
-    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
-    pblock->hashFinalSaplingRoot = CalculateSaplingTreeRoot(pblock.get(), 116, Params());
-    CValidationState state;
-    ProcessNewBlock(state, nullptr, pblock, nullptr);
-    BOOST_CHECK(state.IsValid());
+    const CBlock& block = CreateAndProcessBlock({operation3.getFinalTx()}, scriptPubKey, false /*fNoMempoolTx*/);
+    SyncWithValidationInterfaceQueue();
 
     {
         LOCK(cs_main);
         // Same tip as before, no block connection
-        BOOST_CHECK(chainActive.Tip()->GetBlockHash() != pblock->GetHash());
+        BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
         BOOST_ASSERT_MSG(chainActive.Tip()->nHeight, 115);
     }
 }
