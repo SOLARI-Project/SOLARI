@@ -133,13 +133,11 @@ TestChainSetup::TestChainSetup(int blockCount) : TestingSetup(CBaseChainParams::
     }
 }
 
-//
-// Create a new block with just given transactions, coinbase paying to
-// scriptPubKey, and try to add it to the current chain.
-//
-CBlock TestChainSetup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey)
+// Create a new block with coinbase paying to scriptPubKey, and try to add it to the current chain.
+// Include given transactions, and, if fNoMempoolTx=true, remove transactions coming from the mempool.
+CBlock TestChainSetup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool fNoMempoolTx)
 {
-    CBlock block = CreateBlock(txns, scriptPubKey);
+    CBlock block = CreateBlock(txns, scriptPubKey, fNoMempoolTx);
     CValidationState state;
     ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
     return block;
@@ -151,25 +149,27 @@ CBlock TestChainSetup::CreateAndProcessBlock(const std::vector<CMutableTransacti
     return CreateAndProcessBlock(txns, scriptPubKey);
 }
 
-CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey)
+CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool fNoMempoolTx)
 {
     std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(
             Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptPubKey, nullptr, false);
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
 
-    // Replace mempool-selected txns with just coinbase plus passed-in txns:
-    pblock->vtx.resize(1);
-    for (const CMutableTransaction& tx : txns) {
-        pblock->vtx.push_back(MakeTransactionRef(tx));
-    }
-
     const CBlockIndex* pindexPrev = WITH_LOCK(cs_main, return chainActive.Tip());
     const int nHeight = pindexPrev->nHeight + 1;
 
-    // Replace coinbase output amount (could have included fee in CreateNewBlock)
-    CMutableTransaction txCoinbase(*pblock->vtx[0]);
-    txCoinbase.vout[0].nValue = GetBlockValue(nHeight);
-    pblock->vtx[0] = MakeTransactionRef(txCoinbase);
+    // Replace mempool-selected txns with just coinbase plus passed-in txns:
+    if (fNoMempoolTx) {
+        pblock->vtx.resize(1);
+
+        // Replace coinbase output amount (could have included fee in CreateNewBlock)
+        CMutableTransaction txCoinbase(*pblock->vtx[0]);
+        txCoinbase.vout[0].nValue = GetBlockValue(nHeight);
+        pblock->vtx[0] = MakeTransactionRef(txCoinbase);
+    }
+    for (const CMutableTransaction& tx : txns) {
+        pblock->vtx.push_back(MakeTransactionRef(tx));
+    }
 
     // IncrementExtraNonce creates a valid coinbase and merkleRoot
     unsigned int extraNonce = 0;

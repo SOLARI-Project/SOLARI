@@ -66,11 +66,11 @@ struct TestChainSetup : public TestingSetup
     TestChainSetup(int blockCount);
     ~TestChainSetup();
 
-    // Create a new block with just given transactions, coinbase paying to
-    // scriptPubKey, and try to add it to the current chain.
-    CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey);
+    // Create a new block with coinbase paying to scriptPubKey, and try to add it to the current chain.
+    // Include given transactions, and, if fNoMempoolTx=true, remove transactions coming from the mempool.
+    CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool fNoMempoolTx = true);
     CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CKey& scriptKey);
-    CBlock CreateBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey);
+    CBlock CreateBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool fNoMempoolTx = true);
     CBlock CreateBlock(const std::vector<CMutableTransaction>& txns, const CKey& scriptKey);
 
     std::vector<CTransaction> coinbaseTxns; // For convenience, coinbase transactions
