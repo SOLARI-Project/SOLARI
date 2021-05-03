@@ -9,9 +9,15 @@
 
 /** Testing setup and teardown for wallet.
  */
-struct WalletTestingSetup : public SaplingTestingSetup {
-    WalletTestingSetup();
+struct WalletTestingSetup : public SaplingTestingSetup
+{
+    WalletTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~WalletTestingSetup();
+};
+
+struct WalletRegTestingSetup : public WalletTestingSetup
+{
+    WalletRegTestingSetup() : WalletTestingSetup(CBaseChainParams::REGTEST) {}
 };
 
 #endif

@@ -11,9 +11,9 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
+BOOST_AUTO_TEST_SUITE(validation_tests)
 
-BOOST_AUTO_TEST_CASE(test_simple_shielded_invalid)
+BOOST_FIXTURE_TEST_CASE(test_simple_shielded_invalid, TestingSetup)
 {
     CMutableTransaction tx;
     tx.nVersion = CTransaction::TxVersion::SAPLING;
@@ -113,10 +113,11 @@ void CheckMempoolZcRejection(CMutableTransaction& mtx)
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-with-zc");
 }
 
-BOOST_AUTO_TEST_CASE(zerocoin_rejection_tests)
+/*
+ * Running on regtest to have v5 upgrade enforced at block 1 and test in-block zc rejection
+ */
+BOOST_FIXTURE_TEST_CASE(zerocoin_rejection_tests, RegTestingSetup)
 {
-    // !TODO: fix me
-    SelectParams(CBaseChainParams::REGTEST);
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
     const CChainParams& chainparams = Params();
 

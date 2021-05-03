@@ -5,7 +5,7 @@
 #include "test/librust/sapling_test_fixture.h"
 #include "sapling/sapling_util.h"
 
-SaplingTestingSetup::SaplingTestingSetup() : TestingSetup()
+SaplingTestingSetup::SaplingTestingSetup(const std::string& chainName) : TestingSetup(chainName)
 {
     initZKSNARKS(); // init zk-snarks lib
 }
