@@ -13,8 +13,10 @@
 
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
-void test_simple_sapling_invalidity(CMutableTransaction& tx)
+BOOST_AUTO_TEST_CASE(test_simple_shielded_invalid)
 {
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
     CAmount nDummyValueOut;
     {
         CMutableTransaction newTx(tx);
@@ -91,22 +93,6 @@ void test_simple_sapling_invalidity(CMutableTransaction& tx)
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_simple_shielded_invalid)
-{
-    // Switch to regtest parameters so we can activate Sapling
-    SelectParams(CBaseChainParams::REGTEST);
-
-    CMutableTransaction mtx;
-    mtx.nVersion = CTransaction::TxVersion::SAPLING;
-
-    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
-    test_simple_sapling_invalidity(mtx);
-    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT);
-
-    // Switch back to mainnet parameters as originally selected in test fixture
-    SelectParams(CBaseChainParams::MAIN);
-}
-
 void CheckBlockZcRejection(const std::shared_ptr<CBlock>& pblock, CMutableTransaction& mtx)
 {
     pblock->vtx.emplace_back(MakeTransactionRef(mtx));
@@ -129,6 +115,7 @@ void CheckMempoolZcRejection(CMutableTransaction& mtx)
 
 BOOST_AUTO_TEST_CASE(zerocoin_rejection_tests)
 {
+    // !TODO: fix me
     SelectParams(CBaseChainParams::REGTEST);
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
     const CChainParams& chainparams = Params();
