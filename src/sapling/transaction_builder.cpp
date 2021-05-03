@@ -129,15 +129,6 @@ std::string TransactionBuilderResult::GetError() {
     }
 }
 
-// Set default values of new CMutableTransaction based on consensus rules at given height.
-CMutableTransaction CreateNewContextualCMutableTransaction(const Consensus::Params& consensusParams, int nHeight)
-{
-    CMutableTransaction mtx;
-    bool isSapling = consensusParams.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0);
-    mtx.nVersion = isSapling ? CTransaction::TxVersion::SAPLING : CTransaction::TxVersion::LEGACY;
-    return mtx;
-}
-
 TransactionBuilder::TransactionBuilder(
     const Consensus::Params& _consensusParams,
     int _nHeight,
@@ -151,7 +142,8 @@ TransactionBuilder::TransactionBuilder(
 
 void TransactionBuilder::Clear()
 {
-    mtx = CreateNewContextualCMutableTransaction(consensusParams, nHeight);
+    mtx = CMutableTransaction();
+    mtx.nVersion = CTransaction::TxVersion::SAPLING;
     spends.clear();
     outputs.clear();
     tIns.clear();
