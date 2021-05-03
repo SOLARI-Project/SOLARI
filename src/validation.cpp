@@ -3135,7 +3135,7 @@ bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppi
         return false;
 
     if (block.GetHash() != consensus.hashGenesisBlock && !CheckWork(block, pindexPrev))
-        return false;
+        return state.DoS(100, false, REJECT_INVALID);
 
     bool isPoS = block.IsProofOfStake();
     if (isPoS) {
