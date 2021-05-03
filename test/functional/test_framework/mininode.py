@@ -482,6 +482,17 @@ class P2PDataStore(P2PInterface):
             else:
                 logger.debug('getdata message type {} received.'.format(hex(inv.type)))
 
+    def on_getblocks(self, message):
+        """Check for blocks in our stores, reply with inv messages."""
+        msg_blocks = []
+        blockhashes = self.block_store.keys()
+        blockhash = message.hashstop
+        while blockhash in blockhashes and blockhash not in message.locator.vHave:
+            msg_blocks.append(msg_block(self.block_store[blockhash]))
+            blockhash = self.block_store[blockhash].hashPrevBlock
+        for msg in reversed(msg_blocks):
+            self.send_message(msg)
+
     def send_blocks_and_test(self, blocks, node, success=True, reject_reason=None, expect_disconnect=False, timeout=60):
         """Send blocks to test node and test whether the tip advances.
 
