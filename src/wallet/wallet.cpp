@@ -650,6 +650,10 @@ bool CWallet::ParameterInteraction()
         return true;
     }
 
+    if (gArgs.GetBoolArg("-sysperms", false)) {
+        return UIError("-sysperms is not allowed in combination with enabled wallet functionality");
+    }
+
     if (gArgs.IsArgSet("-mintxfee")) {
         CAmount n = 0;
         if (ParseMoney(gArgs.GetArg("-mintxfee", ""), n) && n > 0)

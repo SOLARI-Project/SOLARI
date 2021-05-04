@@ -871,12 +871,7 @@ bool AppInitBasicSetup()
         return UIError("Error: Initializing networking failed");
 
 #ifndef WIN32
-    if (gArgs.GetBoolArg("-sysperms", false)) {
-#ifdef ENABLE_WALLET
-        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
-            return UIError("Error: -sysperms is not allowed in combination with enabled wallet functionality");
-#endif
-    } else {
+    if (!gArgs.GetBoolArg("-sysperms", false)) {
         umask(077);
     }
 
