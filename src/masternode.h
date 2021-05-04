@@ -189,7 +189,11 @@ public:
         return lastPing.IsNull() ? false : now - lastPing.sigTime < seconds;
     }
 
-    void SetSpent() { fCollateralSpent = true; }
+    void SetSpent()
+    {
+        LOCK(cs);
+        fCollateralSpent = true;
+    }
 
     void Disable()
     {
