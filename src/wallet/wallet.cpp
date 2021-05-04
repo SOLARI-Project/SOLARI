@@ -4395,8 +4395,12 @@ bool CWallet::InitLoadWallet()
         // automatic backups
         std::string strWarning, strError;
         if(!AutoBackupWallet(walletFile, strWarning, strError)) {
-            if (!strWarning.empty()) UIWarning(strWarning);
-            if (!strError.empty()) return UIError(strError);
+            if (!strWarning.empty()) {
+                UIWarning(strprintf("%s: %s", walletFile, strWarning));
+            }
+            if (!strError.empty()) {
+                return UIError(strprintf("%s: %s", walletFile, strError));
+            }
         }
 
         CWallet * const pwallet = CreateWalletFromFile(walletFile);
