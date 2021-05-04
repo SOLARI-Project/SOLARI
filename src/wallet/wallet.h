@@ -1,12 +1,12 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2014 The Bitcoin developers
+// Copyright (c) 2009-2021 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
-// Copyright (c) 2015-2020 The PIVX developers
+// Copyright (c) 2015-2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_H
-#define BITCOIN_WALLET_H
+#ifndef PIVX_WALLET_H
+#define PIVX_WALLET_H
 
 #include "addressbook.h"
 #include "amount.h"
@@ -1267,4 +1267,7 @@ public:
     }
 };
 
-#endif // BITCOIN_WALLET_H
+// !TODO: move to wallet/init.*
+bool InitAutoBackupWallet();
+
+#endif // PIVX_WALLET_H

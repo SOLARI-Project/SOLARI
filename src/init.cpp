@@ -37,7 +37,6 @@
 #include "net_processing.h"
 #include "policy/feerate.h"
 #include "policy/policy.h"
-#include "reverse_iterate.h"
 #include "rpc/register.h"
 #include "rpc/server.h"
 #include "script/sigcache.h"
@@ -87,9 +86,6 @@
 #endif
 
 
-#ifdef ENABLE_WALLET
-int nWalletBackups = 10;
-#endif
 volatile bool fFeeEstimatesInitialized = false;
 volatile bool fRestartRequested = false; // true: restart false: shutdown
 static const bool DEFAULT_PROXYRANDOMIZE = true;
@@ -1305,74 +1301,11 @@ bool AppInitMain()
 
 // ********************************************************* Step 5: Backup wallet and verify wallet database integrity
 #ifdef ENABLE_WALLET
+    if (!InitAutoBackupWallet()) {
+        return false;
+    }
+
     // not fixing indentation as this block of code will be moved away from here in the following commits
-        fs::path backupDir = GetDataDir() / "backups";
-        if (!fs::exists(backupDir)) {
-            // Always create backup folder to not confuse the operating system's file browser
-            fs::create_directories(backupDir);
-        }
-        nWalletBackups = gArgs.GetArg("-createwalletbackups", DEFAULT_CREATEWALLETBACKUPS);
-        nWalletBackups = std::max(0, std::min(10, nWalletBackups));
-        if (nWalletBackups > 0) {
-            if (fs::exists(backupDir)) {
-                // Create backup of the wallet
-                std::string dateTimeStr = FormatISO8601DateTimeForBackup(GetTime());
-                std::string backupPathStr = backupDir.string();
-                backupPathStr += "/" + strWalletFile;
-                std::string sourcePathStr = GetDataDir().string();
-                sourcePathStr += "/" + strWalletFile;
-                fs::path sourceFile = sourcePathStr;
-                fs::path backupFile = backupPathStr + dateTimeStr;
-                sourceFile.make_preferred();
-                backupFile.make_preferred();
-                if (fs::exists(sourceFile)) {
-#if BOOST_VERSION >= 105800
-                    try {
-                        fs::copy_file(sourceFile, backupFile);
-                        LogPrintf("Creating backup of %s -> %s\n", sourceFile, backupFile);
-                    } catch (const fs::filesystem_error& error) {
-                        LogPrintf("Failed to create backup %s\n", error.what());
-                    }
-#else
-                    std::ifstream src(sourceFile.string(), std::ios::binary);
-                    std::ofstream dst(backupFile.string(), std::ios::binary);
-                    dst << src.rdbuf();
-#endif
-                }
-                // Keep only the last 10 backups, including the new one of course
-                typedef std::multimap<std::time_t, fs::path> folder_set_t;
-                folder_set_t folder_set;
-                fs::directory_iterator end_iter;
-                fs::path backupFolder = backupDir.string();
-                backupFolder.make_preferred();
-                // Build map of backup files for current(!) wallet sorted by last write time
-                fs::path currentFile;
-                for (fs::directory_iterator dir_iter(backupFolder); dir_iter != end_iter; ++dir_iter) {
-                    // Only check regular files
-                    if (fs::is_regular_file(dir_iter->status())) {
-                        currentFile = dir_iter->path().filename();
-                        // Only add the backups for the current wallet, e.g. wallet.dat.*
-                        if (dir_iter->path().stem().string() == strWalletFile) {
-                            folder_set.insert(folder_set_t::value_type(fs::last_write_time(dir_iter->path()), *dir_iter));
-                        }
-                    }
-                }
-                // Loop backward through backup files and keep the N newest ones (1 <= N <= 10)
-                int counter = 0;
-                for (std::pair<const std::time_t, fs::path> file : reverse_iterate(folder_set)) {
-                    counter++;
-                    if (counter > nWalletBackups) {
-                        // More than nWalletBackups backups: delete oldest one(s)
-                        try {
-                            fs::remove(file.second);
-                            LogPrintf("Old backup deleted: %s\n", file.second);
-                        } catch (const fs::filesystem_error& error) {
-                            LogPrintf("Failed to delete backup %s\n", error.what());
-                        }
-                    }
-                }
-            }
-        }
 
         if (gArgs.GetBoolArg("-resync", false)) {
             uiInterface.InitMessage(_("Preparing for resync..."));
