@@ -241,6 +241,9 @@ public:
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
+        // Reject non-standard transactions by default
+        fRequireStandard = true;
+
         // Sapling
         bech32HRPs[SAPLING_PAYMENT_ADDRESS]      = "ps";
         bech32HRPs[SAPLING_FULL_VIEWING_KEY]     = "pviews";
@@ -364,6 +367,8 @@ public:
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
 
+        fRequireStandard = false;
+
         // Sapling
         bech32HRPs[SAPLING_PAYMENT_ADDRESS]      = "ptestsapling";
         bech32HRPs[SAPLING_FULL_VIEWING_KEY]     = "pviewtestsapling";
@@ -485,6 +490,9 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x3a, 0x80, 0x58, 0x37};
         // Testnet pivx BIP44 coin type is '1' (All coin's testnet default)
         base58Prefixes[EXT_COIN_TYPE] = {0x80, 0x00, 0x00, 0x01};
+
+        // Reject non-standard transactions by default
+        fRequireStandard = true;
 
         // Sapling
         bech32HRPs[SAPLING_PAYMENT_ADDRESS]      = "ptestsapling";

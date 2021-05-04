@@ -68,6 +68,7 @@ BASE_SCRIPTS= [
     'rpc_fundrawtransaction.py',                # ~ 227 sec
     'mining_pos_coldStaking.py',                # ~ 220 sec
     'wallet_import_rescan.py',                  # ~ 204 sec
+    'p2p_invalid_block.py',                     # ~ 213 sec
     'feature_logging.py',                       # ~ 195 sec
     'wallet_abandonconflict.py',                # ~ 188 sec
     'feature_blockindexstats.py',               # ~ 167 sec
@@ -88,6 +89,7 @@ BASE_SCRIPTS= [
     'feature_reindex.py',                       # ~ 110 sec
     'interface_http.py',                        # ~ 105 sec
     'feature_blockhashcache.py',                # ~ 100 sec
+    'p2p_invalid_tx.py',                        # ~ 98 sec
     'wallet_listtransactions.py',               # ~ 97 sec
     'wallet_listreceivedby.py',                 # ~ 94 sec
     'mining_pos_fakestake.py',                  # ~ 94 sec
@@ -126,8 +128,6 @@ BASE_SCRIPTS= [
     # 'mempool_limit.py', # We currently don't limit our mempool_reorg
     # 'rpc_getchaintips.py',
     # 'mining_prioritisetransaction.py',
-    # 'p2p_invalid_block.py',
-    # 'p2p_invalid_tx.py',
     # 'mining_basic.py',
     # 'wallet_bumpfee.py',
     # 'wallet_listsinceblock.py',

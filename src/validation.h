@@ -142,6 +142,7 @@ extern std::atomic<bool> fImporting;
 extern std::atomic<bool> fReindex;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
+extern bool fRequireStandard;
 extern bool fCheckBlockIndex;
 extern size_t nCoinCacheUsage;
 extern CFeeRate minRelayTxFee;

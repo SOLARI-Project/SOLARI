@@ -67,7 +67,10 @@ public:
     int GetDefaultPort() const { return nDefaultPort; }
 
     const CBlock& GenesisBlock() const { return genesis; }
-
+    /** Policy: Filter transactions that do not match well-defined patterns */
+    bool RequireStandard() const { return fRequireStandard; }
+    /** If this chain is exclusively used for testing */
+    bool IsTestChain() const { return IsTestnet() || IsRegTestNet(); }
     /** Make miner wait to have peers to avoid wasting work */
     bool MiningRequiresPeers() const { return !IsRegTestNet(); }
     /** Headers first syncing is disabled */
@@ -99,6 +102,7 @@ protected:
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
     std::string bech32HRPs[MAX_BECH32_TYPES];
     std::vector<SeedSpec6> vFixedSeeds;
+    bool fRequireStandard;
 };
 
 /**
