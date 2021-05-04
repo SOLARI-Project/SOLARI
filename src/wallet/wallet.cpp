@@ -646,6 +646,10 @@ void CWallet::SyncMetaData(std::pair<typename TxSpendMap<T>::iterator, typename 
 
 bool CWallet::ParameterInteraction()
 {
+    if (gArgs.GetBoolArg("-disablewallet", false)) {
+        return true;
+    }
+
     if (gArgs.IsArgSet("-mintxfee")) {
         CAmount n = 0;
         if (ParseMoney(gArgs.GetArg("-mintxfee", ""), n) && n > 0)
@@ -2063,6 +2067,10 @@ std::set<uint256> CWalletTx::GetConflicts() const
 
 bool CWallet::Verify()
 {
+    if (gArgs.GetBoolArg("-disablewallet", false)) {
+        return true;
+    }
+
     uiInterface.InitMessage(_("Verifying wallet..."));
     std::string walletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
     std::string strDataDir = GetDataDir().string();

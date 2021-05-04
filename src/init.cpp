@@ -839,7 +839,6 @@ namespace { // Variables internal to initialization process only
     ServiceFlags nLocalServices = NODE_NETWORK;
 
     std::string strWalletFile;
-    bool fDisableWallet = false;
 }
 
 bool AppInitBasicSetup()
@@ -1137,18 +1136,14 @@ bool AppInitParameterInteraction()
     setvbuf(stdout, NULL, _IOLBF, 0); /// ***TODO*** do we still need this after -printtoconsole is gone?
 
     RegisterAllCoreRPCCommands(tableRPC);
+
     // Staking needs a CWallet instance, so make sure wallet is enabled
 #ifdef ENABLE_WALLET
-    bool fDisableWallet = gArgs.GetBoolArg("-disablewallet", false);
-    if (fDisableWallet) {
-#endif
-        if (gArgs.SoftSetBoolArg("-staking", false))
-            LogPrintf("AppInit2 : parameter interaction: wallet functionality not enabled -> setting -staking=0\n");
-#ifdef ENABLE_WALLET
-    } else {
-        // Register wallet RPC commands
-        RegisterWalletRPCCommands(tableRPC);
-    }
+    // Register wallet RPC commands
+    RegisterWalletRPCCommands(tableRPC);
+#else
+    if (gArgs.SoftSetBoolArg("-staking", false))
+        LogPrintf("AppInit2 : parameter interaction: wallet functionality not enabled -> setting -staking=0\n");
 #endif
 
     nConnectTimeout = gArgs.GetArg("-timeout", DEFAULT_CONNECT_TIMEOUT);
@@ -1315,7 +1310,7 @@ bool AppInitMain()
 
 // ********************************************************* Step 5: Backup wallet and verify wallet database integrity
 #ifdef ENABLE_WALLET
-    if (!fDisableWallet) {
+    // not fixing indentation as this block of code will be moved away from here in the following commits
         fs::path backupDir = GetDataDir() / "backups";
         if (!fs::exists(backupDir)) {
             // Always create backup folder to not confuse the operating system's file browser
@@ -1422,7 +1417,6 @@ bool AppInitMain()
         if (!CWallet::Verify())
             return false;
 
-    }  // (!fDisableWallet)
 #endif // ENABLE_WALLET
 
     // ********************************************************* Step 6: network initialization
