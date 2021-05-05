@@ -155,8 +155,7 @@ CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns,
             Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptPubKey, nullptr, false);
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
 
-    const CBlockIndex* pindexPrev = WITH_LOCK(cs_main, return chainActive.Tip());
-    const int nHeight = pindexPrev->nHeight + 1;
+    const int nHeight = WITH_LOCK(cs_main, return chainActive.Height()) + 1;
 
     // Replace mempool-selected txns with just coinbase plus passed-in txns:
     if (fNoMempoolTx) {
@@ -171,14 +170,11 @@ CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns,
         pblock->vtx.push_back(MakeTransactionRef(tx));
     }
 
-    // IncrementExtraNonce creates a valid coinbase and merkleRoot
-    unsigned int extraNonce = 0;
-    IncrementExtraNonce(pblock, pindexPrev, extraNonce);
-
     // Re-compute sapling root
     pblock->hashFinalSaplingRoot = CalculateSaplingTreeRoot(pblock.get(), nHeight, Params());
 
-    while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits)) ++pblock->nNonce;
+    // Find valid PoW
+    assert(SolveBlock(pblock, nHeight));
     return *pblock;
 }
 

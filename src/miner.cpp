@@ -188,7 +188,7 @@ void BitcoinMiner(CWallet* pwallet, bool fProofOfStake)
         }
 
         // POW - miner main
-        IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
+        IncrementExtraNonce(pblock, pindexPrev->nHeight + 1, nExtraNonce);
 
         LogPrintf("Running PIVXMiner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
             ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));

@@ -92,12 +92,10 @@ BOOST_FIXTURE_TEST_CASE(test_simple_shielded_invalid, TestingSetup)
     }
 }
 
-void CheckBlockZcRejection(std::shared_ptr<CBlock>& pblock, CMutableTransaction& mtx)
+void CheckBlockZcRejection(std::shared_ptr<CBlock>& pblock, int nHeight, CMutableTransaction& mtx)
 {
     pblock->vtx.emplace_back(MakeTransactionRef(mtx));
-    unsigned int extraNonce = 0;
-    IncrementExtraNonce(pblock, GetChainTip(), extraNonce);
-    while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits)) ++pblock->nNonce;
+    BOOST_CHECK(SolveBlock(pblock, nHeight));
     CValidationState state;
     BOOST_CHECK(!ProcessNewBlock(state, nullptr, pblock, nullptr));
     BOOST_CHECK(!state.IsValid());
@@ -139,20 +137,20 @@ BOOST_FIXTURE_TEST_CASE(zerocoin_rejection_tests, RegTestingSetup)
                                          CBigNum::randBignum(chainparams.GetConsensus().Zerocoin_Params(false)->coinCommitmentGroup.groupOrder).getvch();
     mtx.vout[0].nValue = 1 * COIN;
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
-    CheckBlockZcRejection(pblock, mtx);
+    CheckBlockZcRejection(pblock, 1, mtx);
     CheckMempoolZcRejection(mtx);
 
     // Zerocoin spends rejection test
     mtx.vout[0].scriptPubKey = scriptPubKey;
     mtx.vin[0].scriptSig = CScript() << OP_ZEROCOINSPEND;
     pblock = std::make_shared<CBlock>(pblocktemplate->block);
-    CheckBlockZcRejection(pblock, mtx);
+    CheckBlockZcRejection(pblock, 1, mtx);
     CheckMempoolZcRejection(mtx);
 
     // Zerocoin public spends rejection test
     mtx.vin[0].scriptSig = CScript() << OP_ZEROCOINPUBLICSPEND;
     pblock = std::make_shared<CBlock>(pblocktemplate->block);
-    CheckBlockZcRejection(pblock, mtx);
+    CheckBlockZcRejection(pblock, 1, mtx);
     CheckMempoolZcRejection(mtx);
 }
 
