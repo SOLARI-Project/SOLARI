@@ -412,7 +412,8 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
     // Zerocoin txes are not longer accepted in the mempool.
     if (hasTxZerocoins) {
-        return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__));
+        return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__),
+                         REJECT_INVALID, "bad-tx-with-zc");
     }
 
     // Check transaction
@@ -2883,7 +2884,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
         // No need to check for zerocoin anymore after sapling, they are networkely disabled
         // and checkpoints are preventing the chain for any massive reorganization.
         if (fSaplingActive && tx.ContainsZerocoins()) {
-            return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__));
+            return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__),
+                             REJECT_INVALID, "bad-blk-with-zc");
         }
     }
 
