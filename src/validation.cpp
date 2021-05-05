@@ -1555,7 +1555,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()));
     std::vector<std::pair<uint256, CDiskTxPos> > vPos;
     std::vector<std::pair<libzerocoin::CoinSpend, uint256> > vSpends;
-    std::vector<std::pair<libzerocoin::PublicCoin, uint256> > vMints;
     vPos.reserve(block.vtx.size());
     CBlockUndo blockundo;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
@@ -1596,19 +1595,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         // If v5 is active, bye bye zerocoin
         if (isV5UpgradeEnforced && tx.ContainsZerocoins()) {
             return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__));
-        }
-
-        if (tx.HasZerocoinMintOutputs()) {
-            if (consensus.NetworkUpgradeActive(pindex->nHeight, Consensus::UPGRADE_ZC_PUBLIC))
-                return state.DoS(100, error("%s: Mints no longer accepted at height %d", __func__, pindex->nHeight));
-            // parse minted coins
-            for (auto& out : tx.vout) {
-                if (!out.IsZerocoinMint()) continue;
-                libzerocoin::PublicCoin coin(consensus.Zerocoin_Params(false));
-                if (!TxOutToPublicCoin(out, coin, state))
-                    return state.DoS(100, error("%s: failed final check of zerocoinmint for tx %s", __func__, tx.GetHash().GetHex()));
-                vMints.emplace_back(coin, tx.GetHash());
-            }
         }
 
         if (tx.HasZerocoinSpendInputs()) {
@@ -1792,8 +1778,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // Flush spend/mint info to disk
     if (!vSpends.empty() && !zerocoinDB->WriteCoinSpendBatch(vSpends))
         return AbortNode(state, "Failed to record coin serials to database");
-    if (!vMints.empty() && !zerocoinDB->WriteCoinMintBatch(vMints))
-        return AbortNode(state, "Failed to record new mints to database");
 
     if (fTxIndex)
         if (!pblocktree->WriteTxIndex(vPos))

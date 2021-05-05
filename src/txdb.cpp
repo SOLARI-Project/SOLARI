@@ -361,37 +361,6 @@ CZerocoinDB::CZerocoinDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapp
 {
 }
 
-bool CZerocoinDB::WriteCoinMintBatch(const std::vector<std::pair<libzerocoin::PublicCoin, uint256> >& mintInfo)
-{
-    CDBBatch batch;
-    size_t count = 0;
-    for (std::vector<std::pair<libzerocoin::PublicCoin, uint256> >::const_iterator it=mintInfo.begin(); it != mintInfo.end(); it++) {
-        libzerocoin::PublicCoin pubCoin = it->first;
-        uint256 hash = GetPubCoinHash(pubCoin.getValue());
-        batch.Write(std::make_pair('m', hash), it->second);
-        ++count;
-    }
-
-    LogPrint(BCLog::COINDB, "Writing %u coin mints to db.\n", (unsigned int)count);
-    return WriteBatch(batch, true);
-}
-
-bool CZerocoinDB::ReadCoinMint(const CBigNum& bnPubcoin, uint256& hashTx)
-{
-    return ReadCoinMint(GetPubCoinHash(bnPubcoin), hashTx);
-}
-
-bool CZerocoinDB::ReadCoinMint(const uint256& hashPubcoin, uint256& hashTx)
-{
-    return Read(std::make_pair('m', hashPubcoin), hashTx);
-}
-
-bool CZerocoinDB::EraseCoinMint(const CBigNum& bnPubcoin)
-{
-    uint256 hash = GetPubCoinHash(bnPubcoin);
-    return Erase(std::make_pair('m', hash));
-}
-
 bool CZerocoinDB::WriteCoinSpendBatch(const std::vector<std::pair<libzerocoin::CoinSpend, uint256> >& spendInfo)
 {
     CDBBatch batch;
