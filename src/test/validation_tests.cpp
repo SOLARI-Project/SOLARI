@@ -4,7 +4,6 @@
 
 #include "test/test_pivx.h"
 #include "blockassembler.h"
-#include "consensus/merkle.h"
 #include "primitives/transaction.h"
 #include "sapling/sapling_validation.h"
 #include "test/librust/utiltest.h"
@@ -93,10 +92,12 @@ BOOST_FIXTURE_TEST_CASE(test_simple_shielded_invalid, TestingSetup)
     }
 }
 
-void CheckBlockZcRejection(const std::shared_ptr<CBlock>& pblock, CMutableTransaction& mtx)
+void CheckBlockZcRejection(std::shared_ptr<CBlock>& pblock, CMutableTransaction& mtx)
 {
     pblock->vtx.emplace_back(MakeTransactionRef(mtx));
-    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    unsigned int extraNonce = 0;
+    IncrementExtraNonce(pblock, GetChainTip(), extraNonce);
+    while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits)) ++pblock->nNonce;
     CValidationState state;
     BOOST_CHECK(!ProcessNewBlock(state, nullptr, pblock, nullptr));
     BOOST_CHECK(!state.IsValid());
@@ -137,18 +138,21 @@ BOOST_FIXTURE_TEST_CASE(zerocoin_rejection_tests, RegTestingSetup)
     mtx.vout[0].scriptPubKey = CScript() << OP_ZEROCOINMINT <<
                                          CBigNum::randBignum(chainparams.GetConsensus().Zerocoin_Params(false)->coinCommitmentGroup.groupOrder).getvch();
     mtx.vout[0].nValue = 1 * COIN;
-    CheckBlockZcRejection(std::make_shared<CBlock>(pblocktemplate->block), mtx);
+    std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
+    CheckBlockZcRejection(pblock, mtx);
     CheckMempoolZcRejection(mtx);
 
     // Zerocoin spends rejection test
     mtx.vout[0].scriptPubKey = scriptPubKey;
     mtx.vin[0].scriptSig = CScript() << OP_ZEROCOINSPEND;
-    CheckBlockZcRejection(std::make_shared<CBlock>(pblocktemplate->block), mtx);
+    pblock = std::make_shared<CBlock>(pblocktemplate->block);
+    CheckBlockZcRejection(pblock, mtx);
     CheckMempoolZcRejection(mtx);
 
     // Zerocoin public spends rejection test
     mtx.vin[0].scriptSig = CScript() << OP_ZEROCOINPUBLICSPEND;
-    CheckBlockZcRejection(std::make_shared<CBlock>(pblocktemplate->block), mtx);
+    pblock = std::make_shared<CBlock>(pblocktemplate->block);
+    CheckBlockZcRejection(pblock, mtx);
     CheckMempoolZcRejection(mtx);
 }
 
