@@ -74,6 +74,15 @@ It is now possible for a single configuration file to set different options for 
 The `addnode=`, `connect=`, `port=`, `bind=`, `rpcport=`, `rpcbind=`, and `wallet=` options will only apply to mainnet when specified in the configuration file, unless a network is specified.
 
 
+#### Logging
+
+The log timestamp format is now ISO 8601 (e.g. "2021-02-28T12:34:56Z").
+
+
+#### Automatic Backup File Naming
+
+The file extension applied to automatic backups is now in ISO 8601 basic notation (e.g. "20210228T123456Z"). The basic notation is used to prevent illegal `:` characters from appearing in the filename.
+
 *version* Change log
 ==============
 

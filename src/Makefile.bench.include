@@ -20,7 +20,8 @@ bench_bench_pivx_SOURCES = \
   bench/lockedpool.cpp \
   bench/perf.cpp \
   bench/perf.h \
-  bench/prevector.cpp
+  bench/prevector.cpp \
+  bench/util_time.cpp
 
 nodist_bench_bench_pivx_SOURCES = $(GENERATED_TEST_FILES)
 
