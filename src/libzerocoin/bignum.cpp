@@ -71,22 +71,6 @@ CBigNum CBigNum::randBignum(const CBigNum& range)
     return (ret % range);
 }
 
-/** Generates a cryptographically secure random k-bit number
-* @param k The bit length of the number.
-* @return
-*/
-CBigNum CBigNum::randKBitBignum(const uint32_t k)
-{
-    std::vector<unsigned char> buf((k+7)/8);
-
-    GetStrongRandBytes(buf.data(), (k+7)/8);
-
-    CBigNum ret(buf);
-    if (ret < 0)
-        mpz_neg(ret.bn, ret.bn);
-    return ret % (BN_ONE << k);
-}
-
 /**Returns the size in bits of the underlying bignum.
  *
  * @return the size
@@ -254,20 +238,6 @@ CBigNum CBigNum::inverse(const CBigNum& m) const
     CBigNum ret;
     mpz_invert(ret.bn, bn, m.bn);
     return ret;
-}
-
-/**
- * Generates a random (safe) prime of numBits bits
- * @param numBits the number of bits
- * @param safe true for a safe prime
- * @return the prime
- */
-CBigNum CBigNum::generatePrime(const unsigned int numBits, bool safe)
-{
-    CBigNum rand = randKBitBignum(numBits);
-    CBigNum prime;
-    mpz_nextprime(prime.bn, rand.bn);
-    return prime;
 }
 
 /**

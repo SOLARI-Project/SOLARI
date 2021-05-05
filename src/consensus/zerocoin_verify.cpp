@@ -235,7 +235,7 @@ bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const lib
         }
     }
 
-    bool fUseV1Params = spend->getCoinVersion() < libzerocoin::PrivateCoin::PUBKEY_VERSION;
+    bool fUseV1Params = spend->getCoinVersion() < libzerocoin::PUBKEY_VERSION;
 
     //Reject serial's that are not in the acceptable value range
     if (!spend->HasValidSerial(consensus.Zerocoin_Params(fUseV1Params)))  {
