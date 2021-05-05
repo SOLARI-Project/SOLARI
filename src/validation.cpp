@@ -1741,10 +1741,17 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         nExpectedMint += nFees;
 
     //Check that the block does not overmint
-    if (!IsBlockValueValid(pindex->nHeight, nExpectedMint, nMint)) {
-        return state.DoS(100, error("ConnectBlock() : reward pays too much (actual=%s vs limit=%s)",
-                                    FormatMoney(nMint), FormatMoney(nExpectedMint)),
-                         REJECT_INVALID, "bad-cb-amount");
+    CAmount nBudgetAmt = 0;     // If this is a superblock, amount to be paid to the winning proposal, otherwise 0
+    if (!IsBlockValueValid(pindex->nHeight, nExpectedMint, nMint, nBudgetAmt)) {
+        return state.DoS(100, error("%s: reward pays too much (actual=%s vs limit=%s)",
+                                    __func__, FormatMoney(nMint), FormatMoney(nExpectedMint)),
+                         REJECT_INVALID, "bad-blk-amount");
+    }
+
+    // For blocks v10+: Check that the coinbase pays the exact amount
+    if (isPoSActive && pindex->nVersion >= 10 && !IsCoinbaseValueValid(block.vtx[0], nBudgetAmt, state)) {
+        // pass the state returned by the function above
+        return false;
     }
 
     if (!control.Wait())
@@ -2815,8 +2822,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
     if (IsPoS) {
-        // Coinbase output should be empty if proof-of-stake block
-        if (block.vtx[0]->vout.size() != 1 || !block.vtx[0]->vout[0].IsEmpty())
+        // Coinbase output should be empty if proof-of-stake block (before block v10)
+        if (block.nVersion < 10 && (block.vtx[0]->vout.size() != 1 || !block.vtx[0]->vout[0].IsEmpty()))
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-pos", false, "coinbase output not empty for proof-of-stake block");
 
         // Second transaction must be coinstake, the rest must not be
@@ -2836,14 +2843,16 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     // masternode payments / budgets
     CBlockIndex* pindexPrev = chainActive.Tip();
     int nHeight = 0;
-    if (pindexPrev != NULL) {
-        if (pindexPrev->GetBlockHash() == block.hashPrevBlock) {
-            nHeight = pindexPrev->nHeight + 1;
-        } else { //out of order
-            BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-            if (mi != mapBlockIndex.end() && (*mi).second)
-                nHeight = (*mi).second->nHeight + 1;
+    if (pindexPrev != nullptr && block.hashPrevBlock != UINT256_ZERO) {
+        if (pindexPrev->GetBlockHash() != block.hashPrevBlock) {
+            //out of order
+            auto mi = mapBlockIndex.find(block.hashPrevBlock);
+            if (mi == mapBlockIndex.end()) {
+                return false;
+            }
+            pindexPrev = mi->second;
         }
+        nHeight = pindexPrev->nHeight + 1;
 
         // PIVX
         // It is entierly possible that we don't have enough data and this could fail
@@ -2862,7 +2871,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
             fColdStakingActive = !sporkManager.IsSporkActive(SPORK_19_COLDSTAKING_MAINTENANCE);
 
             // check masternode/budget payment
-            if (!IsBlockPayeeValid(block, nHeight)) {
+            // !TODO: after transition to DMN is complete, check this also during IBD
+            if (!IsBlockPayeeValid(block, pindexPrev)) {
                 mapRejectedBlocks.emplace(block.GetHash(), GetTime());
                 return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee", false, "Couldn't find masternode/budget payment");
             }
@@ -3010,7 +3020,8 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
         (block.nVersion < 5 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_BIP65)) ||
         (block.nVersion < 6 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V3_4)) ||
         (block.nVersion < 7 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V4_0)) ||
-        (block.nVersion < 8 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0)))
+        (block.nVersion < 8 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0)) ||
+        (block.nVersion < 10 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0)))
     {
         std::string stringErr = strprintf("rejected block version %d at height %d", block.nVersion, nHeight);
         return state.Invalid(false, REJECT_OBSOLETE, "bad-version", stringErr);

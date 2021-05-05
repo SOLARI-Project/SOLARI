@@ -243,7 +243,7 @@ UniValue masternodecurrent (const JSONRPCRequest& request)
     if (!pChainTip) return "unknown";
 
     int nCount = 0;
-    const CMasternode* winner = mnodeman.GetNextMasternodeInQueueForPayment(pChainTip->nHeight + 1, true, nCount, pChainTip);
+    MasternodeRef winner = mnodeman.GetNextMasternodeInQueueForPayment(pChainTip->nHeight + 1, true, nCount, pChainTip);
     if (winner) {
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("protocol", (int64_t)winner->protocolVersion);

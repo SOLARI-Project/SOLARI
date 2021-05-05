@@ -144,17 +144,17 @@ public:
     void CheckSpentCollaterals(const std::vector<CTransactionRef>& vtx);
 
     /// Find an entry in the masternode list that is next to be paid
-    const CMasternode* GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount, const CBlockIndex* pChainTip = nullptr) const;
+    MasternodeRef GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount, const CBlockIndex* pChainTip = nullptr) const;
 
     /// Get the current winner for this block
-    const CMasternode* GetCurrentMasterNode(int mod = 1, int64_t nBlockHeight = 0, int minProtocol = 0) const;
+    MasternodeRef GetCurrentMasterNode(int nHeight, const uint256& hash) const;
 
     /// vector of pairs <masternode winner, height>
     std::vector<std::pair<MasternodeRef, int>> GetMnScores(int nLast) const;
 
     // Retrieve the known masternodes ordered by scoring without checking them. (Only used for listmasternodes RPC call)
     std::vector<std::pair<int64_t, MasternodeRef>> GetMasternodeRanks(int nBlockHeight) const;
-    int GetMasternodeRank(const CTxIn& vin, int64_t nBlockHeight, int minProtocol = 0, bool fOnlyActive = true) const;
+    int GetMasternodeRank(const CTxIn& vin, int64_t nBlockHeight) const;
 
     void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
 

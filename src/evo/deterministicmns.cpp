@@ -751,6 +751,10 @@ CDeterministicMNList CDeterministicMNManager::GetListForBlock(const CBlockIndex*
 {
     LOCK(cs);
 
+    if (!IsDIP3Enforced(pindex->nHeight)) {
+        return {};
+    }
+
     CDeterministicMNList snapshot;
     std::list<const CBlockIndex*> listDiffIndexes;
 

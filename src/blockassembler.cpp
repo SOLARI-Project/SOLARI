@@ -66,9 +66,22 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
     return nNewTime - nOldTime;
 }
 
+static CMutableTransaction NewCoinbase(const int nHeight, const CScript* pScriptPubKey = nullptr)
+{
+    CMutableTransaction txCoinbase;
+    txCoinbase.vout.emplace_back();
+    txCoinbase.vout[0].SetEmpty();
+    if (pScriptPubKey) txCoinbase.vout[0].scriptPubKey = *pScriptPubKey;
+    txCoinbase.vin.emplace_back();
+    txCoinbase.vin[0].scriptSig = CScript() << nHeight << OP_0;
+    return txCoinbase;
+}
+
 bool SolveProofOfStake(CBlock* pblock, CBlockIndex* pindexPrev, CWallet* pwallet, std::vector<CStakeableOutput>* availableCoins)
 {
     boost::this_thread::interruption_point();
+
+    assert(pindexPrev);
     pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
 
     // Sync wallet before create coinstake
@@ -76,23 +89,25 @@ bool SolveProofOfStake(CBlock* pblock, CBlockIndex* pindexPrev, CWallet* pwallet
 
     CMutableTransaction txCoinStake;
     int64_t nTxNewTime = 0;
-    if (!pwallet->CreateCoinStake(*pwallet, pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, availableCoins)) {
+    if (!pwallet->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, availableCoins)) {
         LogPrint(BCLog::STAKING, "%s : stake not found\n", __func__);
         return false;
     }
     // Stake found
-    pblock->nTime = nTxNewTime;
 
-    CMutableTransaction emptyTx;
-    emptyTx.vout.emplace_back();
-    emptyTx.vout[0].SetEmpty();
-    emptyTx.vin.emplace_back();
-    emptyTx.vin[0].scriptSig = CScript() << pindexPrev->nHeight + 1 << OP_0;
-    pblock->vtx.emplace_back(
-            std::make_shared<const CTransaction>(emptyTx));
-    // stake
-    pblock->vtx.emplace_back(
-            std::make_shared<const CTransaction>(txCoinStake));
+    // Create coinbase tx and add masternode/budget payments
+    CMutableTransaction txCoinbase = NewCoinbase(pindexPrev->nHeight + 1);
+    FillBlockPayee(txCoinbase, txCoinStake, pindexPrev, true);
+
+    // Sign coinstake
+    if (!pwallet->SignCoinStake(txCoinStake)) {
+        const COutPoint& stakeIn = txCoinStake.vin[0].prevout;
+        return error("Unable to sign coinstake with input %s-%d", stakeIn.hash.ToString(), stakeIn.n);
+    }
+
+    pblock->vtx.emplace_back(MakeTransactionRef(txCoinbase));
+    pblock->vtx.emplace_back(MakeTransactionRef(txCoinStake));
+    pblock->nTime = nTxNewTime;
     return true;
 }
 
@@ -102,23 +117,18 @@ bool CreateCoinbaseTx(CBlock* pblock, const CScript& scriptPubKeyIn, CBlockIndex
     const int nHeight = pindexPrev->nHeight + 1;
 
     // Create coinbase tx
-    CMutableTransaction txNew;
-    txNew.vin.resize(1);
-    txNew.vin[0].prevout.SetNull();
-    txNew.vout.resize(1);
-    txNew.vout[0].scriptPubKey = scriptPubKeyIn;
+    CMutableTransaction txCoinbase = NewCoinbase(nHeight, &scriptPubKeyIn);
 
     //Masternode and general budget payments
-    FillBlockPayee(txNew, nHeight, false);
+    CMutableTransaction txDummy;    // POW blocks have no coinstake
+    FillBlockPayee(txCoinbase, txDummy, pindexPrev, false);
 
-    txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
     // If no payee was detected, then the whole block value goes to the first output.
-    if (txNew.vout.size() == 1) {
-        txNew.vout[0].nValue = GetBlockValue(nHeight);
+    if (txCoinbase.vout.size() == 1) {
+        txCoinbase.vout[0].nValue = GetBlockValue(nHeight);
     }
 
-    pblock->vtx.emplace_back(
-            std::make_shared<const CTransaction>(CTransaction(txNew)));
+    pblock->vtx.emplace_back(MakeTransactionRef(txCoinbase));
     return true;
 }
 
@@ -493,8 +503,10 @@ void IncrementExtraNonce(std::shared_ptr<CBlock>& pblock, const CBlockIndex* pin
 
 int32_t ComputeBlockVersion(const Consensus::Params& consensus, int nHeight)
 {
-    if (NetworkUpgradeActive(nHeight, consensus, Consensus::UPGRADE_V5_0)) {
-        return CBlockHeader::CURRENT_VERSION;    // v9
+    if (NetworkUpgradeActive(nHeight, consensus, Consensus::UPGRADE_V6_0)) {
+        return CBlockHeader::CURRENT_VERSION;    // v10
+    } else if (NetworkUpgradeActive(nHeight, consensus, Consensus::UPGRADE_V5_0)) {
+        return 9;
     } else if (consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V4_0)) {
         return 7;
     } else if (consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V3_4)) {

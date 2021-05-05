@@ -3208,16 +3208,12 @@ bool CWallet::CreateTransaction(CScript scriptPubKey, const CAmount& nValue, CTr
 }
 
 bool CWallet::CreateCoinStake(
-        const CKeyStore& keystore,
         const CBlockIndex* pindexPrev,
         unsigned int nBits,
         CMutableTransaction& txNew,
         int64_t& nTxNewTime,
-        std::vector<CStakeableOutput>* availableCoins)
+        std::vector<CStakeableOutput>* availableCoins) const
 {
-
-    const Consensus::Params& consensus = Params().GetConsensus();
-
     // Mark coin stake transaction
     txNew.vin.clear();
     txNew.vout.clear();
@@ -3296,32 +3292,23 @@ bool CWallet::CreateCoinStake(
         // put the remaining on the last output (which all into the first if only one output)
         txNew.vout[outputs].nValue += nRemaining;
 
+        // Set coinstake input
+        txNew.vin.emplace_back(stakeInput.GetTxIn());
+
         // Limit size
         unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
         if (nBytes >= DEFAULT_BLOCK_MAX_SIZE / 5)
             return error("%s : exceeded coinstake size limit", __func__);
 
-        // Masternode payment
-        FillBlockPayee(txNew, pindexPrev->nHeight + 1, true);
-
-        const uint256& hashTxOut = txNew.GetHash();
-        CTxIn in;
-        if (!stakeInput.CreateTxIn(this, in, hashTxOut)) {
-            LogPrintf("%s : failed to create TxIn\n", __func__);
-            txNew.vin.clear();
-            txNew.vout.clear();
-            it++;
-            continue;
-        }
-        txNew.vin.emplace_back(in);
-
         break;
     }
     LogPrint(BCLog::STAKING, "%s: attempted staking %d times\n", __func__, nAttempts);
 
-    if (!fKernelFound)
-        return false;
+    return fKernelFound;
+}
 
+bool CWallet::SignCoinStake(CMutableTransaction& txNew) const
+{
     // Sign it
     int nIn = 0;
     for (const CTxIn& txIn : txNew.vin) {
@@ -3330,7 +3317,7 @@ bool CWallet::CreateCoinStake(
             return error("%s : failed to sign coinstake", __func__);
     }
 
-    // Successfully generated coinstake
+    // Successfully signed coinstake
     return true;
 }
 

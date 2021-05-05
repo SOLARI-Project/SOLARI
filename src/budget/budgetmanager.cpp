@@ -415,7 +415,7 @@ bool CBudgetManager::GetExpectedPayeeAmount(int chainHeight, CAmount& nAmountRet
     return GetPayeeAndAmount(chainHeight, payeeRet, nAmountRet);
 }
 
-bool CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, const int nHeight, bool fProofOfStake) const
+bool CBudgetManager::FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake) const
 {
     if (nHeight <= 0) return false;
 
@@ -427,19 +427,29 @@ bool CBudgetManager::FillBlockPayee(CMutableTransaction& txNew, const int nHeigh
 
     CAmount blockValue = GetBlockValue(nHeight);
 
+    // Starting from PIVX v6.0 masternode and budgets are paid in the coinbase tx of PoS blocks (block v10)
+    const bool fPayCoinstake = fProofOfStake &&
+                               !Params().GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0);
+
     if (fProofOfStake) {
-        unsigned int i = txNew.vout.size();
-        txNew.vout.resize(i + 1);
-        txNew.vout[i].scriptPubKey = payee;
-        txNew.vout[i].nValue = nAmount;
+        if (fPayCoinstake) {
+            unsigned int i = txCoinstake.vout.size();
+            txCoinstake.vout.resize(i + 1);
+            txCoinstake.vout[i].scriptPubKey = payee;
+            txCoinstake.vout[i].nValue = nAmount;
+        } else {
+            txCoinbase.vout.resize(1);
+            txCoinbase.vout[0].scriptPubKey = payee;
+            txCoinbase.vout[0].nValue = nAmount;
+        }
     } else {
         //miners get the full amount on these blocks
-        txNew.vout[0].nValue = blockValue;
-        txNew.vout.resize(2);
+        txCoinbase.vout[0].nValue = blockValue;
+        txCoinbase.vout.resize(2);
 
         //these are super blocks, so their value can be much larger than normal
-        txNew.vout[1].scriptPubKey = payee;
-        txNew.vout[1].nValue = nAmount;
+        txCoinbase.vout[1].scriptPubKey = payee;
+        txCoinbase.vout[1].nValue = nAmount;
     }
 
     CTxDestination address;
