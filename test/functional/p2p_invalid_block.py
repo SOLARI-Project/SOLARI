@@ -106,7 +106,7 @@ class InvalidBlockRequestTest(PivxTestFramework):
         block3.rehash()
         block3.solve()
 
-        node.p2p.send_blocks_and_test([block3], node, success=False, reject_reason='bad-cb-amount')
+        node.p2p.send_blocks_and_test([block3], node, success=False, reject_reason='bad-blk-amount')
 
 
         # Complete testing of CVE-2012-2459 by sending the original block.
