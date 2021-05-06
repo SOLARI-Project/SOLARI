@@ -10,7 +10,8 @@
 #include "core_io.h"
 #include "evo/specialtx.h"
 #include "guiinterface.h"
-#include "masternode.h" // for MN_COLL_AMT, MasternodeCollateralMinConf
+#include "masternode.h" // for MasternodeCollateralMinConf
+#include "masternodeman.h" // for mnodeman (!TODO: remove)
 #include "script/standard.h"
 #include "spork.h"
 #include "sync.h"
@@ -90,14 +91,15 @@ void CDeterministicMN::ToJson(UniValue& obj) const
     obj.pushKV("collateralHash", collateralOutpoint.hash.ToString());
     obj.pushKV("collateralIndex", (int)collateralOutpoint.n);
 
+    std::string collateralAddressStr = "";
     Coin coin;
     if (GetUTXOCoin(collateralOutpoint, coin)) {
         CTxDestination dest;
         if (ExtractDestination(coin.out.scriptPubKey, dest)) {
-            obj.pushKV("collateralAddress", EncodeDestination(dest));
+            collateralAddressStr = EncodeDestination(dest);
         }
     }
-
+    obj.pushKV("collateralAddress", collateralAddressStr);
     obj.pushKV("operatorReward", (double)nOperatorReward / 100);
     obj.pushKV("dmnstate", stateObj);
 }
@@ -651,8 +653,17 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, const C
             dmn->collateralOutpoint = pl.collateralOutpoint.hash.IsNull() ? COutPoint(tx.GetHash(), pl.collateralOutpoint.n)
                                                                           : pl.collateralOutpoint;
 
+            // if the collateral outpoint appears in the legacy masternode list, remove the old node
+            // !TODO: remove this when the transition to DMN is complete
+            CMasternode* old_mn = mnodeman.Find(dmn->collateralOutpoint);
+            if (old_mn) {
+                old_mn->SetSpent();
+                mnodeman.CheckAndRemove();
+            }
+
             Coin coin;
-            if (!pl.collateralOutpoint.hash.IsNull() && (!GetUTXOCoin(pl.collateralOutpoint, coin) || coin.out.nValue != MN_COLL_AMT)) {
+            const CAmount collAmt = Params().GetConsensus().nMNCollateralAmt;
+            if (!pl.collateralOutpoint.hash.IsNull() && (!GetUTXOCoin(pl.collateralOutpoint, coin) || coin.out.nValue != collAmt)) {
                 // should actually never get to this point as CheckProRegTx should have handled this case.
                 // We do this additional check nevertheless to be 100% sure
                 return _state.DoS(100, false, REJECT_INVALID, "bad-protx-collateral");

@@ -18,10 +18,6 @@
 /* Depth of the block pinged by masternodes */
 static const unsigned int MNPING_DEPTH = 12;
 
-/* Masternode collateral amount */
-static const CAmount MN_COLL_AMT = 10000 * COIN;
-
-
 class CMasternode;
 class CMasternodeBroadcast;
 class CMasternodePing;
@@ -193,7 +189,11 @@ public:
         return lastPing.IsNull() ? false : now - lastPing.sigTime < seconds;
     }
 
-    void SetSpent() { fCollateralSpent = true; }
+    void SetSpent()
+    {
+        LOCK(cs);
+        fCollateralSpent = true;
+    }
 
     void Disable()
     {
