@@ -207,7 +207,6 @@ static CKeyID ParsePubKeyIDFromAddress(const std::string& strAddress)
 template<typename SpecialTxPayload>
 static void FundSpecialTx(CWallet* pwallet, CMutableTransaction& tx, SpecialTxPayload& payload)
 {
-    assert(pwallet != nullptr);
     SetTxPayload(tx, payload);
 
     static CTxOut dummyTxOut(0, CScript() << OP_RETURN);
