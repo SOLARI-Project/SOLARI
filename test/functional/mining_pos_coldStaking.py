@@ -125,7 +125,7 @@ class PIVX_ColdStakingTest(PivxTestFramework):
                                                              "amount": Decimal('250.00')}], 1)
         self.sync_all()
         for i in range(6):
-            self.mocktime = self.generate_pow(0, self.mocktime)
+            self.mocktime = self.generate_pos(0, self.mocktime)
         self.sync_blocks()
         assert_equal(self.nodes[0].getshieldbalance(), 250)
 
