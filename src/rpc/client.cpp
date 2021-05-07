@@ -147,6 +147,8 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "setstakesplitthreshold", 0 },
     { "autocombinerewards", 0 },
     { "autocombinerewards", 1 },
+    { "setautocombinethreshold", 0 },
+    { "setautocombinethreshold", 1 },
     { "getblockindexstats", 0 },
     { "getblockindexstats", 1 },
     { "getfeeinfo", 0 },

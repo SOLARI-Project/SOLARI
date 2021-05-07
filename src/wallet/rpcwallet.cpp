@@ -3722,6 +3722,8 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
             "  \"immature_cold_staking_balance\": xxxxxx, (numeric) the cold-staking immature balance of the wallet in PIV\n"
             "  \"immature_balance\": xxxxxx,              (numeric) the total immature balance of the wallet in PIV\n"
             "  \"txcount\": xxxxxxx,                      (numeric) the total number of transactions in the wallet\n"
+            "  \"autocombine_enabled\": true|false,       (boolean) true if autocombine is enabled, otherwise false\n"
+            "  \"autocombine_threshold\": x.xxx,          (numeric) the current autocombine threshold in PIV\n"
             "  \"keypoololdest\": xxxxxx,                 (numeric) the timestamp (seconds since GMT epoch) of the oldest pre-generated key in the key pool\n"
             "  \"keypoolsize\": xxxx,                     (numeric) how many new keys are pre-generated (only counts external keys)\n"
             "  \"keypoolsize_hd_internal\": xxxx,         (numeric) how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)\n"
@@ -3751,8 +3753,13 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     obj.pushKV("immature_delegated_balance",    ValueFromAmount(pwalletMain->GetImmatureDelegatedBalance()));
     obj.pushKV("immature_cold_staking_balance",    ValueFromAmount(pwalletMain->GetImmatureColdStakingBalance()));
     obj.pushKV("txcount", (int)pwalletMain->mapWallet.size());
-    obj.pushKV("keypoololdest", pwalletMain->GetOldestKeyPoolTime());
 
+    // Autocombine settings
+    obj.pushKV("autocombine_enabled", pwalletMain->fCombineDust);
+    obj.pushKV("autocombine_threshold", ValueFromAmount(pwalletMain->nAutoCombineThreshold));
+
+    // Keypool information
+    obj.pushKV("keypoololdest", pwalletMain->GetOldestKeyPoolTime());
     size_t kpExternalSize = pwalletMain->KeypoolCountExternalKeys();
     obj.pushKV("keypoolsize", (int64_t)kpExternalSize);
 
@@ -3895,6 +3902,7 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 1 || (fEnable && request.params.size() != 2) || request.params.size() > 2)
         throw std::runtime_error(
             "autocombinerewards enable ( threshold )\n"
+            "\nDEPRECATED!!! This command has been replaced with setautocombinethreshold and getautocombinethreshold and will be removed in a future version!!!\n"
             "\nWallet will automatically monitor for any coins with value below the threshold amount, and combine them if they reside with the same PIVX address\n"
             "When autocombinerewards runs it will create a transaction, and therefore will be subject to transaction fees.\n"
 
@@ -3908,8 +3916,11 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
     CWalletDB walletdb(pwalletMain->GetDBHandle());
     CAmount nThreshold = 0;
 
-    if (fEnable)
-        nThreshold = request.params[1].get_int();
+    if (fEnable && request.params.size() > 1) {
+        nThreshold = AmountFromValue(request.params[1]);
+        if (nThreshold < COIN)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("The threshold value cannot be less than %s", FormatMoney(COIN)));
+    }
 
     pwalletMain->fCombineDust = fEnable;
     pwalletMain->nAutoCombineThreshold = nThreshold;
@@ -3918,6 +3929,92 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
         throw std::runtime_error("Changed settings in wallet but failed to save to database\n");
 
     return NullUniValue;
+}
+
+UniValue setautocombinethreshold(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.empty() || request.params.size() > 2)
+        throw std::runtime_error(
+            "setautocombinethreshold enable ( value )\n"
+            "\nThis will set the auto-combine threshold value.\n"
+            "\nWallet will automatically monitor for any coins with value below the threshold amount, and combine them if they reside with the same PIVX address\n"
+            "When auto-combine runs it will create a transaction, and therefore will be subject to transaction fees.\n"
+
+            "\nArguments:\n"
+            "1. enable          (boolean, required) Enable auto combine (true) or disable (false).\n"
+            "2. threshold       (numeric, optional. required if enable is true) Threshold amount. Must be greater than 1.\n"
+
+            "\nResult:\n"
+            "{\n"
+            "  \"enabled\": true|false,      (boolean) true if auto-combine is enabled, otherwise false\n"
+            "  \"threshold\": n.nnn,         (numeric) auto-combine threshold in PIV\n"
+            "  \"saved\": true|false         (boolean) true if setting was saved to the database, otherwise false\n"
+            "}\n"
+
+            "\nExamples:\n" +
+            HelpExampleCli("setautocombinethreshold", "500.12") + HelpExampleRpc("setautocombinethreshold", "500.12"));
+
+    EnsureWallet();
+
+    RPCTypeCheck(request.params, {UniValue::VBOOL, UniValue::VNUM});
+
+    bool fEnable = request.params[0].get_bool();
+    CAmount nThreshold = 0;
+
+    if (fEnable) {
+        if (request.params.size() < 2) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing threshold value");
+        }
+        nThreshold = AmountFromValue(request.params[1]);
+        if (nThreshold < COIN)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("The threshold value cannot be less than %s", FormatMoney(COIN)));
+    }
+
+    CWalletDB walletdb(pwalletMain->GetDBHandle());
+
+    {
+        LOCK(pwalletMain->cs_wallet);
+        pwalletMain->fCombineDust = fEnable;
+        pwalletMain->nAutoCombineThreshold = nThreshold;
+
+        UniValue result(UniValue::VOBJ);
+        result.pushKV("enabled", fEnable);
+        result.pushKV("threshold", ValueFromAmount(pwalletMain->nAutoCombineThreshold));
+        if (walletdb.WriteAutoCombineSettings(fEnable, nThreshold)) {
+            result.pushKV("saved", "true");
+        } else {
+            result.pushKV("saved", "false");
+        }
+
+        return result;
+    }
+}
+
+UniValue getautocombinethreshold(const JSONRPCRequest& request)
+{
+    if (request.fHelp || !request.params.empty())
+        throw std::runtime_error(
+            "getautocombinethreshold\n"
+            "\nReturns the current threshold for auto combining UTXOs, if any\n"
+
+            "\nResult:\n"
+            "{\n"
+            "  \"enabled\": true|false,        (boolean) true if auto-combine is enabled, otherwise false\n"
+            "  \"threshold\": n.nnn            (numeric) the auto-combine threshold amount in PIV\n"
+            "}\n"
+
+            "\nExamples:\n" +
+            HelpExampleCli("getautocombinethreshold", "") + HelpExampleRpc("getautocombinethreshold", ""));
+
+    EnsureWallet();
+
+    LOCK(pwalletMain->cs_wallet);
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("enabled", pwalletMain->fCombineDust);
+    result.pushKV("threshold", ValueFromAmount(pwalletMain->nAutoCombineThreshold));
+
+    return result;
 }
 
 UniValue printAddresses()
@@ -4076,6 +4173,8 @@ static const CRPCCommand commands[] =
   //  --------------------- ------------------------    -----------------------    ----------
     { "wallet",             "getaddressinfo",           &getaddressinfo,           true  },
     { "wallet",             "autocombinerewards",       &autocombinerewards,       false },
+    { "wallet",             "setautocombinethreshold",  &setautocombinethreshold,  false },
+    { "wallet",             "getautocombinethreshold",  &getautocombinethreshold,  false },
     { "wallet",             "abandontransaction",       &abandontransaction,       false },
     { "wallet",             "abortrescan",              &abortrescan,              false },
     { "wallet",             "addmultisigaddress",       &addmultisigaddress,       true  },

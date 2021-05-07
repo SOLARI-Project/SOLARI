@@ -48,6 +48,46 @@ Notable Changes
 
 A new init option flag '-blocksdir' will allow one to keep the blockfiles external from the data directory.
 
+
+#### Show wallet's auto-combine settings in getwalletinfo
+
+`getwalletinfo` now has two additional return fields. `autocombine_enabled` (boolean) and `autocombine_threshold` (numeric) that will show the auto-combine threshold and whether or not it is currently enabled.
+
+#### Deprecate the autocombine RPC command
+
+The `autocombine` RPC command has been replaced with specific set/get commands (`setautocombinethreshold` and `getautocombinethreshold`, respectively) to bring this functionality further in-line with our RPC standards. Previously, the `autocombine` command gave no user-facing feedback when the setting was changed. This is now resolved with the introduction of the two new commands as detailed below:
+
+* `setautocombinethreshold`
+    ```  
+    setautocombinethreshold enable ( value )
+    This will set the auto-combine threshold value.
+    Wallet will automatically monitor for any coins with value below the threshold amount, and combine them if they reside with the same PIVX address
+    When auto-combine runs it will create a transaction, and therefore will be subject to transaction fees.
+    
+    Arguments:
+    1. enable          (boolean, required) Enable auto combine (true) or disable (false)
+    2. threshold       (numeric, optional. required if enable is true) Threshold amount. Must be greater than 1.
+    
+    Result:
+    {
+      "enabled": true|false,     (boolean) true if auto-combine is enabled, otherwise false
+      "threshold": n.nnn,        (numeric) auto-combine threshold in PIV
+      "saved": true|false        (boolean) true if setting was saved to the database, otherwise false
+    }
+    ```
+
+* `getautocombinethreshold`
+    ```
+    getautocombinethreshold
+    Returns the current threshold for auto combining UTXOs, if any
+
+    Result:
+    {
+      "enabled": true|false,    (boolean) true if auto-combine is enabled, otherwise false
+      "threshold": n.nnn         (numeric) the auto-combine threshold amount in PIV
+    }
+    ```
+
 #### Disable PoW mining RPC Commands
 
 A new configure flag has been introduced to allow more granular control over weather or not the PoW mining RPC commands are compiled into the wallet. By default they are not. This behavior can be overridden by passing `--enable-mining-rpc` to the `configure` script.
