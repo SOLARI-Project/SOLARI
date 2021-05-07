@@ -90,7 +90,8 @@ jobs:
       - name: Setup Environment
         run: |
           if [[ ${{ matrix.config.os }} = ubuntu* ]]; then
-            sudo apt-get update
+            sudo apt-add-repository "ppa:ondrej/php" -y
+            sudo apt-get --yes update
             sudo apt-get install --no-install-recommends --no-upgrade -qq "$APT_BASE" ${{ matrix.config.packages }}
           fi
           if [[ ${{ matrix.config.os }} = macos* ]]; then
@@ -331,7 +332,8 @@ jobs:
 
       - name: Setup Environment
         run: |
-          sudo apt-get update
+          sudo apt-add-repository "ppa:ondrej/php" -y
+          sudo apt-get --yes update
           sudo apt-get install --no-install-recommends --no-upgrade -qq "$APT_BASE" ${{ matrix.config.apt_get }}
 
       - name: depends cache files
