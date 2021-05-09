@@ -44,6 +44,35 @@ Notable Changes
 
 (Developers: add your notes here as part of your pull requests whenever possible)
 
+GUI changes
+-----------
+
+### RPC-Console
+
+The GUI RPC-Console now accepts "parenthesized syntax", nested commands, and simple queries (see [PR #2282](https://github.com/PIVX-Project/PIVX/pull/2282).
+A new command `help-console` (available only on the GUI console) documents how to use it:
+
+```
+This console accepts RPC commands using the standard syntax.
+    example:    getblockhash 0
+
+This console can also accept RPC commands using parenthesized syntax.
+    example:    getblockhash(0)
+
+Commands may be nested when specified with the parenthesized syntax.
+    example:    getblock(getblockhash(0) true)
+
+A space or a comma can be used to delimit arguments for either syntax.
+    example:    getblockhash 0
+                getblockhash,0
+
+Named results can be queried with a non-quoted key string in brackets.
+    example:    getblock(getblockhash(0) true)[tx]
+
+Results without keys can be queried using an integer in brackets.
+    example:    getblock(getblockhash(0),true)[tx][0]
+```
+
 #### Allow to optional specify the directory for the blocks storage
 
 A new init option flag '-blocksdir' will allow one to keep the blockfiles external from the data directory.
