@@ -118,7 +118,6 @@ BOOST_AUTO_TEST_CASE(MempoolIndexingTest)
 {
     CTxMemPool pool(CFeeRate(0));
     TestMemPoolEntryHelper entry;
-    entry.hadNoDependencies = true;
 
     /* 3rd highest fee */
     CMutableTransaction tx1 = CMutableTransaction();
@@ -320,7 +319,6 @@ BOOST_AUTO_TEST_CASE(MempoolAncestorIndexingTest)
 {
     CTxMemPool pool(CFeeRate(0));
     TestMemPoolEntryHelper entry;
-    entry.hadNoDependencies = true;
 
     /* 3rd highest fee */
     CMutableTransaction tx1 = CMutableTransaction();
@@ -407,7 +405,7 @@ BOOST_AUTO_TEST_CASE(MempoolAncestorIndexingTest)
     /* set the fee to just below tx2's feerate when including ancestor */
     CAmount fee = (20000/tx2Size)*(tx7Size + tx6Size) - 1;
 
-    //CTxMemPoolEntry entry7(tx7, fee, 2, 10.0, 1, true);
+    //CTxMemPoolEntry entry7(tx7, fee, 2, 10.0, 1);
     pool.addUnchecked(tx7.GetHash(), entry.Fee(fee).FromTx(tx7));
     BOOST_CHECK_EQUAL(pool.size(), 7);
     sortedOrder.insert(sortedOrder.begin()+1, tx7.GetHash().ToString());

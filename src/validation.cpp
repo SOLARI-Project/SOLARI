@@ -551,7 +551,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         }
 
         CTxMemPoolEntry entry(_tx, nFees, nAcceptTime, dPriority, chainHeight,
-                              !IsInitialBlockDownload() && pool.HasNoInputsOf(tx),
                               inChainInputValue, fSpendsCoinbaseOrCoinstake, nSigOps);
         unsigned int nSize = entry.GetTxSize();
 
@@ -625,7 +624,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         // todo: pool.removeStaged for all conflicting entries
 
         // Store transaction in memory
-        pool.addUnchecked(hash, entry, setAncestors, !IsInitialBlockDownload());
+        pool.addUnchecked(hash, entry, setAncestors, !IsInitialBlockDownload() && pool.HasNoInputsOf(tx));
 
         // trim mempool and check if tx was trimmed
         if (!fOverrideMempoolLimit) {

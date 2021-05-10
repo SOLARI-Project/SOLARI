@@ -491,7 +491,7 @@ CBlockIndex* SimpleFakeMine(CWalletTx& wtx, CWallet &wallet, CBlockIndex* pprev 
 
 void fakeMempoolInsertion(const CTransactionRef& wtxCredit)
 {
-    CTxMemPoolEntry entry(wtxCredit, 0, 0, 0, 0, false, 0, false, 0);
+    CTxMemPoolEntry entry(wtxCredit, 0, 0, 0.0, 0, 0, false, 0);
     LOCK(mempool.cs);
     mempool.mapTx.insert(entry);
 }

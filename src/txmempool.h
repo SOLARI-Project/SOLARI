@@ -63,7 +63,6 @@ private:
     int64_t nTime;        //! Local time when entering the mempool
     double entryPriority;     //! Priority when entering the mempool
     unsigned int entryHeight; //! Chain height when entering the mempool
-    bool hadNoDependencies; //! Not dependent on any other txs when it entered the mempool
     CAmount inChainInputValue; //! Sum of all txin values that are already in blockchain
     bool spendsCoinbaseOrCoinstake; //! keep track of transactions that spend a coinbase or a coinstake
     unsigned int sigOpCount; //! Legacy sig ops plus P2SH sig op count
@@ -87,7 +86,7 @@ private:
 public:
     CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
             int64_t _nTime, double _entryPriority, unsigned int _entryHeight,
-            bool poolHasNoInputsOf, CAmount _inChainInputValue, bool _spendsCoinbaseOrCoinstake,
+            CAmount _inChainInputValue, bool _spendsCoinbaseOrCoinstake,
             unsigned int nSigOps);
 
     const CTransaction& GetTx() const { return *this->tx; }
@@ -103,7 +102,6 @@ public:
     unsigned int GetHeight() const { return entryHeight; }
     bool HasZerocoins() const { return hasZerocoins; }
     bool IsShielded() const { return m_isShielded; }
-    bool WasClearAtEntry() const { return hadNoDependencies; }
     unsigned int GetSigOpCount() const { return sigOpCount; }
     int64_t GetModifiedFee() const { return nFee + feeDelta; }
     size_t DynamicMemoryUsage() const { return nUsageSize; }

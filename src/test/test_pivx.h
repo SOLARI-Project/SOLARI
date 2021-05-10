@@ -121,13 +121,12 @@ struct TestMemPoolEntryHelper
     CAmount nFee;
     int64_t nTime;
     unsigned int nHeight;
-    bool hadNoDependencies;
     bool spendsCoinbaseOrCoinstake;
     unsigned int sigOpCount;
 
     TestMemPoolEntryHelper() :
         nFee(0), nTime(0), nHeight(1),
-        hadNoDependencies(false), spendsCoinbaseOrCoinstake(false), sigOpCount(1) { }
+        spendsCoinbaseOrCoinstake(false), sigOpCount(1) { }
 
     CTxMemPoolEntry FromTx(const CMutableTransaction& tx);
     CTxMemPoolEntry FromTx(const CTransaction& tx);
@@ -136,7 +135,6 @@ struct TestMemPoolEntryHelper
     TestMemPoolEntryHelper &Fee(CAmount _fee) { nFee = _fee; return *this; }
     TestMemPoolEntryHelper &Time(int64_t _time) { nTime = _time; return *this; }
     TestMemPoolEntryHelper &Height(unsigned int _height) { nHeight = _height; return *this; }
-    TestMemPoolEntryHelper &HadNoDependencies(bool _hnd) { hadNoDependencies = _hnd; return *this; }
     TestMemPoolEntryHelper &SpendsCoinbaseOrCoinstake(bool _flag) { spendsCoinbaseOrCoinstake = _flag; return *this; }
     TestMemPoolEntryHelper &SigOps(unsigned int _sigops) { sigOpCount = _sigops; return *this; }
 };
