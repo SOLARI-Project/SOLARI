@@ -357,7 +357,6 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
     ++nBlockTx;
     nBlockSigOps += iter->GetSigOpCount();
     nFees += iter->GetFee();
-    if (iter->IsShielded()) nSizeShielded += iter->GetTxSize();
     inBlock.insert(iter);
 
     bool fPrintPriority = gArgs.GetBoolArg("-printpriority", defaultPrintPriority);
@@ -588,9 +587,22 @@ void BlockAssembler::addPackageTxs()
         SortForBlock(ancestors, iter, sortedEntries);
 
         for (size_t i = 0; i < sortedEntries.size(); ++i) {
-            AddToBlock(sortedEntries[i]);
+            CTxMemPool::txiter& iter = sortedEntries[i];
+            if (iter->IsShielded()) {
+                // Don't add SHIELD transactions if in maintenance (SPORK_20)
+                if (sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE)) {
+                    break;
+                }
+                // Don't add SHIELD transactions if there's no reserved space left in the block
+                if (nSizeShielded + iter->GetTxSize() > MAX_BLOCK_SHIELDED_TXES_SIZE) {
+                    break;
+                }
+                // Update cumulative size of SHIELD transactions in this block
+                nSizeShielded += iter->GetTxSize();
+            }
+            AddToBlock(iter);
             // Erase from the modified set, if present
-            mapModifiedTx.erase(sortedEntries[i]);
+            mapModifiedTx.erase(iter);
         }
 
         // Update transactions that depend on each of these
