@@ -27,11 +27,11 @@ class WalletSaplingTest(PivxTestFramework):
         self.extra_args = [saplingUpgrade, saplingUpgrade, saplingUpgrade, saplingUpgrade]
         self.extra_args[0].append('-sporkkey=932HEevBSujW2ud7RfB1YF91AFygbBRQj3de3LyaCRqNzKKgWXi')
 
-    def check_tx_priority(self, txids):
+    def check_tx_in_mempool(self, txids):
         self.sync_mempools()
         mempool = self.nodes[0].getrawmempool(True)
         for txid in txids:
-            assert(Decimal(mempool[txid]['startingpriority']) == Decimal('1E+25'))
+            assert txid in mempool
 
     def wait_for_spork(self, fEnabled, spork_id):
         sleep(2)
@@ -92,10 +92,7 @@ class WalletSaplingTest(PivxTestFramework):
         # shield more funds automatically selecting the transparent inputs
         self.log.info("TX 2: shield funds from any transparent address.")
         mytxid2 = self.nodes[0].shieldsendmany("from_transparent", recipients, 1, fee)
-
-        # Verify priority of tx is INF_PRIORITY, defined as 1E+25 (10000000000000000000000000)
-        self.check_tx_priority([mytxid1, mytxid2])
-        self.log.info("Priority for tx1 and tx2 checks out")
+        self.check_tx_in_mempool([mytxid1, mytxid2])
 
         self.nodes[2].generate(1)
         self.sync_all()
@@ -122,10 +119,7 @@ class WalletSaplingTest(PivxTestFramework):
         self.wait_for_spork(False, SPORK_20)
         mytxid3 = self.nodes[0].sendrawtransaction(tx_hex)
         self.log.info("Good. Accepted when SPORK_20 is not active.")
-
-        # Verify priority of tx is INF_PRIORITY, defined as 1E+25 (10000000000000000000000000)
-        self.check_tx_priority([mytxid3])
-        self.log.info("Priority for tx3 checks out")
+        self.check_tx_in_mempool([mytxid3])
 
         self.nodes[2].generate(1)
         self.sync_all()
@@ -165,7 +159,7 @@ class WalletSaplingTest(PivxTestFramework):
         self.log.info("TX 4: shield transaction from specified sapling address.")
         recipients4 = [{"address": saplingAddr1, "amount": Decimal('10')}]
         mytxid4 = self.nodes[0].shieldsendmany(saplingAddr0, recipients4, 1, fee)
-        self.check_tx_priority([mytxid4])
+        self.check_tx_in_mempool([mytxid4])
 
         self.nodes[2].generate(1)
         self.sync_all()
@@ -174,7 +168,7 @@ class WalletSaplingTest(PivxTestFramework):
         self.log.info("TX 5: shield transaction from any sapling address.")
         recipients5 = [{"address": saplingAddr1, "amount": Decimal('5')}]
         mytxid5 = self.nodes[0].shieldsendmany("from_shield", recipients5, 1, fee)
-        self.check_tx_priority([mytxid5])
+        self.check_tx_in_mempool([mytxid5])
 
         self.nodes[2].generate(1)
         self.sync_all()
@@ -183,7 +177,7 @@ class WalletSaplingTest(PivxTestFramework):
         self.log.info("TX 6: shield raw transaction.")
         tx_hex = self.nodes[0].rawshieldsendmany("from_shield", recipients5, 1, fee)
         mytxid6 = self.nodes[0].sendrawtransaction(tx_hex)
-        self.check_tx_priority([mytxid6])
+        self.check_tx_in_mempool([mytxid6])
 
         self.nodes[2].generate(1)
         self.sync_all()
@@ -193,7 +187,7 @@ class WalletSaplingTest(PivxTestFramework):
         self.log.info("TX 7: shield funds to later verify multi source notes spending.")
         recipients = [{"address": saplingAddr2, "amount": Decimal('10')}]
         mytxid7 = self.nodes[0].shieldsendmany(get_coinstake_address(self.nodes[0]), recipients, 1, fee)
-        self.check_tx_priority([mytxid7])
+        self.check_tx_in_mempool([mytxid7])
 
         self.nodes[2].generate(5)
         self.sync_all()
@@ -203,7 +197,7 @@ class WalletSaplingTest(PivxTestFramework):
         self.log.info("TX 8: verifying multi source notes spending.")
         recipients = [{"address": tAddr0, "amount": Decimal('11')}]
         mytxid8 = self.nodes[0].shieldsendmany("from_shield", recipients, 1, fee)
-        self.check_tx_priority([mytxid8])
+        self.check_tx_in_mempool([mytxid8])
 
         self.nodes[2].generate(1)
         self.sync_all()
@@ -224,7 +218,7 @@ class WalletSaplingTest(PivxTestFramework):
         recipients7 = [{"address": saplingAddr0, "amount": Decimal('8')}]
         recipients7.append({"address": taddr1, "amount": Decimal('10')})
         mytxid7 = self.nodes[1].shieldsendmany(saplingAddr1, recipients7, 1, fee)
-        self.check_tx_priority([mytxid7])
+        self.check_tx_in_mempool([mytxid7])
 
         self.nodes[2].generate(1)
         self.sync_all()
@@ -288,7 +282,7 @@ class WalletSaplingTest(PivxTestFramework):
         prev_balance = self.nodes[0].getbalance()
         recipients8 = {saplingAddr0: Decimal('8'), saplingAddr1: Decimal('1'), saplingAddr2: Decimal('0.5')}
         mytxid11 = self.nodes[0].sendmany("", recipients8)
-        self.check_tx_priority([mytxid11])
+        self.check_tx_in_mempool([mytxid11])
         self.log.info("Done. Checking details and balances...")
 
         # Decrypted transaction details should be correct
@@ -328,7 +322,7 @@ class WalletSaplingTest(PivxTestFramework):
         self.log.info("TX12: Shielding coins with sendtoaddress RPC...")
         prev_balance = self.nodes[0].getbalance()
         mytxid12 = self.nodes[0].sendtoaddress(saplingAddr0, Decimal('10'))
-        self.check_tx_priority([mytxid12])
+        self.check_tx_in_mempool([mytxid12])
         self.log.info("Done. Checking details and balances...")
 
         # Decrypted transaction details should be correct

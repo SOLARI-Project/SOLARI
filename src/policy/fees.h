@@ -183,7 +183,6 @@ static const double SUFFICIENT_FEETXS = 1;
 static constexpr double MIN_FEERATE = 10;
 static const double MAX_FEERATE = 1e7;
 static const double INF_FEERATE = 1e16;
-static const double INF_PRIORITY = 1e25;
 
 // We have to lump transactions into buckets based on feerate, but we want to be able
 // to give accurate estimates over a large range of potential fees and priorities
