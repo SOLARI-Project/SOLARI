@@ -167,7 +167,10 @@ public:
     }
 
     // compare payments by proposal hash
-    inline bool operator>(const CTxBudgetPayment& other) const { return nProposalHash > other.nProposalHash; }
+    inline bool operator>(const CTxBudgetPayment& other) const
+    {
+        return UintToArith256(nProposalHash) > UintToArith256(other.nProposalHash);
+    }
 
 };
 

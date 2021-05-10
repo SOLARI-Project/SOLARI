@@ -17,6 +17,7 @@
 #include <vector>
 #include <limits.h>
 
+#include "arith_uint256.h"
 #include "serialize.h"
 #include "uint256.h"
 #include "version.h"
@@ -72,7 +73,7 @@ public:
     void setint64(int64_t sn);
     void setuint64(uint64_t n);
     void setuint256(uint256 n);
-    uint256 getuint256() const;
+    arith_uint256 getuint256() const;
     void setvch(const std::vector<unsigned char>& vch);
     std::vector<unsigned char> getvch() const;
     void SetDec(const std::string& str);

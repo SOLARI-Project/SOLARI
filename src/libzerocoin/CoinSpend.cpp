@@ -52,7 +52,7 @@ bool CoinSpend::HasValidSignature() const
 
     try {
         //V2 serial requires that the signature hash be signed by the public key associated with the serial
-        uint256 hashedPubkey = Hash(pubkey.begin(), pubkey.end()) >> V2_BITSHIFT;
+        arith_uint256 hashedPubkey = UintToArith256(Hash(pubkey.begin(), pubkey.end())) >> V2_BITSHIFT;
         if (hashedPubkey != GetAdjustedSerial(coinSerialNumber).getuint256()) {
             //cout << "CoinSpend::HasValidSignature() hashedpubkey is not equal to the serial!\n";
             return false;

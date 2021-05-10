@@ -144,17 +144,17 @@ bool CMasternode::UpdateFromNewBroadcast(CMasternodeBroadcast& mnb)
 // the proof of work for that block. The further away they are the better, the furthest will win the election
 // and get paid this block
 //
-uint256 CMasternode::CalculateScore(const uint256& hash) const
+arith_uint256 CMasternode::CalculateScore(const uint256& hash) const
 {
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     ss << hash;
-    const uint256& hash2 = ss.GetHash();
+    const arith_uint256& hash2 = UintToArith256(ss.GetHash());
 
     CHashWriter ss2(SER_GETHASH, PROTOCOL_VERSION);
     ss2 << hash;
-    const uint256& aux = vin.prevout.hash + vin.prevout.n;
+    const arith_uint256& aux = UintToArith256(vin.prevout.hash) + vin.prevout.n;
     ss2 << aux;
-    const uint256& hash3 = ss2.GetHash();
+    const arith_uint256& hash3 = UintToArith256(ss2.GetHash());
 
     return (hash3 > hash2 ? hash3 - hash2 : hash2 - hash3);
 }

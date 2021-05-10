@@ -62,8 +62,8 @@ int ExtractVersionFromSerial(const CBigNum& bnSerial)
 {
     try {
         //Serial is marked as v2 only if the first byte is 0xF
-        uint256 nMark = bnSerial.getuint256() >> (256 - V2_BITSHIFT);
-        if (nMark == 0xf)
+        arith_uint256 nMark = bnSerial.getuint256() >> (256 - V2_BITSHIFT);
+        if (nMark == arith_uint256(0xf))
             return PUBKEY_VERSION;
     } catch (const std::range_error& e) {
         //std::cout << "ExtractVersionFromSerial(): " << e.what() << std::endl;
@@ -77,8 +77,7 @@ int ExtractVersionFromSerial(const CBigNum& bnSerial)
 //Remove the first four bits for V2 serials
 CBigNum GetAdjustedSerial(const CBigNum& bnSerial)
 {
-    uint256 serial = bnSerial.getuint256();
-    serial &= ~UINT256_ZERO >> V2_BITSHIFT;
+    const uint256& serial = ArithToUint256(bnSerial.getuint256() & (~ARITH_UINT256_ZERO >> V2_BITSHIFT));
     CBigNum bnSerialAdjusted;
     bnSerialAdjusted.setuint256(serial);
     return bnSerialAdjusted;
@@ -108,9 +107,9 @@ bool IsValidCommitmentToCoinRange(const ZerocoinParams* params, const CBigNum& b
 
 CBigNum ExtractSerialFromPubKey(const CPubKey pubkey)
 {
-    uint256 hashedPubkey = Hash(pubkey.begin(), pubkey.end()) >> V2_BITSHIFT;
-    uint256 uintSerial = (uint256(0xF) << (256 - V2_BITSHIFT)) | hashedPubkey;
-    return CBigNum(uintSerial);
+    const arith_uint256& hashedPubkey = UintToArith256(Hash(pubkey.begin(), pubkey.end())) >> V2_BITSHIFT;
+    arith_uint256 uintSerial = (arith_uint256(0xF) << (256 - V2_BITSHIFT)) | hashedPubkey;
+    return CBigNum(ArithToUint256(uintSerial));
 }
 
 
