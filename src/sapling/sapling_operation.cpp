@@ -212,7 +212,7 @@ OperationResult SaplingOperation::build()
         // Now check fee
         bool isShielded = opTx->IsShieldedTx();
         const CAmount& nFeeNeeded = isShielded ? GetShieldedTxMinFee(*opTx) :
-                                                 GetMinRelayFee(opTx->GetTotalSize(), false);
+                                                 GetMinRelayFee(opTx->GetTotalSize());
         if (nFeeNeeded <= nFeeRet) {
             // Check that the fee is not too high.
             CAmount nMaxFee = nFeeNeeded * (isShielded ? 100 : 10000);

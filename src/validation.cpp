@@ -281,7 +281,7 @@ void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) {
         pcoinsTip->Uncache(removed);
 }
 
-CAmount GetMinRelayFee(const CTransaction& tx, const CTxMemPool& pool, unsigned int nBytes, bool fAllowFree)
+CAmount GetMinRelayFee(const CTransaction& tx, const CTxMemPool& pool, unsigned int nBytes)
 {
     if (tx.IsShieldedTx()) {
         return GetShieldedTxMinFee(tx);
@@ -293,21 +293,15 @@ CAmount GetMinRelayFee(const CTransaction& tx, const CTxMemPool& pool, unsigned 
     if (dPriorityDelta > 0 || nFeeDelta > 0)
         return 0;
 
-    return GetMinRelayFee(nBytes, fAllowFree);
+    return GetMinRelayFee(nBytes);
 }
 
-CAmount GetMinRelayFee(unsigned int nBytes, bool fAllowFree)
+CAmount GetMinRelayFee(unsigned int nBytes)
 {
     CAmount nMinFee = ::minRelayTxFee.GetFee(nBytes);
-
-    if (fAllowFree) {
-        // There is a free transaction area in blocks created by most miners,
-        // !TODO: remove
-            nMinFee = 0;
-    }
-
-    if (!Params().GetConsensus().MoneyRange(nMinFee))
+    if (!Params().GetConsensus().MoneyRange(nMinFee)) {
         nMinFee = Params().GetConsensus().nMaxMoneyOut;
+    }
     return nMinFee;
 }
 
@@ -561,7 +555,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
         // Don't accept it if it can't get into a block
         if (!ignoreFees) {
-            const CAmount txMinFee = GetMinRelayFee(tx, pool, nSize, false);
+            const CAmount txMinFee = GetMinRelayFee(tx, pool, nSize);
             if (fLimitFree && nFees < txMinFee)
                 return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient fee", false,
                     strprintf("%d < %d", nFees, txMinFee));
@@ -596,7 +590,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
         if (fRejectAbsurdFee) {
             const CAmount nMaxFee = tx.IsShieldedTx() ? GetShieldedTxMinFee(tx) * 100 :
-                                                        GetMinRelayFee(nSize, false) * 10000;
+                                                        GetMinRelayFee(nSize) * 10000;
             if (nFees > nMaxFee)
                 return state.Invalid(false, REJECT_HIGHFEE, "absurdly-high-fee",
                                      strprintf("%d > %d", nFees, nMaxFee));

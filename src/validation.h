@@ -226,8 +226,8 @@ bool AcceptToMemoryPoolWithTime(CTxMemPool& pool, CValidationState &state, const
 /** Convert CValidationState to a human-readable message for logging */
 std::string FormatStateMessage(const CValidationState &state);
 
-CAmount GetMinRelayFee(const CTransaction& tx, const CTxMemPool& pool, unsigned int nBytes, bool fAllowFree);
-CAmount GetMinRelayFee(unsigned int nBytes, bool fAllowFree);
+CAmount GetMinRelayFee(const CTransaction& tx, const CTxMemPool& pool, unsigned int nBytes);
+CAmount GetMinRelayFee(unsigned int nBytes);
 /**
  * Return the minimum fee for a shielded tx.
  */

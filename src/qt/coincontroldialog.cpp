@@ -561,7 +561,7 @@ TotalAmounts CoinControlDialog::getTotals() const
         t.nBytes += (GetCompactSize(nTransIns) +  GetCompactSize(nTransOuts));
 
         // Fee (default K fixed for shielded fee for now)
-        t.nPayFee = GetMinRelayFee(t.nBytes, false) * (isShieldedTx ? DEFAULT_SHIELDEDTXFEE_K : 1);
+        t.nPayFee = GetMinRelayFee(t.nBytes) * (isShieldedTx ? DEFAULT_SHIELDEDTXFEE_K : 1);
 
         if (t.nPayAmount > 0) {
             t.nChange = t.nAmount - t.nPayFee - t.nPayAmount;
