@@ -204,7 +204,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (!fNoMempoolTx) {
         // Add transactions from mempool
         LOCK2(cs_main,mempool.cs);
-        addPriorityTxs();
+        //addPriorityTxs();     !TODO: remove
         addPackageTxs();
     }
 
