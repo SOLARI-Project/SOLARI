@@ -393,6 +393,51 @@ UniValue getdifficulty(const JSONRPCRequest& request)
     return GetDifficulty();
 }
 
+static std::string EntryDescriptionString()
+{
+    return "    \"size\" : n,             (numeric) transaction size in bytes\n"
+           "    \"fee\" : n,              (numeric) transaction fee in " + CURRENCY_UNIT + "\n"
+           "    \"modifiedfee\" : n,      (numeric) transaction fee with fee deltas used for mining priority\n"
+           "    \"time\" : n,             (numeric) local time transaction entered pool in seconds since 1 Jan 1970 GMT\n"
+           "    \"height\" : n,           (numeric) block height when transaction entered pool\n"
+           "    \"startingpriority\" : n, (numeric) DEPRECATED. priority when transaction entered pool\n"
+           "    \"currentpriority\" : n,  (numeric) DEPRECATED. transaction priority now\n"
+           "    \"descendantcount\" : n,  (numeric) number of in-mempool descendant transactions (including this one)\n"
+           "    \"descendantsize\" : n,   (numeric) size of in-mempool descendants (including this one)\n"
+           "    \"descendantfees\" : n,   (numeric) modified fees (see above) of in-mempool descendants (including this one)\n"
+           "    \"depends\" : [           (array) unconfirmed transactions used as inputs for this transaction\n"
+           "        \"transactionid\",    (string) parent transaction id\n"
+           "       ... ]\n";
+}
+
+static void entryToJSON(UniValue &info, const CTxMemPoolEntry &e)
+{
+    AssertLockHeld(mempool.cs);
+
+    info.pushKV("size", (int)e.GetTxSize());
+    info.pushKV("fee", ValueFromAmount(e.GetFee()));
+    info.pushKV("modifiedfee", ValueFromAmount(e.GetModifiedFee()));
+    info.pushKV("time", e.GetTime());
+    info.pushKV("height", (int)e.GetHeight());
+    info.pushKV("startingpriority", e.GetPriority(e.GetHeight()));
+    info.pushKV("currentpriority", e.GetPriority(chainActive.Height()));
+    info.pushKV("descendantcount", e.GetCountWithDescendants());
+    info.pushKV("descendantsize", e.GetSizeWithDescendants());
+    info.pushKV("descendantfees", e.GetModFeesWithDescendants());
+    const CTransaction& tx = e.GetTx();
+    std::set<std::string> setDepends;
+    for (const CTxIn& txin : tx.vin) {
+        if (mempool.exists(txin.prevout.hash))
+            setDepends.insert(txin.prevout.hash.ToString());
+    }
+
+    UniValue depends(UniValue::VARR);
+    for (const std::string& dep : setDepends) {
+        depends.push_back(dep);
+    }
+
+    info.pushKV("depends", depends);
+}
 
 UniValue mempoolToJSON(bool fVerbose = false)
 {
@@ -402,29 +447,7 @@ UniValue mempoolToJSON(bool fVerbose = false)
         for (const CTxMemPoolEntry& e : mempool.mapTx) {
             const uint256& hash = e.GetTx().GetHash();
             UniValue info(UniValue::VOBJ);
-            info.pushKV("size", (int)e.GetTxSize());
-            info.pushKV("fee", ValueFromAmount(e.GetFee()));
-            info.pushKV("modifiedfee", ValueFromAmount(e.GetModifiedFee()));
-            info.pushKV("time", e.GetTime());
-            info.pushKV("height", (int)e.GetHeight());
-            info.pushKV("startingpriority", e.GetPriority(e.GetHeight()));
-            info.pushKV("currentpriority", e.GetPriority(chainActive.Height()));
-            info.pushKV("descendantcount", e.GetCountWithDescendants());
-            info.pushKV("descendantsize", e.GetSizeWithDescendants());
-            info.pushKV("descendantfees", e.GetModFeesWithDescendants());
-            const CTransaction& tx = e.GetTx();
-            std::set<std::string> setDepends;
-            for (const CTxIn& txin : tx.vin) {
-                if (mempool.exists(txin.prevout.hash))
-                    setDepends.insert(txin.prevout.hash.ToString());
-            }
-
-            UniValue depends(UniValue::VARR);
-            for (const std::string& dep : setDepends) {
-                depends.push_back(dep);
-            }
-
-            info.pushKV("depends", depends);
+            entryToJSON(info, e);
             o.pushKV(hash.ToString(), info);
         }
         return o;
@@ -459,22 +482,9 @@ UniValue getrawmempool(const JSONRPCRequest& request)
             "\nResult: (for verbose = true):\n"
             "{                           (json object)\n"
             "  \"transactionid\" : {       (json object)\n"
-            "    \"size\" : n,             (numeric) transaction size in bytes\n"
-            "    \"fee\" : n,              (numeric) transaction fee in pivx\n"
-            "    \"modifiedfee\" : n,      (numeric) transaction fee with fee deltas used for mining priority\n"
-            "    \"time\" : n,             (numeric) local time transaction entered pool in seconds since 1 Jan 1970 GMT\n"
-            "    \"height\" : n,           (numeric) block height when transaction entered pool\n"
-            "    \"startingpriority\" : n, (numeric) priority when transaction entered pool\n"
-            "    \"currentpriority\" : n,  (numeric) transaction priority now\n"
-            "    \"descendantcount\" : n,  (numeric) number of in-mempool descendant transactions (including this one)\n"
-            "    \"descendantsize\" : n,   (numeric) size of in-mempool descendants (including this one)\n"
-            "    \"descendantfees\" : n,   (numeric) modified fees (see above) of in-mempool descendants (including this one)\n"
-            "    \"depends\" : [           (array) unconfirmed transactions used as inputs for this transaction\n"
-            "        \"transactionid\",    (string) parent transaction id\n"
-            "       ... ]\n"
-            "  }, ...\n"
-            "]\n"
-
+            + EntryDescriptionString()
+            + "  }, ...\n"
+            "}\n"
             "\nExamples\n" +
             HelpExampleCli("getrawmempool", "true") + HelpExampleRpc("getrawmempool", "true"));
 
