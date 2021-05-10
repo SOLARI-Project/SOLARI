@@ -628,14 +628,9 @@ void CoinControlDialog::updateLabels()
     }
 
     // turn labels "red"
-    ui->labelCoinControlBytes->setStyleSheet((t.nBytes >= MAX_FREE_TRANSACTION_CREATE_SIZE) ? "color:red;" : "");     // Bytes >= 1000
     ui->labelCoinControlLowOutput->setStyleSheet((t.fDust) ? "color:red;" : "");                                      // Dust = "yes"
 
     // tool tips
-    QString toolTip1 = tr("This label turns red, if the transaction size is greater than 1000 bytes.") + "<br /><br />";
-    toolTip1 += tr("This means a fee of at least %1 per kB is required.").arg(BitcoinUnits::formatWithUnit(nDisplayUnit, GetRequiredFee(1000))) + "<br /><br />";
-    toolTip1 += tr("Can vary +/- 1 byte per input.");
-
     QString toolTip3 = tr("This label turns red, if recipient receives an amount smaller than %1 (transparent) / %2 (shield)."
             ).arg(BitcoinUnits::formatWithUnit(nDisplayUnit, GetDustThreshold(dustRelayFee))).arg(BitcoinUnits::formatWithUnit(nDisplayUnit, GetShieldedDustThreshold(dustRelayFee)));
 
@@ -649,7 +644,6 @@ void CoinControlDialog::updateLabels()
 
     ui->labelCoinControlFee->setToolTip(toolTip4);
     ui->labelCoinControlAfterFee->setToolTip(toolTip4);
-    ui->labelCoinControlBytes->setToolTip(toolTip1);
     ui->labelCoinControlLowOutput->setToolTip(toolTip3);
     ui->labelCoinControlChange->setToolTip(toolTip4);
     ui->labelCoinControlFeeText->setToolTip(ui->labelCoinControlFee->toolTip());
