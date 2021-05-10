@@ -23,13 +23,12 @@
 
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
-                                 int64_t _nTime, double _entryPriority,
-                                 unsigned int _entryHeight, CAmount _inChainInputValue,
+                                 int64_t _nTime, unsigned int _entryHeight,
                                  bool _spendsCoinbaseOrCoinstake, unsigned int _sigOps) :
-     tx(MakeTransactionRef(_tx)), nFee(_nFee), nTime(_nTime), entryPriority(_entryPriority), entryHeight(_entryHeight), inChainInputValue(_inChainInputValue), spendsCoinbaseOrCoinstake(_spendsCoinbaseOrCoinstake), sigOpCount(_sigOps)
+     tx(MakeTransactionRef(_tx)), nFee(_nFee), nTime(_nTime), entryHeight(_entryHeight),
+     spendsCoinbaseOrCoinstake(_spendsCoinbaseOrCoinstake), sigOpCount(_sigOps)
 {
     nTxSize = ::GetSerializeSize(*_tx, PROTOCOL_VERSION);
-    nModSize = _tx->CalculateModifiedSize(nTxSize);
     nUsageSize = _tx->DynamicMemoryUsage();
     hasZerocoins = _tx->ContainsZerocoins();
     m_isShielded = _tx->IsShieldedTx();
@@ -37,8 +36,6 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFe
     nCountWithDescendants = 1;
     nSizeWithDescendants = nTxSize;
     nModFeesWithDescendants = nFee;
-    CAmount nValueIn = _tx->GetValueOut()+nFee;
-    assert(inChainInputValue <= nValueIn);
 
     feeDelta = 0;
 
@@ -46,15 +43,6 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFe
     nSizeWithAncestors = nTxSize;
     nModFeesWithAncestors = nFee;
     nSigOpCountWithAncestors = sigOpCount;
-}
-
-double CTxMemPoolEntry::GetPriority(unsigned int currentHeight) const
-{
-    double deltaPriority = ((double)(currentHeight - entryHeight) * inChainInputValue) / nModSize;
-    double dResult = entryPriority + deltaPriority;
-    if (dResult < 0) // This should only happen if it was called with a height below entry height
-        dResult = 0;
-    return dResult;
 }
 
 void CTxMemPoolEntry::UpdateFeeDelta(int64_t newFeeDelta)
