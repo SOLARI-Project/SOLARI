@@ -287,10 +287,9 @@ CAmount GetMinRelayFee(const CTransaction& tx, const CTxMemPool& pool, unsigned 
         return GetShieldedTxMinFee(tx);
     }
     uint256 hash = tx.GetHash();
-    double dPriorityDelta = 0;
     CAmount nFeeDelta = 0;
-    pool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
-    if (dPriorityDelta > 0 || nFeeDelta > 0)
+    pool.ApplyDelta(hash, nFeeDelta);
+    if (nFeeDelta > 0)
         return 0;
 
     return GetMinRelayFee(nBytes);
@@ -4185,7 +4184,6 @@ bool LoadMempool(CTxMemPool& pool)
         }
         uint64_t num;
         file >> num;
-        double prioritydummy = 0;
         while (num--) {
             CTransactionRef tx;
             int64_t nTime;
@@ -4196,7 +4194,7 @@ bool LoadMempool(CTxMemPool& pool)
 
             CAmount amountdelta = nFeeDelta;
             if (amountdelta) {
-                pool.PrioritiseTransaction(tx->GetHash(), tx->GetHash().ToString(), prioritydummy, amountdelta);
+                pool.PrioritiseTransaction(tx->GetHash(), amountdelta);
             }
             CValidationState state;
             if (nTime + nExpiryTimeout > nNow) {
@@ -4217,7 +4215,7 @@ bool LoadMempool(CTxMemPool& pool)
         file >> mapDeltas;
 
         for (const auto& i : mapDeltas) {
-            pool.PrioritiseTransaction(i.first, i.first.ToString(), prioritydummy, i.second);
+            pool.PrioritiseTransaction(i.first, i.second);
         }
     } catch (const std::exception& e) {
         LogPrintf("Failed to deserialize mempool data on disk: %s. Continuing anyway.\n", e.what());
@@ -4241,7 +4239,7 @@ bool DumpMempool(const CTxMemPool& pool)
     {
         LOCK(pool.cs);
         for (const auto &i : pool.mapDeltas) {
-            mapDeltas[i.first] = i.second.second;
+            mapDeltas[i.first] = i.second;
         }
         vinfo = pool.infoAll();
     }
