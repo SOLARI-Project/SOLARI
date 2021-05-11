@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2014 The Bitcoin developers
+// Copyright (c) 2009-2021 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
-// Copyright (c) 2015-2020 The PIVX developers
+// Copyright (c) 2015-2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -646,6 +646,14 @@ void CWallet::SyncMetaData(std::pair<typename TxSpendMap<T>::iterator, typename 
 
 bool CWallet::ParameterInteraction()
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        return true;
+    }
+
+    if (gArgs.GetBoolArg("-sysperms", false)) {
+        return UIError("-sysperms is not allowed in combination with enabled wallet functionality");
+    }
+
     if (gArgs.IsArgSet("-mintxfee")) {
         CAmount n = 0;
         if (ParseMoney(gArgs.GetArg("-mintxfee", ""), n) && n > 0)
@@ -2063,6 +2071,10 @@ std::set<uint256> CWalletTx::GetConflicts() const
 
 bool CWallet::Verify()
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        return true;
+    }
+
     uiInterface.InitMessage(_("Verifying wallet..."));
     std::string walletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
     std::string strDataDir = GetDataDir().string();
@@ -4082,7 +4094,7 @@ std::string CWallet::GetWalletHelpString(bool showDebug)
     strUsage += HelpMessageOpt("-backuppath=<dir|file>", _("Specify custom backup path to add a copy of any wallet backup. If set as dir, every backup generates a timestamped file. If set as file, will rewrite to that file every backup."));
     strUsage += HelpMessageOpt("-createwalletbackups=<n>", strprintf(_("Number of automatic wallet backups (default: %d)"), DEFAULT_CREATEWALLETBACKUPS));
     strUsage += HelpMessageOpt("-custombackupthreshold=<n>", strprintf(_("Number of custom location backups to retain (default: %d)"), DEFAULT_CUSTOMBACKUPTHRESHOLD));
-    strUsage += HelpMessageOpt("-disablewallet", _("Do not load the wallet and disable wallet RPC calls"));
+    strUsage += HelpMessageOpt("-disablewallet", strprintf(_("Do not load the wallet and disable wallet RPC calls (default: %u)"), DEFAULT_DISABLE_WALLET));
     strUsage += HelpMessageOpt("-keypool=<n>", strprintf(_("Set key pool size to <n> (default: %u)"), DEFAULT_KEYPOOL_SIZE));
     strUsage += HelpMessageOpt("-legacywallet", _("On first run, create a legacy wallet instead of a HD wallet"));
     strUsage += HelpMessageOpt("-maxtxfee=<amt>", strprintf(_("Maximum total fees to use in a single wallet transaction, setting too low may abort large transactions (default: %s)"), FormatMoney(maxTxFee)));
@@ -4844,3 +4856,20 @@ const CWDestination* CAddressBookIterator::GetDestKey()
 CStakeableOutput::CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn,
                                    const CBlockIndex*& _pindex) : COutput(txIn, iIn, nDepthIn, fSpendableIn, fSolvableIn),
                                                                 pindex(_pindex) {}
+
+bool InitAutoBackupWallet()
+{
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        return true;
+    }
+
+    std::string strWalletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
+
+    std::string strWarning, strError;
+    if(!AutoBackupWallet(strWalletFile, strWarning, strError)) {
+        if (!strWarning.empty()) UIWarning(strWarning);
+        if (!strError.empty()) return UIError(strError);
+    }
+
+    return true;
+}

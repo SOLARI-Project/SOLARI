@@ -221,6 +221,9 @@ void NotifyBacked(const CWallet& wallet, bool fSuccess, std::string strMessage);
 bool BackupWallet(const CWallet& wallet, const fs::path& strDest);
 bool AttemptBackupWallet(const CWallet& wallet, const fs::path& pathSrc, const fs::path& pathDest);
 
+//! Called during init: Automatic backups of wallet not running (just copying and renaming dat file)
+bool AutoBackupWallet(const std::string& strWalletFile, std::string& strBackupWarning, std::string& strBackupError);
+
 //! Compacts BDB state so that wallet.dat is self-contained (if there are changes)
 void MaybeCompactWalletDB();
 

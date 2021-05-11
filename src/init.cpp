@@ -37,7 +37,6 @@
 #include "net_processing.h"
 #include "policy/feerate.h"
 #include "policy/policy.h"
-#include "reverse_iterate.h"
 #include "rpc/register.h"
 #include "rpc/server.h"
 #include "script/sigcache.h"
@@ -87,9 +86,6 @@
 #endif
 
 
-#ifdef ENABLE_WALLET
-int nWalletBackups = 10;
-#endif
 volatile bool fFeeEstimatesInitialized = false;
 volatile bool fRestartRequested = false; // true: restart false: shutdown
 static const bool DEFAULT_PROXYRANDOMIZE = true;
@@ -839,7 +835,6 @@ namespace { // Variables internal to initialization process only
     ServiceFlags nLocalServices = NODE_NETWORK;
 
     std::string strWalletFile;
-    bool fDisableWallet = false;
 }
 
 bool AppInitBasicSetup()
@@ -872,12 +867,7 @@ bool AppInitBasicSetup()
         return UIError("Error: Initializing networking failed");
 
 #ifndef WIN32
-    if (gArgs.GetBoolArg("-sysperms", false)) {
-#ifdef ENABLE_WALLET
-        if (!gArgs.GetBoolArg("-disablewallet", false))
-            return UIError("Error: -sysperms is not allowed in combination with enabled wallet functionality");
-#endif
-    } else {
+    if (!gArgs.GetBoolArg("-sysperms", false)) {
         umask(077);
     }
 
@@ -1137,18 +1127,14 @@ bool AppInitParameterInteraction()
     setvbuf(stdout, NULL, _IOLBF, 0); /// ***TODO*** do we still need this after -printtoconsole is gone?
 
     RegisterAllCoreRPCCommands(tableRPC);
+
     // Staking needs a CWallet instance, so make sure wallet is enabled
 #ifdef ENABLE_WALLET
-    bool fDisableWallet = gArgs.GetBoolArg("-disablewallet", false);
-    if (fDisableWallet) {
-#endif
-        if (gArgs.SoftSetBoolArg("-staking", false))
-            LogPrintf("AppInit2 : parameter interaction: wallet functionality not enabled -> setting -staking=0\n");
-#ifdef ENABLE_WALLET
-    } else {
-        // Register wallet RPC commands
-        RegisterWalletRPCCommands(tableRPC);
-    }
+    // Register wallet RPC commands
+    RegisterWalletRPCCommands(tableRPC);
+#else
+    if (gArgs.SoftSetBoolArg("-staking", false))
+        LogPrintf("AppInit2 : parameter interaction: wallet functionality not enabled -> setting -staking=0\n");
 #endif
 
     nConnectTimeout = gArgs.GetArg("-timeout", DEFAULT_CONNECT_TIMEOUT);
@@ -1313,117 +1299,50 @@ bool AppInitMain()
             return UIError(_("Unable to start HTTP server. See debug log for details."));
     }
 
+    if (gArgs.GetBoolArg("-resync", false)) {
+        uiInterface.InitMessage(_("Preparing for resync..."));
+        // Delete the local blockchain folders to force a resync from scratch to get a consitent blockchain-state
+        fs::path blocksDir = GetBlocksDir();
+        fs::path chainstateDir = GetDataDir() / "chainstate";
+        fs::path sporksDir = GetDataDir() / "sporks";
+        fs::path zerocoinDir = GetDataDir() / "zerocoin";
+
+        LogPrintf("Deleting blockchain folders blocks, chainstate, sporks and zerocoin\n");
+        // We delete in 4 individual steps in case one of the folder is missing already
+        try {
+            if (fs::exists(blocksDir)){
+                fs::remove_all(blocksDir);
+                LogPrintf("-resync: folder deleted: %s\n", blocksDir.string().c_str());
+            }
+
+            if (fs::exists(chainstateDir)){
+                fs::remove_all(chainstateDir);
+                LogPrintf("-resync: folder deleted: %s\n", chainstateDir.string().c_str());
+            }
+
+            if (fs::exists(sporksDir)){
+                fs::remove_all(sporksDir);
+                LogPrintf("-resync: folder deleted: %s\n", sporksDir.string().c_str());
+            }
+
+            if (fs::exists(zerocoinDir)){
+                fs::remove_all(zerocoinDir);
+                LogPrintf("-resync: folder deleted: %s\n", zerocoinDir.string().c_str());
+            }
+        } catch (const fs::filesystem_error& error) {
+            LogPrintf("Failed to delete blockchain folders %s\n", error.what());
+        }
+    }
+
 // ********************************************************* Step 5: Backup wallet and verify wallet database integrity
 #ifdef ENABLE_WALLET
-    if (!fDisableWallet) {
-        fs::path backupDir = GetDataDir() / "backups";
-        if (!fs::exists(backupDir)) {
-            // Always create backup folder to not confuse the operating system's file browser
-            fs::create_directories(backupDir);
-        }
-        nWalletBackups = gArgs.GetArg("-createwalletbackups", DEFAULT_CREATEWALLETBACKUPS);
-        nWalletBackups = std::max(0, std::min(10, nWalletBackups));
-        if (nWalletBackups > 0) {
-            if (fs::exists(backupDir)) {
-                // Create backup of the wallet
-                std::string dateTimeStr = FormatISO8601DateTimeForBackup(GetTime());
-                std::string backupPathStr = backupDir.string();
-                backupPathStr += "/" + strWalletFile;
-                std::string sourcePathStr = GetDataDir().string();
-                sourcePathStr += "/" + strWalletFile;
-                fs::path sourceFile = sourcePathStr;
-                fs::path backupFile = backupPathStr + dateTimeStr;
-                sourceFile.make_preferred();
-                backupFile.make_preferred();
-                if (fs::exists(sourceFile)) {
-#if BOOST_VERSION >= 105800
-                    try {
-                        fs::copy_file(sourceFile, backupFile);
-                        LogPrintf("Creating backup of %s -> %s\n", sourceFile, backupFile);
-                    } catch (const fs::filesystem_error& error) {
-                        LogPrintf("Failed to create backup %s\n", error.what());
-                    }
-#else
-                    std::ifstream src(sourceFile.string(), std::ios::binary);
-                    std::ofstream dst(backupFile.string(), std::ios::binary);
-                    dst << src.rdbuf();
+    if (!InitAutoBackupWallet()) {
+        return false;
+    }
+    if (!CWallet::Verify()) {
+        return false;
+    }
 #endif
-                }
-                // Keep only the last 10 backups, including the new one of course
-                typedef std::multimap<std::time_t, fs::path> folder_set_t;
-                folder_set_t folder_set;
-                fs::directory_iterator end_iter;
-                fs::path backupFolder = backupDir.string();
-                backupFolder.make_preferred();
-                // Build map of backup files for current(!) wallet sorted by last write time
-                fs::path currentFile;
-                for (fs::directory_iterator dir_iter(backupFolder); dir_iter != end_iter; ++dir_iter) {
-                    // Only check regular files
-                    if (fs::is_regular_file(dir_iter->status())) {
-                        currentFile = dir_iter->path().filename();
-                        // Only add the backups for the current wallet, e.g. wallet.dat.*
-                        if (dir_iter->path().stem().string() == strWalletFile) {
-                            folder_set.insert(folder_set_t::value_type(fs::last_write_time(dir_iter->path()), *dir_iter));
-                        }
-                    }
-                }
-                // Loop backward through backup files and keep the N newest ones (1 <= N <= 10)
-                int counter = 0;
-                for (std::pair<const std::time_t, fs::path> file : reverse_iterate(folder_set)) {
-                    counter++;
-                    if (counter > nWalletBackups) {
-                        // More than nWalletBackups backups: delete oldest one(s)
-                        try {
-                            fs::remove(file.second);
-                            LogPrintf("Old backup deleted: %s\n", file.second);
-                        } catch (const fs::filesystem_error& error) {
-                            LogPrintf("Failed to delete backup %s\n", error.what());
-                        }
-                    }
-                }
-            }
-        }
-
-        if (gArgs.GetBoolArg("-resync", false)) {
-            uiInterface.InitMessage(_("Preparing for resync..."));
-            // Delete the local blockchain folders to force a resync from scratch to get a consitent blockchain-state
-            fs::path blocksDir = GetBlocksDir();
-            fs::path chainstateDir = GetDataDir() / "chainstate";
-            fs::path sporksDir = GetDataDir() / "sporks";
-            fs::path zerocoinDir = GetDataDir() / "zerocoin";
-
-            LogPrintf("Deleting blockchain folders blocks, chainstate, sporks and zerocoin\n");
-            // We delete in 4 individual steps in case one of the folder is missing already
-            try {
-                if (fs::exists(blocksDir)){
-                    fs::remove_all(blocksDir);
-                    LogPrintf("-resync: folder deleted: %s\n", blocksDir.string().c_str());
-                }
-
-                if (fs::exists(chainstateDir)){
-                    fs::remove_all(chainstateDir);
-                    LogPrintf("-resync: folder deleted: %s\n", chainstateDir.string().c_str());
-                }
-
-                if (fs::exists(sporksDir)){
-                    fs::remove_all(sporksDir);
-                    LogPrintf("-resync: folder deleted: %s\n", sporksDir.string().c_str());
-                }
-
-                if (fs::exists(zerocoinDir)){
-                    fs::remove_all(zerocoinDir);
-                    LogPrintf("-resync: folder deleted: %s\n", zerocoinDir.string().c_str());
-                }
-            } catch (const fs::filesystem_error& error) {
-                LogPrintf("Failed to delete blockchain folders %s\n", error.what());
-            }
-        }
-
-        if (!CWallet::Verify())
-            return false;
-
-    }  // (!fDisableWallet)
-#endif // ENABLE_WALLET
 
     // ********************************************************* Step 6: network initialization
     // Note that we absolutely cannot open any actual connections

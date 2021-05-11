@@ -4253,6 +4253,10 @@ static const CRPCCommand commands[] =
 
 void RegisterWalletRPCCommands(CRPCTable &tableRPC)
 {
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
+    if (gArgs.GetBoolArg("-disablewallet", false)) {
+        return;
+    }
+    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++) {
         tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
+    }
 }
