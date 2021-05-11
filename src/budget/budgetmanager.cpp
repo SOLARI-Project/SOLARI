@@ -217,18 +217,22 @@ bool CBudgetManager::AddFinalizedBudget(CFinalizedBudget& finalizedBudget)
     }
 
     SetBudgetProposalsStr(finalizedBudget);
-    {
-        LOCK(cs_budgets);
-        mapFinalizedBudgets.emplace(nHash, finalizedBudget);
-        // Add to feeTx index
-        mapFeeTxToBudget.emplace(feeTxId, nHash);
-        // Remove the budget from the unconfirmed map, if it was there
-        if (mapUnconfirmedFeeTx.count(nHash))
-            mapUnconfirmedFeeTx.erase(nHash);
-    }
+    ForceAddFinalizedBudget(nHash, feeTxId, finalizedBudget);
+
     LogPrint(BCLog::MNBUDGET,"%s: finalized budget %s [%s (%s)] added\n",
             __func__, nHash.ToString(), finalizedBudget.GetName(), finalizedBudget.GetProposalsStr());
     return true;
+}
+
+void CBudgetManager::ForceAddFinalizedBudget(const uint256& nHash, const uint256& feeTxId, const CFinalizedBudget& finalizedBudget)
+{
+    LOCK(cs_budgets);
+    mapFinalizedBudgets.emplace(nHash, finalizedBudget);
+    // Add to feeTx index
+    mapFeeTxToBudget.emplace(feeTxId, nHash);
+    // Remove the budget from the unconfirmed map, if it was there
+    if (mapUnconfirmedFeeTx.count(nHash))
+        mapUnconfirmedFeeTx.erase(nHash);
 }
 
 bool CBudgetManager::AddProposal(CBudgetProposal& budgetProposal)

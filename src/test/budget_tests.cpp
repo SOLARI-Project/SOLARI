@@ -14,30 +14,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-class BudgetManagerTest : CBudgetManager
-{
-public:
-    void ForceAddFinalizedBudget(CFinalizedBudget& finalizedBudget)
-    {
-        LOCK(cs_budgets);
-        const uint256& nHash = finalizedBudget.GetHash();
-        mapFinalizedBudgets.emplace(nHash, finalizedBudget);
-        mapFeeTxToBudget.emplace(finalizedBudget.GetFeeTXHash(), nHash);
-    }
-
-    bool IsBlockValueValid(int nHeight, CAmount nExpectedValue, CAmount nMinted, bool fSporkActive = true)
-    {
-        // suppose masternodeSync is complete
-        if (fSporkActive) {
-            // add current payee amount to the expected block value
-            CAmount expectedPayAmount;
-            if (GetExpectedPayeeAmount(nHeight, expectedPayAmount)) {
-                nExpectedValue += expectedPayAmount;
-            }
-        }
-        return nMinted <= nExpectedValue;
-    }
-};
 
 BOOST_FIXTURE_TEST_SUITE(budget_tests, TestingSetup)
 
@@ -63,20 +39,35 @@ BOOST_AUTO_TEST_CASE(budget_value)
 
 BOOST_AUTO_TEST_CASE(block_value)
 {
-    BudgetManagerTest t_budgetman;
     SelectParams(CBaseChainParams::TESTNET);
     std::string strError;
 
+    // force mnsync complete
+    masternodeSync.RequestedMasternodeAssets = MASTERNODE_SYNC_FINISHED;
+
+    // enable SPORK_13
+    int64_t nTime = GetTime() - 10;
+    const CSporkMessage& spork = CSporkMessage(SPORK_13_ENABLE_SUPERBLOCKS, nTime + 1, nTime);
+    sporkManager.AddOrUpdateSporkMessage(spork);
+    BOOST_CHECK(sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS));
+
     // regular block
     int nHeight = 100;
-    volatile CAmount nExpected = GetBlockValue(nHeight);
-    BOOST_CHECK(t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected-1));
-    BOOST_CHECK(t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected));
-    BOOST_CHECK(!t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected+1));
+    const CAmount nBlockReward = GetBlockValue(nHeight);
+    CAmount nExpectedRet = nBlockReward;
+    CAmount nBudgetAmtRet = 0;
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, nBlockReward-1, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, nBlockReward, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
+    BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, nBlockReward+1, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
 
     // superblock - create the finalized budget with a proposal, and vote on it
     nHeight = 144;
-    nExpected = GetBlockValue(nHeight);
     const CTxIn mnVin(GetRandHash(), 0);
     const CScript payee = GetScriptForDestination(CKeyID(uint160(ParseHex("816115944e077fe7c803cfa57f29b36bf87c1d35"))));
     const CAmount propAmt = 100 * COIN;
@@ -85,20 +76,50 @@ BOOST_AUTO_TEST_CASE(block_value)
     CFinalizedBudget fin("main (test)", 144, {txBudgetPayment}, finTxId);
     const CFinalizedBudgetVote fvote(mnVin, fin.GetHash());
     BOOST_CHECK(fin.AddOrUpdateVote(fvote, strError));
-    t_budgetman.ForceAddFinalizedBudget(fin);
+    g_budgetman.ForceAddFinalizedBudget(fin.GetHash(), fin.GetFeeTXHash(), fin);
 
     // check superblock's block-value
-    BOOST_CHECK(t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected));
-    BOOST_CHECK(t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected+propAmt-1));
-    BOOST_CHECK(t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected+propAmt));
-    BOOST_CHECK(!t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected+propAmt+1));
+    nExpectedRet = nBlockReward;
+    nBudgetAmtRet = 0;
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, nBlockReward, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward + propAmt);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, propAmt);
+    nExpectedRet = nBlockReward;
+    nBudgetAmtRet = 0;
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, nBlockReward+propAmt-1, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward + propAmt);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, propAmt);
+    nExpectedRet = nBlockReward;
+    nBudgetAmtRet = 0;
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, nBlockReward+propAmt, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward + propAmt);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, propAmt);
+    nExpectedRet = nBlockReward;
+    nBudgetAmtRet = 0;
+    BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, nBlockReward+propAmt+1, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward + propAmt);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, propAmt);
+
+    // disable SPORK_13
+    const CSporkMessage& spork2 = CSporkMessage(SPORK_13_ENABLE_SUPERBLOCKS, 4070908800ULL, nTime + 1);
+    sporkManager.AddOrUpdateSporkMessage(spork2);
+    BOOST_CHECK(!sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS));
 
     // check with spork disabled
-    nExpected = GetBlockValue(nHeight);
-    BOOST_CHECK(t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected-1, false));
-    BOOST_CHECK(t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected, false));
-    BOOST_CHECK(!t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected+1, false));
-    BOOST_CHECK(!t_budgetman.IsBlockValueValid(nHeight, nExpected, nExpected+propAmt, false));
+    nExpectedRet = nBlockReward;
+    nBudgetAmtRet = 0;
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, nBlockReward, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
+    BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, nBlockReward+propAmt-1, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
+    BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, nBlockReward+propAmt, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
+    BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, nBlockReward+propAmt+1, nBudgetAmtRet));
+    BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
+    BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
 }
 
 static CScript GetRandomP2PKH()
@@ -160,7 +181,7 @@ BOOST_AUTO_TEST_CASE(IsCoinbaseValueValid_test)
     // enable SPORK_8
     int64_t nTime = GetTime() - 10;
     const CSporkMessage& spork = CSporkMessage(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT, nTime + 1, nTime);
-    sporkManager.AddSporkMessage(spork);
+    sporkManager.AddOrUpdateSporkMessage(spork);
     BOOST_CHECK(sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT));
 
     // Underpaying with SPORK_8 enabled

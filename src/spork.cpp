@@ -74,8 +74,8 @@ void CSporkManager::LoadSporksFromDB()
         }
 
         // add spork to memory
-        mapSporks[spork.GetHash()] = spork;
-        mapSporksActive[spork.nSporkID] = spork;
+        AddOrUpdateSporkMessage(spork);
+
         std::time_t result = spork.nValue;
         // If SPORK Value is greater than 1,000,000 assume it's actually a Date and then convert to a more readable format
         std::string sporkName = sporkManager.GetSporkNameByID(spork.nSporkID);
@@ -131,7 +131,6 @@ int CSporkManager::ProcessSporkMsg(CSporkMessage& spork)
         return 0;
     }
 
-    uint256 hash = spork.GetHash();
     std::string sporkName = sporkManager.GetSporkNameByID(spork.nSporkID);
     std::string strStatus;
     {
@@ -173,11 +172,7 @@ int CSporkManager::ProcessSporkMsg(CSporkMessage& spork)
     LogPrintf("%s : got %s spork %d (%s) with value %d (signed at %d)\n", __func__,
               strStatus, spork.nSporkID, sporkName, spork.nValue, spork.nTimeSigned);
 
-    {
-        LOCK(cs);
-        mapSporks[hash] = spork;
-        mapSporksActive[spork.nSporkID] = spork;
-    }
+    AddOrUpdateSporkMessage(spork);
     spork.Relay();
 
     // PIVX: add to spork database.
@@ -211,14 +206,14 @@ bool CSporkManager::UpdateSpork(SporkId nSporkID, int64_t nValue)
 
     if(spork.Sign(strMasterPrivKey)){
         spork.Relay();
-        AddSporkMessage(spork);
+        AddOrUpdateSporkMessage(spork);
         return true;
     }
 
     return false;
 }
 
-void CSporkManager::AddSporkMessage(const CSporkMessage& spork)
+void CSporkManager::AddOrUpdateSporkMessage(const CSporkMessage& spork)
 {
     LOCK(cs);
     mapSporks[spork.GetHash()] = spork;
