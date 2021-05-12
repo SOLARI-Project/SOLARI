@@ -57,12 +57,12 @@ UniValue initmasternode(const JSONRPCRequest& request)
 {
     if (request.fHelp || (request.params.size() < 2|| request.params.size() > 3)) {
         throw std::runtime_error(
-                "initmasternode \"masternodePrivKey\" \"masternodeAddr\" ( deterministic )\n"
+                "initmasternode ( \"privkey\" \"address\" deterministic )\n"
                 "\nInitialize masternode on demand if it's not already initialized.\n"
                 "\nArguments:\n"
-                "1. masternodePrivKey          (string, required) The masternode private key.\n"
-                "2. masternodeAddr             (string, required) The IP:Port of this masternode.\n"
-                "3. deterministic              (boolean, optional, default=false) Init as DMN.\n"
+                "1. privkey          (string, required) The masternode private key.\n"
+                "2. address          (string, required) The IP:Port of this masternode.\n"
+                "3. deterministic    (boolean, optional, default=false) Init as DMN.\n"
 
                 "\nResult:\n"
                 " success                      (string) if the masternode initialization succeeded.\n"
@@ -294,7 +294,7 @@ UniValue getmasternodecount (const JSONRPCRequest& request)
     return obj;
 }
 
-UniValue masternodecurrent (const JSONRPCRequest& request)
+UniValue masternodecurrent(const JSONRPCRequest& request)
 {
     if (request.fHelp || (request.params.size() != 0))
         throw std::runtime_error(
@@ -538,7 +538,7 @@ UniValue startmasternode(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue createmasternodekey (const JSONRPCRequest& request)
+UniValue createmasternodekey(const JSONRPCRequest& request)
 {
     if (request.fHelp || (request.params.size() != 0))
         throw std::runtime_error(
@@ -557,7 +557,7 @@ UniValue createmasternodekey (const JSONRPCRequest& request)
     return EncodeSecret(secret);
 }
 
-UniValue getmasternodeoutputs (const JSONRPCRequest& request)
+UniValue getmasternodeoutputs(const JSONRPCRequest& request)
 {
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
@@ -599,7 +599,7 @@ UniValue getmasternodeoutputs (const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue listmasternodeconf (const JSONRPCRequest& request)
+UniValue listmasternodeconf(const JSONRPCRequest& request)
 {
     std::string strFilter = "";
 
@@ -661,7 +661,7 @@ UniValue listmasternodeconf (const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue getmasternodestatus (const JSONRPCRequest& request)
+UniValue getmasternodestatus(const JSONRPCRequest& request)
 {
     if (request.fHelp || (request.params.size() != 0))
         throw std::runtime_error(
@@ -733,9 +733,9 @@ UniValue getmasternodestatus (const JSONRPCRequest& request)
                         + activeMasternode.GetStatusMessage());
 }
 
-UniValue getmasternodewinners (const JSONRPCRequest& request)
+UniValue getmasternodewinners(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 3)
+    if (request.fHelp || request.params.size() > 2)
         throw std::runtime_error(
             "getmasternodewinners ( blocks \"filter\" )\n"
             "\nPrint the masternode winners for the last n blocks\n"
@@ -830,7 +830,7 @@ UniValue getmasternodewinners (const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue getmasternodescores (const JSONRPCRequest& request)
+UniValue getmasternodescores(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
@@ -1091,26 +1091,26 @@ UniValue relaymasternodebroadcast(const JSONRPCRequest& request)
 }
 
 static const CRPCCommand commands[] =
-{ //  category              name                         actor (function)            okSafeMode
-  //  --------------------- ---------------------------  --------------------------  ----------
-    { "masternode",         "listmasternodes",           &listmasternodes,           true  },
-    { "masternode",         "getmasternodecount",        &getmasternodecount,        true  },
-    { "masternode",         "masternodecurrent",         &masternodecurrent,         true  },
-    { "masternode",         "startmasternode",           &startmasternode,           true  },
-    { "masternode",         "createmasternodekey",       &createmasternodekey,       true  },
-    { "masternode",         "getmasternodeoutputs",      &getmasternodeoutputs,      true  },
-    { "masternode",         "listmasternodeconf",        &listmasternodeconf,        true  },
-    { "masternode",         "getmasternodestatus",       &getmasternodestatus,       true  },
-    { "masternode",         "getmasternodewinners",      &getmasternodewinners,      true  },
-    { "masternode",         "getmasternodescores",       &getmasternodescores,       true  },
-    { "masternode",         "createmasternodebroadcast", &createmasternodebroadcast, true  },
-    { "masternode",         "decodemasternodebroadcast", &decodemasternodebroadcast, true  },
-    { "masternode",         "relaymasternodebroadcast",  &relaymasternodebroadcast,  true  },
-    { "masternode",         "initmasternode",            &initmasternode,            true  },
+{ //  category              name                         actor (function)            okSafe argNames
+  //  --------------------- ---------------------------  --------------------------  ------ --------
+    { "masternode",         "listmasternodes",           &listmasternodes,           true,  {"filter"} },
+    { "masternode",         "getmasternodecount",        &getmasternodecount,        true,  {} },
+    { "masternode",         "masternodecurrent",         &masternodecurrent,         true,  {} },
+    { "masternode",         "startmasternode",           &startmasternode,           true,  {"set","lockwallet","alias","reload_conf"} },
+    { "masternode",         "createmasternodekey",       &createmasternodekey,       true,  {} },
+    { "masternode",         "getmasternodeoutputs",      &getmasternodeoutputs,      true,  {} },
+    { "masternode",         "listmasternodeconf",        &listmasternodeconf,        true,  {"filter"} },
+    { "masternode",         "getmasternodestatus",       &getmasternodestatus,       true,  {} },
+    { "masternode",         "getmasternodewinners",      &getmasternodewinners,      true,  {"blocks","filter"} },
+    { "masternode",         "getmasternodescores",       &getmasternodescores,       true,  {"blocks"} },
+    { "masternode",         "createmasternodebroadcast", &createmasternodebroadcast, true,  {"command","alias"} },
+    { "masternode",         "decodemasternodebroadcast", &decodemasternodebroadcast, true,  {"hexstring"} },
+    { "masternode",         "relaymasternodebroadcast",  &relaymasternodebroadcast,  true,  {"hexstring"}  },
+    { "masternode",         "initmasternode",            &initmasternode,            true,  {"privkey","address","deterministic"} },
 
     /* Not shown in help */
-    { "hidden",             "getcachedblockhashes",      &getcachedblockhashes,      true  },
-    { "hidden",             "mnping",                    &mnping,                    true  },
+    { "hidden",             "getcachedblockhashes",      &getcachedblockhashes,      true,  {} },
+    { "hidden",             "mnping",                    &mnping,                    true,  {} },
 };
 
 void RegisterMasternodeRPCCommands(CRPCTable &tableRPC)
