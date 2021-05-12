@@ -31,7 +31,6 @@ These dependencies are required:
 
  Library     | Purpose            | Description
  ------------|--------------------|----------------------
- libssl      | Crypto             | Random Number Generation, Elliptic Curve Cryptography
  libboost    | Utility            | Library for threading, data structures, etc
  libevent    | Networking         | OS independent asynchronous networking
  libgmp      | Bignum Arithmetic  | Precision arithmetic
@@ -72,7 +71,7 @@ Build requirements:
 
 Now, you can either build from self-compiled [depends](/depends/README.md) or install the required dependencies:
 
-    sudo apt-get install libssl-dev libgmp-dev libevent-dev libboost-all-dev libsodium-dev cargo
+    sudo apt-get install libgmp-dev libevent-dev libboost-all-dev libsodium-dev cargo
 
 BerkeleyDB is required for the wallet.
 
@@ -124,7 +123,7 @@ built by default.
 
 Build requirements:
 
-    sudo dnf install which gcc-c++ libtool make autoconf automake compat-openssl10-devel libevent-devel boost-devel libdb4-devel libdb4-cxx-devel gmp-devel libsodium-devel cargo python3
+    sudo dnf install which gcc-c++ libtool make autoconf automake libevent-devel boost-devel libdb4-devel libdb4-cxx-devel gmp-devel libsodium-devel cargo python3
 
 Optional:
 

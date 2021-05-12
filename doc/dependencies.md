@@ -19,7 +19,6 @@ These are the dependencies currently used by PIVX Core. You can find instruction
 | libpng |  |  |  |  | [Yes](https://github.com/pivx-project/pivx/blob/master/depends/packages/qt.mk#L64) |
 | librsvg | |  |  |  |  |
 | MiniUPnPc | [2.2.2](https://miniupnp.tuxfamily.org/files) |  | No |  |  |
-| OpenSSL | [1.0.1k](https://www.openssl.org/source) |  | Yes |  |  |
 | GMP | [6.1.2](https://gmplib.org/) | | No | | |
 | PCRE |  |  |  |  | [Yes](https://github.com/pivx-project/pivx/blob/master/depends/packages/qt.mk#L66) |
 | Python (tests) |  | [3.5](https://www.python.org/downloads) |  |  |  |

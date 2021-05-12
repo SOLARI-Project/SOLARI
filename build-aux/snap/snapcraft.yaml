@@ -311,7 +311,6 @@ parts:
       - python3
       - help2man
       - doxygen
-      - libssl-dev
       - libgmp-dev
       - libevent-dev
       - libboost-all-dev

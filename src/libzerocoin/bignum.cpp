@@ -48,7 +48,7 @@ CBigNum::CBigNum(const std::vector<unsigned char>& vch)
     setvch(vch);
 }
 
-/** PRNGs use OpenSSL for consistency with seed initialization **/
+/** PRNGs use GMP for consistency with seed initialization **/
 
 /** Generates a cryptographically secure random number between zero and range-1 (inclusive)
 * i.e. 0 <= returned number < range

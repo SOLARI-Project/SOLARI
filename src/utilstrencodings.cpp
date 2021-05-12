@@ -14,9 +14,7 @@
 #include <errno.h>
 #include <limits>
 
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
+
 
 static const std::string CHARS_ALPHA_NUM = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -191,33 +189,6 @@ std::string DecodeBase64(const std::string& str)
 {
     std::vector<unsigned char> vchRet = DecodeBase64(str.c_str());
     return (vchRet.size() == 0) ? std::string() : std::string((const char*)&vchRet[0], vchRet.size());
-}
-
-// Base64 encoding with secure memory allocation
-SecureString EncodeBase64Secure(const SecureString& input)
-{
-    // Init openssl BIO with base64 filter and memory output
-    BIO *b64, *mem;
-    b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL); // No newlines in output
-    mem = BIO_new(BIO_s_mem());
-    BIO_push(b64, mem);
-
-    // Decode the string
-    BIO_write(b64, &input[0], input.size());
-    (void)BIO_flush(b64);
-
-    // Create output variable from buffer mem ptr
-    BUF_MEM* bptr;
-    BIO_get_mem_ptr(b64, &bptr);
-    SecureString output(bptr->data, bptr->length);
-
-    // Cleanse secure data buffer from memory
-    memory_cleanse((void*)bptr->data, bptr->length);
-
-    // Free memory
-    BIO_free_all(b64);
-    return output;
 }
 
 std::string EncodeBase32(const unsigned char* pch, size_t len)

@@ -10,8 +10,6 @@
 #include "util.h"
 #include "uint256.h"
 
-#include <openssl/aes.h>
-#include <openssl/evp.h>
 #include "wallet/wallet.h"
 
 bool CCryptoKeyStore::AddCryptedSaplingSpendingKey(

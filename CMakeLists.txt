@@ -38,7 +38,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(ENV{target} "Mac")
     add_definitions("-DMAC_OSX")
     list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/qt5)
-    list(APPEND CMAKE_PREFIX_PATH /usr/local/opt/openssl@1.1)
     list(APPEND CMAKE_PREFIX_PATH /usr/local/Cellar/berkeley-db@4)
     set(BerkeleyDB_ROOT_DIR "/usr/local/Cellar/berkeley-db@4/${BDB_VER}/")
     set(Boost_USE_MULTITHREADED ON)
@@ -74,15 +73,6 @@ if(BerkeleyDB_FOUND)
     endif()
 endif()
 
-find_package(OpenSSL COMPONENTS Crypto REQUIRED)
-if(OPENSSL_FOUND)
-    message(STATUS "Found OpenSSL (${OPENSSL_VERSION}): ${OPENSSL_LIBRARIES}")
-    if(OPENSSL_VERSION VERSION_GREATER_EQUAL 1.1)
-        message(STATUS "Found unsupported OpenSSL version!")
-        set(SSL_CONFIGURE_FLAGS "--with-unsupported-ssl")
-    endif()
-endif()
-
 find_package(LibEvent REQUIRED)
 
 find_package(GMP REQUIRED)
@@ -105,7 +95,7 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/config/pivx-config.h")
 else()
     execute_process(
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/configure ${CONFIGSITE} ${BDB_CONFIGURE_FLAGS} ${BIGNUM_CONFIGURE_FLAGS} ${SSL_CONFIGURE_FLAGS}
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/configure ${CONFIGSITE} ${BDB_CONFIGURE_FLAGS} ${BIGNUM_CONFIGURE_FLAGS}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif()
@@ -245,7 +235,7 @@ target_include_directories(SERVER_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/leveldb/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src/leveldb/helpers/memenv
     ${CMAKE_CURRENT_SOURCE_DIR}/src/rust/include
-    ${ZMQ_INCLUDE_DIR} ${LIBEVENT_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${BerkeleyDB_INCLUDE_DIRS}
+    ${ZMQ_INCLUDE_DIR} ${LIBEVENT_INCLUDE_DIR} ${BerkeleyDB_INCLUDE_DIRS}
     )
 
 if(ZMQ_FOUND)
@@ -255,7 +245,7 @@ if(ZMQ_FOUND)
         ./src/zmq/zmqpublishnotifier.cpp
     )
     add_library(ZMQ_A STATIC ${BitcoinHeaders} ${ZMQ_SOURCES} ${ZMQ_LIB})
-    target_include_directories(ZMQ_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${ZMQ_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+    target_include_directories(ZMQ_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${ZMQ_INCLUDE_DIR})
     target_compile_definitions(ZMQ_A PUBLIC "-DZMQ_STATIC")
 endif()
 
@@ -297,7 +287,6 @@ target_include_directories(WALLET_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/secp256k1/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/univalue/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/leveldb/include
-        ${OPENSSL_INCLUDE_DIR}
         ${BerkeleyDB_INCLUDE_DIRS}
         )
 
@@ -338,7 +327,7 @@ set(BITCOIN_CRYPTO_SOURCES
         ./src/crypto/sph_types.h
         )
 add_library(BITCOIN_CRYPTO_A STATIC ${BITCOIN_CRYPTO_SOURCES})
-target_include_directories(BITCOIN_CRYPTO_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${OPENSSL_INCLUDE_DIR})
+target_include_directories(BITCOIN_CRYPTO_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(ZEROCOIN_SOURCES
         ./src/libzerocoin/bignum.h
@@ -360,9 +349,7 @@ set(ZEROCOIN_SOURCES
         ./src/libzerocoin/Params.cpp
         )
 add_library(ZEROCOIN_A STATIC ${ZEROCOIN_SOURCES})
-target_include_directories(ZEROCOIN_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${OPENSSL_INCLUDE_DIR}
-        )
+target_include_directories(ZEROCOIN_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(COMMON_SOURCES
         ./src/base58.cpp
@@ -410,7 +397,6 @@ target_include_directories(COMMON_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/secp256k1/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/leveldb/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/univalue/include
-        ${OPENSSL_INCLUDE_DIR}
         ${BerkeleyDB_INCLUDE_DIRS}
         )
 
@@ -441,7 +427,6 @@ add_library(UTIL_A STATIC ${BitcoinHeaders} ${UTIL_SOURCES})
 target_include_directories(UTIL_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/univalue/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/rust/include
-        ${OPENSSL_INCLUDE_DIR}
         )
 
 set(CLI_A_SOURCES ./src/rpc/client.cpp)
@@ -474,7 +459,6 @@ target_include_directories(SAPLING_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/sapling
         ${CMAKE_CURRENT_SOURCE_DIR}/src/rust/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/univalue/include
-        ${OPENSSL_INCLUDE_DIR}
         ${BerkeleyDB_INCLUDE_DIRS}
         )
 
@@ -499,7 +483,7 @@ target_link_libraries(pivx-cli
         BITCOIN_CRYPTO_A
         SAPLING_A
         rustzcash
-        ${Boost_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} -ldl pthread
+        ${Boost_LIBRARIES} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} -ldl pthread
         )
 if($ENV{target} MATCHES "Windows")
     target_link_libraries(pivx-cli ${WINDOWS_LDADD})
@@ -523,7 +507,7 @@ target_link_libraries(pivx-tx
         secp256k1
         SAPLING_A
         rustzcash
-        ${Boost_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} ${GMP_LIBRARY} -ldl pthread
+        ${Boost_LIBRARIES} ${LIBEVENT_LIB} ${sodium_LIBRARY_RELEASE} ${GMP_LIBRARY} -ldl pthread
         )
 if($ENV{target} MATCHES "Windows")
     target_link_libraries(pivx-tx ${WINDOWS_LDADD})
@@ -558,7 +542,7 @@ target_link_libraries(pivxd
         crc32c
         secp256k1
         rustzcash
-        ${BerkeleyDB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY} ${Boost_LIBRARIES} ${LIBEVENT_LIB} ${GMP_LIBRARY} pthread
+        ${BerkeleyDB_LIBRARIES} ${Boost_LIBRARIES} ${LIBEVENT_LIB} ${GMP_LIBRARY} pthread
         )
 if($ENV{target} MATCHES "Windows")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wstack-protector -fstack-protector-all -fPIE -pipe -O2 -pthread -Wl,--dynamicbase -Wl,--nxcompat -Wl,--high-entropy-va -pie --static")

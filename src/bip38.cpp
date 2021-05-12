@@ -3,14 +3,15 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "bip38.h"
+
 #include "base58.h"
+#include "crypto/aes.h"
 #include "hash.h"
 #include "pubkey.h"
 #include "util.h"
 #include "utilstrencodings.h"
 #include "random.h"
 
-#include <openssl/aes.h>
 #include <secp256k1.h>
 #include <string>
 
@@ -26,9 +27,7 @@
 
 void DecryptAES(uint256 encryptedIn, uint256 decryptionKey, uint256& output)
 {
-    AES_KEY key;
-    AES_set_decrypt_key(decryptionKey.begin(), 256, &key);
-    AES_decrypt(encryptedIn.begin(), output.begin(), &key);
+    AES256Decrypt(decryptionKey.begin()).Decrypt(output.begin(), encryptedIn.begin());
 }
 
 void ComputePreFactor(std::string strPassphrase, std::string strSalt, uint256& prefactor)
@@ -42,8 +41,7 @@ void ComputePassfactor(std::string ownersalt, uint256 prefactor, uint256& passfa
 {
     //concat prefactor and ownersalt
     uint512 temp = uint512S(ReverseEndianString(HexStr(prefactor) + ownersalt));
-    Hash(temp.begin(), 40, passfactor.begin()); //40 bytes is the length of prefactor + salt
-    Hash(passfactor.begin(), 32, passfactor.begin());
+    Hash(temp.begin(), temp.end(), passfactor.begin(), passfactor.end());
 }
 
 bool ComputePasspoint(uint256 passfactor, CPubKey& passpoint)
@@ -89,15 +87,12 @@ void ComputeSeedBPass(CPubKey passpoint, std::string strAddressHash, std::string
 void ComputeFactorB(uint256 seedB, uint256& factorB)
 {
     //factorB - a double sha256 hash of seedb
-    Hash(seedB.begin(), 24, factorB.begin()); //seedB is only 24 bytes
-    Hash(factorB.begin(), 32, factorB.begin());
+    Hash(seedB.begin(), seedB.end(), factorB.begin(), factorB.end());
 }
 
-std::string AddressToBip38Hash(std::string address)
+std::string AddressToBip38Hash(const std::string& address)
 {
-    uint256 addrCheck;
-    Hash((void*)address.c_str(), address.size(), addrCheck.begin());
-    Hash(addrCheck.begin(), 32, addrCheck.begin());
+    uint256 addrCheck = Hash(address.begin(), address.end());
 
     return HexStr(addrCheck).substr(0, 8);
 }
@@ -118,9 +113,8 @@ std::string BIP38_Encrypt(std::string strAddress, std::string strPassphrase, uin
 
     //encrypt part 1
     arith_uint512 encrypted1;
-    AES_KEY key;
-    AES_set_encrypt_key(derivedHalf2.begin(), 256, &key);
-    AES_encrypt(block1.begin(), encrypted1.begin(), &key);
+    AES256Encrypt enc(derivedHalf2.begin());
+    enc.Encrypt(encrypted1.begin(), block1.begin());
 
     //block2 = (pointb[17...32] xor derivedhalf1[16...31]
     arith_uint256 p2 = UintToArith256(privKey) >> 128;
@@ -129,7 +123,7 @@ std::string BIP38_Encrypt(std::string strAddress, std::string strPassphrase, uin
 
     //encrypt part 2
     arith_uint512 encrypted2;
-    AES_encrypt(block2.begin(), encrypted2.begin(), &key);
+    enc.Encrypt(encrypted2.begin(), block2.begin());
 
     std::string strPrefix = "0142";
     strPrefix += (fCompressed ? "E0" : "C0");
