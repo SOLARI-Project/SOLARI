@@ -762,20 +762,20 @@ UniValue echo(const JSONRPCRequest& request)
 }
 
 static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         okSafeMode
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "control",            "getinfo",                &getinfo,                true  }, /* uses wallet if enabled */
-    { "control",            "mnsync",                 &mnsync,                 true  },
-    { "control",            "spork",                  &spork,                  true  },
-    { "control",            "getmemoryinfo",          &getmemoryinfo,          true  },
-    { "util",               "validateaddress",        &validateaddress,        true  }, /* uses wallet if enabled */
-    { "util",               "createmultisig",         &createmultisig,         true  },
-    { "util",               "logging",                &logging,                true  },
-    { "util",               "verifymessage",          &verifymessage,          true  },
+{ //  category              name                      actor (function)         okSafe argNames
+  //  --------------------- ------------------------  -----------------------  ------ --------
+    { "control",            "getinfo",                &getinfo,                true,  {} }, /* uses wallet if enabled */
+    { "control",            "mnsync",                 &mnsync,                 true,  {"mode"} },
+    { "control",            "spork",                  &spork,                  true,  {"name","value"} },
+    { "control",            "getmemoryinfo",          &getmemoryinfo,          true,  {} },
+    { "util",               "validateaddress",        &validateaddress,        true,  {"pivxaddress"} }, /* uses wallet if enabled */
+    { "util",               "createmultisig",         &createmultisig,         true,  {"nrequired","keys"} },
+    { "util",               "logging",                &logging,                true,  {"include", "exclude"} },
+    { "util",               "verifymessage",          &verifymessage,          true,  {"pivxaddress","signature","message"} },
 
     /* Not shown in help */
-    { "hidden",             "setmocktime",            &setmocktime,            true  },
-    { "hidden",             "echo",                   &echo,                   true, {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
+    { "hidden",             "setmocktime",            &setmocktime,            true,  {"timestamp"} },
+    { "hidden",             "echo",                   &echo,                   true,  {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 };
 
 void RegisterMiscRPCCommands(CRPCTable &tableRPC)
