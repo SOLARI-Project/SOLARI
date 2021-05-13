@@ -23,6 +23,7 @@
 #include <univalue.h>
 
 static const char DEFAULT_RPCCONNECT[] = "127.0.0.1";
+static const bool DEFAULT_NAMED=false;
 static const int DEFAULT_HTTP_CLIENT_TIMEOUT=900;
 
 std::string HelpMessageCli()
@@ -35,6 +36,7 @@ std::string HelpMessageCli()
     strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), PIVX_CONF_FILENAME));
     strUsage += HelpMessageOpt("-datadir=<dir>", _("Specify data directory"));
     AppendParamsHelpMessages(strUsage);
+    strUsage += HelpMessageOpt("-named", strprintf(_("Pass named instead of positional arguments (default: %s)"), DEFAULT_NAMED));
     strUsage += HelpMessageOpt("-rpcconnect=<ip>", strprintf(_("Send commands to node running on <ip> (default: %s)"), DEFAULT_RPCCONNECT));
     strUsage += HelpMessageOpt("-rpcport=<port>", strprintf(_("Listen for JSON-RPC connections on <port> (default: %u or testnet: %u)"), defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort()));
     strUsage += HelpMessageOpt("-rpcwait", _("Wait for RPC server to start"));
@@ -73,6 +75,7 @@ static bool AppInitRPC(int argc, char* argv[])
         if (!gArgs.IsArgSet("-version")) {
             strUsage += "\n" + _("Usage:") + "\n" +
                         "  pivx-cli [options] <command> [params]  " + _("Send command to PIVX Core") + "\n" +
+                        "  pivx-cli [options] -named <command> [name=value] ... " + _("Send command to PIVX Core (with named arguments)") + "\n" +
                         "  pivx-cli [options] help                " + _("List commands") + "\n" +
                         "  pivx-cli [options] help <command>      " + _("Get help for a command") + "\n";
 
@@ -236,7 +239,12 @@ int CommandLineRPC(int argc, char* argv[])
 
         // Parameters default to strings
         std::vector<std::string> strParams(&argv[2], &argv[argc]);
-        UniValue params = RPCConvertValues(strMethod, strParams);
+        UniValue params;
+        if(gArgs.GetBoolArg("-named", DEFAULT_NAMED)) {
+            params = RPCConvertNamedValues(strMethod, strParams);
+        } else {
+            params = RPCConvertValues(strMethod, strParams);
+        }
 
         // Execute and handle connection failures with -rpcwait
         const bool fWait = gArgs.GetBoolArg("-rpcwait", false);

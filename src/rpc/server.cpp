@@ -278,7 +278,7 @@ static const CRPCCommand vRPCCommands[] =
   //  --------------------- ------------------------  -----------------------  ------ ----------
     /* Overall control/query calls */
     { "control",            "help",                   &help,                   true,  {"command"}  },
-    { "control",            "stop",                   &stop,                   true,  {}  },
+    { "control",            "stop",                   &stop,                   true,  {"detach"}  },
 };
 
 CRPCTable::CRPCTable()
