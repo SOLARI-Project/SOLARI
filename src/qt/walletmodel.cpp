@@ -216,24 +216,26 @@ bool WalletModel::processBalanceChangeInternal()
     int chainHeight = getLastBlockProcessedNum();
     const uint256& blockHash = getLastBlockProcessed();
 
-    if (hasForceCheckBalance() || chainHeight != getCacheNumBLocks()) {
-        // Try to get lock only if needed
-        TRY_LOCK(wallet->cs_wallet, lockWallet);
-        if (!lockWallet)
-            return false;
+    // Avoid recomputing wallet balances unless a tx changed or BlockTip notification was received.
+    // Extra note: This needs to be done before and after the update task trigger and execution because, as it runs concurrently,
+    // there is no guarantee that the threadpool will execute the task right away.
+    if (!fForceCheckBalanceChanged && m_cached_best_block_hash == blockHash) return false;
 
-        setfForceCheckBalanceChanged(false);
+    // Try to get lock only if needed
+    TRY_LOCK(wallet->cs_wallet, lockWallet);
+    if (!lockWallet) return false;
 
-        // Balance and number of transactions might have changed
-        setCacheNumBlocks(chainHeight);
-        setCacheBlockHash(blockHash);
-        checkBalanceChanged(getBalances());
-        QMetaObject::invokeMethod(this, "updateTxModelData", Qt::QueuedConnection);
-        QMetaObject::invokeMethod(this, "pollFinished", Qt::QueuedConnection);
+    setfForceCheckBalanceChanged(false);
 
-        // Address in receive tab may have been used
-        Q_EMIT notifyReceiveAddressChanged();
-    }
+    // Balance and number of transactions might have changed
+    setCacheNumBlocks(chainHeight);
+    setCacheBlockHash(blockHash);
+    checkBalanceChanged(getBalances());
+    QMetaObject::invokeMethod(this, "updateTxModelData", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, "pollFinished", Qt::QueuedConnection);
+
+    // Address in receive tab may have been used
+    Q_EMIT notifyReceiveAddressChanged();
     return true;
 }
 
