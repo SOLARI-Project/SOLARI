@@ -99,6 +99,7 @@ BASE_SCRIPTS= [
     'wallet_encryption.py',                     # ~ 89 sec
     'wallet_import_stakingaddress.py',          # ~ 88 sec
     'wallet_keypool.py',                        # ~ 88 sec
+    'feature_blocksdir.py',                     # ~ 85 sec
     'feature_config_args.py',                   # ~ 85 sec
     'wallet_dump.py',                           # ~ 83 sec
     'rpc_net.py',                               # ~ 83 sec
@@ -120,8 +121,8 @@ BASE_SCRIPTS= [
     'wallet_disable.py',                        # ~ 50 sec
     'wallet_autocombine.py',                    # ~ 49 sec
     'mining_v5_upgrade.py',                     # ~ 48 sec
-    'feature_blocksdir.py',
     'p2p_mempool.py',                           # ~ 46 sec
+    'rpc_named_arguments.py',                   # ~ 45 sec
     'feature_help.py',                          # ~ 30 sec
 
     # Don't append tests at the end to avoid merge conflicts
