@@ -85,15 +85,15 @@ UniValue importprivkey(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
         throw std::runtime_error(
-            "importprivkey \"pivxprivkey\" ( \"label\" rescan fStakingAddress )\n"
+            "importprivkey \"privkey\" ( \"label\" rescan is_staking_address )\n"
             "\nAdds a private key (as returned by dumpprivkey) to your wallet.\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
-            "1. \"pivxprivkey\"      (string, required) The private key (see dumpprivkey)\n"
+            "1. \"privkey\"          (string, required) The private key (see dumpprivkey)\n"
             "2. \"label\"            (string, optional, default=\"\") An optional label\n"
             "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
-            "4. fStakingAddress      (boolean, optional, default=false) Whether this key refers to a (cold) staking address\n"
+            "4. is_staking_address   (boolean, optional, default=false) Whether this key refers to a (cold) staking address\n"
             "\nNote: This call can take minutes to complete if rescan is true, during that time, other rpc calls\n"
             "may report that the imported key exists but related transactions are still missing, leading to temporarily incorrect/bogus balances and unspent outputs until rescan completes.\n"
             "\nExamples:\n"
@@ -465,13 +465,13 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-            "dumpprivkey \"pivxaddress\"\n"
-            "\nReveals the private key corresponding to 'pivxaddress'.\n"
+            "dumpprivkey \"address\"\n"
+            "\nReveals the private key corresponding to 'address'.\n"
             "Then the importprivkey can be used with this output\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
-            "1. \"pivxaddress\"   (string, required) The pivx address for the private key\n"
+            "1. \"address\"   (string, required) The pivx address for the private key\n"
 
             "\nResult:\n"
             "\"key\"                (string) The private key\n"
@@ -1122,12 +1122,12 @@ UniValue bip38encrypt(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
-            "bip38encrypt \"pivxaddress\" \"passphrase\"\n"
-            "\nEncrypts a private key corresponding to 'pivxaddress'.\n" +
+            "bip38encrypt \"address\" \"passphrase\"\n"
+            "\nEncrypts a private key corresponding to 'address'.\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
-            "1. \"pivxaddress\"   (string, required) The pivx address for the private key (you must hold the key already)\n"
+            "1. \"address\"      (string, required) The pivx address for the private key (you must hold the key already)\n"
             "2. \"passphrase\"   (string, required) The passphrase you want the private key to be encrypted with - Valid special chars: !#$%&'()*+,-./:;<=>?`{|}~ \n"
 
             "\nResult:\n"
@@ -1173,13 +1173,13 @@ UniValue bip38decrypt(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
-            "bip38decrypt \"pivxaddress\" \"passphrase\"\n"
+            "bip38decrypt \"encrypted_key\" \"passphrase\"\n"
             "\nDecrypts and then imports password protected private key.\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
-            "1. \"encryptedkey\"   (string, required) The encrypted private key\n"
-            "2. \"passphrase\"   (string, required) The passphrase you want the private key to be encrypted with\n"
+            "1. \"encrypted_key\"   (string, required) The encrypted private key\n"
+            "2. \"passphrase\"      (string, required) The passphrase you want the private key to be encrypted with\n"
 
             "\nResult:\n"
             "\"key\"                (string) The decrypted private key\n"
@@ -1249,14 +1249,14 @@ UniValue importsaplingkey(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 3)
         throw std::runtime_error(
-                "importsaplingkey \"key\" ( rescan startHeight )\n"
+                "importsaplingkey \"key\" ( rescan height )\n"
                 "\nAdds a key (as returned by exportsaplingkey) to your wallet.\n"
                 + HelpRequiringPassphrase(pwallet) + "\n"
 
                 "\nArguments:\n"
                 "1. \"key\"             (string, required) The zkey (see exportsaplingkey)\n"
                 "2. rescan             (string, optional, default=\"whenkeyisnew\") Rescan the wallet for transactions - can be \"yes\", \"no\" or \"whenkeyisnew\"\n"
-                "3. startHeight        (numeric, optional, default=0) Block height to start rescan from\n"
+                "3. height              (numeric, optional, default=0) Block height to start rescan from\n"
                 "\nNote: This call can take minutes to complete if rescan is true.\n"
 
                 "\nResult:\n"
@@ -1351,14 +1351,14 @@ UniValue importsaplingviewingkey(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 3)
         throw std::runtime_error(
-                "importsaplingviewingkey \"vkey\" ( rescan startHeight )\n"
+                "importsaplingviewingkey \"vkey\" ( rescan height )\n"
                 "\nAdds a viewing key (as returned by exportsaplingviewingkey) to your wallet.\n"
                 + HelpRequiringPassphrase(pwallet) + "\n"
 
                 "\nArguments:\n"
-                "1. \"vkey\"             (string, required) The viewing key (see exportsaplingviewingkey)\n"
-                "2. rescan             (string, optional, default=\"whenkeyisnew\") Rescan the wallet for transactions - can be \"yes\", \"no\" or \"whenkeyisnew\"\n"
-                "3. startHeight        (numeric, optional, default=0) Block height to start rescan from\n"
+                "1. \"vkey\"        (string, required) The viewing key (see exportsaplingviewingkey)\n"
+                "2. rescan          (string, optional, default=\"whenkeyisnew\") Rescan the wallet for transactions - can be \"yes\", \"no\" or \"whenkeyisnew\"\n"
+                "3. height          (numeric, optional, default=0) Block height to start rescan from\n"
                 "\nNote: This call can take minutes to complete if rescan is true.\n"
 
                 "\nResult:\n"

@@ -543,7 +543,7 @@ UniValue getnewshieldaddress(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() > 1)
+    if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
                 "getnewshieldaddress\n"
                 "\nReturns a new shield address for receiving payments.\n"
@@ -573,15 +573,15 @@ UniValue listshieldunspent(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 4)
         throw std::runtime_error(
-                "listshieldunspent ( minconf maxconf includeWatchonly [\"shield_addr\",...] )\n"
+                "listshieldunspent ( minconf maxconf include_watchonly [\"shield_addr\",...] )\n"
                 "\nReturns array of unspent shield notes with between minconf and maxconf (inclusive) confirmations.\n"
                 "Optionally filter to only include notes sent to specified addresses.\n"
                 "When minconf is 0, unspent notes with zero confirmations are returned, even though they are not immediately spendable.\n"
 
                 "\nArguments:\n"
-                "1. minconf          (numeric, optional, default=1) The minimum confirmations to filter\n"
-                "2. maxconf          (numeric, optional, default=9999999) The maximum confirmations to filter\n"
-                "3. includeWatchonly (bool, optional, default=false) Also include watchonly addresses (see 'importsaplingviewingkey')\n"
+                "1. minconf            (numeric, optional, default=1) The minimum confirmations to filter\n"
+                "2. maxconf            (numeric, optional, default=9999999) The maximum confirmations to filter\n"
+                "3. include_watchonly  (bool, optional, default=false) Also include watchonly addresses (see 'importsaplingviewingkey')\n"
                 "4. \"addresses\"      (string) A json array of shield addrs to filter on.  Duplicate addresses not allowed.\n"
                 "    [\n"
                 "      \"address\"     (string) shield addr\n"
@@ -705,12 +705,12 @@ UniValue delegatoradd(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
-            "delegatoradd \"addr\" ( \"label\" )\n"
-            "\nAdd the provided address <addr> into the allowed delegators AddressBook.\n"
+            "delegatoradd \"address\" ( \"label\" )\n"
+            "\nAdd the provided address <address> into the allowed delegators AddressBook.\n"
             "This enables the staking of coins delegated to this wallet, owned by <addr>\n"
 
             "\nArguments:\n"
-            "1. \"addr\"        (string, required) The address to whitelist\n"
+            "1. \"address\"     (string, required) The address to whitelist\n"
             "2. \"label\"       (string, optional) A label for the address to whitelist\n"
 
             "\nResult:\n"
@@ -745,12 +745,12 @@ UniValue delegatorremove(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-            "delegatorremove \"addr\"\n"
-            "\nUpdates the provided address <addr> from the allowed delegators keystore to a \"delegable\" status.\n"
+            "delegatorremove \"address\"\n"
+            "\nUpdates the provided address <address> from the allowed delegators keystore to a \"delegable\" status.\n"
             "This disables the staking of coins delegated to this wallet, owned by <addr>\n"
 
             "\nArguments:\n"
-            "1. \"addr\"        (string, required) The address to blacklist\n"
+            "1. \"address\"      (string, required) The address to blacklist\n"
 
             "\nResult:\n"
             "true|false           (boolean) true if successful.\n"
@@ -813,11 +813,11 @@ UniValue listdelegators(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-            "listdelegators ( fBlacklist )\n"
+            "listdelegators ( blacklist )\n"
             "\nShows the list of allowed delegator addresses for cold staking.\n"
 
             "\nArguments:\n"
-            "1. fBlacklist             (boolean, optional, default = false) Show addresses removed\n"
+            "1. blacklist             (boolean, optional, default = false) Show addresses removed\n"
             "                          from the delegators whitelist\n"
 
             "\nResult:\n"
@@ -846,9 +846,9 @@ UniValue liststakingaddresses(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() != 0)
+    if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
-            "liststakingaddresses \"addr\"\n"
+            "liststakingaddresses\n"
             "\nShows the list of staking addresses for this wallet.\n"
 
             "\nResult:\n"
@@ -876,11 +876,11 @@ UniValue listshieldaddresses(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-                "listshieldaddresses ( includeWatchonly )\n"
+                "listshieldaddresses ( include_watchonly )\n"
                 "\nReturns the list of shield addresses belonging to the wallet.\n"
 
                 "\nArguments:\n"
-                "1. includeWatchonly (bool, optional, default=false) Also include watchonly addresses (see 'importviewingkey')\n"
+                "1. include_watchonly (bool, optional, default=false) Also include watchonly addresses (see 'importviewingkey')\n"
 
                 "\nResult:\n"
                 "[                     (json array of string)\n"
@@ -921,7 +921,7 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() > 1)
+    if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
             "getrawchangeaddress\n"
             "\nReturns a new PIVX address, for receiving change.\n"
@@ -960,11 +960,11 @@ UniValue setlabel(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
-            "setlabel \"pivxaddress\" \"label\"\n"
+            "setlabel \"address\" \"label\"\n"
             "\nSets the label associated with the given address.\n"
 
             "\nArguments:\n"
-            "1. \"pivxaddress\"   (string, required) The pivx address to be associated with a label.\n"
+            "1. \"address\"       (string, required) The pivx address to be associated with a label.\n"
             "2. \"label\"         (string, required) The label to assign to the address.\n"
 
             "\nExamples:\n" +
@@ -1075,12 +1075,12 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
         throw std::runtime_error(
-            "sendtoaddress \"pivxaddress\" amount ( \"comment\" \"comment-to\" )\n"
+            "sendtoaddress \"address\" amount ( \"comment\" \"comment-to\" )\n"
             "\nSend an amount to a given address. The amount is a real and is rounded to the nearest 0.00000001\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
-            "1. \"pivxaddress\"  (string, required) The pivx address to send to.\n"
+            "1. \"address\"     (string, required) The pivx address to send to.\n"
             "2. \"amount\"      (numeric, required) The amount in PIV to send. eg 0.1\n"
             "3. \"comment\"     (string, optional) A comment used to store what the transaction is for. \n"
             "                             This is not part of the transaction, just kept in your wallet.\n"
@@ -1257,20 +1257,20 @@ UniValue delegatestake(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 7)
         throw std::runtime_error(
-            "delegatestake \"stakingaddress\" amount ( \"owneraddress\" fExternalOwner fUseDelegated fFromShield fForceNotEnabled )\n"
+            "delegatestake \"staking_addr\" amount ( \"owner_addr\" ext_owner include_delegated from_shield force )\n"
             "\nDelegate an amount to a given address for cold staking. The amount is a real and is rounded to the nearest 0.00000001\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
-            "1. \"stakingaddress\"      (string, required) The pivx staking address to delegate.\n"
-            "2. \"amount\"              (numeric, required) The amount in PIV to delegate for staking. eg 100\n"
-            "3. \"owneraddress\"        (string, optional) The pivx address corresponding to the key that will be able to spend the stake.\n"
+            "1. \"staking_addr\"      (string, required) The pivx staking address to delegate.\n"
+            "2. \"amount\"            (numeric, required) The amount in PIV to delegate for staking. eg 100\n"
+            "3. \"owner_addr\"        (string, optional) The pivx address corresponding to the key that will be able to spend the stake.\n"
             "                               If not provided, or empty string, a new wallet address is generated.\n"
-            "4. \"fExternalOwner\"      (boolean, optional, default = false) use the provided 'owneraddress' anyway, even if not present in this wallet.\n"
+            "4. \"ext_owner\"         (boolean, optional, default = false) use the provided 'owneraddress' anyway, even if not present in this wallet.\n"
             "                               WARNING: The owner of the keys to 'owneraddress' will be the only one allowed to spend these coins.\n"
-            "5. \"fUseDelegated\"       (boolean, optional, default = false) include already delegated inputs if needed.\n"
-            "6. \"fFromShield\"         (boolean, optional, default = false) delegate shield funds.\n"
-            "7. \"fForceNotEnabled\"    (boolean, optional, default = false) ONLY FOR TESTING: force the creation even if SPORK 17 is disabled.\n"
+            "5. \"include_delegated\" (boolean, optional, default = false) include already delegated inputs if needed.\n"
+            "6. \"from_shield\"       (boolean, optional, default = false) delegate shield funds.\n"
+            "7. \"force\"             (boolean, optional, default = false) ONLY FOR TESTING: force the creation even if SPORK 17 is disabled.\n"
 
             "\nResult:\n"
             "{\n"
@@ -1313,21 +1313,21 @@ UniValue rawdelegatestake(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 7)
         throw std::runtime_error(
-            "rawdelegatestake \"stakingaddress\" amount ( \"owneraddress\" fExternalOwner fUseDelegated fFromShield )\n"
+            "rawdelegatestake \"staking_addr\" amount ( \"owner_addr\" ext_owner include_delegated from_shield )\n"
             "\nDelegate an amount to a given address for cold staking. The amount is a real and is rounded to the nearest 0.00000001\n"
             "\nDelegate transaction is returned as json object." +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
-            "1. \"stakingaddress\"      (string, required) The pivx staking address to delegate.\n"
-            "2. \"amount\"              (numeric, required) The amount in PIV to delegate for staking. eg 100\n"
-            "3. \"owneraddress\"        (string, optional) The pivx address corresponding to the key that will be able to spend the stake.\n"
+            "1. \"staking_addr\"      (string, required) The pivx staking address to delegate.\n"
+            "2. \"amount\"            (numeric, required) The amount in PIV to delegate for staking. eg 100\n"
+            "3. \"owner_addr\"        (string, optional) The pivx address corresponding to the key that will be able to spend the stake.\n"
             "                               If not provided, or empty string, a new wallet address is generated.\n"
-            "4. \"fExternalOwner\"      (boolean, optional, default = false) use the provided 'owneraddress' anyway, even if not present in this wallet.\n"
+            "4. \"ext_owner\"         (boolean, optional, default = false) use the provided 'owneraddress' anyway, even if not present in this wallet.\n"
             "                               WARNING: The owner of the keys to 'owneraddress' will be the only one allowed to spend these coins.\n"
-            "5. \"fUseDelegated\"       (boolean, optional, default = false) include already delegated inputs if needed.\n"
-            "6. \"fFromShield\"         (boolean, optional, default = false) delegate shield funds.\n"
-            "7. \"fForceNotEnabled\"    (boolean, optional, default = false) ONLY FOR TESTING: force the creation even if SPORK 17 is disabled (for tests).\n"
+            "5. \"include_delegated\" (boolean, optional, default = false) include already delegated inputs if needed.\n"
+            "6. \"from_shield\"       (boolean, optional, default = false) delegate shield funds.\n"
+            "7. \"force\"             (boolean, optional, default = false) ONLY FOR TESTING: force the creation even if SPORK 17 is disabled (for tests).\n"
 
             "\nResult:\n"
             "\"transaction\"            (string) hex string of the transaction\n"
@@ -1373,7 +1373,7 @@ UniValue getshieldbalance(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 3)
         throw std::runtime_error(
-                "getshieldbalance \"address\" ( minconf includeWatchonly )\n"
+                "getshieldbalance \"address\" ( minconf include_watchonly )\n"
                 "\nReturn the total shield value of funds stored in the node's wallet or if an address was given,"
                 "\nreturns the balance of the shield addr belonging to the node's wallet.\n"
                 "\nCAUTION: If the wallet contains any addresses for which it only has incoming viewing keys,"
@@ -1381,9 +1381,9 @@ UniValue getshieldbalance(const JSONRPCRequest& request)
                 "\nbe detected with incoming viewing keys.\n"
 
                 "\nArguments:\n"
-                "1. \"address\"      (string, optional) The selected address. If non empty nor \"*\", it must be a Sapling address\n"
-                "2. minconf          (numeric, optional, default=1) Only include private and transparent transactions confirmed at least this many times.\n"
-                "3. includeWatchonly (bool, optional, default=false) Also include balance in watchonly addresses (see 'importaddress' and 'importsaplingviewingkey')\n"
+                "1. \"address\"        (string, optional) The selected address. If non empty nor \"*\", it must be a Sapling address\n"
+                "2. minconf            (numeric, optional, default=1) Only include private and transparent transactions confirmed at least this many times.\n"
+                "3. include_watchonly  (bool, optional, default=false) Also include balance in watchonly addresses (see 'importaddress' and 'importsaplingviewingkey')\n"
 
                 "\nResult:\n"
                 "amount              (numeric) the total balance of shield funds (in Sapling addresses)\n"
@@ -1868,7 +1868,7 @@ UniValue listaddressgroupings(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp)
+    if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
             "listaddressgroupings\n"
             "\nLists groups of addresses which have had their common ownership\n"
@@ -1925,13 +1925,13 @@ UniValue signmessage(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
-            "signmessage \"pivxaddress\" \"message\"\n"
+            "signmessage \"address\" \"message\"\n"
             "\nSign a message with the private key of an address" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
             "\nArguments:\n"
-            "1. \"pivxaddress\"  (string, required) The pivx address to use for the private key.\n"
-            "2. \"message\"         (string, required) The message to create a signature of.\n"
+            "1. \"address\"     (string, required) The pivx address to use for the private key.\n"
+            "2. \"message\"     (string, required) The message to create a signature of.\n"
 
             "\nResult:\n"
             "\"signature\"          (string) The signature of the message encoded in base 64\n"
@@ -1985,12 +1985,12 @@ UniValue getreceivedbyaddress(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
-            "getreceivedbyaddress \"pivxaddress\" ( minconf )\n"
+            "getreceivedbyaddress \"address\" ( minconf )\n"
             "\nReturns the total amount received by the given pivxaddress in transactions with at least minconf confirmations.\n"
 
             "\nArguments:\n"
-            "1. \"pivxaddress\"  (string, required) The pivx address for transactions.\n"
-            "2. minconf             (numeric, optional, default=1) Only include transactions confirmed at least this many times.\n"
+            "1. \"address\"    (string, required) The pivx address for transactions.\n"
+            "2. minconf        (numeric, optional, default=1) Only include transactions confirmed at least this many times.\n"
 
             "\nResult:\n"
             "amount   (numeric) The total amount in PIV received at this address.\n"
@@ -2114,16 +2114,16 @@ UniValue getbalance(const JSONRPCRequest& request)
 
     if (request.fHelp || (request.params.size() > 4 ))
         throw std::runtime_error(
-            "getbalance ( minconf includeWatchonly includeDelegated includeShield )\n"
+            "getbalance ( minconf include_watchonly include_delegated include_shield )\n"
             "\nReturns the server's total available balance.\n"
             "The available balance is what the wallet considers currently spendable, and is\n"
             "thus affected by options which limit spendability such as -spendzeroconfchange.\n"
 
             "\nArguments:\n"
             "1. minconf          (numeric, optional, default=0) Only include transactions confirmed at least this many times.\n"
-            "2. includeWatchonly (bool, optional, default=false) Also include balance in watchonly addresses (see 'importaddress')\n"
-            "3. includeDelegated (bool, optional, default=true) Also include balance delegated to cold stakers\n"
-            "4. includeShield    (bool, optional, default=true) Also include shield balance\n"
+            "2. include_watchonly (bool, optional, default=false) Also include balance in watchonly addresses (see 'importaddress')\n"
+            "3. include_delegated (bool, optional, default=true) Also include balance delegated to cold stakers\n"
+            "4. include_shield    (bool, optional, default=true) Also include shield balance\n"
 
             "\nResult:\n"
             "amount              (numeric) The total amount in PIV received for this wallet.\n"
@@ -2316,7 +2316,7 @@ UniValue sendmany(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 5)
         throw std::runtime_error(
-            "sendmany \"\" {\"address\":amount,...} ( minconf \"comment\" includeDelegated )\n"
+            "sendmany \"\" {\"address\":amount,...} ( minconf \"comment\" include_delegated )\n"
             "\nSend to multiple destinations. Recipients are transparent or shield PIVX addresses.\n"
             "\nAmounts are double-precision floating point numbers.\n"
             + HelpRequiringPassphrase(pwallet) + "\n"
@@ -2331,7 +2331,7 @@ UniValue sendmany(const JSONRPCRequest& request)
             "    }\n"
             "3. minconf                 (numeric, optional, default=1) Only use the balance confirmed at least this many times.\n"
             "4. \"comment\"             (string, optional) A comment\n"
-            "5. includeDelegated        (bool, optional, default=false) Also include balance delegated to cold stakers\n"
+            "5. include_delegated       (bool, optional, default=false) Also include balance delegated to cold stakers\n"
 
             "\nResult:\n"
             "\"transactionid\"          (string) The transaction id for the send. Only 1 transaction is created regardless of \n"
@@ -2402,12 +2402,12 @@ UniValue addmultisigaddress(const JSONRPCRequest& request)
 
             "\nArguments:\n"
             "1. nrequired        (numeric, required) The number of required signatures out of the n keys or addresses.\n"
-            "2. \"keysobject\"   (string, required) A json array of pivx addresses or hex-encoded public keys\n"
+            "2. \"keys\"         (string, required) A json array of pivx addresses or hex-encoded public keys\n"
             "     [\n"
             "       \"address\"  (string) pivx address or hex-encoded public key\n"
             "       ...,\n"
             "     ]\n"
-            "3. \"label\"      (string, optional) A label to assign the addresses to.\n"
+            "3. \"label\"        (string, optional) A label to assign the addresses to.\n"
 
             "\nResult:\n"
             "\"pivxaddress\"  (string) A pivx address associated with the keys.\n"
@@ -2598,14 +2598,14 @@ UniValue listreceivedbyaddress(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 4)
         throw std::runtime_error(
-            "listreceivedbyaddress ( minconf includeempty includeWatchonly addressFilter)\n"
+            "listreceivedbyaddress ( minconf include_empty include_watchonly filter)\n"
             "\nList balances by receiving address.\n"
 
             "\nArguments:\n"
-            "1. minconf       (numeric, optional, default=1) The minimum number of confirmations before payments are included.\n"
-            "2. includeempty  (numeric, optional, default=false) Whether to include addresses that haven't received any payments.\n"
-            "3. includeWatchonly (bool, optional, default=false) Whether to include watchonly addresses (see 'importaddress').\n"
-            "4. addressFilter    (string, optional) If present, only return information on this address.\n"
+            "1. minconf           (numeric, optional, default=1) The minimum number of confirmations before payments are included.\n"
+            "2. include_empty     (numeric, optional, default=false) Whether to include addresses that haven't received any payments.\n"
+            "3. include_watchonly (bool, optional, default=false) Whether to include watchonly addresses (see 'importaddress').\n"
+            "4. filter            (string, optional) If present, only return information on this address.\n"
 
             "\nResult:\n"
             "[\n"
@@ -2749,13 +2749,13 @@ UniValue listreceivedbylabel(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 3)
         throw std::runtime_error(
-            "listreceivedbylabel ( minconf includeempty includeWatchonly)\n"
+            "listreceivedbylabel ( minconf include_empty include_watchonly)\n"
             "\nList received transactions by label.\n"
 
             "\nArguments:\n"
-            "1. minconf      (numeric, optional, default=1) The minimum number of confirmations before payments are included.\n"
-            "2. includeempty (boolean, optional, default=false) Whether to include labels that haven't received any payments.\n"
-            "3. includeWatchonly (bool, optional, default=false) Whether to include watchonly addresses (see 'importaddress').\n"
+            "1. minconf           (numeric, optional, default=1) The minimum number of confirmations before payments are included.\n"
+            "2. include_empty     (boolean, optional, default=false) Whether to include labels that haven't received any payments.\n"
+            "3. include_watchonly (bool, optional, default=false) Whether to include watchonly addresses (see 'importaddress').\n"
 
             "\nResult:\n"
             "[\n"
@@ -2790,11 +2790,11 @@ UniValue listcoldutxos(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-            "listcoldutxos ( nonWhitelistedOnly )\n"
+            "listcoldutxos ( not_whitelisted )\n"
             "\nList P2CS unspent outputs received by this wallet as cold-staker-\n"
 
             "\nArguments:\n"
-            "1. nonWhitelistedOnly   (boolean, optional, default=false) Whether to exclude P2CS from whitelisted delegators.\n"
+            "1. not_whitelisted   (boolean, optional, default=false) Whether to exclude P2CS from whitelisted delegators.\n"
 
             "\nResult:\n"
             "[\n"
@@ -2940,16 +2940,16 @@ UniValue listtransactions(const JSONRPCRequest& request)
         return NullUniValue;
 
     if (request.fHelp || request.params.size() > 6) throw std::runtime_error(
-            "listtransactions ( \"dummy\" count from includeWatchonly includeDelegated )\n"
+            "listtransactions ( \"dummy\" count from include_watchonly include_delegated include_cold)\n"
             "\nReturns up to 'count' most recent transactions skipping the first 'from' transactions.\n"
 
             "\nArguments:\n"
-            "1. \"dummy\"    (string, optional) If set, should be \"*\" for backwards compatibility.\n"
-            "2. count          (numeric, optional, default=10) The number of transactions to return\n"
-            "3. from           (numeric, optional, default=0) The number of transactions to skip\n"
-            "4. includeWatchonly (bool, optional, default=false) Include transactions to watchonly addresses (see 'importaddress')\n"
-            "5. includeDelegated     (bool, optional, default=true) Also include balance delegated to cold stakers\n"
-            "6. includeCold     (bool, optional, default=true) Also include delegated balance received as cold-staker by this node\n"
+            "1. \"dummy\"         (string, optional) If set, should be \"*\" for backwards compatibility.\n"
+            "2. count             (numeric, optional, default=10) The number of transactions to return\n"
+            "3. from              (numeric, optional, default=0) The number of transactions to skip\n"
+            "4. include_watchonly (bool, optional, default=false) Include transactions to watchonly addresses (see 'importaddress')\n"
+            "5. include_delegated (bool, optional, default=true) Also include balance delegated to cold stakers\n"
+            "6. include_cold      (bool, optional, default=true) Also include delegated balance received as cold-staker by this node\n"
 
             "\nResult:\n"
             "[\n"
@@ -3059,15 +3059,15 @@ UniValue listsinceblock(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp)
+    if (request.fHelp || request.params.size() > 3)
         throw std::runtime_error(
-            "listsinceblock ( \"blockhash\" target-confirmations includeWatchonly)\n"
+            "listsinceblock ( \"blockhash\" target_confirmations include_watchonly)\n"
             "\nGet all transactions in blocks since block [blockhash], or all transactions if omitted\n"
 
             "\nArguments:\n"
-            "1. \"blockhash\"   (string, optional) The block hash to list transactions since\n"
-            "2. target-confirmations:    (numeric, optional) The confirmations required, must be 1 or more\n"
-            "3. includeWatchonly:        (bool, optional, default=false) Include transactions to watchonly addresses (see 'importaddress')"
+            "1. \"blockhash\"         (string, optional) The block hash to list transactions since\n"
+            "2. target_confirmations: (numeric, optional) The confirmations required, must be 1 or more\n"
+            "3. include_watchonly:    (bool, optional, default=false) Include transactions to watchonly addresses (see 'importaddress')"
 
             "\nResult:\n"
             "{\n"
@@ -3158,12 +3158,12 @@ UniValue gettransaction(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
-            "gettransaction \"txid\" ( includeWatchonly )\n"
+            "gettransaction \"txid\" ( include_watchonly )\n"
             "\nGet detailed information about in-wallet transaction \"txid\"\n"
 
             "\nArguments:\n"
-            "1. \"txid\"    (string, required) The transaction id\n"
-            "2. \"includeWatchonly\"    (bool, optional, default=false) Whether to include watchonly addresses in balance calculation and details[]\n"
+            "1. \"txid\"              (string, required) The transaction id\n"
+            "2. \"include_watchonly\" (bool, optional, default=false) Whether to include watchonly addresses in balance calculation and details[]\n"
 
             "\nResult:\n"
             "{\n"
@@ -3365,14 +3365,14 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
 
     if (pwallet->IsCrypted() && (request.fHelp || request.params.size() < 2 || request.params.size() > 3))
         throw std::runtime_error(
-            "walletpassphrase \"passphrase\" timeout ( stakingonly )\n"
+            "walletpassphrase \"passphrase\" timeout ( staking_only )\n"
             "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
             "This is needed prior to performing transactions related to private keys such as sending PIVs\n"
 
             "\nArguments:\n"
             "1. \"passphrase\"     (string, required) The wallet passphrase\n"
             "2. timeout            (numeric, required) The time to keep the decryption key in seconds.\n"
-            "3. stakingonly        (boolean, optional, default=false) If is true sending functions are disabled."
+            "3. staking_only       (boolean, optional, default=false) If is true sending functions are disabled."
 
             "\nNote:\n"
             "Issuing the walletpassphrase command while the wallet is already unlocked will set a new unlock\n"
@@ -3594,7 +3594,7 @@ UniValue listunspent(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 5)
         throw std::runtime_error(
-                "listunspent ( minconf maxconf  [\"address\",...] watchonlyconfig [query_options])\n"
+                "listunspent ( minconf maxconf  [\"address\",...] watchonly_config [query_options])\n"
                 "\nReturns array of unspent transaction outputs\n"
                 "with between minconf and maxconf (inclusive) confirmations.\n"
                 "Optionally filter to only include txouts paid to specified addresses.\n"
@@ -3609,7 +3609,7 @@ UniValue listunspent(const JSONRPCRequest& request)
                 "      \"address\"   (string) pivx address\n"
                 "      ,...\n"
                 "    ]\n"
-                "4. watchonlyconfig  (numeric, optional, default=1) 1 = list regular unspent transactions,  2 = list all unspent transactions (including watchonly)\n"
+                "4. watchonly_config (numeric, optional, default=1) 1 = list regular unspent transactions,  2 = list all unspent transactions (including watchonly)\n"
                 "5. query_options    (json, optional) JSON with query options\n"
                 "    {\n"
                 "      \"minimumAmount\"    (numeric or string, default=0) Minimum value of each UTXO in " + CURRENCY_UNIT + "\n"
@@ -4450,86 +4450,86 @@ extern UniValue importsaplingviewingkey(const JSONRPCRequest& request);
 extern UniValue exportsaplingviewingkey(const JSONRPCRequest& request);
 
 static const CRPCCommand commands[] =
-{ //  category              name                        actor (function)           okSafeMode
-  //  --------------------- ------------------------    -----------------------    ----------
-    { "wallet",             "getaddressinfo",           &getaddressinfo,           true  },
-    { "wallet",             "autocombinerewards",       &autocombinerewards,       false },
-    { "wallet",             "setautocombinethreshold",  &setautocombinethreshold,  false },
-    { "wallet",             "getautocombinethreshold",  &getautocombinethreshold,  false },
-    { "wallet",             "abandontransaction",       &abandontransaction,       false },
-    { "wallet",             "abortrescan",              &abortrescan,              false },
-    { "wallet",             "addmultisigaddress",       &addmultisigaddress,       true  },
-    { "wallet",             "backupwallet",             &backupwallet,             true  },
-    { "wallet",             "delegatestake",            &delegatestake,            false },
-    { "wallet",             "dumpprivkey",              &dumpprivkey,              true  },
-    { "wallet",             "dumpwallet",               &dumpwallet,               true  },
-    { "wallet",             "encryptwallet",            &encryptwallet,            true  },
-    { "wallet",             "getbalance",               &getbalance,               false },
-    { "wallet",             "getcoldstakingbalance",    &getcoldstakingbalance,    false },
-    { "wallet",             "getdelegatedbalance",      &getdelegatedbalance,      false },
-    { "wallet",             "upgradewallet",            &upgradewallet,            true  },
-    { "wallet",             "sethdseed",                &sethdseed,                true  },
-    { "wallet",             "getnewaddress",            &getnewaddress,            true  },
-    { "wallet",             "getnewstakingaddress",     &getnewstakingaddress,     true  },
-    { "wallet",             "getrawchangeaddress",      &getrawchangeaddress,      true  },
-    { "wallet",             "getreceivedbyaddress",     &getreceivedbyaddress,     false },
-    { "wallet",             "gettransaction",           &gettransaction,           false },
-    { "wallet",             "getstakesplitthreshold",   &getstakesplitthreshold,   false },
-    { "wallet",             "getunconfirmedbalance",    &getunconfirmedbalance,    false },
-    { "wallet",             "getwalletinfo",            &getwalletinfo,            false },
-    { "wallet",             "getstakingstatus",         &getstakingstatus,         false },
-    { "wallet",             "importprivkey",            &importprivkey,            true  },
-    { "wallet",             "importwallet",             &importwallet,             true  },
-    { "wallet",             "importaddress",            &importaddress,            true  },
-    { "wallet",             "importpubkey",             &importpubkey,             true  },
-    { "wallet",             "importmulti",              &importmulti,              true  },
-    { "wallet",             "keypoolrefill",            &keypoolrefill,            true  },
-    { "wallet",             "listaddressgroupings",     &listaddressgroupings,     false },
-    { "wallet",             "listdelegators",           &listdelegators,           false },
-    { "wallet",             "liststakingaddresses",     &liststakingaddresses,     false },
-    { "wallet",             "listcoldutxos",            &listcoldutxos,            false },
-    { "wallet",             "listlockunspent",          &listlockunspent,          false },
-    { "wallet",             "listreceivedbyaddress",    &listreceivedbyaddress,    false },
-    { "wallet",             "listsinceblock",           &listsinceblock,           false },
-    { "wallet",             "listtransactions",         &listtransactions,         false },
-    { "wallet",             "listunspent",              &listunspent,              false },
-    { "wallet",             "lockunspent",              &lockunspent,              true  },
-    { "wallet",             "rawdelegatestake",         &rawdelegatestake,         false },
-    { "wallet",             "sendmany",                 &sendmany,                 false },
-    { "wallet",             "sendtoaddress",            &sendtoaddress,            false },
-    { "wallet",             "settxfee",                 &settxfee,                 true  },
-    { "wallet",             "setstakesplitthreshold",   &setstakesplitthreshold,   false },
-    { "wallet",             "signmessage",              &signmessage,              true  },
-    { "wallet",             "walletlock",               &walletlock,               true  },
-    { "wallet",             "walletpassphrasechange",   &walletpassphrasechange,   true  },
-    { "wallet",             "walletpassphrase",         &walletpassphrase,         true  },
-    { "wallet",             "rescanblockchain",         &rescanblockchain,         true  },
-    { "wallet",             "delegatoradd",             &delegatoradd,             true  },
-    { "wallet",             "delegatorremove",          &delegatorremove,          true  },
-    { "wallet",             "bip38encrypt",             &bip38encrypt,             true  },
-    { "wallet",             "bip38decrypt",             &bip38decrypt,             true  },
+{ //  category              name                        actor (function)           okSafe argNames
+  //  --------------------- ------------------------    -----------------------    ------ --------
+    { "wallet",             "getaddressinfo",           &getaddressinfo,           true,  {"address"} },
+    { "wallet",             "autocombinerewards",       &autocombinerewards,       false, {"enable","threshold"} },
+    { "wallet",             "setautocombinethreshold",  &setautocombinethreshold,  false, {"enable","threshold"} },
+    { "wallet",             "getautocombinethreshold",  &getautocombinethreshold,  false, {} },
+    { "wallet",             "abandontransaction",       &abandontransaction,       false, {"txid"} },
+    { "wallet",             "abortrescan",              &abortrescan,              false, {} },
+    { "wallet",             "addmultisigaddress",       &addmultisigaddress,       true,  {"nrequired","keys","label"} },
+    { "wallet",             "backupwallet",             &backupwallet,             true,  {"destination"} },
+    { "wallet",             "delegatestake",            &delegatestake,            false, {"staking_addr","amount","owner_addr","ext_owner","include_delegated","from_shield","force"} },
+    { "wallet",             "dumpprivkey",              &dumpprivkey,              true,  {"address"} },
+    { "wallet",             "dumpwallet",               &dumpwallet,               true,  {"filename"} },
+    { "wallet",             "encryptwallet",            &encryptwallet,            true,  {"passphrase"} },
+    { "wallet",             "getbalance",               &getbalance,               false, {"minconf","include_watchonly","include_delegated","include_shield"} },
+    { "wallet",             "getcoldstakingbalance",    &getcoldstakingbalance,    false, {} },
+    { "wallet",             "getdelegatedbalance",      &getdelegatedbalance,      false, {} },
+    { "wallet",             "upgradewallet",            &upgradewallet,            true,  {} },
+    { "wallet",             "sethdseed",                &sethdseed,                true,  {"newkeypool","seed"} },
+    { "wallet",             "getnewaddress",            &getnewaddress,            true,  {"label"} },
+    { "wallet",             "getnewstakingaddress",     &getnewstakingaddress,     true,  {"label"}  },
+    { "wallet",             "getrawchangeaddress",      &getrawchangeaddress,      true,  {} },
+    { "wallet",             "getreceivedbyaddress",     &getreceivedbyaddress,     false, {"address","minconf"} },
+    { "wallet",             "gettransaction",           &gettransaction,           false, {"txid","include_watchonly"} },
+    { "wallet",             "getstakesplitthreshold",   &getstakesplitthreshold,   false, {} },
+    { "wallet",             "getunconfirmedbalance",    &getunconfirmedbalance,    false, {} },
+    { "wallet",             "getwalletinfo",            &getwalletinfo,            false, {} },
+    { "wallet",             "getstakingstatus",         &getstakingstatus,         false, {} },
+    { "wallet",             "importprivkey",            &importprivkey,            true,  {"privkey","label","rescan","is_staking_address"} },
+    { "wallet",             "importwallet",             &importwallet,             true,  {"filename"} },
+    { "wallet",             "importaddress",            &importaddress,            true,  {"address","label","rescan","p2sh"} },
+    { "wallet",             "importpubkey",             &importpubkey,             true,  {"pubkey","label","rescan"} },
+    { "wallet",             "importmulti",              &importmulti,              true,  {"requests","options"} },
+    { "wallet",             "keypoolrefill",            &keypoolrefill,            true,  {"newsize"} },
+    { "wallet",             "listaddressgroupings",     &listaddressgroupings,     false, {} },
+    { "wallet",             "listdelegators",           &listdelegators,           false, {"blacklist"} },
+    { "wallet",             "liststakingaddresses",     &liststakingaddresses,     false, {} },
+    { "wallet",             "listcoldutxos",            &listcoldutxos,            false, {"not_whitelisted"} },
+    { "wallet",             "listlockunspent",          &listlockunspent,          false, {} },
+    { "wallet",             "listreceivedbyaddress",    &listreceivedbyaddress,    false, {"minconf","include_empty","include_watchonly","filter"} },
+    { "wallet",             "listsinceblock",           &listsinceblock,           false, {"blockhash","target_confirmations","include_watchonly"} },
+    { "wallet",             "listtransactions",         &listtransactions,         false, {"dummy","count","from","include_watchonly","include_delegated","include_cold"} },
+    { "wallet",             "listunspent",              &listunspent,              false, {"minconf","maxconf","addresses","watchonly_config" } },
+    { "wallet",             "lockunspent",              &lockunspent,              true,  {"unlock","transactions"} },
+    { "wallet",             "rawdelegatestake",         &rawdelegatestake,         false, {"staking_addr","amount","owner_addr","ext_owner","include_delegated","from_shield","force"} },
+    { "wallet",             "sendmany",                 &sendmany,                 false, {"dummy","amounts","minconf","comment","include_delegated"} },
+    { "wallet",             "sendtoaddress",            &sendtoaddress,            false, {"address","amount","comment","comment-to"} },
+    { "wallet",             "settxfee",                 &settxfee,                 true,  {"amount"} },
+    { "wallet",             "setstakesplitthreshold",   &setstakesplitthreshold,   false, {"value"} },
+    { "wallet",             "signmessage",              &signmessage,              true,  {"address","message"} },
+    { "wallet",             "walletlock",               &walletlock,               true,  {} },
+    { "wallet",             "walletpassphrasechange",   &walletpassphrasechange,   true,  {"oldpassphrase","newpassphrase"} },
+    { "wallet",             "walletpassphrase",         &walletpassphrase,         true,  {"passphrase","timeout","staking_only"} },
+    { "wallet",             "rescanblockchain",         &rescanblockchain,         true,  {"start_height","stop_height"} },
+    { "wallet",             "delegatoradd",             &delegatoradd,             true,  {"address","label"} },
+    { "wallet",             "delegatorremove",          &delegatorremove,          true,  {"address"} },
+    { "wallet",             "bip38encrypt",             &bip38encrypt,             true,  {"address","passphrase"} },
+    { "wallet",             "bip38decrypt",             &bip38decrypt,             true,  {"encrypted_key","passphrase"} },
 
     /** Sapling functions */
-    { "wallet",             "getnewshieldaddress",           &getnewshieldaddress,            true  },
-    { "wallet",             "listshieldaddresses",           &listshieldaddresses,            false },
-    { "wallet",             "exportsaplingkey",              &exportsaplingkey,               true  },
-    { "wallet",             "importsaplingkey",              &importsaplingkey,               true  },
-    { "wallet",             "importsaplingviewingkey",       &importsaplingviewingkey,        true  },
-    { "wallet",             "exportsaplingviewingkey",       &exportsaplingviewingkey,        true  },
-    { "wallet",             "getshieldbalance",              &getshieldbalance,               false },
-    { "wallet",             "listshieldunspent",             &listshieldunspent,              false },
-    { "wallet",             "rawshieldsendmany",             &rawshieldsendmany,              false },
-    { "wallet",             "shieldsendmany",                &shieldsendmany,                 false },
-    { "wallet",             "listreceivedbyshieldaddress",   &listreceivedbyshieldaddress,    false },
-    { "wallet",             "viewshieldtransaction",         &viewshieldtransaction,          false },
-    { "wallet",             "getsaplingnotescount",          &getsaplingnotescount,           false },
+    { "wallet",             "getnewshieldaddress",           &getnewshieldaddress,            true,  {} },
+    { "wallet",             "listshieldaddresses",           &listshieldaddresses,            false, {"include_watchonly"} },
+    { "wallet",             "exportsaplingkey",              &exportsaplingkey,               true,  {"shield_addr"} },
+    { "wallet",             "importsaplingkey",              &importsaplingkey,               true,  {"key","rescan","height"} },
+    { "wallet",             "importsaplingviewingkey",       &importsaplingviewingkey,        true,  {"vkey","rescan","height"}  },
+    { "wallet",             "exportsaplingviewingkey",       &exportsaplingviewingkey,        true,  {"shield_addr"} },
+    { "wallet",             "getshieldbalance",              &getshieldbalance,               false, {"address","minconf","include_watchonly"} },
+    { "wallet",             "listshieldunspent",             &listshieldunspent,              false, {"minconf","maxconf","include_watchonly","addresses"} },
+    { "wallet",             "rawshieldsendmany",             &rawshieldsendmany,              false, {"fromaddress","amounts","minconf","fee"} },
+    { "wallet",             "shieldsendmany",                &shieldsendmany,                 false, {"fromaddress","amounts","minconf","fee"} },
+    { "wallet",             "listreceivedbyshieldaddress",   &listreceivedbyshieldaddress,    false, {"address","minconf"} },
+    { "wallet",             "viewshieldtransaction",         &viewshieldtransaction,          false, {"txid"} },
+    { "wallet",             "getsaplingnotescount",          &getsaplingnotescount,           false, {"minconf"} },
 
     /** Label functions (to replace non-balance account functions) */
-    { "wallet",             "getaddressesbylabel",      &getaddressesbylabel,      true  },
-    { "wallet",             "getreceivedbylabel",       &getreceivedbylabel,       false },
-    { "wallet",             "listlabels",               &listlabels,               false },
-    { "wallet",             "listreceivedbylabel",      &listreceivedbylabel,      false },
-    { "wallet",             "setlabel",                 &setlabel,                 true  },
+    { "wallet",             "getaddressesbylabel",      &getaddressesbylabel,      true,  {"label"} },
+    { "wallet",             "getreceivedbylabel",       &getreceivedbylabel,       false, {"label","minconf"} },
+    { "wallet",             "listlabels",               &listlabels,               false, {"purpose"} },
+    { "wallet",             "listreceivedbylabel",      &listreceivedbylabel,      false, {"minconf","include_empty","include_watchonly"} },
+    { "wallet",             "setlabel",                 &setlabel,                 true,  {"address","label"} },
 };
 
 void RegisterWalletRPCCommands(CRPCTable &tableRPC)
