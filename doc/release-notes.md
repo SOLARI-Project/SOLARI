@@ -98,6 +98,25 @@ Results without keys can be queried using an integer in brackets.
     example:    getblock(getblockhash(0),true)[tx][0]
 ```
 
+Support for JSON-RPC Named Arguments
+------------------------------------
+
+Commands sent over the JSON-RPC interface and through the `pivx-cli` binary can now use named arguments. This follows the [JSON-RPC specification](http://www.jsonrpc.org/specification) for passing parameters by-name with an object.
+`pivx-cli` has been updated to support this by parsing `name=value` arguments when the `-named` option is given.
+
+Some examples:
+
+```
+    src/pivx-cli -named help command="help"
+    src/pivx-cli -named getblockhash height=0
+    src/pivx-cli -named getblock blockhash=000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
+    src/pivx-cli -named sendtoaddress address="DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6" amount="1.0" comment="donation"
+```
+
+The order of arguments doesn't matter in this case. Named arguments are also useful to leave out arguments that should stay at their default value.
+The RPC server remains fully backwards compatible with positional arguments.
+
+
 #### Allow to optional specify the directory for the blocks storage
 
 A new init option flag '-blocksdir' will allow one to keep the blockfiles external from the data directory.
