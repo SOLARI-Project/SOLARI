@@ -468,6 +468,7 @@ std::string HelpMessage(HelpMessageMode mode)
 #ifndef WIN32
     strUsage += HelpMessageOpt("-pid=<file>", strprintf(_("Specify pid file (default: %s)"), PIVX_PID_FILENAME));
 #endif
+    strUsage += HelpMessageOpt("-reindex-chainstate", _("Rebuild chain state from the currently indexed blocks"));
     strUsage += HelpMessageOpt("-reindex", _("Rebuild block chain index from current blk000??.dat files") + " " + _("on startup"));
     strUsage += HelpMessageOpt("-resync", _("Delete blockchain folders and resync from scratch") + " " + _("on startup"));
 #if !defined(WIN32)
@@ -1498,6 +1499,7 @@ bool AppInitMain()
     // ********************************************************* Step 7: load block chain
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
+    bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
 
     // cache size calculations
     int64_t nTotalCache = (gArgs.GetArg("-dbcache", nDefaultDbCache) << 20);
@@ -1545,9 +1547,9 @@ bool AppInitMain()
                 evoDb.reset(new CEvoDB(nEvoDbCache, false, fReindex));
                 deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
 
-                pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
+                pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReset);
 
-                if (fReindex) {
+                if (fReset) {
                     pblocktree->WriteReindexing(true);
                 }
 
@@ -1561,6 +1563,8 @@ bool AppInitMain()
                 // LoadBlockIndex will load fTxIndex from the db, or set it if
                 // we're reindexing. It will also load fHavePruned if we've
                 // ever removed a block file from disk.
+                // Note that it also sets fReindex based on the disk flag!
+                // From here on out fReindex and fReset mean something different!
                 uiInterface.InitMessage(_("Loading block index..."));
                 std::string strBlockIndexError;
                 if (!LoadBlockIndex(strBlockIndexError)) {
@@ -1577,7 +1581,7 @@ bool AppInitMain()
 
                 // Check for changed -txindex state
                 if (fTxIndex != gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
-                    strLoadError = strprintf(_("You need to rebuild the database using %s to change %s"), "-reindex", "-txindex");
+                    strLoadError = strprintf(_("You need to rebuild the database using %s to change %s"), "-reindex-chainstate", "-txindex");
                     break;
                 }
 
@@ -1592,11 +1596,11 @@ bool AppInitMain()
                 // At this point we're either in reindex or we've loaded a useful
                 // block tree into mapBlockIndex!
 
-                pcoinsdbview = new CCoinsViewDB(nCoinDBCache, false, fReindex);
+                pcoinsdbview = new CCoinsViewDB(nCoinDBCache, false, fReset || fReindexChainState);
                 pcoinscatcher = new CCoinsViewErrorCatcher(pcoinsdbview);
 
                 // If necessary, upgrade from older database format.
-                // This is a no-op if we cleared the coinsviewdb with -reindex (or -reindex-chainstate !TODO)
+                // This is a no-op if we cleared the coinsviewdb with -reindex or -reindex-chainstate
                 uiInterface.InitMessage(_("Upgrading coins database if needed..."));
                 // If necessary, upgrade from older database format.
                 if (!pcoinsdbview->Upgrade()) {
@@ -1604,7 +1608,7 @@ bool AppInitMain()
                     break;
                 }
 
-                // ReplayBlocks is a no-op if we cleared the coinsviewdb with -reindex (or -reindex-chainstate !TODO)
+                // ReplayBlocks is a no-op if we cleared the coinsviewdb with -reindex or -reindex-chainstate
                 if (!ReplayBlocks(chainparams, pcoinsdbview)) {
                     strLoadError = strprintf(_("Unable to replay blocks. You will need to rebuild the database using %s."), "-reindex");
                     break;
@@ -1613,15 +1617,14 @@ bool AppInitMain()
                 // The on-disk coinsdb is now in a good state, create the cache
                 pcoinsTip = new CCoinsViewCache(pcoinscatcher);
 
-                // !TODO: after enabling reindex-chainstate
-                // if (!fReindex && !fReindexChainState) {
-                if (!fReindex) {
+                bool is_coinsview_empty = fReset || fReindexChainState || pcoinsTip->GetBestBlock().IsNull();
+                if (!is_coinsview_empty) {
                     // LoadChainTip sets chainActive based on pcoinsTip's best block
                     if (!LoadChainTip(chainparams)) {
                         strLoadError = _("Error initializing block database");
                         break;
                     }
-                    assert(chainActive.Tip() != NULL);
+                    assert(chainActive.Tip() != nullptr);
                 }
 
                 if (Params().NetworkIDString() == CBaseChainParams::MAIN) {
@@ -1648,9 +1651,7 @@ bool AppInitMain()
                     }
                 }
 
-                // !TODO: after enabling reindex-chainstate
-                // if (!fReindex && !fReindexChainState) {
-                if (!fReindex) {
+                if (!is_coinsview_empty) {
                     uiInterface.InitMessage(_("Verifying blocks..."));
 
                     // Flag sent to validation code to let it know it can skip certain checks
