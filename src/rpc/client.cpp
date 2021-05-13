@@ -34,7 +34,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "autocombinerewards", 1, "threshold" },
     { "createmultisig", 0, "nrequired" },
     { "createmultisig", 1, "keys" },
-    { "createrawtransaction", 0, "transactions" },
+    { "createrawtransaction", 0, "inputs" },
     { "createrawtransaction", 1, "outputs" },
     { "createrawtransaction", 2, "locktime" },
     { "delegatestake", 1, "amount" },
