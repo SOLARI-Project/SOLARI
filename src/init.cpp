@@ -689,11 +689,11 @@ struct CImportingNow {
 void ThreadImport(const std::vector<fs::path>& vImportFiles)
 {
     util::ThreadRename("pivx-loadblk");
+    CImportingNow imp;
     ScheduleBatchPriority();
 
     // -reindex
     if (fReindex) {
-        CImportingNow imp;
         int nFile = 0;
         while (true) {
             FlatFilePos pos(nFile, 0);
@@ -720,7 +720,6 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
     if (fs::exists(pathBootstrap)) {
         FILE* file = fsbridge::fopen(pathBootstrap, "rb");
         if (file) {
-            CImportingNow imp;
             fs::path pathBootstrapOld = GetDataDir() / "bootstrap.dat.old";
             LogPrintf("Importing bootstrap.dat...\n");
             LoadExternalBlockFile(file);
@@ -734,7 +733,6 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
     for (const fs::path& path : vImportFiles) {
         FILE* file = fsbridge::fopen(path, "rb");
         if (file) {
-            CImportingNow imp;
             LogPrintf("Importing blocks file %s...\n", path.string());
             LoadExternalBlockFile(file);
         } else {
@@ -744,6 +742,13 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
 
     if (gArgs.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
         LogPrintf("Stopping after block import\n");
+        StartShutdown();
+    }
+
+    // scan for better chains in the block chain database, that are not yet connected in the active best chain
+    CValidationState state;
+    if (!ActivateBestChain(state)) {
+        LogPrintf("Failed to connect best block");
         StartShutdown();
     }
 
@@ -1744,13 +1749,6 @@ bool AppInitMain()
     if (gArgs.IsArgSet("-blocknotify"))
         uiInterface.NotifyBlockTip.connect(BlockNotifyCallback);
 
-    // scan for better chains in the block chain database, that are not yet connected in the active best chain
-    CValidationState state;
-    if (!ActivateBestChain(state)) {
-        strErrors << "Failed to connect best block";
-        StartShutdown();
-        return false;
-    }
     // update g_best_block if needed
     {
         LOCK(g_best_block_mutex);
