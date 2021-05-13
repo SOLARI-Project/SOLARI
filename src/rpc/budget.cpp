@@ -867,16 +867,16 @@ UniValue checkbudgets(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafe argNames
   //  --------------------- ------------------------  -----------------------  ------ --------
-    { "budget",             "preparebudget",          &preparebudget,          true,  {"name","url","npayments","start","address","monthly_payment"} },
-    { "budget",             "submitbudget",           &submitbudget,           true,  {"name","url","npayments","start","address","monthly_payment","fee_txid"}  },
-    { "budget",             "mnbudgetvote",           &mnbudgetvote,           true,  {"mode","hash","votecast","alias","legacy"} },
+    { "budget",             "checkbudgets",           &checkbudgets,           true,  {} },
+    { "budget",             "getbudgetinfo",          &getbudgetinfo,          true,  {"name"} },
+    { "budget",             "getbudgetprojection",    &getbudgetprojection,    true,  {} },
     { "budget",             "getbudgetvotes",         &getbudgetvotes,         true,  {"name"} },
     { "budget",             "getnextsuperblock",      &getnextsuperblock,      true,  {} },
-    { "budget",             "getbudgetprojection",    &getbudgetprojection,    true,  {} },
-    { "budget",             "getbudgetinfo",          &getbudgetinfo,          true,  {"name"} },
     { "budget",             "mnbudgetrawvote",        &mnbudgetrawvote,        true,  {"collat_txid","collat_vout","hash","votecast","time","sig"} },
+    { "budget",             "mnbudgetvote",           &mnbudgetvote,           true,  {"mode","hash","votecast","alias","legacy"} },
     { "budget",             "mnfinalbudget",          &mnfinalbudget,          true,  {"command"} },
-    { "budget",             "checkbudgets",           &checkbudgets,           true,  {} },
+    { "budget",             "preparebudget",          &preparebudget,          true,  {"name","url","npayments","start","address","monthly_payment"} },
+    { "budget",             "submitbudget",           &submitbudget,           true,  {"name","url","npayments","start","address","monthly_payment","fee_txid"}  },
 
     /* Not shown in help */
     { "hidden",             "mnfinalbudgetsuggest",   &mnfinalbudgetsuggest,   true,  {} },

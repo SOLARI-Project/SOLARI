@@ -1093,20 +1093,20 @@ UniValue relaymasternodebroadcast(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                         actor (function)            okSafe argNames
   //  --------------------- ---------------------------  --------------------------  ------ --------
-    { "masternode",         "listmasternodes",           &listmasternodes,           true,  {"filter"} },
-    { "masternode",         "getmasternodecount",        &getmasternodecount,        true,  {} },
-    { "masternode",         "masternodecurrent",         &masternodecurrent,         true,  {} },
-    { "masternode",         "startmasternode",           &startmasternode,           true,  {"set","lockwallet","alias","reload_conf"} },
+    { "masternode",         "createmasternodebroadcast", &createmasternodebroadcast, true,  {"command","alias"} },
     { "masternode",         "createmasternodekey",       &createmasternodekey,       true,  {} },
+    { "masternode",         "decodemasternodebroadcast", &decodemasternodebroadcast, true,  {"hexstring"} },
+    { "masternode",         "getmasternodecount",        &getmasternodecount,        true,  {} },
     { "masternode",         "getmasternodeoutputs",      &getmasternodeoutputs,      true,  {} },
-    { "masternode",         "listmasternodeconf",        &listmasternodeconf,        true,  {"filter"} },
+    { "masternode",         "getmasternodescores",       &getmasternodescores,       true,  {"blocks"} },
     { "masternode",         "getmasternodestatus",       &getmasternodestatus,       true,  {} },
     { "masternode",         "getmasternodewinners",      &getmasternodewinners,      true,  {"blocks","filter"} },
-    { "masternode",         "getmasternodescores",       &getmasternodescores,       true,  {"blocks"} },
-    { "masternode",         "createmasternodebroadcast", &createmasternodebroadcast, true,  {"command","alias"} },
-    { "masternode",         "decodemasternodebroadcast", &decodemasternodebroadcast, true,  {"hexstring"} },
-    { "masternode",         "relaymasternodebroadcast",  &relaymasternodebroadcast,  true,  {"hexstring"}  },
     { "masternode",         "initmasternode",            &initmasternode,            true,  {"privkey","address","deterministic"} },
+    { "masternode",         "listmasternodeconf",        &listmasternodeconf,        true,  {"filter"} },
+    { "masternode",         "listmasternodes",           &listmasternodes,           true,  {"filter"} },
+    { "masternode",         "masternodecurrent",         &masternodecurrent,         true,  {} },
+    { "masternode",         "relaymasternodebroadcast",  &relaymasternodebroadcast,  true,  {"hexstring"}  },
+    { "masternode",         "startmasternode",           &startmasternode,           true,  {"set","lockwallet","alias","reload_conf"} },
 
     /* Not shown in help */
     { "hidden",             "getcachedblockhashes",      &getcachedblockhashes,      true,  {} },

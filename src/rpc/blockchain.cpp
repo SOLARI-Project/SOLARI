@@ -1443,30 +1443,30 @@ UniValue getfeeinfo(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafe argNames
   //  --------------------- ------------------------  -----------------------  ------ --------
-    { "blockchain",         "getblockindexstats",     &getblockindexstats,     true,  {"height","range"} },
-    { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
-    { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {}  },
-    { "blockchain",         "getbestsaplinganchor",   &getbestsaplinganchor,   true,  {}  },
-    { "blockchain",         "getblockcount",          &getblockcount,          true,  {}  },
+    { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {} },
+    { "blockchain",         "getbestsaplinganchor",   &getbestsaplinganchor,   true,  {} },
     { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbose"} },
+    { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
+    { "blockchain",         "getblockcount",          &getblockcount,          true,  {} },
     { "blockchain",         "getblockhash",           &getblockhash,           true,  {"height"} },
     { "blockchain",         "getblockheader",         &getblockheader,         false, {"blockhash","verbose"} },
-    { "blockchain",         "getchaintips",           &getchaintips,           true,  {}  },
-    { "blockchain",         "getdifficulty",          &getdifficulty,          true,  {}  },
+    { "blockchain",         "getblockindexstats",     &getblockindexstats,     true,  {"height","range"} },
+    { "blockchain",         "getchaintips",           &getchaintips,           true,  {} },
+    { "blockchain",         "getdifficulty",          &getdifficulty,          true,  {} },
     { "blockchain",         "getfeeinfo",             &getfeeinfo,             true,  {"blocks"} },
-    { "blockchain",         "getmempoolinfo",         &getmempoolinfo,         true,  {}  },
-    { "blockchain",         "getsupplyinfo",          &getsupplyinfo,          true,  {"force_update"} },
+    { "blockchain",         "getmempoolinfo",         &getmempoolinfo,         true,  {} },
     { "blockchain",         "getrawmempool",          &getrawmempool,          true,  {"verbose"} },
+    { "blockchain",         "getsupplyinfo",          &getsupplyinfo,          true,  {"force_update"} },
     { "blockchain",         "gettxout",               &gettxout,               true,  {"txid","n","include_mempool"} },
-    { "blockchain",         "gettxoutsetinfo",        &gettxoutsetinfo,        true,  {}  },
+    { "blockchain",         "gettxoutsetinfo",        &gettxoutsetinfo,        true,  {} },
     { "blockchain",         "verifychain",            &verifychain,            true,  {"nblocks"} },
 
     /* Not shown in help */
     { "hidden",             "invalidateblock",        &invalidateblock,        true,  {"blockhash"} },
     { "hidden",             "reconsiderblock",        &reconsiderblock,        true,  {"blockhash"} },
-    { "hidden",             "waitfornewblock",        &waitfornewblock,        true,  {"timeout"} },
     { "hidden",             "waitforblock",           &waitforblock,           true,  {"blockhash","timeout"} },
     { "hidden",             "waitforblockheight",     &waitforblockheight,     true,  {"height","timeout"} },
+    { "hidden",             "waitfornewblock",        &waitfornewblock,        true,  {"timeout"} },
     { "hidden",             "syncwithvalidationinterfacequeue", &syncwithvalidationinterfacequeue, true,  {} },
 
 

@@ -767,18 +767,19 @@ static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafe argNames
   //  --------------------- ------------------------  -----------------------  ------ --------
     { "control",            "getinfo",                &getinfo,                true,  {} }, /* uses wallet if enabled */
+    { "control",            "getmemoryinfo",          &getmemoryinfo,          true,  {} },
     { "control",            "mnsync",                 &mnsync,                 true,  {"mode"} },
     { "control",            "spork",                  &spork,                  true,  {"name","value"} },
-    { "control",            "getmemoryinfo",          &getmemoryinfo,          true,  {} },
-    { "util",               "validateaddress",        &validateaddress,        true,  {"pivxaddress"} }, /* uses wallet if enabled */
+
     { "util",               "createmultisig",         &createmultisig,         true,  {"nrequired","keys"} },
     { "util",               "logging",                &logging,                true,  {"include", "exclude"} },
+    { "util",               "validateaddress",        &validateaddress,        true,  {"pivxaddress"} }, /* uses wallet if enabled */
     { "util",               "verifymessage",          &verifymessage,          true,  {"pivxaddress","signature","message"} },
 
     /* Not shown in help */
-    { "hidden",             "setmocktime",            &setmocktime,            true,  {"timestamp"} },
     { "hidden",             "echo",                   &echo,                   true,  {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "echojson",               &echo,                   true,  {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
+    { "hidden",             "setmocktime",            &setmocktime,            true,  {"timestamp"} },
 };
 
 void RegisterMiscRPCCommands(CRPCTable &tableRPC)

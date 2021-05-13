@@ -554,17 +554,17 @@ UniValue clearbanned(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafe argNames
   //  --------------------- ------------------------  -----------------------  ------ --------
-    { "network",            "getnetworkinfo",         &getnetworkinfo,         true,  {}  },
-    { "network",            "addnode",                &addnode,                true,  {"node","command"}  },
-    { "network",            "disconnectnode",         &disconnectnode,         true,  {"node"}  },
-    { "network",            "getaddednodeinfo",       &getaddednodeinfo,       true,  {"dummy","node"}  },
-    { "network",            "getconnectioncount",     &getconnectioncount,     true,  {}  },
-    { "network",            "getnettotals",           &getnettotals,           true,  {}  },
-    { "network",            "getpeerinfo",            &getpeerinfo,            true,  {}  },
-    { "network",            "ping",                   &ping,                   true,  {}  },
-    { "network",            "setban",                 &setban,                 true,  {"subnet", "command", "bantime", "absolute"}  },
-    { "network",            "listbanned",             &listbanned,             true,  {}  },
-    { "network",            "clearbanned",            &clearbanned,            true,  {}  },
+    { "network",            "addnode",                &addnode,                true,  {"node","command"} },
+    { "network",            "clearbanned",            &clearbanned,            true,  {} },
+    { "network",            "disconnectnode",         &disconnectnode,         true,  {"node"} },
+    { "network",            "getaddednodeinfo",       &getaddednodeinfo,       true,  {"dummy","node"} },
+    { "network",            "getconnectioncount",     &getconnectioncount,     true,  {} },
+    { "network",            "getnettotals",           &getnettotals,           true,  {} },
+    { "network",            "getnetworkinfo",         &getnetworkinfo,         true,  {} },
+    { "network",            "getpeerinfo",            &getpeerinfo,            true,  {} },
+    { "network",            "listbanned",             &listbanned,             true,  {} },
+    { "network",            "ping",                   &ping,                   true,  {} },
+    { "network",            "setban",                 &setban,                 true,  {"subnet", "command", "bantime", "absolute"} },
 };
 
 void RegisterNetRPCCommands(CRPCTable &tableRPC)
