@@ -4123,7 +4123,6 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
     }
 
     uiInterface.InitMessage(_("Loading wallet..."));
-    fVerifyingBlocks = true;
 
     int64_t nStart = GetTimeMillis();
     bool fFirstRun = true;
@@ -4290,7 +4289,6 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
             }
         }
     }
-    fVerifyingBlocks = false;
 
     return walletInstance;
 }

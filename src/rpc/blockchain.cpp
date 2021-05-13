@@ -896,11 +896,7 @@ UniValue verifychain(const JSONRPCRequest& request)
     if (request.params.size() > 0)
         nCheckDepth = request.params[0].get_int();
 
-    fVerifyingBlocks = true;
-    bool fVerified = CVerifyDB().VerifyDB(pcoinsTip, nCheckLevel, nCheckDepth);
-    fVerifyingBlocks = false;
-
-    return fVerified;
+    return CVerifyDB().VerifyDB(pcoinsTip, nCheckLevel, nCheckDepth);
 }
 
 /** Implementation of IsSuperMajority with better feedback */

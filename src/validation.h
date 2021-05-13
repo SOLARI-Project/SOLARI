@@ -148,7 +148,6 @@ extern bool fCheckBlockIndex;
 extern size_t nCoinCacheUsage;
 extern CFeeRate minRelayTxFee;
 extern int64_t nMaxTipAge;
-extern bool fVerifyingBlocks;
 
 extern bool fLargeWorkForkFound;
 extern bool fLargeWorkInvalidChainFound;

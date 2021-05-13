@@ -98,7 +98,6 @@ std::atomic<bool> fReindex{false};
 bool fTxIndex = true;
 bool fRequireStandard = true;
 bool fCheckBlockIndex = false;
-bool fVerifyingBlocks = false;
 size_t nCoinCacheUsage = 5000 * 300;
 
 /* If the tip is older than this (in seconds), the node is considered to be in initial block download. */
@@ -910,7 +909,7 @@ bool IsInitialBlockDownload()
     if (latchToFalse.load(std::memory_order_relaxed))
          return false;
     const int chainHeight = chainActive.Height();
-    if (fImporting || fReindex || fVerifyingBlocks || chainHeight < Checkpoints::GetTotalBlocksEstimate())
+    if (fImporting || fReindex || chainHeight < Checkpoints::GetTotalBlocksEstimate())
         return true;
     bool state = (chainHeight < pindexBestHeader->nHeight - 24 * 6 ||
             pindexBestHeader->GetBlockTime() < GetTime() - nMaxTipAge);
@@ -1590,13 +1589,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             int nHeightTx = 0;
             uint256 txid = tx.GetHash();
             vSpendsInBlock.emplace_back(txid);
-            if (IsTransactionInChain(txid, nHeightTx)) {
-                //when verifying blocks on init, the blocks are scanned without being disconnected - prevent that from causing an error
-                if (!fVerifyingBlocks || (fVerifyingBlocks && pindex->nHeight > nHeightTx))
-                    return state.DoS(100, error("%s : txid %s already exists in block %d , trying to include it again in block %d", __func__,
-                                                tx.GetHash().GetHex(), nHeightTx, pindex->nHeight),
-                                     REJECT_INVALID, "bad-txns-inputs-missingorspent");
-            }
 
             //Check for double spending of serial #'s
             std::set<CBigNum> setSerials;

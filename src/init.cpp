@@ -1653,10 +1653,6 @@ bool AppInitMain()
 
                 if (!is_coinsview_empty) {
                     uiInterface.InitMessage(_("Verifying blocks..."));
-
-                    // Flag sent to validation code to let it know it can skip certain checks
-                    fVerifyingBlocks = true;
-
                     {
                         LOCK(cs_main);
                         CBlockIndex *tip = chainActive.Tip();
@@ -1672,18 +1668,15 @@ bool AppInitMain()
                     if (!CVerifyDB().VerifyDB(pcoinsdbview, gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),
                             gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS))) {
                         strLoadError = _("Corrupted block database detected");
-                        fVerifyingBlocks = false;
                         break;
                     }
                 }
             } catch (const std::exception& e) {
                 LogPrintf("%s\n", e.what());
                 strLoadError = _("Error opening block database");
-                fVerifyingBlocks = false;
                 break;
             }
 
-            fVerifyingBlocks = false;
             fLoaded = true;
             LogPrintf(" block index %15dms\n", GetTimeMillis() - load_block_index_start_time);
         } while (false);
