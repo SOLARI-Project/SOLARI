@@ -42,9 +42,12 @@ int64_t nHPSTimerStart = 0;
 std::unique_ptr<CBlockTemplate> CreateNewBlockWithKey(CReserveKey* reservekey, CWallet* pwallet)
 {
     CPubKey pubkey;
-    if (!reservekey->GetReservedKey(pubkey))
-        return nullptr;
+    if (!reservekey->GetReservedKey(pubkey)) return nullptr;
+    return CreateNewBlockWithScript(GetScriptForDestination(pubkey.GetID()), pwallet);
+}
 
+std::unique_ptr<CBlockTemplate> CreateNewBlockWithScript(const CScript& coinbaseScript, CWallet* pwallet)
+{
     const int nHeightNext = chainActive.Tip()->nHeight + 1;
 
     // If we're building a late PoW block, don't continue
@@ -56,8 +59,7 @@ std::unique_ptr<CBlockTemplate> CreateNewBlockWithKey(CReserveKey* reservekey, C
         return nullptr;
     }
 
-    CScript scriptPubKey = GetScriptForDestination(pubkey.GetID());
-    return BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptPubKey, pwallet, false);
+    return BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(coinbaseScript, pwallet, false);
 }
 
 bool ProcessBlockFound(const std::shared_ptr<const CBlock>& pblock, CWallet& wallet, Optional<CReserveKey>& reservekey)
