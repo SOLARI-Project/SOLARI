@@ -4,6 +4,7 @@
 # file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.test_framework import PivxTier2TestFramework
+from test_framework.messages import COutPoint
 from test_framework.util import (
     assert_equal,
     assert_true,
@@ -116,7 +117,7 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
     def run_test(self):
         self.enable_mocktime()
         self.setup_3_masternodes_network()
-        txHashSet = set([self.mnOneCollateral.hash, self.mnTwoCollateral.hash, self.proRegTx1.hash])
+        txHashSet = set([self.mnOneCollateral.hash, self.mnTwoCollateral.hash, self.proRegTx1])
         # check mn list from miner
         self.check_mn_list(self.miner, txHashSet)
 
@@ -125,7 +126,7 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
         self.log.info("MN1 active")
         self.check_mns_status_legacy(self.remoteTwo, self.mnTwoCollateral.hash)
         self.log.info("MN2 active")
-        self.check_mns_status(self.remoteDMN1, self.proRegTx1.hash)
+        self.check_mns_status(self.remoteDMN1, self.proRegTx1)
         self.log.info("DMN1 active")
 
         # Prepare the proposal
@@ -198,12 +199,12 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
 
         # now let's vote for the proposal with the first DMN
         self.log.info("Voting with DMN1...")
-        voteResult = self.ownerOne.mnbudgetvote("alias", proposalHash, "yes", self.proRegTx1.hash)
+        voteResult = self.ownerOne.mnbudgetvote("alias", proposalHash, "yes", self.proRegTx1)
         assert_equal(voteResult["detail"][0]["result"], "success")
 
         # check that the vote was accepted everywhere
         self.stake(1, [self.remoteOne, self.remoteTwo])
-        self.check_vote_existence(firstProposalName, self.proRegTx1.hash, "YES", True)
+        self.check_vote_existence(firstProposalName, self.proRegTx1, "YES", True)
         self.log.info("all good, DMN1 vote accepted everywhere!")
 
         # Now check the budget
@@ -271,17 +272,18 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
         self.log.info("expiring MN1..")
         self.spend_collateral(self.ownerOne, self.mnOneCollateral, self.miner)
         self.wait_until_mn_vinspent(self.mnOneCollateral.hash, 30, [self.remoteTwo])
-        self.stake(12, [self.remoteTwo]) # create blocks to remove staled votes
+        self.stake(15, [self.remoteTwo]) # create blocks to remove staled votes
         time.sleep(2) # wait a little bit
         self.check_vote_existence(firstProposalName, self.mnOneCollateral.hash, "YES", False)
         self.log.info("MN1 vote expired after collateral spend, all good")
 
-        self.log.info("expiring DMN..")
-        self.spend_collateral(self.ownerOne, self.proRegTx1, self.miner)
-        self.wait_until_mn_vinspent(self.proRegTx1.hash, 30, [self.remoteTwo])
-        self.stake(12, [self.remoteTwo]) # create blocks to remove staled votes
+        self.log.info("expiring DMN1..")
+        lm = self.ownerOne.listmasternodes(self.proRegTx1)[0]
+        self.spend_collateral(self.ownerOne, COutPoint(lm["collateralHash"], lm["collateralIndex"]), self.miner)
+        self.wait_until_mn_vinspent(self.proRegTx1, 30, [self.remoteTwo])
+        self.stake(15, [self.remoteTwo]) # create blocks to remove staled votes
         time.sleep(2) # wait a little bit
-        self.check_vote_existence(firstProposalName, self.proRegTx1.hash, "YES", False)
+        self.check_vote_existence(firstProposalName, self.proRegTx1, "YES", False)
         self.log.info("DMN vote expired after collateral spend, all good")
 
 

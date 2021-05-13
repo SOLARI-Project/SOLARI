@@ -1132,7 +1132,7 @@ class PivxTestFramework():
         self.stake_and_sync(self.nodes.index(miner), 1)
         assert_greater_than(self.nodes[mnRemotePos].getrawtransaction(proTxId, 1)["confirmations"], 0)
         assert proTxId in self.nodes[mnRemotePos].protx_list(False)
-        return COutPoint(proTxId, 0), operatorKey
+        return proTxId, operatorKey
 
     def setupMasternode(self,
                         mnOwner,
@@ -1361,7 +1361,7 @@ class PivxTier2TestFramework(PivxTestFramework):
         self.remoteDMN1 = None       # self.nodes[self.remoteDMN1Pos]
         self.mnOneCollateral = COutPoint()
         self.mnTwoCollateral = COutPoint()
-        self.proRegTx1 = COutPoint()
+        self.proRegTx1 = None       # hash of provider-register-tx
 
 
     def send_3_pings(self):

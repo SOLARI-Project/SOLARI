@@ -103,7 +103,7 @@ class MasternodeCompatibilityTest(PivxTier2TestFramework):
         self.sync_all()
 
         # check mn list from miner
-        txHashSet = set([self.mnOneCollateral.hash, self.mnTwoCollateral.hash, self.proRegTx1.hash])
+        txHashSet = set([self.mnOneCollateral.hash, self.mnTwoCollateral.hash, self.proRegTx1])
         self.check_mn_list(self.miner, txHashSet)
 
         # check status of masternodes
@@ -111,8 +111,8 @@ class MasternodeCompatibilityTest(PivxTier2TestFramework):
         self.log.info("MN1 active. Pays %s" % self.mn_addresses[self.mnOneCollateral.hash])
         self.check_mns_status_legacy(self.remoteTwo, self.mnTwoCollateral.hash)
         self.log.info("MN2 active Pays %s" % self.mn_addresses[self.mnTwoCollateral.hash])
-        self.check_mns_status(self.remoteDMN1, self.proRegTx1.hash)
-        self.log.info("DMN1 active Pays %s" % self.mn_addresses[self.proRegTx1.hash])
+        self.check_mns_status(self.remoteDMN1, self.proRegTx1)
+        self.log.info("DMN1 active Pays %s" % self.mn_addresses[self.proRegTx1])
 
         # Create another DMN, this time without funding the collateral.
         # ProTx references another transaction in the owner's wallet
@@ -125,10 +125,10 @@ class MasternodeCompatibilityTest(PivxTier2TestFramework):
         self.remoteDMN2.initmasternode(self.dmn2Privkey, "", True)
 
         # check list and status
-        txHashSet.add(self.proRegTx2.hash)
+        txHashSet.add(self.proRegTx2)
         self.check_mn_list(self.miner, txHashSet)
-        self.check_mns_status(self.remoteDMN2, self.proRegTx2.hash)
-        self.log.info("DMN2 active Pays %s" % self.mn_addresses[self.proRegTx2.hash])
+        self.check_mns_status(self.remoteDMN2, self.proRegTx2)
+        self.log.info("DMN2 active Pays %s" % self.mn_addresses[self.proRegTx2])
 
         # Check block version and coinbase payment
         blk_count = self.miner.getblockcount()
@@ -158,12 +158,12 @@ class MasternodeCompatibilityTest(PivxTier2TestFramework):
         # The legacy masternode must no longer be in the list
         # and the DMN must have taken its place
         txHashSet.remove(self.mnOneCollateral.hash)
-        txHashSet.add(self.proRegTx3.hash)
+        txHashSet.add(self.proRegTx3)
         for node in self.nodes:
             self.check_mn_list(node, txHashSet)
         self.log.info("Masternode list correctly updated by all nodes.")
-        self.check_mns_status(self.remoteDMN3, self.proRegTx3.hash)
-        self.log.info("DMN3 active Pays %s" % self.mn_addresses[self.proRegTx3.hash])
+        self.check_mns_status(self.remoteDMN3, self.proRegTx3)
+        self.log.info("DMN3 active Pays %s" % self.mn_addresses[self.proRegTx3])
 
         # Now try to start a legacy MN with a collateral used by a DMN
         self.log.info("Now trying to start a legacy MN with a collateral of a DMN...")
