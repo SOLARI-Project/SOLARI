@@ -80,6 +80,19 @@ The `getwalletinfo` RPC method returns the name of the wallet used for the query
 Note that while multi-wallet is now fully supported, the RPC multi-wallet interface should be considered unstable for version 6.0.0, and there may backwards-incompatible changes in future versions.
 
 
+Database cache memory increased
+--------------------------------
+
+As a result of growth of the UTXO set, performance with the prior default database cache of 100 MiB has suffered.
+For this reason the default was changed to 300 MiB in this release.
+For nodes on low-memory systems, the database cache can be changed back to 100 MiB (or to another value) by either:
+- Adding `dbcache=100` in pivx.conf
+- Adding `-dbcache=100` startup flag
+- Changing it in the GUI under `Settings → Options → Main → Size of database cache`
+
+Note that the database cache setting has the most performance impact during initial sync of a node, and when catching up after downtime.
+
+
 GUI changes
 -----------
 
