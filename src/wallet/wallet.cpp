@@ -651,7 +651,7 @@ bool CWallet::ParameterInteraction()
     }
 
     if (gArgs.GetBoolArg("-sysperms", false)) {
-        return UIError("-sysperms is not allowed in combination with enabled wallet functionality");
+        return UIError(strprintf(_("%s is not allowed in combination with enabled wallet functionality"), "-sysperms"));
     }
 
     gArgs.SoftSetArg("-wallet", DEFAULT_WALLET_DAT);
@@ -659,7 +659,7 @@ bool CWallet::ParameterInteraction()
 
     if (gArgs.GetBoolArg("-salvagewallet", false) && gArgs.SoftSetBoolArg("-rescan", true)) {
         if (is_multiwallet) {
-            return UIError(strprintf("%s is only allowed with a single wallet file", "-salvagewallet"));
+            return UIError(strprintf(_("%s is only allowed with a single wallet file"), "-salvagewallet"));
         }
         // Rewrite just private keys: rescan to find transactions
         LogPrintf("%s: parameter interaction: -salvagewallet=1 -> setting -rescan=1\n", __func__);
@@ -674,14 +674,14 @@ bool CWallet::ParameterInteraction()
     // -zapwallettxes implies a rescan
     if (zapwallettxes != 0 && gArgs.SoftSetBoolArg("-rescan", true)) {
         if (is_multiwallet) {
-            return UIError(strprintf("%s is only allowed with a single wallet file", "-zapwallettxes"));
+            return UIError(strprintf(_("%s is only allowed with a single wallet file"), "-zapwallettxes"));
         }
         LogPrintf("%s: parameter interaction: -zapwallettxes=<mode> -> setting -rescan=1\n", __func__);
     }
 
     if (is_multiwallet) {
         if (gArgs.GetBoolArg("-upgradewallet", false)) {
-            return UIError(strprintf("%s is only allowed with a single wallet file", "-upgradewallet"));
+            return UIError(strprintf(_("%s is only allowed with a single wallet file"), "-upgradewallet"));
         }
     }
 
@@ -697,10 +697,10 @@ bool CWallet::ParameterInteraction()
         if (!ParseMoney(gArgs.GetArg("-paytxfee", ""), nFeePerK))
             return UIError(AmountErrMsg("paytxfee", gArgs.GetArg("-paytxfee", "")));
         if (nFeePerK > nHighTransactionFeeWarning)
-            UIWarning(_("Warning: -paytxfee is set very high! This is the transaction fee you will pay if you send a transaction."));
+            UIWarning(strprintf(_("Warning: %s is set very high! This is the transaction fee you will pay if you send a transaction."), "-paytxfee"));
         payTxFee = CFeeRate(nFeePerK, 1000);
         if (payTxFee < ::minRelayTxFee) {
-            return UIError(strprintf(_("Invalid amount for -paytxfee=<amount>: '%s' (must be at least %s)"),
+            return UIError(strprintf(_("Invalid amount for %s: '%s' (must be at least %s)"), "-paytxfee",
                                        gArgs.GetArg("-paytxfee", ""), ::minRelayTxFee.ToString()));
         }
     }
@@ -709,11 +709,11 @@ bool CWallet::ParameterInteraction()
         if (!ParseMoney(gArgs.GetArg("-maxtxfee", ""), nMaxFee))
             return UIError(AmountErrMsg("maxtxfee", gArgs.GetArg("-maxtxfee", "")));
         if (nMaxFee > nHighTransactionMaxFeeWarning)
-            UIWarning(_("Warning: -maxtxfee is set very high! Fees this large could be paid on a single transaction."));
+            UIWarning(strprintf(_("Warning: %s is set very high! Fees this large could be paid on a single transaction."), "-maxtxfee"));
         maxTxFee = nMaxFee;
         if (CFeeRate(maxTxFee, 1000) < ::minRelayTxFee) {
-            return UIError(strprintf(_("Invalid amount for -maxtxfee=<amount>: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)"),
-                                       gArgs.GetArg("-maxtxfee", ""), ::minRelayTxFee.ToString()));
+            return UIError(strprintf(_("Invalid amount for %s: '%s' (must be at least the minimum relay fee of %s to prevent stuck transactions)"),
+                                       "-maxtxfee", gArgs.GetArg("-maxtxfee", ""), ::minRelayTxFee.ToString()));
         }
     }
     if (gArgs.IsArgSet("-minstakesplit")) {
@@ -2115,9 +2115,9 @@ bool CWallet::Verify()
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         if (fs::path(walletFile).filename() != walletFile) {
-            return UIError(_("-wallet parameter must only specify a filename (not a path)"));
+            return UIError(strprintf(_("%s parameter must only specify a filename (not a path)"), "-wallet"));
         } else if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
-            return UIError(_("Invalid characters in -wallet filename"));
+            return UIError(strprintf(_("Invalid characters in %s filename"), "-wallet"));
         }
 
         std::string strError;
@@ -4253,7 +4253,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
             (!walletInstance->IsLocked() && prev_version == FEATURE_PRE_SPLIT_KEYPOOL)) {
         if (prev_version <= FEATURE_PRE_PIVX && walletInstance->IsLocked()) {
             // Cannot upgrade a locked wallet
-            UIError("Cannot upgrade a locked wallet.");
+            UIError(_("Cannot upgrade a locked wallet."));
             return nullptr;
         }
 
@@ -4267,7 +4267,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
             LogPrintf("Allowing wallet upgrade up to %i\n", nMaxVersion);
         }
         if (nMaxVersion < walletInstance->GetVersion()) {
-            UIError("Cannot downgrade wallet\n");
+            UIError(_("Cannot downgrade wallet."));
             return nullptr;
         }
         walletInstance->SetMaxVersion(nMaxVersion);
@@ -4304,7 +4304,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
         // Top up the keypool
         if (!walletInstance->TopUpKeyPool()) {
             // Error generating keys
-            UIError("Unable to generate initial key!");
+            UIError(_("Unable to generate initial key!"));
             return nullptr;
         }
 

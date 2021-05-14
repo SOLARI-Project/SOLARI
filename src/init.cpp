@@ -759,7 +759,7 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
 bool InitSanityCheck(void)
 {
     if (!ECC_InitSanityCheck()) {
-        UIError("Elliptic curve cryptography sanity check failure. Aborting.");
+        UIError(_("Elliptic curve cryptography sanity check failure. Aborting."));
         return false;
     }
 
@@ -767,7 +767,7 @@ bool InitSanityCheck(void)
         return false;
 
     if (!Random_SanityCheck()) {
-        UIError("OS cryptographic RNG sanity check failure. Aborting.");
+        UIError(_("OS cryptographic RNG sanity check failure. Aborting."));
         return false;
     }
 
@@ -867,7 +867,7 @@ bool AppInitBasicSetup()
 #endif
 
     if (!SetupNetworking())
-        return UIError("Error: Initializing networking failed");
+        return UIError(_("Error: Initializing networking failed"));
 
 #ifndef WIN32
     if (!gArgs.GetBoolArg("-sysperms", false)) {
@@ -943,17 +943,17 @@ bool InitNUParams()
     if (gArgs.IsArgSet("-nuparams")) {
         // Allow overriding network upgrade parameters for testing
         if (Params().NetworkIDString() != "regtest") {
-            return UIError("Network upgrade parameters may only be overridden on regtest.");
+            return UIError(_("Network upgrade parameters may only be overridden on regtest."));
         }
         for (const std::string& strDeployment : gArgs.GetArgs("-nuparams")) {
             std::vector<std::string> vDeploymentParams;
             boost::split(vDeploymentParams, strDeployment, boost::is_any_of(":"));
             if (vDeploymentParams.size() != 2) {
-                return UIError("Network upgrade parameters malformed, expecting hexBranchId:activationHeight");
+                return UIError(strprintf(_("Network upgrade parameters malformed, expecting %s"), "hexBranchId:activationHeight"));
             }
             int nActivationHeight;
             if (!ParseInt32(vDeploymentParams[1], &nActivationHeight)) {
-                return UIError(strprintf("Invalid nActivationHeight (%s)", vDeploymentParams[1]));
+                return UIError(strprintf(_("Invalid activation height (%s)"), vDeploymentParams[1]));
             }
             bool found = false;
             // Exclude base network from upgrades
@@ -966,7 +966,7 @@ bool InitNUParams()
                 }
             }
             if (!found) {
-                return UIError(strprintf("Invalid network upgrade (%s)", vDeploymentParams[0]));
+                return UIError(strprintf(_("Invalid network upgrade (%s)"), vDeploymentParams[0]));
             }
         }
     }
@@ -1029,7 +1029,7 @@ bool AppInitParameterInteraction()
     // -bind and -whitebind can't be set when not listening
     size_t nUserBind = gArgs.GetArgs("-bind").size() + gArgs.GetArgs("-whitebind").size();
     if (nUserBind != 0 && !gArgs.GetBoolArg("-listen", DEFAULT_LISTEN)) {
-        return UIError(_("Cannot set -bind or -whitebind together with -listen=0"));
+        return UIError(strprintf(_("Cannot set %s or %s together with %s"), "-bind", "-whitebind", "-listen=0"));
     }
 
     int nBind = std::max(nUserBind, size_t(1));
@@ -1067,22 +1067,22 @@ bool AppInitParameterInteraction()
 
     // Check for -debugnet
     if (gArgs.GetBoolArg("-debugnet", false))
-        UIWarning(_("Warning: Unsupported argument -debugnet ignored, use -debug=net."));
+        UIWarning(strprintf(_("Warning: Unsupported argument %s ignored, use %s."), "-debugnet", "-debug=net"));
     // Check for -socks - as this is a privacy risk to continue, exit here
     if (gArgs.IsArgSet("-socks"))
         return UIError(
-                _("Error: Unsupported argument -socks found. Setting SOCKS version isn't possible anymore, only SOCKS5 proxies are supported."));
+                strprintf(_("Error: Unsupported argument %s found. Setting SOCKS version isn't possible anymore, only SOCKS5 proxies are supported."), "-socks"));
     // Check for -tor - as this is a privacy risk to continue, exit here
     if (gArgs.GetBoolArg("-tor", false))
-        return UIError(_("Error: Unsupported argument -tor found, use -onion."));
+        return UIError(strprintf(_("Error: Unsupported argument %s found, use %s."), "-tor", "-onion"));
     // Check level must be 4 for zerocoin checks
     if (gArgs.IsArgSet("-checklevel"))
-        return UIError(_("Error: Unsupported argument -checklevel found. Checklevel must be level 4."));
+        return UIError(strprintf(_("Error: Unsupported argument %s found. Checklevel must be level 4."), "-checklevel"));
     // Exit early if -masternode=1 and -listen=0
     if (gArgs.GetBoolArg("-masternode", DEFAULT_MASTERNODE) && !gArgs.GetBoolArg("-listen", DEFAULT_LISTEN))
-        return UIError(_("Error: -listen must be true if -masternode is set."));
+        return UIError(strprintf(_("Error: %s must be true if %s is set."), "-listen", "-masternode"));
     if (gArgs.GetBoolArg("-benchmark", false))
-        UIWarning(_("Warning: Unsupported argument -benchmark ignored, use -debug=bench."));
+        UIWarning(strprintf(_("Warning: Unsupported argument %s ignored, use %s"), "-benchmark", "-debug=bench."));
 
     // Checkmempool and checkblockindex default to true in regtest mode
     int ratio = std::min<int>(
@@ -1097,7 +1097,7 @@ bool AppInitParameterInteraction()
     int64_t nMempoolSizeLimit = gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000;
     int64_t nMempoolDescendantSizeLimit = gArgs.GetArg("-limitdescendantsize", DEFAULT_DESCENDANT_SIZE_LIMIT) * 1000;
     if (nMempoolSizeLimit < 0 || nMempoolSizeLimit < nMempoolDescendantSizeLimit * 40)
-        return UIError(strprintf(_("Error: -maxmempool must be at least %d MB"),
+        return UIError(strprintf(_("Error: %s must be at least %d MB"), "-maxmempool",
                                  gArgs.GetArg("-limitdescendantsize", DEFAULT_DESCENDANT_SIZE_LIMIT) / 25));
 
     // -par=0 means autodetect, but nScriptCheckThreads==0 means no concurrency
@@ -1143,7 +1143,7 @@ bool AppInitParameterInteraction()
     const CChainParams& chainparams = Params();
     fRequireStandard = !gArgs.GetBoolArg("-acceptnonstdtxn", !chainparams.RequireStandard());
     if (!chainparams.IsTestChain() && !fRequireStandard)
-        return UIError(strprintf("acceptnonstdtxn is not currently supported for %s chain", chainparams.NetworkIDString()));
+        return UIError(strprintf("%s is not currently supported for %s chain", "-acceptnonstdtxn", chainparams.NetworkIDString()));
 
 #ifdef ENABLE_WALLET
     strWalletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
@@ -1232,7 +1232,7 @@ bool AppInitMain()
         if (gArgs.GetBoolArg("-shrinkdebugfile", g_logger->DefaultShrinkDebugFile()))
             g_logger->ShrinkDebugFile();
         if (!g_logger->OpenDebugLog())
-            return UIError(strprintf("Could not open debug log file %s", g_logger->m_file_path.string()));
+            return UIError(strprintf(_("Could not open debug log file %s"), g_logger->m_file_path.string()));
     }
 #ifdef ENABLE_WALLET
     LogPrintf("Using BerkeleyDB version %s\n", DbEnv::version(0, 0, 0));
@@ -1351,8 +1351,8 @@ bool AppInitMain()
     // format user agent, check total size
     strSubVersion = FormatSubVersion(CLIENT_NAME, CLIENT_VERSION, uacomments);
     if (strSubVersion.size() > MAX_SUBVERSION_LENGTH) {
-        return UIError(strprintf(_("Total length of network version string (%i) exceeds maximum length (%i). Reduce the number or size of uacomments."),
-            strSubVersion.size(), MAX_SUBVERSION_LENGTH));
+        return UIError(strprintf(_("Total length of network version string (%i) exceeds maximum length (%i). Reduce the number or size of %s."),
+            strSubVersion.size(), MAX_SUBVERSION_LENGTH, "-uacomment"));
     }
 
     if (gArgs.IsArgSet("-onlynet")) {
@@ -1360,7 +1360,7 @@ bool AppInitMain()
         for (const std::string& snet : gArgs.GetArgs("-onlynet")) {
             enum Network net = ParseNetwork(snet);
             if (net == NET_UNROUTABLE)
-                return UIError(strprintf(_("Unknown network specified in -onlynet: '%s'"), snet));
+                return UIError(strprintf(_("Unknown network specified in %s: '%s'"), "-onlynet", snet));
             nets.insert(net);
         }
         for (int n = 0; n < NET_MAX; n++) {
@@ -1374,7 +1374,7 @@ bool AppInitMain()
         CSubNet subnet;
         LookupSubNet(net.c_str(), subnet);
         if (!subnet.IsValid())
-            return UIError(strprintf(_("Invalid netmask specified in -whitelist: '%s'"), net));
+            return UIError(strprintf(_("Invalid netmask specified in %s: '%s'"), "-whitelist", net));
         connman.AddWhitelistedRange(subnet);
     }
 
@@ -1389,12 +1389,12 @@ bool AppInitMain()
     if (!proxyArg.empty() && proxyArg != "0") {
         CService proxyAddr;
         if (!Lookup(proxyArg.c_str(), proxyAddr, 9050, fNameLookup)) {
-            return UIError(strprintf(_("Lookup(): Invalid -proxy address or hostname: '%s'"), proxyArg));
+            return UIError(strprintf(_("%s Invalid %s address or hostname: '%s'"), "Lookup():", "-proxy", proxyArg));
         }
 
         proxyType addrProxy = proxyType(proxyAddr, proxyRandomize);
         if (!addrProxy.IsValid())
-            return UIError(strprintf(_("isValid(): Invalid -proxy address or hostname: '%s'"), proxyArg));
+            return UIError(strprintf(_("%s Invalid %s address or hostname: '%s'"), "isValid():", "-proxy", proxyArg));
 
         SetProxy(NET_IPV4, addrProxy);
         SetProxy(NET_IPV6, addrProxy);
@@ -1413,11 +1413,11 @@ bool AppInitMain()
         } else {
             CService onionProxy;
             if (!Lookup(onionArg.c_str(), onionProxy, 9050, fNameLookup)) {
-                return UIError(strprintf(_("Invalid -onion address or hostname: '%s'"), onionArg));
+                return UIError(strprintf(_("%s Invalid %s address or hostname: '%s'"), "Lookup():", "-onion", onionArg));
             }
             proxyType addrOnion = proxyType(onionProxy, proxyRandomize);
             if (!addrOnion.IsValid())
-                return UIError(strprintf(_("Invalid -onion address or hostname: '%s'"), onionArg));
+                return UIError(strprintf(_("%s Invalid %s address or hostname: '%s'"), "isValid():", "-onion", onionArg));
             SetProxy(NET_TOR, addrOnion);
             SetLimited(NET_TOR, false);
         }
@@ -1440,7 +1440,7 @@ bool AppInitMain()
             if (!Lookup(strBind.c_str(), addrBind, 0, false))
                 return UIError(ResolveErrMsg("whitebind", strBind));
             if (addrBind.GetPort() == 0)
-                return UIError(strprintf(_("Need to specify a port with -whitebind: '%s'"), strBind));
+                return UIError(strprintf(_("Need to specify a port with %s: '%s'"), "-whitebind", strBind));
             fBound |= Bind(connman, addrBind, (BF_EXPLICIT | BF_REPORT_ERROR | BF_WHITELIST));
         }
         if (!gArgs.IsArgSet("-bind") && !gArgs.IsArgSet("-whitebind")) {
@@ -1450,7 +1450,7 @@ bool AppInitMain()
             fBound |= Bind(connman, CService(inaddr_any, GetListenPort()), !fBound ? BF_REPORT_ERROR : BF_NONE);
         }
         if (!fBound)
-            return UIError(_("Failed to listen on any port. Use -listen=0 if you want this."));
+            return UIError(strprintf(_("Failed to listen on any port. Use %s if you want this."), "-listen=0"));
     }
 
     for (const std::string& strAddr : gArgs.GetArgs("-externalip")) {
@@ -1564,7 +1564,7 @@ bool AppInitMain()
 
                 // Check for changed -txindex state
                 if (fTxIndex != gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
-                    strLoadError = _("You need to rebuild the database using -reindex to change -txindex");
+                    strLoadError = strprintf(_("You need to rebuild the database using %s to change %s"), "-reindex", "-txindex");
                     break;
                 }
 
@@ -1593,7 +1593,7 @@ bool AppInitMain()
 
                 // ReplayBlocks is a no-op if we cleared the coinsviewdb with -reindex (or -reindex-chainstate !TODO)
                 if (!ReplayBlocks(chainparams, pcoinsdbview)) {
-                    strLoadError = _("Unable to replay blocks. You will need to rebuild the database using -reindex.");
+                    strLoadError = strprintf(_("Unable to replay blocks. You will need to rebuild the database using %s."), "-reindex");
                     break;
                 }
 
@@ -1821,8 +1821,8 @@ bool AppInitMain()
     fMasterNode = gArgs.GetBoolArg("-masternode", DEFAULT_MASTERNODE);
 
     if ((fMasterNode || masternodeConfig.getCount() > -1) && fTxIndex == false) {
-        return UIError("Enabling Masternode support requires turning on transaction indexing."
-                         "Please add txindex=1 to your configuration and start with -reindex");
+        return UIError(strprintf(_("Enabling Masternode support requires turning on transaction indexing."
+                                   "Please add %s to your configuration and start with %s"), "txindex=1", "-reindex"));
     }
 
     if (fMasterNode) {
@@ -1878,7 +1878,7 @@ bool AppInitMain()
     // lite mode disables all Masternode related functionality
     fLiteMode = gArgs.GetBoolArg("-litemode", false);
     if (fMasterNode && fLiteMode) {
-        return UIError("You can not start a masternode in litemode");
+        return UIError(_("You can not start a masternode in litemode"));
     }
 
     LogPrintf("fLiteMode %d\n", fLiteMode);
