@@ -891,8 +891,8 @@ UniValue verifychain(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
-    int nCheckLevel = 4;
-    int nCheckDepth = gArgs.GetArg("-checkblocks", 288);
+    int nCheckLevel = gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL);
+    int nCheckDepth = gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS);
     if (request.params.size() > 0)
         nCheckDepth = request.params[0].get_int();
 
