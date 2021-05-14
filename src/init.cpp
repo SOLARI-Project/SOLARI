@@ -1776,9 +1776,13 @@ bool AppInitMain()
         uiInterface.NotifyBlockTip.disconnect(BlockNotifyGenesisWait);
     }
 
-    uiInterface.InitMessage(_("Calculating money supply..."));
     int nChainHeight = WITH_LOCK(cs_main, return chainActive.Height(); );
-    MoneySupply.Update(pcoinsTip->GetTotalAmount(), nChainHeight);
+
+    // Update money supply
+    if (!fReindex && !fReindexChainState) {
+        uiInterface.InitMessage(_("Calculating money supply..."));
+        MoneySupply.Update(pcoinsTip->GetTotalAmount(), nChainHeight);
+    }
 
 
     // ********************************************************* Step 10: setup layer 2 data
