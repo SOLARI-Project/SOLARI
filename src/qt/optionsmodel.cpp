@@ -104,9 +104,22 @@ void OptionsModel::setMainDefaultOptions(QSettings& settings, bool reset)
     // If gArgs.SoftSetArg() or gArgs.SoftSetBoolArg() return false we were overridden
     // by command-line and show this in the UI.
     // Main
-    if (!settings.contains("nDatabaseCache") || reset)
-        settings.setValue("nDatabaseCache", (qint64)nDefaultDbCache);
-    if (!gArgs.SoftSetArg("-dbcache", settings.value("nDatabaseCache").toString().toStdString()))
+
+    // Default database cache is bumped from the original 100 MiB value.
+    // If we still have the old setting "nDatabaseCache" then:
+    // - if the value is equal to the old default (100 MiB), update the new setting "nDatabaseCache2"
+    //   to the new default value (300 MiB)
+    // - if the value is different, then copy it to "nDatabaseCache2"
+    // - remove the old setting
+    if (settings.contains("nDatabaseCache")) {
+        qint64 saved_dbcache = settings.value("nDatabaseCache").toLongLong();
+        settings.setValue("nDatabaseCache2", saved_dbcache != 100 ? saved_dbcache : (qint64)nDefaultDbCache);
+        settings.remove("nDatabaseCache");
+    }
+
+    if (!settings.contains("nDatabaseCache2") || reset)
+        settings.setValue("nDatabaseCache2", (qint64)nDefaultDbCache);
+    if (!gArgs.SoftSetArg("-dbcache", settings.value("nDatabaseCache2").toString().toStdString()))
         addOverriddenOption("-dbcache");
 
     if (!settings.contains("nThreadsScriptVerif") || reset)
@@ -274,7 +287,7 @@ QVariant OptionsModel::data(const QModelIndex& index, int role) const
         case ShowColdStakingScreen:
             return showColdStakingScreen;
         case DatabaseCache:
-            return settings.value("nDatabaseCache");
+            return settings.value("nDatabaseCache2");
         case ThreadsScriptVerif:
             return settings.value("nThreadsScriptVerif");
         case HideCharts:
@@ -416,8 +429,8 @@ bool OptionsModel::setData(const QModelIndex& index, const QVariant& value, int 
             Q_EMIT showHideColdStakingScreen(this->showColdStakingScreen);
             break;
         case DatabaseCache:
-            if (settings.value("nDatabaseCache") != value) {
-                settings.setValue("nDatabaseCache", value);
+            if (settings.value("nDatabaseCache2") != value) {
+                settings.setValue("nDatabaseCache2", value);
                 setRestartRequired(true);
             }
             break;
