@@ -93,6 +93,13 @@ For nodes on low-memory systems, the database cache can be changed back to 100 M
 Note that the database cache setting has the most performance impact during initial sync of a node, and when catching up after downtime.
 
 
+Reindexing changes
+------------------
+
+It is now possible to only redo validation, without rebuilding the block index, using the command line option `-reindex-chainstate` (in addition to `-reindex` which does both).
+This new option is useful when the blocks on disk are assumed to be fine, but the chainstate is still corrupted. It is also useful for benchmarks.
+
+
 GUI changes
 -----------
 
