@@ -10,7 +10,7 @@
 #include "init.h"
 #include "guiinterface.h"
 #include "networkstyle.h"
-#include "util.h"
+#include "util/system.h"
 #include "version.h"
 #include "guiutil.h"
 

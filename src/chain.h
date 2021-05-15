@@ -11,13 +11,14 @@
 #define BITCOIN_CHAIN_H
 
 #include "chainparams.h"
+#include "flatfile.h"
 #include "optional.h"
 #include "pow.h"
 #include "primitives/block.h"
 #include "timedata.h"
 #include "tinyformat.h"
 #include "uint256.h"
-#include "util.h"
+#include "util/system.h"
 #include "libzerocoin/Denominations.h"
 
 #include <vector>
@@ -85,47 +86,6 @@ public:
         if (nTimeIn > nTimeLast)
             nTimeLast = nTimeIn;
     }
-};
-
-struct CDiskBlockPos {
-    int nFile;
-    unsigned int nPos;
-
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(VARINT(nFile, VarIntMode::NONNEGATIVE_SIGNED));
-        READWRITE(VARINT(nPos));
-    }
-
-    CDiskBlockPos()
-    {
-        SetNull();
-    }
-
-    CDiskBlockPos(int nFileIn, unsigned int nPosIn)
-    {
-        nFile = nFileIn;
-        nPos = nPosIn;
-    }
-
-    friend bool operator==(const CDiskBlockPos& a, const CDiskBlockPos& b)
-    {
-        return (a.nFile == b.nFile && a.nPos == b.nPos);
-    }
-
-    friend bool operator!=(const CDiskBlockPos& a, const CDiskBlockPos& b)
-    {
-        return !(a == b);
-    }
-
-    void SetNull()
-    {
-        nFile = -1;
-        nPos = 0;
-    }
-    bool IsNull() const { return (nFile == -1); }
 };
 
 enum BlockStatus {
@@ -253,8 +213,8 @@ public:
 
     std::string ToString() const;
 
-    CDiskBlockPos GetBlockPos() const;
-    CDiskBlockPos GetUndoPos() const;
+    FlatFilePos GetBlockPos() const;
+    FlatFilePos GetUndoPos() const;
     CBlockHeader GetBlockHeader() const;
     uint256 GetBlockHash() const { return *phashBlock; }
     int64_t GetBlockTime() const { return (int64_t)nTime; }

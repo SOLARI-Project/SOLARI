@@ -10,7 +10,7 @@
 #include "guiinterfaceutil.h"
 #include "hash.h"
 #include "protocol.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilstrencodings.h"
 
 #include <stdint.h>

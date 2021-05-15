@@ -9,8 +9,8 @@
  * Server/client environment: argument handling, config file parsing,
  * thread wrappers
  */
-#ifndef BITCOIN_UTIL_H
-#define BITCOIN_UTIL_H
+#ifndef BITCOIN_UTIL_SYSTEM_H
+#define BITCOIN_UTIL_SYSTEM_H
 
 #if defined(HAVE_CONFIG_H)
 #include "config/pivx-config.h"
@@ -86,6 +86,7 @@ bool FileCommit(FILE* file);
 bool TruncateFile(FILE* file, unsigned int length);
 int RaiseFileDescriptorLimit(int nMinFD);
 void AllocateFileRange(FILE* file, unsigned int offset, unsigned int length);
+bool CheckDiskSpace(const fs::path& dir, uint64_t additional_bytes = 0);
 bool RenameOver(fs::path src, fs::path dest);
 bool TryCreateDirectories(const fs::path& p);
 fs::path GetDefaultDataDir();
@@ -292,4 +293,4 @@ fs::path AbsPathForConfigVal(const fs::path& path, bool net_specific = true);
  */
 int ScheduleBatchPriority(void);
 
-#endif // BITCOIN_UTIL_H
+#endif // BITCOIN_UTIL_SYSTEM_H

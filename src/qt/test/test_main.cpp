@@ -8,7 +8,7 @@
 #include "config/pivx-config.h"
 #endif
 
-#include "util.h"
+#include "util/system.h"
 #include "uritests.h"
 
 #include <QCoreApplication>

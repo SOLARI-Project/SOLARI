@@ -11,7 +11,7 @@
 #include "masternodeman.h"
 #include "netbase.h"
 #include "sync.h"
-#include "util.h"
+#include "util/system.h"
 #include "wallet/wallet.h"
 
 #define MASTERNODE_MIN_CONFIRMATIONS_REGTEST 1

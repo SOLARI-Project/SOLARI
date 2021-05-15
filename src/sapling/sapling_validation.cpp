@@ -8,7 +8,7 @@
 #include "consensus/consensus.h" // for MAX_BLOCK_SIZE_CURRENT
 #include "script/interpreter.h" // for SigHash
 #include "consensus/validation.h" // for CValidationState
-#include "util.h" // for error()
+#include "util/system.h" // for error()
 #include "consensus/upgrades.h" // for CurrentEpochBranchId()
 
 #include <librustzcash.h>

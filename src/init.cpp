@@ -50,7 +50,7 @@
 #include "torcontrol.h"
 #include "guiinterface.h"
 #include "guiinterfaceutil.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilmoneystr.h"
 #include "util/threadnames.h"
 #include "validation.h"
@@ -688,8 +688,8 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
         CImportingNow imp;
         int nFile = 0;
         while (true) {
-            CDiskBlockPos pos(nFile, 0);
-            if (!fs::exists(GetBlockPosFilename(pos, "blk")))
+            FlatFilePos pos(nFile, 0);
+            if (!fs::exists(GetBlockPosFilename(pos)))
                 break; // No block files left to reindex
             FILE* file = OpenBlockFile(pos, true);
             if (!file)
@@ -1735,11 +1735,11 @@ bool AppInitMain()
 #endif
     // ********************************************************* Step 9: import blocks
 
-    if (!CheckDiskSpace(/* additional_bytes */ 0, /* blocks_dir */ false)) {
+    if (!CheckDiskSpace(GetDataDir())) {
         UIError(strprintf(_("Error: Disk space is low for %s"), GetDataDir()));
         return false;
     }
-    if (!CheckDiskSpace(/* additional_bytes */ 0, /* blocks_dir */ true)) {
+    if (!CheckDiskSpace(GetBlocksDir())) {
         UIError(strprintf(_("Error: Disk space is low for %s"), GetBlocksDir()));
         return false;
     }

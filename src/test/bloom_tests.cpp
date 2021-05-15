@@ -13,7 +13,7 @@
 #include "serialize.h"
 #include "streams.h"
 #include "uint256.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilstrencodings.h"
 #include "test/test_pivx.h"
 

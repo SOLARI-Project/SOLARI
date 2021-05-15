@@ -13,7 +13,7 @@
 #include "masternode.h"
 #include "net.h"
 #include "sync.h"
-#include "util.h"
+#include "util/system.h"
 
 #define MASTERNODES_DUMP_SECONDS (15 * 60)
 #define MASTERNODES_DSEG_SECONDS (3 * 60 * 60)

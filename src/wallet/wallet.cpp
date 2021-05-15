@@ -18,7 +18,7 @@
 #include "script/sign.h"
 #include "scheduler.h"
 #include "spork.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilmoneystr.h"
 #include "zpivchain.h"
 

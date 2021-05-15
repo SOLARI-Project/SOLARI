@@ -15,7 +15,7 @@
 #include "sapling/key_io_sapling.h"
 #include "serialize.h"
 #include "sync.h"
-#include "util.h"
+#include "util/system.h"
 #include "utiltime.h"
 #include "wallet/wallet.h"
 

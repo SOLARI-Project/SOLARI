@@ -39,29 +39,38 @@ std::ostream& operator<<(std::ostream& os, const uint256& num)
 }
 
 BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
+    : m_path_root(fs::temp_directory_path() / "test_pivx" / strprintf("%lu_%i", (unsigned long)GetTime(), (int)(InsecureRandRange(1 << 30))))
 {
-        ECC_Start();
-        SetupEnvironment();
-        InitSignatureCache();
-        fCheckBlockIndex = true;
-        SelectParams(chainName);
-        evoDb.reset(new CEvoDB(1 << 20, true, true));
-        deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
+    ECC_Start();
+    SetupEnvironment();
+    InitSignatureCache();
+    fCheckBlockIndex = true;
+    SelectParams(chainName);
+    evoDb.reset(new CEvoDB(1 << 20, true, true));
+    deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
 }
+
 BasicTestingSetup::~BasicTestingSetup()
 {
-        ECC_Stop();
-        g_connman.reset();
-        deterministicMNManager.reset();
-        evoDb.reset();
+    fs::remove_all(m_path_root);
+    ECC_Stop();
+    g_connman.reset();
+    deterministicMNManager.reset();
+    evoDb.reset();
+}
+
+fs::path BasicTestingSetup::SetDataDir(const std::string& name)
+{
+    fs::path ret = m_path_root / name;
+    fs::create_directories(ret);
+    gArgs.ForceSetArg("-datadir", ret.string());
+    return ret;
 }
 
 TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(chainName)
 {
+        SetDataDir("tempdir");
         ClearDatadirCache();
-        pathTemp = fs::temp_directory_path() / strprintf("test_pivx_%lu_%i", (unsigned long)GetTime(), (int)(InsecureRandRange(100000)));
-        fs::create_directories(pathTemp);
-        gArgs.ForceSetArg("-datadir", pathTemp.string());
 
         // Start the lightweight task scheduler thread
         CScheduler::Function serviceLoop = std::bind(&CScheduler::serviceQueue, &scheduler);
@@ -110,7 +119,6 @@ TestingSetup::~TestingSetup()
         delete pblocktree;
         delete zerocoinDB;
         delete pSporkDB;
-        fs::remove_all(pathTemp);
 }
 
 // Test chain only available on regtest

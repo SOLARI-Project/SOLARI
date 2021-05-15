@@ -19,7 +19,7 @@
 #include "qt/pivx/defaultdialog.h"
 
 #include "init.h"
-#include "util.h"
+#include "util/system.h"
 
 #include <QApplication>
 #include <QColor>

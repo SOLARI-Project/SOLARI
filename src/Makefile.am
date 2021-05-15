@@ -190,6 +190,7 @@ BITCOIN_CORE_H = \
   pairresult.h \
   addressbook.h \
   wallet/db.h \
+  flatfile.h \
   fs.h \
   hash.h \
   httprpc.h \
@@ -283,7 +284,7 @@ BITCOIN_CORE_H = \
   uint256.h \
   undo.h \
   util/memory.h \
-  util.h \
+  util/system.h \
   util/macros.h \
   util/threadnames.h \
   utilstrencodings.h \
@@ -326,6 +327,7 @@ libbitcoin_server_a_SOURCES = \
   checkpoints.cpp \
   consensus/params.cpp \
   consensus/tx_verify.cpp \
+  flatfile.cpp \
   consensus/zerocoin_verify.cpp \
   evo/deterministicmns.cpp \
   evo/evodb.cpp \
@@ -546,7 +548,7 @@ libbitcoin_util_a_SOURCES = \
   sync.cpp \
   threadinterrupt.cpp \
   uint256.cpp \
-  util.cpp \
+  util/system.cpp \
   utilmoneystr.cpp \
   util/threadnames.cpp \
   utilstrencodings.cpp \

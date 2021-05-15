@@ -12,7 +12,7 @@
 #include "masternodeconfig.h"
 #include "noui.h"
 #include "rpc/server.h"
-#include "util.h"
+#include "util/system.h"
 
 #include <stdio.h>
 

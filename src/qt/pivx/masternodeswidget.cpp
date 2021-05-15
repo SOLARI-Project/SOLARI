@@ -21,7 +21,7 @@
 #include "sync.h"
 #include "wallet/wallet.h"
 #include "askpassphrasedialog.h"
-#include "util.h"
+#include "util/system.h"
 #include "qt/pivx/optionbutton.h"
 #include <iostream>
 #include <fstream>

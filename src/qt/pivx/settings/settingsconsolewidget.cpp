@@ -13,7 +13,7 @@
 
 #include "chainparams.h"
 #include "sapling/key_io_sapling.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilitydialog.h"
 
 #ifdef ENABLE_WALLET

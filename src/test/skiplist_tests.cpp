@@ -5,7 +5,7 @@
 
 #include "test/test_pivx.h"
 
-#include "util.h"
+#include "util/system.h"
 #include "validation.h"
 
 #include <vector>

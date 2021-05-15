@@ -186,6 +186,7 @@ set(SERVER_SOURCES
         ./src/chain.cpp
         ./src/checkpoints.cpp
         ./src/consensus/tx_verify.cpp
+        ./src/flatfile.cpp
         ./src/httprpc.cpp
         ./src/httpserver.cpp
         ./src/indirectmap.h
@@ -416,7 +417,7 @@ set(UTIL_SOURCES
         ./src/arith_uint256.cpp
         ./src/uint256.cpp
         ./src/util/threadnames.cpp
-        ./src/util.cpp
+        ./src/util/system.cpp
         ./src/utilstrencodings.cpp
         ./src/utilmoneystr.cpp
         ./src/utiltime.cpp

@@ -18,7 +18,7 @@
 #include "rpc/server.h"
 #include "sync.h"
 #include "txdb.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
 #include "hash.h"

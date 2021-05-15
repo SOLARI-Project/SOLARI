@@ -13,7 +13,7 @@
 #include "serialize.h"
 #include "sync.h"
 #include "timedata.h"
-#include "util.h"
+#include "util/system.h"
 
 /* Depth of the block pinged by masternodes */
 static const unsigned int MNPING_DEPTH = 12;

@@ -9,7 +9,7 @@
 
 #include "consensus/tx_verify.h" // for IsFinal()
 #include "tinyformat.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilstrencodings.h"
 #include "validation.h"
 

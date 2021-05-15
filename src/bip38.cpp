@@ -8,7 +8,7 @@
 #include "crypto/aes.h"
 #include "hash.h"
 #include "pubkey.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilstrencodings.h"
 #include "random.h"
 

@@ -7,7 +7,7 @@
 #include "hash.h"
 #include "messagesigner.h"
 #include "tinyformat.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilstrencodings.h"
 
 const std::string strMessageMagic = "DarkNet Signed Message:\n";

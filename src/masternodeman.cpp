@@ -16,7 +16,7 @@
 #include "netmessagemaker.h"
 #include "net_processing.h"
 #include "spork.h"
-#include "util.h"
+#include "util/system.h"
 
 #include <boost/thread/thread.hpp>
 

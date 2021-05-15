@@ -10,7 +10,7 @@
 #include "fs.h"
 #include "rpc/client.h"
 #include "rpc/protocol.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilstrencodings.h"
 
 #include <stdio.h>

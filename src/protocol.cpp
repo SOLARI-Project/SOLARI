@@ -7,7 +7,7 @@
 
 #include "protocol.h"
 
-#include "util.h"
+#include "util/system.h"
 #include "utilstrencodings.h"
 
 #ifndef WIN32

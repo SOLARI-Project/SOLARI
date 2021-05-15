@@ -18,7 +18,7 @@
 #include "net.h"
 #include "netbase.h"
 #include "txdb.h" // for -dbcache defaults
-#include "util.h"
+#include "util/system.h"
 
 #ifdef ENABLE_WALLET
 #include "masternodeconfig.h"

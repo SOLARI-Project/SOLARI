@@ -12,7 +12,7 @@
 #include "masternodeman.h"
 #include "netmessagemaker.h"
 #include "spork.h"
-#include "util.h"
+#include "util/system.h"
 #include "addrman.h"
 // clang-format on
 

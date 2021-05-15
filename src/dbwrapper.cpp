@@ -4,7 +4,7 @@
 
 #include "dbwrapper.h"
 
-#include "util.h"
+#include "util/system.h"
 
 #include <leveldb/cache.h>
 #include <leveldb/env.h>

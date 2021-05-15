@@ -9,7 +9,7 @@
 #include "config/pivx-config.h"
 #endif
 
-#include "util.h"
+#include "util/system.h"
 
 #include "chainparamsbase.h"
 #include "random.h"
@@ -94,6 +94,14 @@ ArgsManager gArgs;
 
 bool fDaemon = false;
 CTranslationInterface translationInterface;
+
+bool CheckDiskSpace(const fs::path& dir, uint64_t additional_bytes)
+{
+    constexpr uint64_t min_disk_space = 52428800; // 50 MiB
+
+    uint64_t free_bytes_available = fs::space(dir).available;
+    return free_bytes_available >= min_disk_space + additional_bytes;
+}
 
 /**
  * Interpret a string argument as a boolean.

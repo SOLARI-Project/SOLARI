@@ -13,7 +13,7 @@
 #include "rpc/server.h"
 #include "random.h"
 #include "sync.h"
-#include "util.h"
+#include "util/system.h"
 #include "utilstrencodings.h"
 #include "guiinterface.h"
 

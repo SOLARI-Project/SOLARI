@@ -142,9 +142,9 @@ std::string CBlockIndex::ToString() const
         GetBlockHash().ToString());
 }
 
-CDiskBlockPos CBlockIndex::GetBlockPos() const
+FlatFilePos CBlockIndex::GetBlockPos() const
 {
-    CDiskBlockPos ret;
+    FlatFilePos ret;
     if (nStatus & BLOCK_HAVE_DATA) {
         ret.nFile = nFile;
         ret.nPos = nDataPos;
@@ -152,9 +152,9 @@ CDiskBlockPos CBlockIndex::GetBlockPos() const
     return ret;
 }
 
-CDiskBlockPos CBlockIndex::GetUndoPos() const
+FlatFilePos CBlockIndex::GetUndoPos() const
 {
-    CDiskBlockPos ret;
+    FlatFilePos ret;
     if (nStatus & BLOCK_HAVE_UNDO) {
         ret.nFile = nFile;
         ret.nPos = nUndoPos;

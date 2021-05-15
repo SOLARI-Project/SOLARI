@@ -24,7 +24,7 @@ BOOST_FIXTURE_TEST_SUITE(dbwrapper_tests, BasicTestingSetup)
 BOOST_AUTO_TEST_CASE(dbwrapper)
 {
     {
-        fs::path ph = fs::temp_directory_path() / fs::unique_path();
+        fs::path ph = SetDataDir(std::string("dbwrapper"));
         CDBWrapper dbw(ph, (1 << 20), true, false);
         char key = 'k';
         uint256 in = GetRandHash();
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(dbwrapper_basic_data)
 BOOST_AUTO_TEST_CASE(dbwrapper_batch)
 {
     {
-        fs::path ph = fs::temp_directory_path() / fs::unique_path();
+        fs::path ph = SetDataDir(std::string("dbwrapper_batch"));
         CDBWrapper dbw(ph, (1 << 20), true, false);
 
         char key = 'i';
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(dbwrapper_batch)
 BOOST_AUTO_TEST_CASE(dbwrapper_iterator)
 {
     {
-        fs::path ph = fs::temp_directory_path() / fs::unique_path();
+        fs::path ph = SetDataDir(std::string("dbwrapper_iterator"));
         CDBWrapper dbw(ph, (1 << 20), true, false);
 
         // The two keys are intentionally chosen for ordering
