@@ -25,7 +25,7 @@
 #include <future>
 #include <boost/algorithm/string/replace.hpp>
 
-CWallet* pwalletMain = nullptr;
+std::vector<CWalletRef> vpwallets;
 /**
  * Settings
  */
@@ -652,6 +652,37 @@ bool CWallet::ParameterInteraction()
 
     if (gArgs.GetBoolArg("-sysperms", false)) {
         return UIError("-sysperms is not allowed in combination with enabled wallet functionality");
+    }
+
+    gArgs.SoftSetArg("-wallet", DEFAULT_WALLET_DAT);
+    const bool is_multiwallet = gArgs.GetArgs("-wallet").size() > 1;
+
+    if (gArgs.GetBoolArg("-salvagewallet", false) && gArgs.SoftSetBoolArg("-rescan", true)) {
+        if (is_multiwallet) {
+            return UIError(strprintf("%s is only allowed with a single wallet file", "-salvagewallet"));
+        }
+        // Rewrite just private keys: rescan to find transactions
+        LogPrintf("%s: parameter interaction: -salvagewallet=1 -> setting -rescan=1\n", __func__);
+    }
+
+    int zapwallettxes = gArgs.GetArg("-zapwallettxes", 0);
+    // -zapwallettxes implies dropping the mempool on startup
+    if (zapwallettxes != 0 && gArgs.SoftSetBoolArg("-persistmempool", false)) {
+        LogPrintf("%s: parameter interaction: -zapwallettxes=%s -> setting -persistmempool=0\n", __func__, zapwallettxes);
+    }
+
+    // -zapwallettxes implies a rescan
+    if (zapwallettxes != 0 && gArgs.SoftSetBoolArg("-rescan", true)) {
+        if (is_multiwallet) {
+            return UIError(strprintf("%s is only allowed with a single wallet file", "-zapwallettxes"));
+        }
+        LogPrintf("%s: parameter interaction: -zapwallettxes=<mode> -> setting -rescan=1\n", __func__);
+    }
+
+    if (is_multiwallet) {
+        if (gArgs.GetBoolArg("-upgradewallet", false)) {
+            return UIError(strprintf("%s is only allowed with a single wallet file", "-upgradewallet"));
+        }
     }
 
     if (gArgs.IsArgSet("-mintxfee")) {
@@ -2069,60 +2100,75 @@ std::set<uint256> CWalletTx::GetConflicts() const
     return result;
 }
 
+void CWallet::Flush(bool shutdown)
+{
+    bitdb.Flush(shutdown);
+}
+
 bool CWallet::Verify()
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         return true;
     }
 
-    uiInterface.InitMessage(_("Verifying wallet..."));
-    std::string walletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
-    std::string strDataDir = GetDataDir().string();
+    uiInterface.InitMessage(_("Verifying wallet(s)..."));
 
-    std::string strError;
-    if (!CWalletDB::VerifyEnvironment(walletFile, GetDataDir().string(), strError))
-        return UIError(strError);
+    for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
+        if (fs::path(walletFile).filename() != walletFile) {
+            return UIError(_("-wallet parameter must only specify a filename (not a path)"));
+        } else if (SanitizeString(walletFile, SAFE_CHARS_FILENAME) != walletFile) {
+            return UIError(_("Invalid characters in -wallet filename"));
+        }
 
-    if (gArgs.GetBoolArg("-salvagewallet", false)) {
-        // Recover readable keypairs:
-        CWallet dummyWallet;
-        // Even if we don't use this lock in this function, we want to preserve
-        // lock order in LoadToWallet if query of chain state is needed to know
-        // tx status. If lock can't be taken, tx confirmation status may be not
-        // reliable.
-        LOCK(cs_main);
-        if (!CWalletDB::Recover(walletFile, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter))
-            return false;
+        std::string strError;
+        if (!CWalletDB::VerifyEnvironment(walletFile, GetDataDir().string(), strError)) {
+            return UIError(strError);
+        }
+
+        if (gArgs.GetBoolArg("-salvagewallet", false)) {
+            // Recover readable keypairs:
+            CWallet dummyWallet;
+            std::string backup_filename;
+            // Even if we don't use this lock in this function, we want to preserve
+            // lock order in LoadToWallet if query of chain state is needed to know
+            // tx status. If lock can't be taken, tx confirmation status may be not
+            // reliable.
+            LOCK(cs_main);
+            if (!CWalletDB::Recover(walletFile, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter, backup_filename)) {
+                return false;
+            }
+        }
+
+        std::string strWarning;
+        bool dbV = CWalletDB::VerifyDatabaseFile(walletFile, GetDataDir().string(), strWarning, strError);
+        if (!strWarning.empty()) {
+            UIWarning(strWarning);
+        }
+        if (!dbV) {
+            return UIError(strError);
+        }
     }
 
-    std::string strWarning;
-    bool dbV = CWalletDB::VerifyDatabaseFile(walletFile, GetDataDir().string(), strWarning, strError);
-    if (!strWarning.empty()) {
-        UIWarning(strWarning);
-    }
-    if (!dbV) {
-        UIError(strError);
-        return false;
-    }
     return true;
 }
-
-
 
 void CWallet::ResendWalletTransactions(CConnman* connman)
 {
     // Do this infrequently and randomly to avoid giving away
     // that these are our transactions.
-    if (GetTime() < nNextResend)
+    if (GetTime() < nNextResend) {
         return;
+    }
     bool fFirst = (nNextResend == 0);
     nNextResend = GetTime() + GetRand(30 * 60);
-    if (fFirst)
+    if (fFirst) {
         return;
+    }
 
     // Only do it if there's been a new block since last time
-    if (nTimeBestReceived < nLastResend)
+    if (nTimeBestReceived < nLastResend) {
         return;
+    }
     nLastResend = GetTime();
 
     // Rebroadcast any of our txes that aren't in a block yet
@@ -2135,8 +2181,9 @@ void CWallet::ResendWalletTransactions(CConnman* connman)
             CWalletTx& wtx = item.second;
             // Don't rebroadcast until it's had plenty of time that
             // it should have gotten in already by now.
-            if (nTimeBestReceived - (int64_t)wtx.nTimeReceived > 5 * 60)
+            if (nTimeBestReceived - (int64_t)wtx.nTimeReceived > 5 * 60) {
                 mapSorted.emplace(wtx.nTimeReceived, &wtx);
+            }
         }
         for (std::pair<const unsigned int, CWalletTx*> & item : mapSorted) {
             CWalletTx& wtx = *item.second;
@@ -4216,8 +4263,9 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
             LogPrintf("Performing wallet upgrade to %i\n", FEATURE_LATEST);
             nMaxVersion = FEATURE_LATEST;
             walletInstance->SetMinVersion(FEATURE_LATEST); // permanently upgrade the wallet immediately
-        } else
+        } else {
             LogPrintf("Allowing wallet upgrade up to %i\n", nMaxVersion);
+        }
         if (nMaxVersion < walletInstance->GetVersion()) {
             UIError("Cannot downgrade wallet\n");
             return nullptr;
@@ -4309,7 +4357,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
         }
         LogPrintf("Rescan completed in %15dms\n", GetTimeMillis() - nWalletRescanTime);
         walletInstance->SetBestChain(chainActive.GetLocator());
-        CWalletDB::IncrementUpdateCounter();
+        walletInstance->dbw->IncrementUpdateCounter();
 
         // Restore wallet transaction metadata after -zapwallettxes=1
         if (gArgs.GetBoolArg("-zapwallettxes", false) && gArgs.GetArg("-zapwallettxes", "1") != "2") {
@@ -4339,18 +4387,29 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
 bool CWallet::InitLoadWallet()
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
-        pwalletMain = nullptr;
         LogPrintf("Wallet disabled!\n");
         return true;
     }
 
-    std::string walletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
+    for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
+        // automatic backups
+        std::string strWarning, strError;
+        if(!AutoBackupWallet(walletFile, strWarning, strError)) {
+            if (!strWarning.empty()) {
+                UIWarning(strprintf("%s: %s", walletFile, strWarning));
+            }
+            if (!strError.empty()) {
+                return UIError(strprintf("%s: %s", walletFile, strError));
+            }
+        }
 
-    CWallet * const pwallet = CreateWalletFromFile(walletFile);
-    if (!pwallet) {
-        return false;
+        CWallet * const pwallet = CreateWalletFromFile(walletFile);
+        if (!pwallet) {
+            return false;
+        }
+        vpwallets.emplace_back(pwallet);
     }
-    pwalletMain = pwallet;
+
     return true;
 }
 
@@ -4875,19 +4934,3 @@ CStakeableOutput::CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn,
                                    const CBlockIndex*& _pindex) : COutput(txIn, iIn, nDepthIn, fSpendableIn, fSolvableIn),
                                                                 pindex(_pindex) {}
 
-bool InitAutoBackupWallet()
-{
-    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
-        return true;
-    }
-
-    std::string strWalletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
-
-    std::string strWarning, strError;
-    if(!AutoBackupWallet(strWalletFile, strWarning, strError)) {
-        if (!strWarning.empty()) UIWarning(strWarning);
-        if (!strError.empty()) return UIError(strError);
-    }
-
-    return true;
-}

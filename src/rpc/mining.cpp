@@ -17,6 +17,7 @@
 #include "rpc/server.h"
 #include "validationinterface.h"
 #ifdef ENABLE_WALLET
+#include "wallet/rpcwallet.h"
 #include "wallet/db.h"
 #include "wallet/wallet.h"
 #endif
@@ -27,7 +28,7 @@
 
 #ifdef ENABLE_WALLET
 UniValue generateBlocks(const Consensus::Params& consensus,
-                        CWallet* wallet,
+                        CWallet* const pwallet,
                         bool fPoS,
                         const int nGenerate,
                         int nHeight,
@@ -40,13 +41,13 @@ UniValue generateBlocks(const Consensus::Params& consensus,
 
         // Get available coins
         std::vector<CStakeableOutput> availableCoins;
-        if (fPoS && !wallet->StakeableCoins(&availableCoins)) {
+        if (fPoS && !pwallet->StakeableCoins(&availableCoins)) {
             throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "No available coins to stake");
         }
 
         std::unique_ptr<CBlockTemplate> pblocktemplate(fPoS ?
-                                                       BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(CScript(), wallet, true, &availableCoins) :
-                                                       CreateNewBlockWithScript(*coinbaseScript, wallet));
+                                                       BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(CScript(), pwallet, true, &availableCoins) :
+                                                       CreateNewBlockWithScript(*coinbaseScript, pwallet));
         if (!pblocktemplate.get()) break;
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
 
@@ -76,6 +77,11 @@ UniValue generateBlocks(const Consensus::Params& consensus,
 
 UniValue generate(const JSONRPCRequest& request)
 {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 1)
         throw std::runtime_error(
             "generate numblocks\n"
@@ -113,10 +119,10 @@ UniValue generate(const JSONRPCRequest& request)
 
     if (fPoS) {
         // If we are in PoS, wallet must be unlocked.
-        EnsureWalletIsUnlocked();
+        EnsureWalletIsUnlocked(pwallet);
     } else {
         // Coinbase key
-        reservekey = MakeUnique<CReserveKey>(pwalletMain);
+        reservekey = MakeUnique<CReserveKey>(pwallet);
         CPubKey pubkey;
         if (!reservekey->GetReservedKey(pubkey)) throw JSONRPCError(RPC_INTERNAL_ERROR, "Error: Cannot get key from keypool");
         coinbaseScript = GetScriptForDestination(pubkey.GetID());
@@ -124,7 +130,7 @@ UniValue generate(const JSONRPCRequest& request)
 
     // Create the blocks
     UniValue blockHashes = generateBlocks(consensus,
-                                          pwalletMain,
+                                          pwallet,
                                           fPoS,
                                           nGenerate,
                                           nHeight,
@@ -142,6 +148,11 @@ UniValue generate(const JSONRPCRequest& request)
 
 UniValue generatetoaddress(const JSONRPCRequest& request)
 {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
                 "generatetoaddress numblocks \"address\"\n"
@@ -175,7 +186,7 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
 
     bool fPoS = consensus.NetworkUpgradeActive(nHeight + 1, Consensus::UPGRADE_POS);
     return generateBlocks(consensus,
-                          pwalletMain,
+                          pwallet,
                           fPoS,
                           nGenerate,
                           nHeight,
@@ -273,6 +284,11 @@ UniValue getgenerate(const JSONRPCRequest& request)
 
 UniValue setgenerate(const JSONRPCRequest& request)
 {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
             "setgenerate generate ( genproclimit )\n"
@@ -290,8 +306,6 @@ UniValue setgenerate(const JSONRPCRequest& request)
             "\nCheck the setting\n" + HelpExampleCli("getgenerate", "") +
             "\nTurn off generation\n" + HelpExampleCli("setgenerate", "false") +
             "\nUsing json rpc\n" + HelpExampleRpc("setgenerate", "true, 1"));
-
-    EnsureWallet();
 
     if (Params().IsRegTestNet())
         throw JSONRPCError(RPC_INVALID_REQUEST, "Use the generate method instead of setgenerate on regtest");
@@ -313,7 +327,7 @@ UniValue setgenerate(const JSONRPCRequest& request)
 
     gArgs.GetArg("-gen", "") = (fGenerate ? "1" : "0");
     gArgs.GetArg("-genproclimit", "") = itostr(nGenProcLimit);
-    GenerateBitcoins(fGenerate, pwalletMain, nGenProcLimit);
+    GenerateBitcoins(fGenerate, pwallet, nGenProcLimit);
 
     return NullUniValue;
 }
@@ -438,6 +452,8 @@ static UniValue BIP22ValidationResult(const CValidationState& state)
 #ifdef ENABLE_MINING_RPC
 UniValue getblocktemplate(const JSONRPCRequest& request)
 {
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "getblocktemplate ( \"jsonrequestobject\" )\n"
@@ -623,7 +639,7 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
             pblocktemplate = NULL;
         }
         CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptDummy, pwalletMain, false);
+        pblocktemplate = BlockAssembler(Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptDummy, pwallet, false);
         if (!pblocktemplate)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 

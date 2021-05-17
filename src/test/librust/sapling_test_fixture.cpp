@@ -13,3 +13,8 @@ SaplingTestingSetup::SaplingTestingSetup(const std::string& chainName) : Testing
 SaplingTestingSetup::~SaplingTestingSetup()
 {
 }
+
+SaplingRegTestingSetup::SaplingRegTestingSetup() : SaplingTestingSetup(CBaseChainParams::REGTEST)
+{
+    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
+}

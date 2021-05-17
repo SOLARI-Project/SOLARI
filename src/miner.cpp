@@ -306,8 +306,8 @@ void GenerateBitcoins(bool fGenerate, CWallet* pwallet, int nThreads)
 void ThreadStakeMinter()
 {
     boost::this_thread::interruption_point();
-    LogPrintf("ThreadStakeMinter started\n");
-    CWallet* pwallet = pwalletMain;
+    LogPrintf("ThreadStakeMinter started. Using wallet-0\n");
+    CWallet* pwallet = vpwallets[0];
     try {
         BitcoinMiner(pwallet, true);
         boost::this_thread::interruption_point();

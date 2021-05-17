@@ -107,13 +107,17 @@ uint256 CBudgetManager::SubmitFinalBudget()
         // create the collateral tx, send it to the network and return
         CTransactionRef wtx;
         // Get our change address
-        CReserveKey keyChange(pwalletMain);
-        if (!pwalletMain->CreateBudgetFeeTX(wtx, budgetHash, keyChange, true)) {
+        if (vpwallets.empty() || !vpwallets[0]) {
+            LogPrint(BCLog::MNBUDGET,"%s: Wallet not found\n", __func__);
+            return UINT256_ZERO;
+        }
+        CReserveKey keyChange(vpwallets[0]);
+        if (!vpwallets[0]->CreateBudgetFeeTX(wtx, budgetHash, keyChange, true)) {
             LogPrint(BCLog::MNBUDGET,"%s: Can't make collateral transaction\n", __func__);
             return UINT256_ZERO;
         }
         // Send the tx to the network
-        const CWallet::CommitResult& res = pwalletMain->CommitTransaction(wtx, keyChange, g_connman.get());
+        const CWallet::CommitResult& res = vpwallets[0]->CommitTransaction(wtx, keyChange, g_connman.get());
         if (res.status == CWallet::CommitStatus::OK) {
             const uint256& collateraltxid = wtx->GetHash();
             mapUnconfirmedFeeTx.emplace(budgetHash, collateraltxid);

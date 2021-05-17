@@ -1,5 +1,5 @@
-// Copyright (c) 2016 The Bitcoin Core developers
-// Copyright (c) 2020 The PIVX developers
+// Copyright (c) 2016-2021 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,34 +7,26 @@
 
 #include "rpc/server.h"
 #include "wallet/db.h"
-#include "wallet/wallet.h"
 #include "wallet/rpcwallet.h"
-
-void clean()
-{
-    delete pwalletMain;
-    pwalletMain = nullptr;
-
-    bitdb.Flush(true);
-    bitdb.Reset();
-}
 
 WalletTestingSetup::WalletTestingSetup(const std::string& chainName):
         SaplingTestingSetup(chainName)
 {
-    clean(); // todo: research why we have an initialized bitdb here.
     bitdb.MakeMock();
-    RegisterWalletRPCCommands(tableRPC);
 
     bool fFirstRun;
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
-    pwalletMain = new CWallet(std::move(dbw));
+    pwalletMain = MakeUnique<CWallet>(std::move(dbw));
     pwalletMain->LoadWallet(fFirstRun);
-    RegisterValidationInterface(pwalletMain);
+    RegisterValidationInterface(pwalletMain.get());
+
+    RegisterWalletRPCCommands(tableRPC);
 }
 
 WalletTestingSetup::~WalletTestingSetup()
 {
-    UnregisterValidationInterface(pwalletMain);
-    clean();
+    UnregisterValidationInterface(pwalletMain.get());
+
+    bitdb.Flush(true);
+    bitdb.Reset();
 }

@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2015 The Bitcoin developers
+// Copyright (c) 2009-2021 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2011-2013 The PPCoin developers
 // Copyright (c) 2013-2014 The NovaCoin Developers
 // Copyright (c) 2014-2018 The BlackCoin Developers
-// Copyright (c) 2015-2020 The PIVX developers
+// Copyright (c) 2015-2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -58,7 +58,6 @@
 #include "zpivchain.h"
 
 #ifdef ENABLE_WALLET
-#include "wallet/db.h"
 #include "wallet/wallet.h"
 #include "wallet/rpcwallet.h"
 
@@ -222,8 +221,9 @@ void PrepareShutdown()
     StopRPC();
     StopHTTPServer();
 #ifdef ENABLE_WALLET
-    if (pwalletMain)
-        bitdb.Flush(false);
+    for (CWalletRef pwallet : vpwallets) {
+        pwallet->Flush(false);
+    }
     GenerateBitcoins(false, NULL, 0);
 #endif
     StopMapPort();
@@ -302,8 +302,9 @@ void PrepareShutdown()
         evoDb.reset();
     }
 #ifdef ENABLE_WALLET
-    if (pwalletMain)
-        bitdb.Flush(true);
+    for (CWalletRef pwallet : vpwallets) {
+        pwallet->Flush(true);
+    }
 #endif
 
     if (pEvoNotificationInterface) {
@@ -355,8 +356,10 @@ void Shutdown()
         PrepareShutdown();
     }
 #ifdef ENABLE_WALLET
-    delete pwalletMain;
-    pwalletMain = NULL;
+    for (CWalletRef pwallet : vpwallets) {
+        delete pwallet;
+    }
+    vpwallets.clear();
 #endif
     globalVerifyHandle.reset();
     ECC_Stop();
@@ -933,24 +936,6 @@ void InitParameterInteraction()
         if (gArgs.SoftSetBoolArg("-discover", false))
             LogPrintf("%s : parameter interaction: -externalip set -> setting -discover=0\n", __func__);
     }
-
-    if (gArgs.GetBoolArg("-salvagewallet", false)) {
-        // Rewrite just private keys: rescan to find transactions
-        if (gArgs.SoftSetBoolArg("-rescan", true))
-            LogPrintf("%s : parameter interaction: -salvagewallet=1 -> setting -rescan=1\n", __func__);
-    }
-
-    int zapwallettxes = gArgs.GetArg("-zapwallettxes", 0);
-    // -zapwallettxes implies dropping the mempool on startup
-    if (zapwallettxes != 0 && gArgs.SoftSetBoolArg("-persistmempool", false)) {
-        LogPrintf("%s: parameter interaction: -zapwallettxes=%s -> setting -persistmempool=0\n", __func__, zapwallettxes);
-    }
-
-    // -zapwallettxes implies a rescan
-    if (zapwallettxes != 0) {
-        if (gArgs.SoftSetBoolArg("-rescan", true))
-            LogPrintf("%s : parameter interaction: -zapwallettxes=%s -> setting -rescan=1\n", __func__, zapwallettxes);
-    }
 }
 
 bool InitNUParams()
@@ -1334,11 +1319,8 @@ bool AppInitMain()
         }
     }
 
-// ********************************************************* Step 5: Backup wallet and verify wallet database integrity
+// ********************************************************* Step 5: Verify wallet database integrity
 #ifdef ENABLE_WALLET
-    if (!InitAutoBackupWallet()) {
-        return false;
-    }
     if (!CWallet::Verify()) {
         return false;
     }
@@ -1726,7 +1708,7 @@ bool AppInitMain()
         mempool.ReadFeeEstimates(est_filein);
     fFeeEstimatesInitialized = true;
 
-// ********************************************************* Step 8: load wallet
+// ********************************************************* Step 8: Backup and Load wallet
 #ifdef ENABLE_WALLET
     if (!CWallet::InitLoadWallet())
         return false;
@@ -1878,14 +1860,15 @@ bool AppInitMain()
     strBudgetMode = gArgs.GetArg("-budgetvotemode", "auto");
 
 #ifdef ENABLE_WALLET
-    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK) && pwalletMain) {
-        LOCK(pwalletMain->cs_wallet);
+    // use only the first wallet here. This section can be removed after transition to DMN
+    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK) && !vpwallets.empty() && vpwallets[0]) {
+        LOCK(vpwallets[0]->cs_wallet);
         LogPrintf("Locking Masternodes collateral utxo:\n");
         uint256 mnTxHash;
         for (const auto& mne : masternodeConfig.getEntries()) {
             mnTxHash.SetHex(mne.getTxHash());
             COutPoint outpoint = COutPoint(mnTxHash, (unsigned int) std::stoul(mne.getOutputIndex()));
-            pwalletMain->LockCoin(outpoint);
+            vpwallets[0]->LockCoin(outpoint);
             LogPrintf("Locked collateral, MN: %s, tx hash: %s, output index: %s\n",
                       mne.getAlias(), mne.getTxHash(), mne.getOutputIndex());
         }
@@ -1919,11 +1902,13 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     {
-        if (pwalletMain) {
-            LOCK(pwalletMain->cs_wallet);
-            LogPrintf("setKeyPool.size() = %u\n", pwalletMain ? pwalletMain->GetKeyPoolSize() : 0);
-            LogPrintf("mapWallet.size() = %u\n", pwalletMain ? pwalletMain->mapWallet.size() : 0);
-            LogPrintf("mapAddressBook.size() = %u\n", pwalletMain ? pwalletMain->GetAddressBookSize() : 0);
+        int idx = 0;
+        for (CWalletRef pwallet : vpwallets) {
+            LogPrintf("Wallet %d\n", idx++);
+            LOCK(pwallet->cs_wallet);
+            LogPrintf("setKeyPool.size() = %u\n", pwallet->GetKeyPoolSize());
+            LogPrintf("mapWallet.size() = %u\n", pwallet->mapWallet.size());
+            LogPrintf("mapAddressBook.size() = %u\n", pwallet->GetAddressBookSize());
         }
     }
 #endif
@@ -1954,22 +1939,21 @@ bool AppInitMain()
         return UIError(strNodeError);
 
 #ifdef ENABLE_WALLET
-    // Generate coins in the background
-    if (pwalletMain)
-        GenerateBitcoins(gArgs.GetBoolArg("-gen", DEFAULT_GENERATE), pwalletMain, gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_PROCLIMIT));
+    // Generate coins in the background (disabled on mainnet. use only wallet 0)
+    if (!vpwallets.empty())
+        GenerateBitcoins(gArgs.GetBoolArg("-gen", DEFAULT_GENERATE), vpwallets[0], gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_PROCLIMIT));
 #endif
 
     // ********************************************************* Step 12: finished
 
 #ifdef ENABLE_WALLET
-    if (pwalletMain) {
-        uiInterface.InitMessage(_("Reaccepting wallet transactions..."));
-        pwalletMain->postInitProcess(scheduler);
-
-        // StakeMiner thread disabled by default on regtest
-        if (gArgs.GetBoolArg("-staking", !Params().IsRegTestNet() && DEFAULT_STAKING)) {
-            threadGroup.create_thread(std::bind(&ThreadStakeMinter));
-        }
+    uiInterface.InitMessage(_("Reaccepting wallet transactions..."));
+    for (CWalletRef pwallet : vpwallets) {
+        pwallet->postInitProcess(scheduler);
+    }
+    // StakeMiner thread disabled by default on regtest
+    if (!vpwallets.empty() && gArgs.GetBoolArg("-staking", !Params().IsRegTestNet() && DEFAULT_STAKING)) {
+        threadGroup.create_thread(std::bind(&ThreadStakeMinter));
     }
 #endif
 

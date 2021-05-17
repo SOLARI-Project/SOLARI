@@ -151,7 +151,7 @@ private:
 public:
     CRPCTable();
     const CRPCCommand* operator[](const std::string& name) const;
-    std::string help(std::string name) const;
+    std::string help(const std::string& name, const JSONRPCRequest& helpreq) const;
 
     /**
      * Execute a method.
@@ -190,17 +190,11 @@ extern std::vector<unsigned char> ParseHexO(const UniValue& o, std::string strKe
 extern int ParseInt(const UniValue& o, std::string strKey);
 extern bool ParseBool(const UniValue& o, std::string strKey);
 
-extern int64_t nWalletUnlockTime;
 extern CAmount AmountFromValue(const UniValue& value);
 extern UniValue ValueFromAmount(const CAmount& amount);
 extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
-extern std::string HelpRequiringPassphrase();
 extern std::string HelpExampleCli(std::string methodname, std::string args);
 extern std::string HelpExampleRpc(std::string methodname, std::string args);
-
-extern void EnsureWalletIsUnlocked(bool fAllowAnonOnly = false);
-// Ensure the wallet's existence.
-extern void EnsureWallet();
 
 bool StartRPC();
 void InterruptRPC();

@@ -45,7 +45,7 @@
 #include <vector>
 
 typedef CWallet* CWalletRef;
-extern CWalletRef pwalletMain;
+extern std::vector<CWalletRef> vpwallets;
 
 /**
  * Settings
@@ -934,9 +934,12 @@ public:
     bool LoadWatchOnly(const CScript& dest);
 
     //! Lock Wallet
+    //! Holds a timestamp at which point the wallet is scheduled (externally) to be relocked. Caller must arrange for actual relocking to occur via Lock().
+    int64_t nRelockTime;
     bool Lock();
     bool Unlock(const SecureString& strWalletPassphrase, bool anonimizeOnly = false);
     bool Unlock(const CKeyingMaterial& vMasterKeyIn);
+
     bool ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase);
     bool EncryptWallet(const SecureString& strWalletPassphrase);
 
@@ -1128,6 +1131,9 @@ public:
     //! Get wallet transactions that conflict with given transaction (spend same outputs)
     std::set<uint256> GetConflicts(const uint256& txid) const;
 
+    //! Flush wallet (bitdb flush)
+    void Flush(bool shutdown=false);
+
     //! Verify the wallet database and perform salvage if required
     static bool Verify();
 
@@ -1269,8 +1275,5 @@ public:
         }
     }
 };
-
-// !TODO: move to wallet/init.*
-bool InitAutoBackupWallet();
 
 #endif // PIVX_WALLET_H

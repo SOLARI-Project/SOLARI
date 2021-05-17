@@ -487,8 +487,9 @@ void BitcoinApplication::initializeResult(int retval)
         window->setClientModel(clientModel);
 
 #ifdef ENABLE_WALLET
-        if (pwalletMain) {
-            walletModel = new WalletModel(pwalletMain, optionsModel);
+        // TODO: Expose secondary wallets
+        if (!vpwallets.empty()) {
+            walletModel = new WalletModel(vpwallets[0], optionsModel);
             walletModel->setClientModel(clientModel);
 
             window->addWallet(PIVXGUI::DEFAULT_WALLET, walletModel);
