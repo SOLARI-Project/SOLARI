@@ -3382,9 +3382,9 @@ UniValue encryptwallet(const JSONRPCRequest& request)
 
 UniValue listunspent(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 4)
+    if (request.fHelp || request.params.size() > 5)
         throw std::runtime_error(
-                "listunspent ( minconf maxconf  [\"address\",...] watchonlyconfig )\n"
+                "listunspent ( minconf maxconf  [\"address\",...] watchonlyconfig [query_options])\n"
                 "\nReturns array of unspent transaction outputs\n"
                 "with between minconf and maxconf (inclusive) confirmations.\n"
                 "Optionally filter to only include txouts paid to specified addresses.\n"
@@ -3400,7 +3400,13 @@ UniValue listunspent(const JSONRPCRequest& request)
                 "      ,...\n"
                 "    ]\n"
                 "4. watchonlyconfig  (numeric, optional, default=1) 1 = list regular unspent transactions,  2 = list all unspent transactions (including watchonly)\n"
-
+                "5. query_options    (json, optional) JSON with query options\n"
+                "    {\n"
+                "      \"minimumAmount\"    (numeric or string, default=0) Minimum value of each UTXO in " + CURRENCY_UNIT + "\n"
+                "      \"maximumAmount\"    (numeric or string, default=unlimited) Maximum value of each UTXO in " + CURRENCY_UNIT + "\n"
+                "      \"maximumCount\"     (numeric or string, default=unlimited) Maximum number of UTXOs\n"
+                "      \"minimumSumAmount\" (numeric or string, default=unlimited) Minimum sum value of all UTXOs in " + CURRENCY_UNIT + "\n"
+                "    }\n"
                 "\nResult\n"
                 "[                   (array of json object)\n"
                 "  {\n"
@@ -3420,24 +3426,31 @@ UniValue listunspent(const JSONRPCRequest& request)
                 "]\n"
 
                 "\nExamples\n" +
-                HelpExampleCli("listunspent", "") + HelpExampleCli("listunspent", "6 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"") + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\""));
-
-    RPCTypeCheck(request.params, {UniValue::VNUM, UniValue::VNUM, UniValue::VARR, UniValue::VNUM});
+                HelpExampleCli("listunspent", "") + HelpExampleCli("listunspent", "6 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
+                + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
+                + HelpExampleCli("listunspent", "6 9999999 '[]' 1 '{ \"minimumAmount\": 0.005 }'")
+                + HelpExampleRpc("listunspent", "6, 9999999, [] , 1, { \"minimumAmount\": 0.005 } ")
+                );
 
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwalletMain->BlockUntilSyncedToCurrentChain();
 
     int nMinDepth = 1;
-    if (request.params.size() > 0)
+    if (request.params.size() > 0) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VNUM);
         nMinDepth = request.params[0].get_int();
+    }
 
     int nMaxDepth = 9999999;
-    if (request.params.size() > 1)
+    if (request.params.size() > 1) {
+        RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
         nMaxDepth = request.params[1].get_int();
+    }
 
     std::set<CTxDestination> destinations;
     if (request.params.size() > 2) {
+        RPCTypeCheckArgument(request.params[2], UniValue::VARR);
         UniValue inputs = request.params[2].get_array();
         for (unsigned int inx = 0; inx < inputs.size(); inx++) {
             const UniValue& input = inputs[inx];
@@ -3453,9 +3466,39 @@ UniValue listunspent(const JSONRPCRequest& request)
     // List watch only utxo
     int nWatchonlyConfig = 1;
     if(request.params.size() > 3) {
+        RPCTypeCheckArgument(request.params[3], UniValue::VNUM);
         nWatchonlyConfig = request.params[3].get_int();
         if (nWatchonlyConfig > 2 || nWatchonlyConfig < 1)
             nWatchonlyConfig = 1;
+    }
+
+    CWallet::AvailableCoinsFilter coinFilter;
+    if (request.params.size() > 4) {
+        const UniValue& options = request.params[4].get_obj();
+
+        RPCTypeCheckObj(options,
+            {
+                    {"minimumAmount", UniValueType()},
+                    {"maximumAmount", UniValueType()},
+                    {"minimumSumAmount", UniValueType()},
+                    {"maximumCount", UniValueType(UniValue::VNUM)},
+            },
+            true, true);
+
+        if (options.exists("minimumAmount")) {
+            coinFilter.nMinOutValue = AmountFromValue(options["minimumAmount"]);
+        }
+
+        if (options.exists("maximumAmount")) {
+            coinFilter.nMaxOutValue = AmountFromValue(options["maximumAmount"]);
+        }
+
+        if (options.exists("minimumSumAmount")) {
+            coinFilter.nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
+        }
+
+        if (options.exists("maximumCount"))
+            coinFilter.nMaximumCount = options["maximumCount"].get_int64();
     }
 
     CCoinControl coinControl;
@@ -3464,7 +3507,6 @@ UniValue listunspent(const JSONRPCRequest& request)
     UniValue results(UniValue::VARR);
     std::vector<COutput> vecOutputs;
     LOCK2(cs_main, pwalletMain->cs_wallet);
-    CWallet::AvailableCoinsFilter coinFilter;
     coinFilter.fOnlyConfirmed = false;
     pwalletMain->AvailableCoins(&vecOutputs, &coinControl, coinFilter);
     for (const COutput& out : vecOutputs) {

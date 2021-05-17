@@ -35,6 +35,9 @@ class WalletTest(PivxTestFramework):
     def check_wallet_processed_blocks(self, nodeid, walletinfo):
         assert_equal(self.nodes[nodeid].getblockcount(), walletinfo['last_processed_block'])
 
+    def len_listunspent(self, query_options):
+        return len(self.nodes[1].listunspent(0, 99999, [], 1, query_options))
+
     def run_test(self):
         # Check that there's no UTXO on none of the nodes
         assert_equal(len(self.nodes[0].listunspent()), 0)
@@ -199,6 +202,43 @@ class WalletTest(PivxTestFramework):
         assert_equal(len(coinbase_tx_1["transactions"]), 1)
         assert_equal(coinbase_tx_1["transactions"][0]["blockhash"], blocks[1])
         assert_equal(len(self.nodes[0].listsinceblock(blocks[1])["transactions"]), 0)
+
+        # Excercise query_options parameter in listunspent
+        # Node 1 has:
+        # - 1 coin of 1.00 PIV
+        # - 7 coins of 250.00 PIV
+        # - 1 coin of 228.9999xxxx PIV
+        assert_equal(9, self.len_listunspent({}))
+        assert_equal(9, self.len_listunspent({"maximumCount": 10}))
+        assert_equal(2, self.len_listunspent({"maximumCount": 2}))
+        assert_equal(1, self.len_listunspent({"maximumCount": 1}))
+        assert_equal(9, self.len_listunspent({"maximumCount": 0}))
+        assert_equal(9, self.len_listunspent({"minimumAmount": 0.99999999}))
+        assert_equal(9, self.len_listunspent({"minimumAmount": 1.00}))
+        assert_equal(8, self.len_listunspent({"minimumAmount": 1.00000001}))
+        assert_equal(8, self.len_listunspent({"minimumAmount": 228.9999}))
+        assert_equal(7, self.len_listunspent({"minimumAmount": 229.00}))
+        assert_equal(7, self.len_listunspent({"minimumAmount": 250.00}))
+        assert_equal(0, self.len_listunspent({"minimumAmount": 250.00000001}))
+        assert_equal(0, self.len_listunspent({"maximumAmount": 0.99999999}))
+        assert_equal(1, self.len_listunspent({"maximumAmount": 1.00}))
+        assert_equal(1, self.len_listunspent({"maximumAmount": 228.9999}))
+        assert_equal(2, self.len_listunspent({"maximumAmount": 229.00}))
+        assert_equal(2, self.len_listunspent({"maximumAmount": 249.99999999}))
+        assert_equal(9, self.len_listunspent({"maximumAmount": 250.00}))
+        assert_equal(9, self.len_listunspent({"minimumAmount": 1.00000000, "maximumAmount": 250.00}))
+        assert_equal(2, self.len_listunspent({"minimumAmount": 1.00000000, "maximumAmount": 249.99999999}))
+        assert_equal(8, self.len_listunspent({"minimumAmount": 1.00000001, "maximumAmount": 250.00}))
+        assert_equal(7, self.len_listunspent({"minimumAmount": 229.000000, "maximumAmount": 250.00}))
+        assert_equal(7, self.len_listunspent({"minimumAmount": 250.000000, "maximumAmount": 250.00}))
+        assert_equal(8, self.len_listunspent({"minimumAmount": 228.999900, "maximumAmount": 250.00}))
+        assert_equal(0, self.len_listunspent({"minimumAmount": 228.999900, "maximumAmount": 228.00}))
+        assert_equal(1, self.len_listunspent({"minimumAmount": 250.00, "minimumSumAmount": 249.99999999}))
+        assert_equal(2, self.len_listunspent({"minimumAmount": 250.00, "minimumSumAmount": 250.00000001}))
+        assert_equal(5, self.len_listunspent({"minimumAmount": 250.00, "minimumSumAmount": 1250.0000000}))
+        assert_equal(9, self.len_listunspent({"minimumSumAmount": 2500.00}))
+
+
 
 
 if __name__ == '__main__':

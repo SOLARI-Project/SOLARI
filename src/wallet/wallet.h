@@ -798,7 +798,10 @@ public:
         int minDepth{0};
         bool fIncludeLocked{false};
         // Select outputs with value <= nMaxOutValue
-        CAmount nMaxOutValue{0};
+        CAmount nMaxOutValue{0}; // 0 means not active
+        CAmount nMinOutValue{0}; // 0 means not active
+        CAmount nMinimumSumAmount{0}; // 0 means not active
+        unsigned int nMaximumCount{0}; // 0 means not active
     };
 
     //! >> Available coins (generic)

@@ -2588,6 +2588,7 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
 
     {
         LOCK(cs_wallet);
+        CAmount nTotal = 0;
         for (std::map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
             const uint256& wtxid = it->first;
             const CWalletTx* pcoin = &(*it).second;
@@ -2608,6 +2609,9 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
 
                 // Filter by value if needed
                 if (coinsFilter.nMaxOutValue > 0 && output.nValue > coinsFilter.nMaxOutValue) {
+                    continue;
+                }
+                if (coinsFilter.nMinOutValue > 0 && output.nValue < coinsFilter.nMinOutValue) {
                     continue;
                 }
 
@@ -2637,6 +2641,20 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
                 // found valid coin
                 if (!pCoins) return true;
                 pCoins->emplace_back(pcoin, (int) i, nDepth, res.spendable, res.solvable);
+
+                // Checks the sum amount of all UTXO's.
+                if (coinsFilter.nMinimumSumAmount != 0) {
+                    nTotal += output.nValue;
+
+                    if (nTotal >= coinsFilter.nMinimumSumAmount) {
+                        return true;
+                    }
+                }
+
+                // Checks the maximum number of UTXO's.
+                if (coinsFilter.nMaximumCount > 0 && pCoins->size() >= coinsFilter.nMaximumCount) {
+                    return true;
+                }
             }
         }
         return (pCoins && !pCoins->empty());
