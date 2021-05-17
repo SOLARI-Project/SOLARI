@@ -16,5 +16,13 @@ struct SaplingTestingSetup : public TestingSetup
     ~SaplingTestingSetup();
 };
 
+/**
+ * Regtest setup with sapling always active
+ */
+struct SaplingRegTestingSetup : public SaplingTestingSetup
+{
+    SaplingRegTestingSetup();
+};
+
 
 #endif //PIVX_SAPLING_TEST_FIXTURE_H
