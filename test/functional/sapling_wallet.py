@@ -113,7 +113,7 @@ class WalletSaplingTest(PivxTestFramework):
         self.log.info("Good. Not accepted when SPORK_20 is active.")
 
         # Try with RPC...
-        assert_raises_rpc_error(-8, "Invalid parameter, Sapling not active yet",
+        assert_raises_rpc_error(-8, "SHIELD in maintenance (SPORK 20)",
                                 self.nodes[0].shieldsendmany, "from_transparent", recipients, 1, fee)
 
         # Disable SPORK_20 and retry

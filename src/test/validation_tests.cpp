@@ -4,17 +4,18 @@
 
 #include "test/test_pivx.h"
 #include "blockassembler.h"
-#include "consensus/merkle.h"
 #include "primitives/transaction.h"
 #include "sapling/sapling_validation.h"
 #include "test/librust/utiltest.h"
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
+BOOST_AUTO_TEST_SUITE(validation_tests)
 
-void test_simple_sapling_invalidity(CMutableTransaction& tx)
+BOOST_FIXTURE_TEST_CASE(test_simple_shielded_invalid, TestingSetup)
 {
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
     CAmount nDummyValueOut;
     {
         CMutableTransaction newTx(tx);
@@ -91,26 +92,10 @@ void test_simple_sapling_invalidity(CMutableTransaction& tx)
     }
 }
 
-BOOST_AUTO_TEST_CASE(test_simple_shielded_invalid)
-{
-    // Switch to regtest parameters so we can activate Sapling
-    SelectParams(CBaseChainParams::REGTEST);
-
-    CMutableTransaction mtx;
-    mtx.nVersion = CTransaction::TxVersion::SAPLING;
-
-    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
-    test_simple_sapling_invalidity(mtx);
-    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT);
-
-    // Switch back to mainnet parameters as originally selected in test fixture
-    SelectParams(CBaseChainParams::MAIN);
-}
-
-void CheckBlockZcRejection(const std::shared_ptr<CBlock>& pblock, CMutableTransaction& mtx)
+void CheckBlockZcRejection(std::shared_ptr<CBlock>& pblock, int nHeight, CMutableTransaction& mtx)
 {
     pblock->vtx.emplace_back(MakeTransactionRef(mtx));
-    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    BOOST_CHECK(SolveBlock(pblock, nHeight));
     CValidationState state;
     BOOST_CHECK(!ProcessNewBlock(state, nullptr, pblock, nullptr));
     BOOST_CHECK(!state.IsValid());
@@ -127,9 +112,11 @@ void CheckMempoolZcRejection(CMutableTransaction& mtx)
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-with-zc");
 }
 
-BOOST_AUTO_TEST_CASE(zerocoin_rejection_tests)
+/*
+ * Running on regtest to have v5 upgrade enforced at block 1 and test in-block zc rejection
+ */
+BOOST_FIXTURE_TEST_CASE(zerocoin_rejection_tests, RegTestingSetup)
 {
-    SelectParams(CBaseChainParams::REGTEST);
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
     const CChainParams& chainparams = Params();
 
@@ -149,18 +136,21 @@ BOOST_AUTO_TEST_CASE(zerocoin_rejection_tests)
     mtx.vout[0].scriptPubKey = CScript() << OP_ZEROCOINMINT <<
                                          CBigNum::randBignum(chainparams.GetConsensus().Zerocoin_Params(false)->coinCommitmentGroup.groupOrder).getvch();
     mtx.vout[0].nValue = 1 * COIN;
-    CheckBlockZcRejection(std::make_shared<CBlock>(pblocktemplate->block), mtx);
+    std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
+    CheckBlockZcRejection(pblock, 1, mtx);
     CheckMempoolZcRejection(mtx);
 
     // Zerocoin spends rejection test
     mtx.vout[0].scriptPubKey = scriptPubKey;
     mtx.vin[0].scriptSig = CScript() << OP_ZEROCOINSPEND;
-    CheckBlockZcRejection(std::make_shared<CBlock>(pblocktemplate->block), mtx);
+    pblock = std::make_shared<CBlock>(pblocktemplate->block);
+    CheckBlockZcRejection(pblock, 1, mtx);
     CheckMempoolZcRejection(mtx);
 
     // Zerocoin public spends rejection test
     mtx.vin[0].scriptSig = CScript() << OP_ZEROCOINPUBLICSPEND;
-    CheckBlockZcRejection(std::make_shared<CBlock>(pblocktemplate->block), mtx);
+    pblock = std::make_shared<CBlock>(pblocktemplate->block);
+    CheckBlockZcRejection(pblock, 1, mtx);
     CheckMempoolZcRejection(mtx);
 }
 

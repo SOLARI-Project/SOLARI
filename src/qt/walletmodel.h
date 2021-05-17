@@ -155,7 +155,6 @@ public:
     /** Whether cold staking is enabled or disabled in the network **/
     bool isColdStakingNetworkelyEnabled() const;
     bool isSaplingInMaintenance() const;
-    bool isSaplingEnforced() const;
     bool isV6Enforced() const;
     CAmount getMinColdStakingAmount() const;
     /* current staking status from the miner thread **/

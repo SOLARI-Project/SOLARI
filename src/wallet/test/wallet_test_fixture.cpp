@@ -19,7 +19,8 @@ void clean()
     bitdb.Reset();
 }
 
-WalletTestingSetup::WalletTestingSetup(): SaplingTestingSetup()
+WalletTestingSetup::WalletTestingSetup(const std::string& chainName):
+        SaplingTestingSetup(chainName)
 {
     clean(); // todo: research why we have an initialized bitdb here.
     bitdb.MakeMock();

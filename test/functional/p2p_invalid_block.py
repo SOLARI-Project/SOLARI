@@ -15,6 +15,10 @@ import copy
 from test_framework.blocktools import create_block, create_coinbase, create_transaction
 from test_framework.messages import COIN
 from test_framework.mininode import network_thread_start, P2PDataStore
+from test_framework.script import (
+    CScript,
+    OP_TRUE,
+)
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import assert_equal
 
@@ -23,6 +27,9 @@ class InvalidBlockRequestTest(PivxTestFramework):
         self.num_nodes = 1
         self.setup_clean_chain = True
         self.extra_args = [["-whitelist=127.0.0.1"]]
+
+    def create_tx(self, spend_tx, n, value):
+        return create_transaction(spend_tx, n, b"", value, CScript([OP_TRUE]))
 
     def run_test(self):
         # Add p2p connection to node0
@@ -65,9 +72,8 @@ class InvalidBlockRequestTest(PivxTestFramework):
         block2 = create_block(tip, create_coinbase(height), block_time)
         block_time += 1
 
-        # b'0x51' is OP_TRUE
-        tx1 = create_transaction(block1.vtx[0], 0, b'\x51', 50 * COIN)
-        tx2 = create_transaction(tx1, 0, b'\x51', 50 * COIN)
+        tx1 = self.create_tx(block1.vtx[0], 0, 50 * COIN)
+        tx2 = self.create_tx(tx1, 0, 50 * COIN)
 
         block2.vtx.extend([tx1, tx2])
         block2.hashMerkleRoot = block2.calc_merkle_root()
@@ -123,7 +129,7 @@ class InvalidBlockRequestTest(PivxTestFramework):
         # Complete testing of CVE-2018-17144, by checking for the inflation bug.
         # Create a block that spends the output of a tx in a previous block.
         block4 = create_block(tip, create_coinbase(height), block_time)
-        tx3 = create_transaction(tx2, 0, b'\x51', 50 * COIN)
+        tx3 = self.create_tx(tx2, 0, 50 * COIN)
 
         # Duplicates input
         tx3.vin.append(tx3.vin[0])
@@ -137,7 +143,7 @@ class InvalidBlockRequestTest(PivxTestFramework):
 
         self.log.info("Test output value > input value out of range")
         # Can be removed when 'feature_block.py' is added to the suite.
-        tx4 = create_transaction(tx2, 0, b'\x51', 260 * COIN)
+        tx4 = self.create_tx(tx2, 0, 260 * COIN)
         block4 = create_block(tip, create_coinbase(height), block_time)
         block4.vtx.extend([tx4])
         block4.hashMerkleRoot = block4.calc_merkle_root()

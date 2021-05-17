@@ -50,7 +50,8 @@ private:
  * and wallet (if enabled) setup.
  */
 class CConnman;
-struct TestingSetup: public BasicTestingSetup {
+struct TestingSetup: public BasicTestingSetup
+{
     CCoinsViewDB *pcoinsdbview;
     boost::thread_group threadGroup;
     CConnman* connman;
@@ -58,6 +59,11 @@ struct TestingSetup: public BasicTestingSetup {
 
     TestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~TestingSetup();
+};
+
+struct RegTestingSetup : public TestingSetup
+{
+    RegTestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
 };
 
 class CBlock;
@@ -70,11 +76,11 @@ struct TestChainSetup : public TestingSetup
     TestChainSetup(int blockCount);
     ~TestChainSetup();
 
-    // Create a new block with just given transactions, coinbase paying to
-    // scriptPubKey, and try to add it to the current chain.
-    CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey);
+    // Create a new block with coinbase paying to scriptPubKey, and try to add it to the current chain.
+    // Include given transactions, and, if fNoMempoolTx=true, remove transactions coming from the mempool.
+    CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool fNoMempoolTx = true);
     CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CKey& scriptKey);
-    CBlock CreateBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey);
+    CBlock CreateBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool fNoMempoolTx = true);
     CBlock CreateBlock(const std::vector<CMutableTransaction>& txns, const CKey& scriptKey);
 
     std::vector<CTransaction> coinbaseTxns; // For convenience, coinbase transactions
@@ -82,13 +88,15 @@ struct TestChainSetup : public TestingSetup
 };
 
 // Testing fixture that pre-creates a 100-block REGTEST-mode blockchain
-struct TestChain100Setup : public TestChainSetup {
+struct TestChain100Setup : public TestChainSetup
+{
     TestChain100Setup() : TestChainSetup(100) {}
 };
 
 // Testing fixture that pre-creates a 400-block REGTEST-mode blockchain
 // all 400 blocks are PoW. PoS starts at height 500
-struct TestChain400Setup : public TestChainSetup {
+struct TestChain400Setup : public TestChainSetup
+{
     TestChain400Setup() : TestChainSetup(400) {}
 };
 

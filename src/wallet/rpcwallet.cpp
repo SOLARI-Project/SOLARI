@@ -1168,8 +1168,8 @@ UniValue CreateColdStakeDelegation(const UniValue& params, CTransactionRef& txNe
         const Consensus::Params& consensus = Params().GetConsensus();
         // Check network status
         int nextBlockHeight = chainActive.Height() + 1;
-        if (!consensus.NetworkUpgradeActive(nextBlockHeight, Consensus::UPGRADE_V5_0)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, Sapling not active yet");
+        if (sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "SHIELD in maintenance (SPORK 20)");
         }
         std::vector<SendManyRecipient> recipients = {SendManyRecipient(ownerKey, *stakeKey, nValue, fV6Enforced)};
         SaplingOperation operation(consensus, nextBlockHeight, pwalletMain);
@@ -1626,11 +1626,10 @@ static SaplingOperation CreateShieldedTransaction(const JSONRPCRequest& request)
     }
 
     // Check network status
-    if (!Params().GetConsensus().NetworkUpgradeActive(nextBlockHeight, Consensus::UPGRADE_V5_0) ||
-            sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE)) {
-        // If Sapling is not active, do not allow sending from or sending to Sapling addresses.
+    if (sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE)) {
+        // If Sapling is disabled, do not allow sending from or sending to Sapling addresses.
         if (fromSapling || containsSaplingOutput) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, Sapling not active yet");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "SHIELD in maintenance (SPORK 20)");
         }
     }
 

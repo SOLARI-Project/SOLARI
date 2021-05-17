@@ -14,13 +14,11 @@
 #include "validation.h"
 #include "validationinterface.h"
 
+
 #define ASSERT_WITH_MSG(cond, msg) if (!cond) { BOOST_ERROR(msg); }
 
-struct RegtestingSetup : public TestingSetup {
-    RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
-};
 
-BOOST_FIXTURE_TEST_SUITE(validation_block_tests, RegtestingSetup)
+BOOST_FIXTURE_TEST_SUITE(validation_block_tests, RegTestingSetup)
 
 struct TestSubscriber : public CValidationInterface {
     uint256 m_expected_tip;

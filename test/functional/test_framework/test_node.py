@@ -223,7 +223,7 @@ class TestNode():
             print_log = " - " + "\n - ".join(log.splitlines())
             for expected_msg in expected_msgs:
                 if re.search(re.escape(expected_msg), log, flags=re.MULTILINE) is None:
-                    self._raise_assertion_error('Expected message "{}" does not partially match log:\n\n{}\n\n'.format(expected_msg, print_log))
+                    raise AssertionError('Expected message "{}" does not partially match log:\n\n{}\n\n'.format(expected_msg, print_log))
 
     def node_encrypt_wallet(self, passphrase):
         """"Encrypts the wallet.

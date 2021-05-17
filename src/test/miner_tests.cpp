@@ -17,7 +17,8 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(miner_tests, WalletTestingSetup)
+// future: this should be MAINNET.
+BOOST_FIXTURE_TEST_SUITE(miner_tests, WalletRegTestingSetup)
 
 // BOOST_CHECK_EXCEPTION predicates to check the specific validation error
 class HasReason {
@@ -73,7 +74,6 @@ struct {
 BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
 {
     // Note that by default, these tests run with size accounting enabled.
-    SelectParams(CBaseChainParams::REGTEST); // future: this should be MAINNET.
     const CChainParams& chainparams = Params();
     CScript scriptPubKey = CScript() << OP_DUP << OP_HASH160 << ParseHex("8d5b4f83212214d6ef693e02e6d71969fddad976") << OP_EQUALVERIFY << OP_CHECKSIG;
 

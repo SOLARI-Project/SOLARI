@@ -74,7 +74,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state, bool fCol
     static_assert(MAX_TX_SIZE_AFTER_SAPLING > MAX_ZEROCOIN_TX_SIZE, "New max TX size must be bigger than old max TX size");  // sanity
     const unsigned int nMaxSize = tx.IsShieldedTx() ? MAX_TX_SIZE_AFTER_SAPLING : MAX_ZEROCOIN_TX_SIZE;
     if (tx.GetTotalSize() > nMaxSize) {
-        return state.DoS(10, false, REJECT_INVALID, "bad-txns-oversize");
+        return state.DoS(10, error("tx oversize: %d > %d", tx.GetTotalSize(), nMaxSize), REJECT_INVALID, "bad-txns-oversize");
     }
 
     // Dispatch to Sapling validator

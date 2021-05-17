@@ -483,7 +483,18 @@ uint256 CalculateSaplingTreeRoot(CBlock* pblock, int nHeight, const CChainParams
     return UINT256_ZERO;
 }
 
-void IncrementExtraNonce(std::shared_ptr<CBlock>& pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
+bool SolveBlock(std::shared_ptr<CBlock>& pblock, int nHeight)
+{
+    unsigned int extraNonce = 0;
+    IncrementExtraNonce(pblock, nHeight, extraNonce);
+    while (pblock->nNonce < std::numeric_limits<uint32_t>::max() &&
+           !CheckProofOfWork(pblock->GetHash(), pblock->nBits)) {
+        ++pblock->nNonce;
+    }
+    return pblock->nNonce != std::numeric_limits<uint32_t>::max();
+}
+
+void IncrementExtraNonce(std::shared_ptr<CBlock>& pblock, int nHeight, unsigned int& nExtraNonce)
 {
     // Update nExtraNonce
     static uint256 hashPrevBlock;
@@ -492,7 +503,6 @@ void IncrementExtraNonce(std::shared_ptr<CBlock>& pblock, const CBlockIndex* pin
         hashPrevBlock = pblock->hashPrevBlock;
     }
     ++nExtraNonce;
-    unsigned int nHeight = pindexPrev->nHeight + 1; // Height first in coinbase required for block.version=2
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);

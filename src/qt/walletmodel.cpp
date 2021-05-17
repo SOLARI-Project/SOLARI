@@ -85,11 +85,6 @@ bool WalletModel::isSaplingInMaintenance() const
     return sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE);
 }
 
-bool WalletModel::isSaplingEnforced() const
-{
-    return Params().GetConsensus().NetworkUpgradeActive(cachedNumBlocks, Consensus::UPGRADE_V5_0);
-}
-
 bool WalletModel::isV6Enforced() const
 {
     return Params().GetConsensus().NetworkUpgradeActive(cachedNumBlocks, Consensus::UPGRADE_V6_0);
@@ -603,14 +598,6 @@ OperationResult WalletModel::PrepareShieldedTransaction(WalletModelTransaction* 
                                                         bool fromTransparent,
                                                         const CCoinControl* coinControl)
 {
-    // Basic checks first
-
-    // Check network status
-    int nextBlockHeight = cachedNumBlocks + 1;
-    if (!Params().GetConsensus().NetworkUpgradeActive(nextBlockHeight, Consensus::UPGRADE_V5_0)) {
-        return errorOut("Error, cannot send transaction. Sapling is not activated");
-    }
-
     // Load shieldedAddrRecipients.
     std::vector<SendManyRecipient> recipients;
     for (const auto& recipient : modelTransaction->getRecipients()) {
@@ -630,6 +617,7 @@ OperationResult WalletModel::PrepareShieldedTransaction(WalletModelTransaction* 
     if (!opResult) return opResult;
 
     // Create the operation
+    int nextBlockHeight = cachedNumBlocks + 1;
     SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, wallet);
     auto operationResult = operation.setRecipients(recipients)
              ->setTransparentKeyChange(modelTransaction->getPossibleKeyChange())

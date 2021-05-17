@@ -35,7 +35,6 @@ UniValue generateBlocks(const Consensus::Params& consensus,
                         CScript* coinbaseScript)
 {
     UniValue blockHashes(UniValue::VARR);
-    unsigned int nExtraNonce = 0;
 
     while (nHeight < nHeightEnd && !ShutdownRequested()) {
 
@@ -52,16 +51,8 @@ UniValue generateBlocks(const Consensus::Params& consensus,
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
 
         if(!fPoS) {
-            {
-                LOCK(cs_main);
-                IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-            }
-            while (pblock->nNonce < std::numeric_limits<uint32_t>::max() &&
-                   !CheckProofOfWork(pblock->GetHash(), pblock->nBits)) {
-                ++pblock->nNonce;
-            }
             if (ShutdownRequested()) break;
-            if (pblock->nNonce == std::numeric_limits<uint32_t>::max()) continue;
+            if (!SolveBlock(pblock, nHeight + 1)) continue;
         }
 
         CValidationState state;

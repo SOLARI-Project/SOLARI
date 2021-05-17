@@ -92,8 +92,9 @@ private:
     bool isStillDependent(CTxMemPool::txiter iter);
 };
 
-/** Modify the extranonce in a block */
-void IncrementExtraNonce(std::shared_ptr<CBlock>& pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
+/** Modify the nonce/extranonce in a block */
+bool SolveBlock(std::shared_ptr<CBlock>& pblock, int nHeight);
+void IncrementExtraNonce(std::shared_ptr<CBlock>& pblock, int nHeight, unsigned int& nExtraNonce);
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 int32_t ComputeBlockVersion(const Consensus::Params& consensusParams, int nHeight);
 
