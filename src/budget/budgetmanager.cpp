@@ -907,16 +907,14 @@ void CBudgetManager::NewBlock(int height)
         }
     }
     {
-        TRY_LOCK(cs_proposals, fBudgetNewBlock);
-        if (!fBudgetNewBlock) return;
+        LOCK(cs_proposals);
         LogPrint(BCLog::MNBUDGET,"%s:  mapProposals cleanup - size: %d\n", __func__, mapProposals.size());
         for (auto& it: mapProposals) {
             RemoveStaleVotesOnProposal(&it.second);
         }
     }
     {
-        TRY_LOCK(cs_budgets, fBudgetNewBlock);
-        if (!fBudgetNewBlock) return;
+        LOCK(cs_budgets);
         LogPrint(BCLog::MNBUDGET,"%s:  mapFinalizedBudgets cleanup - size: %d\n", __func__, mapFinalizedBudgets.size());
         for (auto& it: mapFinalizedBudgets) {
             RemoveStaleVotesOnFinalBudget(&it.second);
