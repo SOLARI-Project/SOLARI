@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(dbwrapper)
 
 BOOST_AUTO_TEST_CASE(dbwrapper_basic_data)
 {
-    fs::path ph = GetDataDir() / "dbwrapper_1";
+    fs::path ph = SetDataDir(std::string("dbwrapper_basic_data"));
     CDBWrapper dbw(ph, (1 << 20), false, true);
 
     uint256 res;
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(dbwrapper_iterator)
 
 BOOST_AUTO_TEST_CASE(iterator_ordering)
 {
-    fs::path ph = fs::temp_directory_path() / fs::unique_path();
+    fs::path ph = SetDataDir(std::string("iterator_ordering"));
     CDBWrapper dbw(ph, (1 << 20), true, false);
     for (int x=0x00; x<256; ++x) {
         uint8_t key = x;
@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE(iterator_string_ordering)
 {
     char buf[10];
 
-    fs::path ph = fs::temp_directory_path() / fs::unique_path();
+    fs::path ph = SetDataDir(std::string("iterator_string_ordering"));
     CDBWrapper dbw(ph, (1 << 20), true, false);
     for (int x=0x00; x<10; ++x) {
         for (int y = 0; y < 10; y++) {
