@@ -4192,11 +4192,9 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    bool fEnable;
-    if (request.params.size() >= 1)
-        fEnable = request.params[0].get_bool();
+    bool fEnable = !request.params.empty() && request.params[0].get_bool();
 
-    if (request.fHelp || request.params.size() < 1 || (fEnable && request.params.size() != 2) || request.params.size() > 2)
+    if (request.fHelp || request.params.empty() || (fEnable && request.params.size() != 2) || request.params.size() > 2)
         throw std::runtime_error(
             "autocombinerewards enable ( threshold )\n"
             "\nDEPRECATED!!! This command has been replaced with setautocombinethreshold and getautocombinethreshold and will be removed in a future version!!!\n"
@@ -4205,7 +4203,7 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
 
             "\nArguments:\n"
             "1. enable          (boolean, required) Enable auto combine (true) or disable (false)\n"
-            "2. threshold       (numeric, optional) Threshold amount (default: 0)\n"
+            "2. threshold       (numeric, optional, required if enable=True) Threshold amount (default: 0)\n"
 
             "\nExamples:\n" +
             HelpExampleCli("autocombinerewards", "true 500") + HelpExampleRpc("autocombinerewards", "true 500"));
