@@ -1726,13 +1726,16 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
             pfrom->AddInventoryKnown(inv);
             CValidationState state;
             if (!mapBlockIndex.count(hashBlock)) {
-                WITH_LOCK(cs_main, MarkBlockAsReceived(hashBlock); );
+                {
+                    LOCK(cs_main);
+                    MarkBlockAsReceived(hashBlock);
+                    mapBlockSource.emplace(hashBlock, pfrom->GetId());
+                }
                 bool fAccepted = true;
                 ProcessNewBlock(state, pfrom, pblock, nullptr, &fAccepted);
                 if (!fAccepted) {
                     CheckBlockSpam(state, pfrom, hashBlock);
                 }
-                WITH_LOCK(cs_main, mapBlockSource.emplace(hashBlock, pfrom->GetId()); );
                 int nDoS;
                 if(state.IsInvalid(nDoS)) {
                     assert (state.GetRejectCode() < REJECT_INTERNAL); // Blocks are never rejected with internal reject codes
