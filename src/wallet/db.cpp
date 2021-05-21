@@ -234,7 +234,7 @@ bool CDB::VerifyEnvironment(const std::string& walletFile, const fs::path& dataD
     // Wallet file must be a plain filename without a directory
     fs::path wallet_file_path(walletFile);
     if (walletFile != wallet_file_path.filename().string())
-        return UIError(strprintf(("Wallet %s resides outside data directory %s"), walletFile, dataDir.string()));
+        return UIError(strprintf(_("Wallet %s resides outside data directory %s"), walletFile, dataDir.string()));
 
     if (!bitdb.Open(dataDir)) {
         // try moving the database env out of the way
@@ -250,7 +250,7 @@ bool CDB::VerifyEnvironment(const std::string& walletFile, const fs::path& dataD
         // try again
         if (!bitdb.Open(dataDir)) {
             // if it still fails, it probably means we can't even create the database env
-            errorStr = strprintf(("Error initializing wallet database environment %s!"), GetDataDir());
+            errorStr = strprintf(_("Error initializing wallet database environment %s!"), GetDataDir());
             return false;
         }
     }
@@ -270,7 +270,7 @@ bool CDB::VerifyDatabaseFile(const std::string& walletFile, const fs::path& data
                                    walletFile, backup_filename, dataDir);
         }
         if (r == CDBEnv::RECOVER_FAIL) {
-            errorStr = strprintf(("%s corrupt, salvage failed"), walletFile);
+            errorStr = strprintf(_("%s corrupt, salvage failed"), walletFile);
             return false;
         }
     }
