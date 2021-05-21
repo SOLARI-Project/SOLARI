@@ -324,7 +324,10 @@ bool CMasternodePayments::GetLegacyMasternodeTxOut(int nHeight, std::vector<CTxO
     CScript payee;
     if (!GetBlockPayee(nHeight, payee)) {
         //no masternode detected
-        MasternodeRef winningNode = mnodeman.GetCurrentMasterNode(Params().GetConsensus().hashGenesisBlock);
+        const Consensus::Params& consensus = Params().GetConsensus();
+        const uint256& hash = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0) ?
+                              mnodeman.GetHashAtHeight(nHeight - 1) : consensus.hashGenesisBlock;
+        MasternodeRef winningNode = mnodeman.GetCurrentMasterNode(hash);
         if (winningNode) {
             payee = winningNode->GetPayeeScript();
         } else {
