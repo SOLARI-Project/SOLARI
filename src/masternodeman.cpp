@@ -572,7 +572,7 @@ MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeigh
     return pBestMasternode;
 }
 
-MasternodeRef CMasternodeMan::GetCurrentMasterNode(int nHeight, const uint256& hash) const
+MasternodeRef CMasternodeMan::GetCurrentMasterNode(const uint256& hash) const
 {
     int minProtocol = ActiveProtocol();
     int64_t score = 0;
@@ -617,7 +617,7 @@ std::vector<std::pair<MasternodeRef, int>> CMasternodeMan::GetMnScores(int nLast
 
     for (int nHeight = nChainHeight - nLast; nHeight < nChainHeight + 20; nHeight++) {
         const uint256& hash = GetHashAtHeight(nHeight - 101);
-        MasternodeRef winner = GetCurrentMasterNode(nHeight, hash);
+        MasternodeRef winner = GetCurrentMasterNode(hash);
         if (winner) {
             ret.emplace_back(winner, nHeight);
         }

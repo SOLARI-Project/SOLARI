@@ -324,7 +324,7 @@ bool CMasternodePayments::GetLegacyMasternodeTxOut(int nHeight, std::vector<CTxO
     CScript payee;
     if (!GetBlockPayee(nHeight, payee)) {
         //no masternode detected
-        MasternodeRef winningNode = mnodeman.GetCurrentMasterNode(nHeight, UINT256_ZERO);
+        MasternodeRef winningNode = mnodeman.GetCurrentMasterNode(Params().GetConsensus().hashGenesisBlock);
         if (winningNode) {
             payee = winningNode->GetPayeeScript();
         } else {

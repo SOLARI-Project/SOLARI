@@ -144,8 +144,8 @@ public:
     /// Find an entry in the masternode list that is next to be paid
     MasternodeRef GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount, const CBlockIndex* pChainTip = nullptr) const;
 
-    /// Get the current winner for this block
-    MasternodeRef GetCurrentMasterNode(int nHeight, const uint256& hash) const;
+    /// Get the winner for this block hash
+    MasternodeRef GetCurrentMasterNode(const uint256& hash) const;
 
     /// vector of pairs <masternode winner, height>
     std::vector<std::pair<MasternodeRef, int>> GetMnScores(int nLast) const;
