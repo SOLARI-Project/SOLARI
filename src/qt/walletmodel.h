@@ -25,6 +25,7 @@
 #include <QSettings>
 
 class AddressTableModel;
+class CBudgetProposal;
 class ClientModel;
 class OptionsModel;
 class RecentRequestsTableModel;
@@ -222,6 +223,8 @@ public:
     OperationResult PrepareShieldedTransaction(WalletModelTransaction* modelTransaction,
                                                             bool fromTransparent,
                                                             const CCoinControl* coinControl = nullptr);
+
+    OperationResult createAndSendProposalFeeTx(CBudgetProposal& prop);
 
     // Wallet encryption
     bool setWalletEncrypted(bool encrypted, const SecureString& passphrase);
