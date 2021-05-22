@@ -68,7 +68,8 @@ public:
     std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn,
                                    CWallet* pwallet = nullptr,
                                    bool fProofOfStake = false,
-                                   std::vector<CStakeableOutput>* availableCoins = nullptr);
+                                   std::vector<CStakeableOutput>* availableCoins = nullptr,
+                                   bool fNoMempoolTx = false);
 
 private:
     // utility functions

@@ -160,23 +160,15 @@ CBlock TestChainSetup::CreateAndProcessBlock(const std::vector<CMutableTransacti
 CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool fNoMempoolTx)
 {
     std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(
-            Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptPubKey, nullptr, false);
+            Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptPubKey, nullptr, false, nullptr, fNoMempoolTx);
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
 
-    const int nHeight = WITH_LOCK(cs_main, return chainActive.Height()) + 1;
-
-    // Replace mempool-selected txns with just coinbase plus passed-in txns:
-    if (fNoMempoolTx) {
-        pblock->vtx.resize(1);
-
-        // Replace coinbase output amount (could have included fee in CreateNewBlock)
-        CMutableTransaction txCoinbase(*pblock->vtx[0]);
-        txCoinbase.vout[0].nValue = GetBlockValue(nHeight);
-        pblock->vtx[0] = MakeTransactionRef(txCoinbase);
-    }
+    // Add passed-in txns:
     for (const CMutableTransaction& tx : txns) {
         pblock->vtx.push_back(MakeTransactionRef(tx));
     }
+
+    const int nHeight = WITH_LOCK(cs_main, return chainActive.Height()) + 1;
 
     // Re-compute sapling root
     pblock->hashFinalSaplingRoot = CalculateSaplingTreeRoot(pblock.get(), nHeight, Params());

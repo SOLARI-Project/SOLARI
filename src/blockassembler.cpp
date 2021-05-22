@@ -170,7 +170,8 @@ void BlockAssembler::resetBlock()
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn,
                                                CWallet* pwallet,
                                                bool fProofOfStake,
-                                               std::vector<CStakeableOutput>* availableCoins)
+                                               std::vector<CStakeableOutput>* availableCoins,
+                                               bool fNoMempoolTx)
 {
     resetBlock();
 
@@ -199,7 +200,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         return nullptr;
     }
 
-    {
+    if (!fNoMempoolTx) {
         // Add transactions from mempool
         LOCK2(cs_main,mempool.cs);
         addPriorityTxs();
