@@ -68,7 +68,8 @@ public:
     std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn,
                                    CWallet* pwallet = nullptr,
                                    bool fProofOfStake = false,
-                                   std::vector<CStakeableOutput>* availableCoins = nullptr);
+                                   std::vector<CStakeableOutput>* availableCoins = nullptr,
+                                   bool fNoMempoolTx = false);
 
 private:
     // utility functions
@@ -100,6 +101,7 @@ int32_t ComputeBlockVersion(const Consensus::Params& consensusParams, int nHeigh
 
 // Visible for testing purposes only
 bool CreateCoinbaseTx(CBlock* pblock, const CScript& scriptPubKeyIn, CBlockIndex* pindexPrev);
+CMutableTransaction CreateCoinbaseTx(const CScript& scriptPubKeyIn, CBlockIndex* pindexPrev);
 
 // Visible for testing purposes only
 uint256 CalculateSaplingTreeRoot(CBlock* pblock, int nHeight, const CChainParams& chainparams);
