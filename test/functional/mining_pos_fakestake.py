@@ -144,10 +144,6 @@ class FakeStakeTest(PivxTestFramework):
         self.fake_stake(list(self.utxos_to_spend))
 
         # nodes[1] spams fork block with height 258 --> [REJECTED]
-        #
-        # !TODO: Next commit fixes this
-        #  This fails because, on forked blocks, we are not checking if the stake was spent before the split
-        #
         self.log.info("Test rejection on fork chain...")
         assert_equal(self.nodes[1].getblockcount(), 260)
         prevBlockHash = self.nodes[1].getblockhash(257)
