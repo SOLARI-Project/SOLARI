@@ -29,4 +29,7 @@ public:
     virtual bool ContextCheck(int nHeight, uint32_t nTime) override;
 };
 
+// !TODO: remove from here and make static
+const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDenomination denom);
+
 #endif //PIVX_LEGACY_ZPOS_H

@@ -35,7 +35,8 @@ bool CLegacyZPivStake::InitFromTxIn(const CTxIn& txin)
     *this = CLegacyZPivStake(spend);
 
     // Find the pindex with the accumulator checksum
-    if (!GetIndexFrom())
+    pindexFrom = FindIndexFrom(nChecksum, denom);
+    if (pindexFrom == nullptr)
         return error("%s : Failed to find the block index for zpiv stake origin", __func__);
 
     // All good
@@ -51,6 +52,11 @@ CLegacyZPivStake::CLegacyZPivStake(const libzerocoin::CoinSpend& spend) : CStake
 }
 
 const CBlockIndex* CLegacyZPivStake::GetIndexFrom() const
+{
+    return pindexFrom;
+}
+
+const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDenomination denom)
 {
     // First look in the legacy database
     int nHeightChecksum = 0;
