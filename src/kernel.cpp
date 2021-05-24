@@ -101,7 +101,7 @@ static bool LoadStakeInput(const CBlock& block, std::unique_ptr<CStakeInput>& st
             std::unique_ptr<CStakeInput>(CLegacyZPivStake::NewZPivStake(txin)) :
             std::unique_ptr<CStakeInput>(CPivStake::NewPivStake(txin));
 
-    return stake && stake->InitFromTxIn(txin);
+    return stake != nullptr;
 }
 
 /*

@@ -21,7 +21,6 @@ protected:
 public:
     CStakeInput(const CBlockIndex* _pindexFrom) : pindexFrom(_pindexFrom) {}
     virtual ~CStakeInput(){};
-    virtual bool InitFromTxIn(const CTxIn& txin) = 0;
     virtual const CBlockIndex* GetIndexFrom() const = 0;
     virtual bool GetTxOutFrom(CTxOut& out) const = 0;
     virtual CAmount GetValue() const = 0;
@@ -43,7 +42,6 @@ public:
 
     static CPivStake* NewPivStake(const CTxIn& txin);
 
-    bool InitFromTxIn(const CTxIn& txin) override { return pindexFrom; }
     const CBlockIndex* GetIndexFrom() const override;
     bool GetTxOutFrom(CTxOut& out) const override;
     CAmount GetValue() const override;
