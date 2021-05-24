@@ -2764,7 +2764,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     }
 
     // Check transactions
-    std::vector<CBigNum> vBlockSerials;
     for (const auto& txIn : block.vtx) {
         const CTransaction& tx = *txIn;
         if (!CheckTransaction(tx, state, fColdStakingActive)) {
@@ -3002,6 +3001,113 @@ bool AcceptBlockHeader(const CBlock& block, CValidationState& state, CBlockIndex
     return true;
 }
 
+/*
+ * Collect the sets of the inputs (either regular utxos or zerocoin serials) spent
+ * by in-block txes.
+ * Also, check that there are no in-block double spends.
+ */
+static bool CheckInBlockDoubleSpends(const CBlock& block, int nHeight, CValidationState& state,
+                                     std::unordered_set<COutPoint, SaltedOutpointHasher>& spent_outpoints,
+                                     std::set<CBigNum>& spent_serials)
+{
+    const Consensus::Params& consensus = Params().GetConsensus();
+    libzerocoin::ZerocoinParams* params = consensus.Zerocoin_Params(false);
+    const bool zpivActive = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC);
+    const bool publicZpivActive = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC_PUBLIC);
+    const bool v5Active = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0);
+
+    // collect the tx inputs, and check double spends
+    for (size_t i = 1; i < block.vtx.size(); i++) {
+        // skip coinbase
+        CTransactionRef tx = block.vtx[i];
+        for (const CTxIn& in: tx->vin) {
+            bool isPublicSpend = in.IsZerocoinPublicSpend();
+            if (isPublicSpend && (!publicZpivActive || v5Active)) {
+                return state.DoS(100, error("%s: public zerocoin spend at height %d", __func__, nHeight));
+            }
+            bool isPrivZerocoinSpend = !isPublicSpend && in.IsZerocoinSpend();
+            if (isPrivZerocoinSpend && (!zpivActive || publicZpivActive)) {
+                return state.DoS(100, error("%s: private zerocoin spend at height %d", __func__, nHeight));
+            }
+            if (isPrivZerocoinSpend || isPublicSpend) {
+                libzerocoin::CoinSpend spend;
+                if (isPublicSpend) {
+                    PublicCoinSpend publicSpend(params);
+                    if (!ZPIVModule::ParseZerocoinPublicSpend(in, *tx, state, publicSpend)){
+                        return false;
+                    }
+                    spend = publicSpend;
+                } else {
+                    spend = TxInToZerocoinSpend(in);
+                }
+                // Check for serials double spending in the same block
+                const CBigNum& s = spend.getCoinSerialNumber();
+                if (spent_serials.find(s) != spent_serials.end()) {
+                    return state.DoS(100, error("%s: serials double spent in the same block", __func__));
+                }
+                spent_serials.insert(s);
+            } else {
+                // regular utxo
+                if (spent_outpoints.find(in.prevout) != spent_outpoints.end()) {
+                    return state.DoS(100, error("%s: inputs double spent in the same block", __func__));
+                }
+                spent_outpoints.insert(in.prevout);
+            }
+        }
+    }
+    return true;
+}
+
+/*
+ * Check whether a particular input (outpoint or zerocoin serial) is unspent on a
+ * forked (non currently active) chain.
+ * Start from startIndex and go backwards on the forked chain, down to the split block.
+ * Return false if any block contains a tx spending utxo.
+ * Return false also when the fork is longer than -maxreorg.
+ * Return true otherwise.
+ * Save in pindexFork the index of the pre-split block (last common block with the active chain).
+ */
+static bool IsUnspentOnFork(const CTxIn& utxo, const CBlockIndex* startIndex, CValidationState& state, const CBlockIndex*& pindexFork)
+{
+    const bool isZPIV = utxo.IsZerocoinSpend();
+    const Optional<CBigNum> utxo_serial = isZPIV ? Optional<CBigNum>(TxInToZerocoinSpend(utxo).getCoinSerialNumber()) : nullopt;
+
+    // Go backwards on the forked chain up to the split
+    int readBlock = 0;
+    pindexFork = startIndex;
+    for ( ; !chainActive.Contains(pindexFork); pindexFork = pindexFork->pprev) {
+        // read block
+        CBlock bl;
+        if (!ReadBlockFromDisk(bl, pindexFork)) {
+            return error("%s: block %s not on disk", __func__, pindexFork->GetBlockHash().GetHex());
+        }
+        // Check if the forked chain is longer than the max reorg limit
+        if (++readBlock == gArgs.GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH)) {
+            // TODO: Remove this chain from disk.
+            return error("%s: forked chain longer than maximum reorg limit", __func__);
+        }
+        // Loop through every tx of this block
+        for (const auto& tx : bl.vtx) {
+            // Loop through every input of this tx
+            for (const CTxIn& in: tx->vin) {
+                // check that the utxo is not being spent
+                if (!isZPIV) {
+                    // regular utxo
+                    if (utxo.prevout == in.prevout)
+                        return state.DoS(100, error("%s: input already spent on a previous block", __func__));
+                } else {
+                    // zerocoin spend
+                    if (in.IsZerocoinSpend() &&
+                            TxInToZerocoinSpend(in).getCoinSerialNumber() == *utxo_serial)
+                        return state.DoS(100, error("%s: serial already spent on a previous block", __func__));
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppindex, const FlatFilePos* dbp)
 {
     AssertLockHeld(cs_main);
@@ -3045,7 +3151,6 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
     }
 
     int nHeight = pindex->nHeight;
-    int splitHeight = -1;
 
     if (isPoS) {
         LOCK(cs_main);
@@ -3061,134 +3166,35 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
         const CTxIn& coinstake_in = coinstake.vin[0];
         const bool isZPOS = coinstake_in.IsZerocoinSpend();
 
-        // ZC started after PoS.
-        // Check for serial double spent on the same block, TODO: Move this to the proper method..
-
-        std::vector<CBigNum> inBlockSerials;
-        for (const auto& txIn : block.vtx) {
-            const CTransaction& tx = *txIn;
-            for (const CTxIn& in: tx.vin) {
-                if (consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC)) {
-                    bool isPublicSpend = in.IsZerocoinPublicSpend();
-                    bool isPrivZerocoinSpend = in.IsZerocoinSpend();
-                    if (isPrivZerocoinSpend || isPublicSpend) {
-
-                        // Check enforcement
-                        if (!CheckPublicCoinSpendEnforced(pindex->nHeight, isPublicSpend)) {
-                            return false;
-                        }
-
-                        libzerocoin::CoinSpend spend;
-                        if (isPublicSpend) {
-                            libzerocoin::ZerocoinParams* params = consensus.Zerocoin_Params(false);
-                            PublicCoinSpend publicSpend(params);
-                            if (!ZPIVModule::ParseZerocoinPublicSpend(in, tx, state, publicSpend)) {
-                                return false;
-                            }
-                            spend = publicSpend;
-                        } else {
-                            spend = TxInToZerocoinSpend(in);
-                        }
-                        // Check for serials double spending in the same block
-                        if (std::find(inBlockSerials.begin(), inBlockSerials.end(), spend.getCoinSerialNumber()) !=
-                            inBlockSerials.end()) {
-                            return state.DoS(100, error("%s: serial double spent on the same block", __func__));
-                        }
-                        inBlockSerials.push_back(spend.getCoinSerialNumber());
-                    }
-                }
-                if (tx.IsCoinStake()) continue;
-                if (!isZPOS) {
-                    // Check if coinstake input is double spent inside the same block
-                    if (coinstake_in.prevout == in.prevout)
-                        // double spent coinstake input inside block
-                        return error("%s: double spent coinstake input inside block", __func__);
-                }
-
-            }
-        }
-        inBlockSerials.clear();
-
-
-        // Check whether is a fork or not
-        if (isBlockFromFork) {
-
-            // Start at the block we're adding on to
-            CBlockIndex *prev = pindexPrev;
-
-            CBlock bl;
-            if (!ReadBlockFromDisk(bl, prev))
-                return error("%s: previous block %s not on disk", __func__, prev->GetBlockHash().GetHex());
-
-            std::vector<CBigNum> vBlockSerials;
-            int readBlock = 0;
-            // Go backwards on the forked chain up to the split
-            while (!chainActive.Contains(prev)) {
-
-                // Increase amount of read blocks
-                readBlock++;
-                // Check if the forked chain is longer than the max reorg limit
-                if (readBlock == gArgs.GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH)) {
-                    // TODO: Remove this chain from disk.
-                    return error("%s: forked chain longer than maximum reorg limit", __func__);
-                }
-
-                // Loop through every tx of this block
-                for (const auto& txIn : bl.vtx) {
-                    const CTransaction& t = *txIn;
-                    // Loop through every input of this tx
-                    for (const CTxIn& in: t.vin) {
-                        // If this input is a zerocoin spend, and the coinstake is zPOS
-                        // then store the serials for later check
-                        if (isZPOS && in.IsZerocoinSpend())
-                            vBlockSerials.push_back(TxInToZerocoinSpend(in).getCoinSerialNumber());
-
-                        // If the stake is not zPOS then check that the stake input is not being spent
-                        if (!isZPOS && coinstake_in.prevout == in.prevout) {
-                            return state.DoS(100, error("%s: input already spent on a previous block", __func__));
-                        }
-                    }
-                }
-
-                // Prev block
-                prev = prev->pprev;
-                if (!ReadBlockFromDisk(bl, prev))
-                    // Previous block not on disk
-                    return error("%s: previous block %s not on disk", __func__, prev->GetBlockHash().GetHex());
-
-            }
-
-            // Split height
-            splitHeight = prev->nHeight;
-
-            // If the stake is a zPoS then let's check that the serial is unspent
-            if (isZPOS) {
-                libzerocoin::CoinSpend spend = TxInToZerocoinSpend(coinstake_in);
-
-                // First check if the serials were not already spent on the forked blocks.
-                CBigNum coinSerial = spend.getCoinSerialNumber();
-                for (const CBigNum& serial : vBlockSerials) {
-                    if (serial == coinSerial) {
-                        return state.DoS(100, error("%s: serial double spent on fork", __func__));
-                    }
-                }
-
-                // Now check if the serial exists before the chain split.
-                int nHeightTx = 0;
-                if (IsSerialInBlockchain(spend.getCoinSerialNumber(), nHeightTx)) {
-                    // if the height is nHeightTx > chainSplit means that the spent occurred after the chain split
-                    if(nHeightTx <= splitHeight)
-                        return state.DoS(100, error("%s: serial double spent on main chain", __func__));
-                }
-
-                if (!ContextualCheckZerocoinSpendNoSerialCheck(coinstake, &spend, pindex->nHeight)) {
-                    return state.DoS(100,error("%s: forked chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
-                                               coinstake.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
-                }
-            }
-
+        // Collect spent_outpoints and check for in-block double spends
+        std::unordered_set<COutPoint, SaltedOutpointHasher> spent_outpoints;
+        std::set<CBigNum> spent_serials;
+        if (!CheckInBlockDoubleSpends(block, nHeight, state, spent_outpoints, spent_serials)) {
+            return false;
         }
 
+        // If this is a fork, check if the coinstake input was spent in the fork
+        // Start at the block we're adding on to.
+        const CBlockIndex* pindexFork{nullptr}; // index of the split block (last common block between fork and active chain)
+        if (isBlockFromFork && !IsUnspentOnFork(coinstake_in, pindexPrev, state, pindexFork)) {
+            return false;
+        }
+
+        // Reject forks below maxdepth
+        if (isBlockFromFork && chainActive.Height() - pindexFork->nHeight > gArgs.GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH)) {
+            // TODO: Remove this chain from disk.
+            return error("%s: forked chain longer than maximum reorg limit", __func__);
+        }
+
+        // Check that the coinstake serial was unspent on the active chain before the fork
+        if (isZPOS) {
+            int nHeightTx = 0;
+            if (IsSerialInBlockchain(TxInToZerocoinSpend(coinstake_in).getCoinSerialNumber(), nHeightTx)) {
+                // if the height is nHeightTx > chainSplit means that the spent occurred after the chain split
+                if (nHeightTx <= pindexFork->nHeight)
+                    return state.DoS(100, error("%s: serials double spent on main chain", __func__));
+            }
+        }
 
         // If the stake is not a zPoS then let's check if the inputs were spent on the main chain
         if (!isZPOS) {
@@ -3197,7 +3203,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
                 // No coins on the main chain
                 return error("%s: coin stake inputs not-available/already-spent on main chain, received height %d vs current %d", __func__, nHeight, chainActive.Height());
             }
-        } else if (!isBlockFromFork) {
+        } else {
             libzerocoin::CoinSpend spend = TxInToZerocoinSpend(coinstake_in);
             if (!ContextualCheckZerocoinSpend(coinstake, &spend, pindex->nHeight)) {
                 return state.DoS(100,error("%s: main chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
