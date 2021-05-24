@@ -3055,21 +3055,11 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
         bool isBlockFromFork = pindexPrev != nullptr && chainActive.Tip() != pindexPrev;
 
         // Coin stake
-        const CTransaction &stakeTxIn = *block.vtx[1];
+        const CTransaction& coinstake = *block.vtx[1];
 
-        // Inputs
-        std::vector<CTxIn> pivInputs;
-        std::vector<CTxIn> zPIVInputs;
-
-        for (const CTxIn& stakeIn : stakeTxIn.vin) {
-            if(stakeIn.IsZerocoinSpend()){
-                zPIVInputs.push_back(stakeIn);
-            }else{
-                pivInputs.push_back(stakeIn);
-            }
-        }
-        const bool hasPIVInputs = !pivInputs.empty();
-        const bool hasZPIVInputs = !zPIVInputs.empty();
+        // Coin stake input
+        const CTxIn& coinstake_in = coinstake.vin[0];
+        const bool isZPOS = coinstake_in.IsZerocoinSpend();
 
         // ZC started after PoS.
         // Check for serial double spent on the same block, TODO: Move this to the proper method..
@@ -3078,13 +3068,13 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
         for (const auto& txIn : block.vtx) {
             const CTransaction& tx = *txIn;
             for (const CTxIn& in: tx.vin) {
-                if(consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC)) {
+                if (consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC)) {
                     bool isPublicSpend = in.IsZerocoinPublicSpend();
                     bool isPrivZerocoinSpend = in.IsZerocoinSpend();
                     if (isPrivZerocoinSpend || isPublicSpend) {
 
                         // Check enforcement
-                        if (!CheckPublicCoinSpendEnforced(pindex->nHeight, isPublicSpend)){
+                        if (!CheckPublicCoinSpendEnforced(pindex->nHeight, isPublicSpend)) {
                             return false;
                         }
 
@@ -3092,7 +3082,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
                         if (isPublicSpend) {
                             libzerocoin::ZerocoinParams* params = consensus.Zerocoin_Params(false);
                             PublicCoinSpend publicSpend(params);
-                            if (!ZPIVModule::ParseZerocoinPublicSpend(in, tx, state, publicSpend)){
+                            if (!ZPIVModule::ParseZerocoinPublicSpend(in, tx, state, publicSpend)) {
                                 return false;
                             }
                             spend = publicSpend;
@@ -3107,13 +3097,12 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
                         inBlockSerials.push_back(spend.getCoinSerialNumber());
                     }
                 }
-                if(tx.IsCoinStake()) continue;
-                if(hasPIVInputs) {
+                if (tx.IsCoinStake()) continue;
+                if (!isZPOS) {
                     // Check if coinstake input is double spent inside the same block
-                    for (const CTxIn& pivIn : pivInputs)
-                        if(pivIn.prevout == in.prevout)
-                            // double spent coinstake input inside block
-                            return error("%s: double spent coinstake input inside block", __func__);
+                    if (coinstake_in.prevout == in.prevout)
+                        // double spent coinstake input inside block
+                        return error("%s: double spent coinstake input inside block", __func__);
                 }
 
             }
@@ -3149,17 +3138,14 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
                     const CTransaction& t = *txIn;
                     // Loop through every input of this tx
                     for (const CTxIn& in: t.vin) {
-                        // If this input is a zerocoin spend, and the coinstake has zerocoin inputs
+                        // If this input is a zerocoin spend, and the coinstake is zPOS
                         // then store the serials for later check
-                        if(hasZPIVInputs && in.IsZerocoinSpend())
+                        if (isZPOS && in.IsZerocoinSpend())
                             vBlockSerials.push_back(TxInToZerocoinSpend(in).getCoinSerialNumber());
 
-                        // Loop through every input of the staking tx
-                        if (hasPIVInputs) {
-                            for (const CTxIn& stakeIn : pivInputs)
-                                // check if the tx input is double spending any coinstake input
-                                if (stakeIn.prevout == in.prevout)
-                                    return state.DoS(100, error("%s: input already spent on a previous block", __func__));
+                        // If the stake is not zPOS then check that the stake input is not being spent
+                        if (!isZPOS && coinstake_in.prevout == in.prevout) {
+                            return state.DoS(100, error("%s: input already spent on a previous block", __func__));
                         }
                     }
                 }
@@ -3175,31 +3161,29 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
             // Split height
             splitHeight = prev->nHeight;
 
-            // Now that this loop if completed. Check if we have zPIV inputs.
-            if(hasZPIVInputs) {
-                for (const CTxIn& zPivInput : zPIVInputs) {
-                    libzerocoin::CoinSpend spend = TxInToZerocoinSpend(zPivInput);
+            // If the stake is a zPoS then let's check that the serial is unspent
+            if (isZPOS) {
+                libzerocoin::CoinSpend spend = TxInToZerocoinSpend(coinstake_in);
 
-                    // First check if the serials were not already spent on the forked blocks.
-                    CBigNum coinSerial = spend.getCoinSerialNumber();
-                    for(const CBigNum& serial : vBlockSerials){
-                        if(serial == coinSerial){
-                            return state.DoS(100, error("%s: serial double spent on fork", __func__));
-                        }
+                // First check if the serials were not already spent on the forked blocks.
+                CBigNum coinSerial = spend.getCoinSerialNumber();
+                for (const CBigNum& serial : vBlockSerials) {
+                    if (serial == coinSerial) {
+                        return state.DoS(100, error("%s: serial double spent on fork", __func__));
                     }
+                }
 
-                    // Now check if the serial exists before the chain split.
-                    int nHeightTx = 0;
-                    if (IsSerialInBlockchain(spend.getCoinSerialNumber(), nHeightTx)) {
-                        // if the height is nHeightTx > chainSplit means that the spent occurred after the chain split
-                        if(nHeightTx <= splitHeight)
-                            return state.DoS(100, error("%s: serial double spent on main chain", __func__));
-                    }
+                // Now check if the serial exists before the chain split.
+                int nHeightTx = 0;
+                if (IsSerialInBlockchain(spend.getCoinSerialNumber(), nHeightTx)) {
+                    // if the height is nHeightTx > chainSplit means that the spent occurred after the chain split
+                    if(nHeightTx <= splitHeight)
+                        return state.DoS(100, error("%s: serial double spent on main chain", __func__));
+                }
 
-                    if (!ContextualCheckZerocoinSpendNoSerialCheck(stakeTxIn, &spend, pindex->nHeight))
-                        return state.DoS(100,error("%s: forked chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
-                                                   stakeTxIn.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
-
+                if (!ContextualCheckZerocoinSpendNoSerialCheck(coinstake, &spend, pindex->nHeight)) {
+                    return state.DoS(100,error("%s: forked chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
+                                               coinstake.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
                 }
             }
 
@@ -3207,24 +3191,18 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
 
 
         // If the stake is not a zPoS then let's check if the inputs were spent on the main chain
-        const CCoinsViewCache coins(pcoinsTip.get());
-        if(!stakeTxIn.HasZerocoinSpendInputs()) {
-            for (const CTxIn& in: stakeTxIn.vin) {
-                const Coin& coin = coins.AccessCoin(in.prevout);
-                if(coin.IsSpent() && !isBlockFromFork){
-                    // No coins on the main chain
-                    return error("%s: coin stake inputs not-available/already-spent on main chain, received height %d vs current %d", __func__, nHeight, chainActive.Height());
-                }
+        if (!isZPOS) {
+            const Coin& coin = pcoinsTip->AccessCoin(coinstake_in.prevout);
+            if (coin.IsSpent() && !isBlockFromFork) {
+                // No coins on the main chain
+                return error("%s: coin stake inputs not-available/already-spent on main chain, received height %d vs current %d", __func__, nHeight, chainActive.Height());
             }
-        } else {
-            if(!isBlockFromFork)
-                for (const CTxIn& zPivInput : zPIVInputs) {
-                        libzerocoin::CoinSpend spend = TxInToZerocoinSpend(zPivInput);
-                        if (!ContextualCheckZerocoinSpend(stakeTxIn, &spend, pindex->nHeight))
-                            return state.DoS(100,error("%s: main chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
-                                    stakeTxIn.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
-                }
-
+        } else if (!isBlockFromFork) {
+            libzerocoin::CoinSpend spend = TxInToZerocoinSpend(coinstake_in);
+            if (!ContextualCheckZerocoinSpend(coinstake, &spend, pindex->nHeight)) {
+                return state.DoS(100,error("%s: main chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
+                        coinstake.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
+            }
         }
 
     }
