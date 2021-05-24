@@ -15,6 +15,14 @@ CPivStake* CPivStake::NewPivStake(const CTxIn& txin)
         return nullptr;
     }
 
+    // Look for the stake input in the coins cache
+    const Coin& coin = pcoinsTip->AccessCoin(txin.prevout);
+    if (!coin.IsSpent()) {
+        return new CPivStake(coin.out,
+                             txin.prevout,
+                             mapBlockIndex.at(chainActive[coin.nHeight]->GetBlockHash()));
+    }
+
     // Find the previous transaction in database
     uint256 hashBlock;
     CTransactionRef txPrev;
