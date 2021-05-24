@@ -21,42 +21,7 @@ uint32_t ParseAccChecksum(uint256 nCheckpoint, const libzerocoin::CoinDenominati
     return (UintToArith256(nCheckpoint) >> (32*((libzerocoin::zerocoinDenomList.size() - 1) - pos))).Get32();
 }
 
-bool CLegacyZPivStake::InitFromTxIn(const CTxIn& txin)
-{
-    // Construct the stakeinput object
-    if (!txin.IsZerocoinSpend())
-        return error("%s: unable to initialize CLegacyZPivStake from non zc-spend", __func__);
-
-    // Check spend type
-    libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txin);
-    if (spend.getSpendType() != libzerocoin::SpendType::STAKE)
-        return error("%s : spend is using the wrong SpendType (%d)", __func__, (int)spend.getSpendType());
-
-    *this = CLegacyZPivStake(spend);
-
-    // Find the pindex with the accumulator checksum
-    pindexFrom = FindIndexFrom(nChecksum, denom);
-    if (pindexFrom == nullptr)
-        return error("%s : Failed to find the block index for zpiv stake origin", __func__);
-
-    // All good
-    return true;
-}
-
-CLegacyZPivStake::CLegacyZPivStake(const libzerocoin::CoinSpend& spend) : CStakeInput(nullptr)
-{
-    this->nChecksum = spend.getAccumulatorChecksum();
-    this->denom = spend.getDenomination();
-    arith_uint256 nSerial = spend.getCoinSerialNumber().getuint256();
-    this->hashSerial = Hash(nSerial.begin(), nSerial.end());
-}
-
-const CBlockIndex* CLegacyZPivStake::GetIndexFrom() const
-{
-    return pindexFrom;
-}
-
-const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDenomination denom)
+static const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDenomination denom)
 {
     // First look in the legacy database
     int nHeightChecksum = 0;
@@ -82,6 +47,42 @@ const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDenominati
         pindex = chainActive.Next(pindex);
     }
     return nullptr;
+}
+
+CLegacyZPivStake* CLegacyZPivStake::NewZPivStake(const CTxIn& txin)
+{
+    // Construct the stakeinput object
+    if (!txin.IsZerocoinSpend()) {
+        LogPrintf("%s: unable to initialize CLegacyZPivStake from non zc-spend", __func__);
+        return nullptr;
+    }
+
+    // Check spend type
+    libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txin);
+    if (spend.getSpendType() != libzerocoin::SpendType::STAKE) {
+        LogPrintf("%s : spend is using the wrong SpendType (%d)", __func__, (int)spend.getSpendType());
+        return nullptr;
+    }
+
+    uint32_t _nChecksum = spend.getAccumulatorChecksum();
+    libzerocoin::CoinDenomination _denom = spend.getDenomination();
+    const arith_uint256& nSerial = spend.getCoinSerialNumber().getuint256();
+    const uint256& _hashSerial = Hash(nSerial.begin(), nSerial.end());
+
+    // Find the pindex with the accumulator checksum
+    const CBlockIndex* _pindexFrom = FindIndexFrom(_nChecksum, _denom);
+    if (_pindexFrom == nullptr) {
+        LogPrintf("%s : Failed to find the block index for zpiv stake origin", __func__);
+        return nullptr;
+    }
+
+    // All good
+    return new CLegacyZPivStake(_pindexFrom, _nChecksum, _denom, _hashSerial);
+}
+
+const CBlockIndex* CLegacyZPivStake::GetIndexFrom() const
+{
+    return pindexFrom;
 }
 
 CAmount CLegacyZPivStake::GetValue() const
