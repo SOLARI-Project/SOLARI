@@ -55,13 +55,14 @@ UniValue mnping(const JSONRPCRequest& request)
 
 UniValue initmasternode(const JSONRPCRequest& request)
 {
-    if (request.fHelp || (request.params.empty() || request.params.size() > 2)) {
+    if (request.fHelp || (request.params.size() < 2|| request.params.size() > 3)) {
         throw std::runtime_error(
-                "initmasternode ( \"masternodePrivKey\" \"masternodeAddr\" )\n"
+                "initmasternode \"masternodePrivKey\" \"masternodeAddr\" ( deterministic )\n"
                 "\nInitialize masternode on demand if it's not already initialized.\n"
                 "\nArguments:\n"
                 "1. masternodePrivKey          (string, required) The masternode private key.\n"
                 "2. masternodeAddr             (string, required) The IP:Port of this masternode.\n"
+                "3. deterministic              (boolean, optional, default=false) Init as DMN.\n"
 
                 "\nResult:\n"
                 " success                      (string) if the masternode initialization succeeded.\n"
@@ -73,6 +74,21 @@ UniValue initmasternode(const JSONRPCRequest& request)
 
     std::string _strMasterNodePrivKey = request.params[0].get_str();
     std::string _strMasterNodeAddr = request.params[1].get_str();
+    bool fDeterministic = request.params.size() > 2 && request.params[2].get_bool();
+    if (fDeterministic) {
+        if (!activeMasternodeManager) {
+            activeMasternodeManager = new CActiveDeterministicMasternodeManager();
+            RegisterValidationInterface(activeMasternodeManager);
+        }
+        auto res = activeMasternodeManager->SetOperatorKey(_strMasterNodePrivKey);
+        if (!res) throw std::runtime_error(res.getError());
+        activeMasternodeManager->Init();
+        if (activeMasternodeManager->GetState() == CActiveDeterministicMasternodeManager::MASTERNODE_ERROR) {
+            throw std::runtime_error(activeMasternodeManager->GetStatus());
+        }
+        return "success";
+    }
+    // legacy
     auto res = initMasternode(_strMasterNodePrivKey, _strMasterNodeAddr, false);
     if (!res) throw std::runtime_error(res.getError());
     return "success";
@@ -134,13 +150,14 @@ UniValue listmasternodes(const JSONRPCRequest& request)
             "\nResult:\n"
             "[\n"
             "  {\n"
-            "    \"rank\": n,           (numeric) Masternode Rank (or 0 if not enabled)\n"
-            "    \"txhash\": \"hash\",    (string) Collateral transaction hash\n"
-            "    \"outidx\": n,         (numeric) Collateral transaction output index\n"
-            "    \"pubkey\": \"key\",   (string) Masternode public key used for message broadcasting\n"
-            "    \"status\": s,         (string) Status (ENABLED/EXPIRED/REMOVE/etc)\n"
-            "    \"addr\": \"addr\",      (string) Masternode PIVX address\n"
-            "    \"version\": v,        (numeric) Masternode protocol version\n"
+            "    \"rank\": n,                             (numeric) Masternode Rank (or 0 if not enabled)\n"
+            "    \"type\": \"legacy\"|\"deterministic\",  (string) type of masternode\n"
+            "    \"txhash\": \"hash\",                    (string) Collateral transaction hash\n"
+            "    \"outidx\": n,                           (numeric) Collateral transaction output index\n"
+            "    \"pubkey\": \"key\",                     (string) Masternode public key used for message broadcasting\n"
+            "    \"status\": s,                           (string) Status (ENABLED/EXPIRED/REMOVE/etc)\n"
+            "    \"addr\": \"addr\",                      (string) Masternode PIVX address\n"
+            "    \"version\": v,                          (numeric) Masternode protocol version\n"
             "    \"lastseen\": ttt,     (numeric) The time in seconds since epoch (Jan 1 1970 GMT) of the last seen\n"
             "    \"activetime\": ttt,   (numeric) The time in seconds since epoch (Jan 1 1970 GMT) masternode has been active\n"
             "    \"lastpaid\": ttt,     (numeric) The time in seconds since epoch (Jan 1 1970 GMT) masternode was last paid\n"
@@ -155,30 +172,50 @@ UniValue listmasternodes(const JSONRPCRequest& request)
     const std::string& strFilter = request.params.size() > 0 ? request.params[0].get_str() : "";
     UniValue ret(UniValue::VARR);
 
-    auto mnList = deterministicMNManager->GetListAtChainTip();
-    mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
-        UniValue obj(UniValue::VOBJ);
-        dmn->ToJson(obj);
-        bool fEnabled = dmn->pdmnState->nPoSeBanHeight == -1;
-        if (filterMasternode(obj, strFilter, fEnabled)) {
-            // Added for backward compatibility. can be removed later.
-            obj.pushKV("txhash", obj["proTxHash"].get_str());
-
-            obj.pushKV("status", fEnabled ? "ENABLED" : "POSE_BANNED");
-            ret.push_back(obj);
-        }
-    });
+    if (deterministicMNManager->LegacyMNObsolete()) {
+        auto mnList = deterministicMNManager->GetListAtChainTip();
+        mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
+            UniValue obj(UniValue::VOBJ);
+            dmn->ToJson(obj);
+            bool fEnabled = dmn->pdmnState->nPoSeBanHeight == -1;
+            if (filterMasternode(obj, strFilter, fEnabled)) {
+                ret.push_back(obj);
+            }
+        });
+        return ret;
+    }
 
     // Legacy masternodes (!TODO: remove when transition to dmn is complete)
     const CBlockIndex* chainTip = GetChainTip();
     if (!chainTip) return "[]";
     int nHeight = chainTip->nHeight;
+    auto mnList = deterministicMNManager->GetListAtChainTip();
 
     std::vector<std::pair<int64_t, MasternodeRef>> vMasternodeRanks = mnodeman.GetMasternodeRanks(nHeight);
     for (int pos=0; pos < (int) vMasternodeRanks.size(); pos++) {
         const auto& s = vMasternodeRanks[pos];
         UniValue obj(UniValue::VOBJ);
         const CMasternode& mn = *(s.second);
+
+        if (!mn.mnPayeeScript.empty()) {
+            // Deterministic masternode
+            auto dmn = mnList.GetMNByCollateral(mn.vin.prevout);
+            if (dmn) {
+                UniValue obj(UniValue::VOBJ);
+                dmn->ToJson(obj);
+                bool fEnabled = dmn->pdmnState->nPoSeBanHeight == -1;
+                if (filterMasternode(obj, strFilter, fEnabled)) {
+                    // Added for backward compatibility with legacy masternodes
+                    obj.pushKV("type", "deterministic");
+                    obj.pushKV("txhash", obj["proTxHash"].get_str());
+                    obj.pushKV("addr", obj["dmnstate"]["payoutAddress"].get_str());
+                    obj.pushKV("status", fEnabled ? "ENABLED" : "POSE_BANNED");
+                    obj.pushKV("rank", fEnabled ? pos : 0);
+                    ret.push_back(obj);
+                }
+            }
+            continue;
+        }
 
         std::string strVin = mn.vin.prevout.ToStringShort();
         std::string strTxHash = mn.vin.prevout.hash.ToString();
@@ -197,10 +234,11 @@ UniValue listmasternodes(const JSONRPCRequest& request)
         std::string strNetwork = GetNetworkName(node.GetNetwork());
 
         obj.pushKV("rank", (strStatus == "ENABLED" ? pos : 0));
+        obj.pushKV("type", "legacy");
         obj.pushKV("network", strNetwork);
         obj.pushKV("txhash", strTxHash);
         obj.pushKV("outidx", (uint64_t)oIdx);
-        obj.pushKV("pubkey", HexStr(mn.pubKeyMasternode));
+        obj.pushKV("pubkey", EncodeDestination(mn.pubKeyMasternode.GetID()));
         obj.pushKV("status", strStatus);
         obj.pushKV("addr", EncodeDestination(mn.pubKeyCollateralAddress.GetID()));
         obj.pushKV("version", mn.protocolVersion);
@@ -490,8 +528,9 @@ UniValue startmasternode(const JSONRPCRequest& request)
             pwallet->Lock();
 
         if(!found) {
-            statusObj.pushKV("success", false);
-            statusObj.pushKV("error_message", "Could not find alias in config. Verify with listmasternodeconf.");
+            statusObj.pushKV("alias", alias);
+            statusObj.pushKV("result", "failed");
+            statusObj.pushKV("error", "Could not find alias in config. Verify with listmasternodeconf.");
         }
 
         return statusObj;
@@ -629,7 +668,7 @@ UniValue getmasternodestatus (const JSONRPCRequest& request)
             "getmasternodestatus\n"
             "\nPrint masternode status\n"
 
-            "\nResult:\n"
+            "\nResult (if legacy masternode):\n"
             "{\n"
             "  \"txhash\": \"xxxx\",      (string) Collateral transaction hash\n"
             "  \"outputidx\": n,          (numeric) Collateral transaction output index number\n"
@@ -638,6 +677,11 @@ UniValue getmasternodestatus (const JSONRPCRequest& request)
             "  \"status\": \"xxxx\",      (string) Masternode status\n"
             "  \"message\": \"xxxx\"      (string) Masternode status message\n"
             "}\n"
+            "\n"
+            "\nResult (if deterministic masternode):\n"
+            "{\n"
+            "... !TODO ...\n"
+            "}\n"
 
             "\nExamples:\n" +
             HelpExampleCli("getmasternodestatus", "") + HelpExampleRpc("getmasternodestatus", ""));
@@ -645,8 +689,33 @@ UniValue getmasternodestatus (const JSONRPCRequest& request)
     if (!fMasterNode)
         throw JSONRPCError(RPC_MISC_ERROR, _("This is not a masternode."));
 
-    if (activeMasternode.vin == nullopt)
+    bool fLegacyMN = (activeMasternode.vin != nullopt);
+    bool fDeterministicMN = (activeMasternodeManager != nullptr);
+
+    if (!fLegacyMN && !fDeterministicMN) {
         throw JSONRPCError(RPC_MISC_ERROR, _("Active Masternode not initialized."));
+    }
+
+    if (fDeterministicMN) {
+        if (!deterministicMNManager->IsDIP3Enforced()) {
+            // this should never happen as ProTx transactions are not accepted yet
+            throw JSONRPCError(RPC_MISC_ERROR, _("Deterministic masternodes are not enforced yet"));
+        }
+        const CActiveMasternodeInfo* amninfo = activeMasternodeManager->GetInfo();
+        UniValue mnObj(UniValue::VOBJ);
+        auto dmn = deterministicMNManager->GetListAtChainTip().GetMNByOperatorKey(amninfo->keyIDOperator);
+        if (dmn) {
+            dmn->ToJson(mnObj);
+        }
+        mnObj.pushKV("netaddr", amninfo->service.ToString());
+        mnObj.pushKV("status", activeMasternodeManager->GetStatus());
+        return mnObj;
+    }
+
+    // Legacy code !TODO: remove when transition to DMN is complete
+    if (deterministicMNManager->LegacyMNObsolete()) {
+        throw JSONRPCError(RPC_MISC_ERROR, _("Legacy Masternode is obsolete."));
+    }
 
     CMasternode* pmn = mnodeman.Find(activeMasternode.vin->prevout);
 

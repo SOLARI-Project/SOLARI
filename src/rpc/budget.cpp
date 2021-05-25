@@ -8,6 +8,7 @@
 #include "db.h"
 #include "init.h"
 #include "budget/budgetmanager.h"
+#include "evo/deterministicmns.h"
 #include "masternode-payments.h"
 #include "masternode-sync.h"
 #include "masternodeconfig.h"
@@ -217,7 +218,7 @@ UniValue submitbudget(const JSONRPCRequest& request)
     return proposal.GetHash().ToString();
 }
 
-UniValue packRetStatus(const std::string& nodeType, const std::string& result, const std::string& error)
+static UniValue packRetStatus(const std::string& nodeType, const std::string& result, const std::string& error)
 {
     UniValue statusObj(UniValue::VOBJ);
     statusObj.pushKV("node", nodeType);
@@ -226,53 +227,12 @@ UniValue packRetStatus(const std::string& nodeType, const std::string& result, c
     return statusObj;
 }
 
-UniValue packErrorRetStatus(const std::string& nodeType, const std::string& error)
+static UniValue packErrorRetStatus(const std::string& nodeType, const std::string& error)
 {
     return packRetStatus(nodeType, "failed", error);
 }
 
-bool voteProposal(CPubKey& pubKeyMasternode, CKey& keyMasternode, const std::string& mnAlias,
-                  const uint256& propHash, const CBudgetVote::VoteDirection& nVote,
-                  UniValue& resultsObj)
-{
-    CMasternode* pmn = mnodeman.Find(pubKeyMasternode);
-    if (!pmn) {
-        resultsObj.push_back(packErrorRetStatus(mnAlias, "Can't find masternode by pubkey"));
-        return false;
-    }
-
-    CBudgetVote vote(pmn->vin, propHash, nVote);
-    if (!vote.Sign(keyMasternode, pubKeyMasternode.GetID())) {
-        resultsObj.push_back(packErrorRetStatus(mnAlias, "Failure to sign."));
-        return false;
-    }
-
-    std::string strError;
-    if (!g_budgetman.AddAndRelayProposalVote(vote, strError)) {
-        resultsObj.push_back(packErrorRetStatus(mnAlias, strError));
-        return false;
-    }
-
-    resultsObj.push_back(packRetStatus(mnAlias, "success", ""));
-    return true;
-}
-
-bool voteProposalMasternodeEntry(const CMasternodeConfig::CMasternodeEntry& mne,
-                                 const uint256& propHash, const CBudgetVote::VoteDirection& nVote,
-                                 UniValue& resultsObj) {
-    CPubKey pubKeyMasternode;
-    CKey keyMasternode;
-
-    if (!CMessageSigner::GetKeysFromSecret(mne.getPrivKey(), keyMasternode, pubKeyMasternode)) {
-        resultsObj.push_back(
-                packErrorRetStatus(mne.getAlias(), "Masternode signing error, could not set key correctly."));
-        return false;
-    }
-
-    return voteProposal(pubKeyMasternode, keyMasternode, mne.getAlias(), propHash, nVote, resultsObj);
-}
-
-UniValue packVoteReturnValue(const UniValue& details, int success, int failed)
+static UniValue packVoteReturnValue(const UniValue& details, int success, int failed)
 {
     UniValue returnObj(UniValue::VOBJ);
     returnObj.pushKV("overall", strprintf("Voted successfully %d time(s) and failed %d time(s).", success, failed));
@@ -280,24 +240,96 @@ UniValue packVoteReturnValue(const UniValue& details, int success, int failed)
     return returnObj;
 }
 
-UniValue mnBudgetVoteInner(Optional<std::string> mnAliasFilter, const uint256& propHash,
-                           const CBudgetVote::VoteDirection& nVote)
+// key, alias and collateral outpoint of a masternode. Struct used to sign proposal/budget votes
+struct MnKeyData
 {
-    UniValue resultsObj(UniValue::VARR);
+    std::string mnAlias;
+    const COutPoint* collateralOut;
+    CKey key;
+
+    MnKeyData(const std::string& _mnAlias, const COutPoint* _collateralOut, const CKey& _key):
+        mnAlias(_mnAlias),
+        collateralOut(_collateralOut),
+        key(_key)
+    {}
+};
+
+typedef std::list<MnKeyData> mnKeyList;
+
+static UniValue voteProposal(const uint256& propHash, const CBudgetVote::VoteDirection& nVote,
+                             const mnKeyList& mnKeys, UniValue resultsObj, int failed)
+{
     int success = 0;
-    int failed = 0;
-    for (const CMasternodeConfig::CMasternodeEntry& mne : masternodeConfig.getEntries()) {
-        if (mnAliasFilter && *mnAliasFilter != mne.getAlias()) continue;
-        if (!voteProposalMasternodeEntry(mne, propHash, nVote, resultsObj)) {
+    for (const auto& k : mnKeys) {
+        CBudgetVote vote(CTxIn(*k.collateralOut), propHash, nVote);
+        if (!vote.Sign(k.key, k.key.GetPubKey().GetID())) {
+            resultsObj.push_back(packErrorRetStatus(k.mnAlias, "Failure to sign."));
             failed++;
-        } else {
-            success++;
+            continue;
         }
+        CValidationState state;
+        if (!g_budgetman.ProcessProposalVote(vote, nullptr, state)) {
+            resultsObj.push_back(packErrorRetStatus(k.mnAlias, FormatStateMessage(state)));
+            failed++;
+            continue;
+        }
+        resultsObj.push_back(packRetStatus(k.mnAlias, "success", ""));
+        success++;
     }
+
     return packVoteReturnValue(resultsObj, success, failed);
 }
 
-UniValue mnLocalBudgetVoteInner(const uint256& propHash, const CBudgetVote::VoteDirection& nVote)
+static UniValue voteFinalBudget(const uint256& budgetHash,
+                                const mnKeyList& mnKeys, UniValue resultsObj, int failed)
+{
+    int success = 0;
+    for (const auto& k : mnKeys) {
+        CFinalizedBudgetVote vote(CTxIn(*k.collateralOut), budgetHash);
+        if (!vote.Sign(k.key, k.key.GetPubKey().GetID())) {
+            resultsObj.push_back(packErrorRetStatus(k.mnAlias, "Failure to sign."));
+            failed++;
+            continue;
+        }
+        CValidationState state;
+        if (!g_budgetman.ProcessFinalizedBudgetVote(vote, nullptr, state)) {
+            resultsObj.push_back(packErrorRetStatus(k.mnAlias, FormatStateMessage(state)));
+            failed++;
+            continue;
+        }
+        resultsObj.push_back(packRetStatus(k.mnAlias, "success", ""));
+        success++;
+    }
+
+    return packVoteReturnValue(resultsObj, success, failed);
+}
+
+// Legacy masternodes
+static mnKeyList getMNKeys(const Optional<std::string>& mnAliasFilter,
+                              UniValue& resultsObj, int& failed)
+{
+    mnKeyList mnKeys;
+    for (const CMasternodeConfig::CMasternodeEntry& mne : masternodeConfig.getEntries()) {
+        if (mnAliasFilter && *mnAliasFilter != mne.getAlias()) continue;
+        CKey mnKey; CPubKey mnPubKey;
+        const std::string& mnAlias = mne.getAlias();
+        if (!CMessageSigner::GetKeysFromSecret(mne.getPrivKey(), mnKey, mnPubKey)) {
+            resultsObj.push_back(packErrorRetStatus(mnAlias, "Could not get key from masternode.conf"));
+            failed++;
+            continue;
+        }
+        CMasternode* pmn = mnodeman.Find(mnPubKey);
+        if (!pmn) {
+            resultsObj.push_back(packErrorRetStatus(mnAlias, "Can't find masternode by pubkey"));
+            failed++;
+            continue;
+        }
+        mnKeys.emplace_back(mnAlias, &pmn->vin.prevout, mnKey);
+    }
+    return mnKeys;
+}
+
+static mnKeyList getMNKeysForActiveMasternode(UniValue& resultsObj)
 {
     // local node must be a masternode
     if (!fMasterNode)
@@ -306,17 +338,114 @@ UniValue mnLocalBudgetVoteInner(const uint256& propHash, const CBudgetVote::Vote
     if (activeMasternode.vin == nullopt)
         throw JSONRPCError(RPC_MISC_ERROR, _("Active Masternode not initialized."));
 
-    UniValue returnObj(UniValue::VOBJ);
-    UniValue resultsObj(UniValue::VARR);
-    // Get MN keys
-    CPubKey pubKeyMasternode;
-    CKey keyMasternode;
-    activeMasternode.GetKeys(keyMasternode, pubKeyMasternode);
-    bool ret = voteProposal(pubKeyMasternode, keyMasternode, "local", propHash, nVote, resultsObj);
-    return packVoteReturnValue(resultsObj, ret, !ret);
+    CKey mnKey; CPubKey mnPubKey;
+    activeMasternode.GetKeys(mnKey, mnPubKey);
+    CMasternode* pmn = mnodeman.Find(mnPubKey);
+    if (!pmn) {
+        resultsObj.push_back(packErrorRetStatus("local", "Can't find masternode by pubkey"));
+        return mnKeyList();
+    }
+
+    return {MnKeyData("local", &pmn->vin.prevout, mnKey)};
 }
 
-CBudgetVote::VoteDirection parseVote(const std::string& strVote)
+// Deterministic masternodes
+static mnKeyList getDMNKeys(CWallet* const pwallet, const Optional<std::string>& mnAliasFilter, bool fFinal, UniValue& resultsObj, int& failed)
+{
+    if (!pwallet) {
+        throw JSONRPCError(RPC_IN_WARMUP, "Wallet (with voting key) not found.");
+    }
+
+    auto mnList = deterministicMNManager->GetListAtChainTip();
+
+    CDeterministicMNCPtr mnFilter{nullptr};
+    if (mnAliasFilter) {
+        // vote with a single masternode (identified by ProTx)
+        const uint256& proTxHash = ParseHashV(*mnAliasFilter, "ProTX transaction hash");
+        mnFilter = mnList.GetValidMN(proTxHash);
+        if (!mnFilter) {
+            resultsObj.push_back(packErrorRetStatus(*mnAliasFilter, "Invalid or unknown proTxHash"));
+            failed++;
+            return mnKeyList();
+        }
+    }
+
+    LOCK(pwallet->cs_wallet);
+    EnsureWalletIsUnlocked(pwallet);
+
+    mnKeyList mnKeys;
+    mnList.ForEachMN(true, [&](const CDeterministicMNCPtr& dmn) {
+        bool filtered = mnFilter && dmn->proTxHash == mnFilter->proTxHash;
+        if (!mnFilter || filtered) {
+            const CKeyID& mnKeyID = fFinal ? dmn->pdmnState->keyIDOperator : dmn->pdmnState->keyIDVoting;
+            CKey mnKey;
+            if (pwallet->GetKey(mnKeyID, mnKey)) {
+                mnKeys.emplace_back(dmn->proTxHash.ToString(), &dmn->collateralOutpoint, mnKey);
+            } else if (filtered) {
+                resultsObj.push_back(packErrorRetStatus(*mnAliasFilter, strprintf(
+                                     "Private key for voting address %s not known by this wallet", EncodeDestination(mnKeyID))));
+                failed++;
+            }
+        }
+    });
+
+    return mnKeys;
+}
+
+static mnKeyList getDMNKeysForActiveMasternode(UniValue& resultsObj)
+{
+    // local node must be a masternode
+    if (!activeMasternodeManager)
+        throw JSONRPCError(RPC_MISC_ERROR, _("This is not a deterministic masternode. 'local' option disabled."));
+
+    CKey dmnKey; CKeyID dmnKeyID; CDeterministicMNCPtr dmn;
+    auto res = activeMasternodeManager->GetOperatorKey(dmnKey, dmnKeyID, dmn);
+    if (!res) {
+        resultsObj.push_back(packErrorRetStatus("local", res.getError()));
+        return {};
+    }
+
+    return {MnKeyData("local", &dmn->collateralOutpoint, dmnKey)};
+}
+
+// vote on proposal (finalized budget, if fFinal=true) with all possible keys or a single mn (mnAliasFilter)
+static UniValue mnBudgetVoteInner(CWallet* const pwallet, bool fLegacyMN, const uint256& budgetHash, bool fFinal,
+                                  const CBudgetVote::VoteDirection& nVote, const Optional<std::string>& mnAliasFilter)
+{
+    UniValue resultsObj(UniValue::VARR);
+    int failed = 0;
+
+    mnKeyList mnKeys = fLegacyMN ? getMNKeys(mnAliasFilter, resultsObj, failed)
+                                 : getDMNKeys(pwallet, mnAliasFilter, fFinal, resultsObj, failed);
+
+    if (mnKeys.empty()) {
+        return packVoteReturnValue(resultsObj, 0, failed);
+    }
+
+    return (fFinal ? voteFinalBudget(budgetHash, mnKeys, resultsObj, failed)
+                   : voteProposal(budgetHash, nVote, mnKeys, resultsObj, failed));
+}
+
+// vote on proposal (finalized budget, if fFinal=true) with the active local masternode
+// Note: for DMNs only finalized budget voting is allowed with the operator key
+// (proposal voting requires the voting key)
+static UniValue mnLocalBudgetVoteInner(bool fLegacyMN, const uint256& budgetHash, bool fFinal,
+                                       const CBudgetVote::VoteDirection& nVote)
+{
+    UniValue resultsObj(UniValue::VARR);
+
+    mnKeyList mnKeys = fLegacyMN ? getMNKeysForActiveMasternode(resultsObj)
+                                 : getDMNKeysForActiveMasternode(resultsObj);
+
+    if (mnKeys.empty()) {
+        return packVoteReturnValue(resultsObj, 0, 1);
+    }
+
+    return (fFinal ? voteFinalBudget(budgetHash, mnKeys, resultsObj, 0)
+                   : voteProposal(budgetHash, nVote, mnKeys, resultsObj, 0));
+}
+
+static CBudgetVote::VoteDirection parseVote(const std::string& strVote)
 {
     if (strVote != "yes" && strVote != "no") throw JSONRPCError(RPC_MISC_ERROR, "You can only vote 'yes' or 'no'");
     CBudgetVote::VoteDirection nVote = CBudgetVote::VOTE_ABSTAIN;
@@ -337,17 +466,21 @@ UniValue mnbudgetvote(const JSONRPCRequest& request)
         if (strCommand == "vote-alias") strCommand = "alias";
     }
 
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
     if (request.fHelp || (request.params.size() == 3 && (strCommand != "local" && strCommand != "many")) || (request.params.size() == 4 && strCommand != "alias") ||
-        request.params.size() > 4 || request.params.size() < 3)
+        request.params.size() > 5 || request.params.size() < 3)
         throw std::runtime_error(
-            "mnbudgetvote \"local|many|alias\" \"votehash\" \"yes|no\" ( \"alias\" )\n"
+            "mnbudgetvote \"local|many|alias\" \"votehash\" \"yes|no\" ( \"alias\" legacy )\n"
             "\nVote on a budget proposal\n"
+            "\nAfter V6 enforcement, the deterministic masternode system is used by default. Set the \"legacy\" parameter to true to vote with legacy masternodes."
 
             "\nArguments:\n"
             "1. \"mode\"      (string, required) The voting mode. 'local' for voting directly from a masternode, 'many' for voting with a MN controller and casting the same vote for each MN, 'alias' for voting with a MN controller and casting a vote for a single MN\n"
             "2. \"votehash\"  (string, required) The vote hash for the proposal\n"
             "3. \"votecast\"  (string, required) Your vote. 'yes' to vote for the proposal, 'no' to vote against\n"
-            "4. \"alias\"     (string, required for 'alias' mode) The MN alias to cast a vote for.\n"
+            "4. \"alias\"     (string, required for 'alias' mode) The MN alias to cast a vote for (for deterministic masternodes it's the hash of the proTx transaction).\n"
+            "5. \"legacy\"    (boolean, optional, default=false) Use the legacy masternode system after deterministic masternodes enforcement.\n"
 
             "\nResult:\n"
             "{\n"
@@ -363,20 +496,30 @@ UniValue mnbudgetvote(const JSONRPCRequest& request)
             "}\n"
 
             "\nExamples:\n" +
-            HelpExampleCli("mnbudgetvote", "\"local\" \"ed2f83cedee59a91406f5f47ec4d60bf5a7f9ee6293913c82976bd2d3a658041\" \"yes\"") +
-            HelpExampleRpc("mnbudgetvote", "\"local\" \"ed2f83cedee59a91406f5f47ec4d60bf5a7f9ee6293913c82976bd2d3a658041\" \"yes\""));
+            HelpExampleCli("mnbudgetvote", "\"alias\" \"ed2f83cedee59a91406f5f47ec4d60bf5a7f9ee6293913c82976bd2d3a658041\" \"yes\" \"4f9de28fca1f0574a217c5d3c59cc51125ec671de82a2f80b6ceb69673115041\"") +
+            HelpExampleRpc("mnbudgetvote", "\"alias\" \"ed2f83cedee59a91406f5f47ec4d60bf5a7f9ee6293913c82976bd2d3a658041\" \"yes\" \"4f9de28fca1f0574a217c5d3c59cc51125ec671de82a2f80b6ceb69673115041\""));
 
     const uint256& hash = ParseHashV(request.params[1], "parameter 1");
     CBudgetVote::VoteDirection nVote = parseVote(request.params[2].get_str());
 
+    bool fLegacyMN = !deterministicMNManager->IsDIP3Enforced() || (request.params.size() > 4 && request.params[4].get_bool());
+
     if (strCommand == "local") {
-        return mnLocalBudgetVoteInner(hash, nVote);
+        if (!fLegacyMN) {
+            throw JSONRPCError(RPC_MISC_ERROR, _("\"local\" vote is no longer available with DMNs. Use \"alias\" from the wallet with the voting key."));
+        }
+        return mnLocalBudgetVoteInner(true, hash, false, nVote);
+    }
+
+    // DMN require wallet with voting key
+    if (!fLegacyMN && !EnsureWalletIsAvailable(pwallet, false)) {
+        return NullUniValue;
     }
 
     bool isAlias = false;
     if (strCommand == "many" || (isAlias = strCommand == "alias")) {
         Optional<std::string> mnAlias = isAlias ? Optional<std::string>(request.params[3].get_str()) : nullopt;
-        return mnBudgetVoteInner(mnAlias, hash, nVote);
+        return mnBudgetVoteInner(pwallet, fLegacyMN, hash, false, nVote, mnAlias);
     }
 
     return NullUniValue;
@@ -633,8 +776,10 @@ UniValue mnfinalbudget(const JSONRPCRequest& request)
     if (request.params.size() >= 1)
         strCommand = request.params[0].get_str();
 
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
     if (request.fHelp ||
-        (strCommand != "suggest" && strCommand != "vote-many" && strCommand != "vote" && strCommand != "show" && strCommand != "getvotes"))
+        (strCommand != "vote-many" && strCommand != "vote" && strCommand != "show" && strCommand != "getvotes"))
         throw std::runtime_error(
             "mnfinalbudget \"command\"... ( \"passphrase\" )\n"
             "\nVote or show current budgets\n"
@@ -645,111 +790,20 @@ UniValue mnfinalbudget(const JSONRPCRequest& request)
             "  show        - Show existing finalized budgets\n"
             "  getvotes     - Get vote information for each finalized budget\n");
 
-    if (strCommand == "vote-many") {
-        if (request.params.size() != 2)
-            throw std::runtime_error("Correct usage is 'mnfinalbudget vote-many BUDGET_HASH'");
+    if (strCommand == "vote-many" || strCommand == "vote") {
+        if (request.params.size() < 2 || request.params.size() > 3) {
+            throw std::runtime_error(strprintf("Correct usage is 'mnfinalbudget %s BUDGET_HASH (fLegacy)'", strCommand));
+        }
+        const uint256& hash = ParseHashV(request.params[1], "BUDGET_HASH");
+        bool fLegacyMN = !deterministicMNManager->IsDIP3Enforced() || (request.params.size() > 2 && request.params[2].get_bool());
 
-        std::string strHash = request.params[1].get_str();
-        uint256 hash(uint256S(strHash));
-
-        int success = 0;
-        int failed = 0;
-
-        UniValue resultsObj(UniValue::VOBJ);
-
-        for (CMasternodeConfig::CMasternodeEntry mne : masternodeConfig.getEntries()) {
-            std::vector<unsigned char> vchMasterNodeSignature;
-            std::string strMasterNodeSignMessage;
-
-            CPubKey pubKeyCollateralAddress;
-            CKey keyCollateralAddress;
-            CPubKey pubKeyMasternode;
-            CKey keyMasternode;
-
-            UniValue statusObj(UniValue::VOBJ);
-
-            if (!CMessageSigner::GetKeysFromSecret(mne.getPrivKey(), keyMasternode, pubKeyMasternode)) {
-                failed++;
-                statusObj.pushKV("result", "failed");
-                statusObj.pushKV("errorMessage", "Masternode signing error, could not set key correctly.");
-                resultsObj.pushKV(mne.getAlias(), statusObj);
-                continue;
-            }
-
-            CMasternode* pmn = mnodeman.Find(pubKeyMasternode);
-            if (pmn == NULL) {
-                failed++;
-                statusObj.pushKV("result", "failed");
-                statusObj.pushKV("errorMessage", "Can't find masternode by pubkey");
-                resultsObj.pushKV(mne.getAlias(), statusObj);
-                continue;
-            }
-
-
-            CFinalizedBudgetVote vote(pmn->vin, hash);
-            if (!vote.Sign(keyMasternode, pubKeyMasternode.GetID())) {
-                failed++;
-                statusObj.pushKV("result", "failed");
-                statusObj.pushKV("errorMessage", "Failure to sign.");
-                resultsObj.pushKV(mne.getAlias(), statusObj);
-                continue;
-            }
-
-            std::string strError = "";
-            if (g_budgetman.UpdateFinalizedBudget(vote, NULL, strError)) {
-                g_budgetman.AddSeenFinalizedBudgetVote(vote);
-                vote.Relay();
-                success++;
-                statusObj.pushKV("result", "success");
-            } else {
-                failed++;
-                statusObj.pushKV("result", strError.c_str());
-            }
-
-            resultsObj.pushKV(mne.getAlias(), statusObj);
+        // DMN require wallet with operator keys for vote-many
+        if (!fLegacyMN && strCommand == "vote-many" && !EnsureWalletIsAvailable(pwallet, false)) {
+            return NullUniValue;
         }
 
-        UniValue returnObj(UniValue::VOBJ);
-        returnObj.pushKV("overall", strprintf("Voted successfully %d time(s) and failed %d time(s).", success, failed));
-        returnObj.pushKV("detail", resultsObj);
-
-        return returnObj;
-    }
-
-    if (strCommand == "vote") {
-        if (!fMasterNode)
-            throw JSONRPCError(RPC_MISC_ERROR, _("This is not a masternode. 'local' option disabled."));
-
-        if (activeMasternode.vin == nullopt)
-            throw JSONRPCError(RPC_MISC_ERROR, _("Active Masternode not initialized."));
-
-        if (request.params.size() != 2)
-            throw std::runtime_error("Correct usage is 'mnfinalbudget vote BUDGET_HASH'");
-
-        std::string strHash = request.params[1].get_str();
-        uint256 hash(uint256S(strHash));
-
-        CPubKey pubKeyMasternode; CKey keyMasternode;
-        activeMasternode.GetKeys(keyMasternode, pubKeyMasternode);
-
-        CMasternode* pmn = mnodeman.Find(activeMasternode.vin->prevout);
-        if (pmn == NULL) {
-            return "Failure to find masternode in list : " + activeMasternode.vin->ToString();
-        }
-
-        CFinalizedBudgetVote vote(*(activeMasternode.vin), hash);
-        if (!vote.Sign(keyMasternode, pubKeyMasternode.GetID())) {
-            return "Failure to sign.";
-        }
-
-        std::string strError = "";
-        if (g_budgetman.UpdateFinalizedBudget(vote, NULL, strError)) {
-            g_budgetman.AddSeenFinalizedBudgetVote(vote);
-            vote.Relay();
-            return "success";
-        } else {
-            return "Error voting : " + strError;
-        }
+        return (strCommand == "vote-many" ? mnBudgetVoteInner(pwallet, fLegacyMN, hash, true, CBudgetVote::VOTE_YES, nullopt)
+                                          : mnLocalBudgetVoteInner(fLegacyMN, hash, true, CBudgetVote::VOTE_YES));
     }
 
     if (strCommand == "show") {

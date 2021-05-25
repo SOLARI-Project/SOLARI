@@ -7,7 +7,6 @@
 
 #include "addrman.h"
 #include "evo/providertx.h"
-#include "evo/deterministicmns.h"
 #include "masternode-sync.h"
 #include "masternode.h"
 #include "masternodeconfig.h"
@@ -67,10 +66,38 @@ OperationResult CActiveDeterministicMasternodeManager::SetOperatorKey(const std:
     return OperationResult(true);
 }
 
+OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CKey& key, CKeyID& keyID, CDeterministicMNCPtr& dmn) const
+{
+    if (!IsReady()) {
+        return errorOut("Active masternode not ready");
+    }
+    dmn = deterministicMNManager->GetListAtChainTip().GetValidMN(info.proTxHash);
+    if (!dmn) {
+        return errorOut(strprintf("Active masternode %s not registered or PoSe banned", info.proTxHash.ToString()));
+    }
+    if (info.keyIDOperator != dmn->pdmnState->keyIDOperator) {
+        return errorOut("Active masternode operator key changed or revoked");
+    }
+    // return keys
+    key = info.keyOperator;
+    keyID = info.keyIDOperator;
+    return OperationResult(true);
+}
+
 void CActiveDeterministicMasternodeManager::Init()
 {
-    if (!fMasterNode || !deterministicMNManager->IsDIP3Enforced())
+    // set masternode arg if called from RPC
+    if (!fMasterNode) {
+        gArgs.ForceSetArg("-masternode", "1");
+        fMasterNode = true;
+    }
+
+    if (!deterministicMNManager->IsDIP3Enforced()) {
+        state = MASTERNODE_ERROR;
+        strError = "Evo upgrade is not active yet.";
+        LogPrintf("%s -- ERROR: %s\n", __func__, strError);
         return;
+    }
 
     LOCK(cs_main);
 
@@ -109,6 +136,8 @@ void CActiveDeterministicMasternodeManager::Init()
 
     LogPrintf("%s: proTxHash=%s, proTx=%s\n", __func__, dmn->proTxHash.ToString(), dmn->ToString());
 
+    info.proTxHash = dmn->proTxHash;
+
     if (info.service != dmn->pdmnState->addr) {
         state = MASTERNODE_ERROR;
         strError = strprintf("Local address %s does not match the address from ProTx (%s)",
@@ -132,7 +161,6 @@ void CActiveDeterministicMasternodeManager::Init()
         }
     }
 
-    info.proTxHash = dmn->proTxHash;
     state = MASTERNODE_READY;
 }
 
@@ -260,6 +288,7 @@ void CActiveMasternode::ManageStatus()
         return;
     }
 
+    // !TODO: Legacy masternodes - remove after enforcement
     LogPrint(BCLog::MASTERNODE, "CActiveMasternode::ManageStatus() - Begin\n");
 
     // If a DMN has been registered with same collateral, disable me.
@@ -426,4 +455,34 @@ void CActiveMasternode::GetKeys(CKey& _privKeyMasternode, CPubKey& _pubKeyMaster
     }
     _privKeyMasternode = privKeyMasternode;
     _pubKeyMasternode = pubKeyMasternode;
+}
+
+bool GetActiveMasternodeKeys(CKey& key, CKeyID& keyID, CTxIn& vin)
+{
+    if (activeMasternodeManager != nullptr) {
+        // deterministic mn
+        CDeterministicMNCPtr dmn;
+        auto res = activeMasternodeManager->GetOperatorKey(key, keyID, dmn);
+        if (!res) {
+            LogPrint(BCLog::MNBUDGET,"%s: %s\n", __func__, res.getError());
+            return false;
+        }
+        vin = CTxIn(dmn->collateralOutpoint);
+        return true;
+    }
+
+    // legacy mn
+    if (activeMasternode.vin == nullopt) {
+        LogPrint(BCLog::MNBUDGET,"%s: Active Masternode not initialized\n", __func__);
+        return false;
+    }
+    if (activeMasternode.GetStatus() != ACTIVE_MASTERNODE_STARTED) {
+        LogPrint(BCLog::MNBUDGET,"%s: MN not started (%s)\n", __func__, activeMasternode.GetStatusMessage());
+        return false;
+    }
+    CPubKey mnPubKey;
+    activeMasternode.GetKeys(key, mnPubKey);
+    keyID = mnPubKey.GetID();
+    vin = *activeMasternode.vin;
+    return true;
 }

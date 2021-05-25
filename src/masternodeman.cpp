@@ -226,14 +226,14 @@ void CMasternodeMan::AskForMN(CNode* pnode, const CTxIn& vin)
 
 int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
 {
-    LOCK(cs);
-
     // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
     if (deterministicMNManager->LegacyMNObsolete()) {
         LogPrint(BCLog::MASTERNODE, "Removing all legacy mn due to SPORK 21\n");
         Clear();
         return 0;
     }
+
+    LOCK(cs);
 
     //remove inactive and outdated (or replaced by DMN)
     auto it = mapMasternodes.begin();
@@ -500,6 +500,12 @@ static bool canScheduleMN(bool fFilterSigTime, const MasternodeRef& mn, int minP
 //
 MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount, const CBlockIndex* pChainTip) const
 {
+    // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
+    if (deterministicMNManager->LegacyMNObsolete()) {
+        LogPrintf("%s: ERROR - called after legacy system disabled\n", __func__);
+        return nullptr;
+    }
+
     AssertLockNotHeld(cs_main);
     const CBlockIndex* BlockReading = (pChainTip == nullptr ? GetChainTip() : pChainTip);
     if (!BlockReading) return nullptr;
@@ -507,14 +513,19 @@ MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeigh
     MasternodeRef pBestMasternode = nullptr;
     std::vector<std::pair<int64_t, MasternodeRef> > vecMasternodeLastPaid;
 
+    CDeterministicMNList mnList;
+    if (deterministicMNManager->IsDIP3Enforced()) {
+        mnList = deterministicMNManager->GetListAtChainTip();
+    }
+
     /*
         Make a vector with all of the last paid times
     */
     int minProtocol = ActiveProtocol();
-    int nMnCount{0};
+    int nMnCount = mnList.GetValidMNsCount();
     {
         LOCK(cs);
-        nMnCount = CountEnabled();
+        nMnCount += CountEnabled();
         for (const auto& it : mapMasternodes) {
             if (!it.second->IsEnabled()) continue;
             if (canScheduleMN(fFilterSigTime, it.second, minProtocol, nMnCount, nBlockHeight)) {
@@ -522,6 +533,13 @@ MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeigh
             }
         }
     }
+    // Add deterministic masternodes to the vector
+    mnList.ForEachMN(true, [&](const CDeterministicMNCPtr& dmn) {
+        const MasternodeRef mn = MakeMasternodeRefForDMN(dmn);
+        if (canScheduleMN(fFilterSigTime, mn, minProtocol, nMnCount, nBlockHeight)) {
+            vecMasternodeLastPaid.emplace_back(SecondsSincePayment(mn, BlockReading), mn);
+        }
+    });
 
     nCount = (int)vecMasternodeLastPaid.size();
 
@@ -537,7 +555,7 @@ MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeigh
     //  -- (chance per block * chances before IsScheduled will fire)
     int nTenthNetwork = nMnCount / 10;
     int nCountTenth = 0;
-    arith_uint256 nHigh;
+    arith_uint256 nHigh = ARITH_UINT256_ZERO;
     const uint256& hash = GetHashAtHeight(nBlockHeight - 101);
     for (const auto& s: vecMasternodeLastPaid) {
         const MasternodeRef pmn = s.second;
@@ -554,7 +572,7 @@ MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeigh
     return pBestMasternode;
 }
 
-MasternodeRef CMasternodeMan::GetCurrentMasterNode(int nHeight, const uint256& hash) const
+MasternodeRef CMasternodeMan::GetCurrentMasterNode(const uint256& hash) const
 {
     int minProtocol = ActiveProtocol();
     int64_t score = 0;
@@ -573,6 +591,21 @@ MasternodeRef CMasternodeMan::GetCurrentMasterNode(int nHeight, const uint256& h
         }
     }
 
+    // scan also dmns
+    if (deterministicMNManager->IsDIP3Enforced()) {
+        auto mnList = deterministicMNManager->GetListAtChainTip();
+        mnList.ForEachMN(true, [&](const CDeterministicMNCPtr& dmn) {
+            const MasternodeRef mn = MakeMasternodeRefForDMN(dmn);
+            // calculate the score of the masternode
+            const int64_t n = mn->CalculateScore(hash).GetCompact(false);
+            // determine the winner
+            if (n > score) {
+                score = n;
+                winner = mn;
+            }
+        });
+    }
+
     return winner;
 }
 
@@ -584,7 +617,7 @@ std::vector<std::pair<MasternodeRef, int>> CMasternodeMan::GetMnScores(int nLast
 
     for (int nHeight = nChainHeight - nLast; nHeight < nChainHeight + 20; nHeight++) {
         const uint256& hash = GetHashAtHeight(nHeight - 101);
-        MasternodeRef winner = GetCurrentMasterNode(nHeight, hash);
+        MasternodeRef winner = GetCurrentMasterNode(hash);
         if (winner) {
             ret.emplace_back(winner, nHeight);
         }
@@ -620,6 +653,15 @@ int CMasternodeMan::GetMasternodeRank(const CTxIn& vin, int64_t nBlockHeight) co
         }
     }
 
+    // scan also dmns
+    if (deterministicMNManager->IsDIP3Enforced()) {
+        auto mnList = deterministicMNManager->GetListAtChainTip();
+        mnList.ForEachMN(true, [&](const CDeterministicMNCPtr& dmn) {
+            const MasternodeRef mn = MakeMasternodeRefForDMN(dmn);
+            vecMasternodeScores.emplace_back(mn->CalculateScore(hash).GetCompact(false), mn->vin);
+        });
+    }
+
     sort(vecMasternodeScores.rbegin(), vecMasternodeScores.rend(), CompareScoreMN());
 
     int rank = 0;
@@ -644,12 +686,20 @@ std::vector<std::pair<int64_t, MasternodeRef>> CMasternodeMan::GetMasternodeRank
         // scan for winner
         for (const auto& it : mapMasternodes) {
             const MasternodeRef mn = it.second;
-            if (!mn->IsEnabled()) {
-                vecMasternodeScores.emplace_back(9999, mn);
-            } else {
-                vecMasternodeScores.emplace_back(mn->CalculateScore(hash).GetCompact(false), mn);
-            }
+            const uint32_t score = mn->IsEnabled() ? mn->CalculateScore(hash).GetCompact(false) : 9999;
+
+            vecMasternodeScores.emplace_back(score, mn);
         }
+    }
+    // scan also dmns
+    if (deterministicMNManager->IsDIP3Enforced()) {
+        auto mnList = deterministicMNManager->GetListAtChainTip();
+        mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
+            const MasternodeRef mn = MakeMasternodeRefForDMN(dmn);
+            const uint32_t score = mnList.IsMNValid(dmn) ? mn->CalculateScore(hash).GetCompact(false) : 9999;
+
+            vecMasternodeScores.emplace_back(score, mn);
+        });
     }
     sort(vecMasternodeScores.rbegin(), vecMasternodeScores.rend(), CompareScoreMN());
     return vecMasternodeScores;
@@ -720,12 +770,6 @@ int CMasternodeMan::ProcessMNPing(CNode* pfrom, CMasternodePing& mnp)
 
 int CMasternodeMan::ProcessGetMNList(CNode* pfrom, CTxIn& vin)
 {
-    // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
-    if (deterministicMNManager->LegacyMNObsolete()) {
-        LogPrint(BCLog::MASTERNODE, "dseg - skip obsolete message\n");
-        return 0;
-    }
-
     if (vin.IsNull()) { //only should ask for this once
         //local network
         bool isLocal = (pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal());
@@ -844,7 +888,7 @@ void CMasternodeMan::UpdateMasternodeList(CMasternodeBroadcast& mnb)
     mapSeenMasternodeBroadcast.emplace(mnb.GetHash(), mnb);
     masternodeSync.AddedMasternodeList(mnb.GetHash());
 
-    LogPrint(BCLog::MASTERNODE,"CMasternodeMan::UpdateMasternodeList() -- masternode=%s\n", mnb.vin.prevout.ToString());
+    LogPrint(BCLog::MASTERNODE,"%s -- masternode=%s\n", __func__, mnb.vin.prevout.ToString());
 
     CMasternode* pmn = Find(mnb.vin.prevout);
     if (pmn == NULL) {
@@ -874,8 +918,7 @@ int64_t CMasternodeMan::GetLastPaid(const MasternodeRef& mn, const CBlockIndex* 
 {
     if (BlockReading == nullptr) return false;
 
-    CScript mnpayee;
-    mnpayee = GetScriptForDestination(mn->pubKeyCollateralAddress.GetID());
+    const CScript& mnpayee = mn->GetPayeeScript();
 
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     ss << mn->vin;

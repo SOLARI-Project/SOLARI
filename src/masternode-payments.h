@@ -177,7 +177,7 @@ public:
         payee()
     {}
 
-    CMasternodePaymentWinner(CTxIn vinIn, int nHeight) :
+    CMasternodePaymentWinner(const CTxIn& vinIn, int nHeight):
         CSignedMessage(),
         vinMasternode(vinIn),
         nBlockHeight(nHeight),
@@ -255,7 +255,7 @@ public:
     }
 
     bool AddWinningMasternode(CMasternodePaymentWinner& winner);
-    bool ProcessBlock(int nBlockHeight);
+    void ProcessBlock(int nBlockHeight);
 
     void Sync(CNode* node, int nCountNeeded);
     void CleanPaymentList(int mnCount, int nHeight);

@@ -120,6 +120,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "importpubkey", 2 },
     { "importmulti", 0 },
     { "importmulti", 1 },
+    { "initmasternode", 2},
     { "exportsaplingkey", 1 },
     { "importsaplingkey", 2 },
     { "importsaplingviewingkey", 2 },
@@ -144,6 +145,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     // TODO: remove this and switch over to proper arg parsing in rpc/masternode.cpp for the second argument
     //{"startmasternode", 1},
     { "startmasternode", 3 },
+    { "mnbudgetvote", 4 },
     { "mnvoteraw", 1 },
     { "mnvoteraw", 4 },
     { "setstakesplitthreshold", 0 },
