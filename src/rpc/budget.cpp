@@ -352,11 +352,13 @@ static mnKeyList getMNKeys(const Optional<std::string>& mnAliasFilter,
 static mnKeyList getMNKeysForActiveMasternode(UniValue& resultsObj)
 {
     // local node must be a masternode
-    if (!fMasterNode)
-        throw JSONRPCError(RPC_MISC_ERROR, _("This is not a masternode. 'local' option disabled."));
+    if (!fMasterNode) {
+        throw std::runtime_error(_("This is not a masternode. 'local' option disabled."));
+    }
 
-    if (activeMasternode.vin == nullopt)
-        throw JSONRPCError(RPC_MISC_ERROR, _("Active Masternode not initialized."));
+    if (activeMasternode.vin == nullopt) {
+        throw std::runtime_error(_("Active Masternode not initialized."));
+    }
 
     CKey mnKey; CPubKey mnPubKey;
     activeMasternode.GetKeys(mnKey, mnPubKey);
@@ -373,7 +375,7 @@ static mnKeyList getMNKeysForActiveMasternode(UniValue& resultsObj)
 static mnKeyList getDMNVotingKeys(CWallet* const pwallet, const Optional<std::string>& mnAliasFilter, bool fFinal, UniValue& resultsObj, int& failed)
 {
     if (!pwallet) {
-        throw JSONRPCError(RPC_IN_WARMUP, "Wallet (with voting key) not found.");
+        throw std::runtime_error( "Wallet (with voting key) not found.");
     }
 
     auto mnList = deterministicMNManager->GetListAtChainTip();
@@ -390,9 +392,6 @@ static mnKeyList getDMNVotingKeys(CWallet* const pwallet, const Optional<std::st
         }
     }
 
-    LOCK(pwallet->cs_wallet);
-    EnsureWalletIsUnlocked(pwallet);
-
     mnKeyList mnKeys;
     mnList.ForEachMN(true, [&](const CDeterministicMNCPtr& dmn) {
         bool filtered = mnFilter && dmn->proTxHash == mnFilter->proTxHash;
@@ -402,6 +401,7 @@ static mnKeyList getDMNVotingKeys(CWallet* const pwallet, const Optional<std::st
                 throw JSONRPCError(RPC_MISC_ERROR, "Finalized budget voting is allowed only locally, from the masternode");
             }
             // Get voting key from the wallet
+            LOCK(pwallet->cs_wallet);
             CKey mnKey;
             if (pwallet->GetKey(dmn->pdmnState->keyIDVoting, mnKey)) {
                 mnKeys.emplace_back(dmn->proTxHash.ToString(), &dmn->collateralOutpoint, mnKey);
@@ -422,7 +422,7 @@ static mnKeyList getDMNKeysForActiveMasternode(UniValue& resultsObj)
 {
     // local node must be a masternode
     if (!activeMasternodeManager) {
-        throw JSONRPCError(RPC_MISC_ERROR, _("This is not a deterministic masternode. 'local' option disabled."));
+        throw std::runtime_error(_("This is not a deterministic masternode. 'local' option disabled."));
     }
 
     CBLSSecretKey sk; CDeterministicMNCPtr dmn;
@@ -544,8 +544,11 @@ UniValue mnbudgetvote(const JSONRPCRequest& request)
     }
 
     // DMN require wallet with voting key
-    if (!fLegacyMN && !EnsureWalletIsAvailable(pwallet, false)) {
-        return NullUniValue;
+    if (!fLegacyMN) {
+        if (!EnsureWalletIsAvailable(pwallet, false)) {
+            return NullUniValue;
+        }
+        EnsureWalletIsUnlocked(pwallet);
     }
 
     bool isAlias = false;
