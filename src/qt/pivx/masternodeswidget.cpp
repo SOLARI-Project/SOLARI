@@ -19,6 +19,7 @@
 #include "masternodeconfig.h"
 #include "masternodeman.h"
 #include "util/system.h"
+#include "qt/pivx/mnmodel.h"
 #include "qt/pivx/optionbutton.h"
 #include <fstream>
 
@@ -138,14 +139,12 @@ void MasterNodesWidget::hideEvent(QHideEvent *event)
     if (timer) timer->stop();
 }
 
-void MasterNodesWidget::loadWalletModel()
+void MasterNodesWidget::setMNModel(MNModel* _mnModel)
 {
-    if (walletModel) {
-        mnModel = new MNModel(this, walletModel);
-        ui->listMn->setModel(mnModel);
-        ui->listMn->setModelColumn(AddressTableModel::Label);
-        updateListState();
-    }
+    mnModel = _mnModel;
+    ui->listMn->setModel(mnModel);
+    ui->listMn->setModelColumn(AddressTableModel::Label);
+    updateListState();
 }
 
 void MasterNodesWidget::updateListState()
@@ -216,6 +215,20 @@ void MasterNodesWidget::onEditMNClicked()
     }
 }
 
+static bool startMN(const CMasternodeConfig::CMasternodeEntry& mne, int chainHeight, std::string& strError)
+{
+    CMasternodeBroadcast mnb;
+    if (!CMasternodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb, false, chainHeight))
+        return false;
+
+    mnodeman.UpdateMasternodeList(mnb);
+    if (activeMasternode.pubKeyMasternode == mnb.GetPubKey()) {
+        activeMasternode.EnableHotColdMasterNode(mnb.vin, mnb.addr);
+    }
+    mnb.Relay();
+    return true;
+}
+
 void MasterNodesWidget::startAlias(const QString& strAlias)
 {
     QString strStatusHtml;
@@ -224,7 +237,7 @@ void MasterNodesWidget::startAlias(const QString& strAlias)
     for (const auto& mne : masternodeConfig.getEntries()) {
         if (mne.getAlias() == strAlias.toStdString()) {
             std::string strError;
-            strStatusHtml += (!startMN(mne, strError)) ? ("failed to start.\nError: " + QString::fromStdString(strError)) : "successfully started.";
+            strStatusHtml += (!startMN(mne, walletModel->getLastBlockProcessedNum(), strError)) ? ("failed to start.\nError: " + QString::fromStdString(strError)) : "successfully started.";
             break;
         }
     }
@@ -236,20 +249,6 @@ void MasterNodesWidget::updateModelAndInform(const QString& informText)
 {
     mnModel->updateMNList();
     inform(informText);
-}
-
-bool MasterNodesWidget::startMN(const CMasternodeConfig::CMasternodeEntry& mne, std::string& strError)
-{
-    CMasternodeBroadcast mnb;
-    if (!CMasternodeBroadcast::Create(mne.getIp(), mne.getPrivKey(), mne.getTxHash(), mne.getOutputIndex(), strError, mnb, false, walletModel->getLastBlockProcessedNum()))
-        return false;
-
-    mnodeman.UpdateMasternodeList(mnb);
-    if (activeMasternode.pubKeyMasternode == mnb.GetPubKey()) {
-        activeMasternode.EnableHotColdMasterNode(mnb.vin, mnb.addr);
-    }
-    mnb.Relay();
-    return true;
 }
 
 void MasterNodesWidget::onStartAllClicked(int type)
@@ -291,7 +290,7 @@ bool MasterNodesWidget::startAll(QString& failText, bool onlyMissing)
         }
 
         std::string strError;
-        if (!startMN(mne, strError)) {
+        if (!startMN(mne, walletModel->getLastBlockProcessedNum(), strError)) {
             amountOfMnFailed++;
         } else {
             amountOfMnStarted++;
