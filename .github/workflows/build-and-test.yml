@@ -320,15 +320,33 @@ jobs:
             goal: deploy
             BITCOIN_CONFIG: "--enable-gui --enable-reduce-exports --enable-werror --disable-online-rust"
 
+          - name: macOS 10.15 [GOAL:deploy] [native macOS using syslibs no unit or functional tests]
+            os: macos-10.15
+            host: x86_64-apple-darwin19.6.0
+            brew_install: autoconf automake ccache berkeley-db4 libtool boost miniupnpc pkg-config python3 qt5 zmq libevent qrencode gmp libsodium rust librsvg
+            unit_tests: false
+            functional_tests: false
+            no_depends: 1
+            goal: deploy
+            cc: $(brew --prefix llvm)/bin/clang
+            cxx: $(brew --prefix llvm)/bin/clang++
+            BITCOIN_CONFIG: "--enable-zmq --enable-gui --enable-reduce-exports --enable-werror"
+
     steps:
       - name: Get Source
         uses: actions/checkout@v2
 
       - name: Setup Environment
         run: |
-          sudo apt-add-repository "ppa:ondrej/php" -y
-          sudo apt-get --yes update
-          sudo apt-get install --no-install-recommends --no-upgrade -qq "$APT_BASE" ${{ matrix.config.apt_get }}
+          if [[ ${{ matrix.config.os }} = ubuntu* ]]; then
+            sudo apt-add-repository "ppa:ondrej/php" -y
+            sudo apt-get --yes update
+            sudo apt-get install --no-install-recommends --no-upgrade -qq "$APT_BASE" ${{ matrix.config.apt_get }}
+          fi
+          if [[ ${{ matrix.config.os }} = macos* ]]; then
+            brew install ${{ matrix.config.brew_install }}
+            pip3 install ds_store mac_alias
+          fi
 
       - name: depends cache files
         if: matrix.config.no_depends != 1
@@ -390,8 +408,17 @@ jobs:
             sudo update-binfmts --import /usr/share/binfmts/wine
           fi
 
-          OUTDIR_PATH="$GITHUB_WORKSPACE/$GITHUB_RUN_NUMBER-${{ matrix.config.host }}"
-          BITCOIN_CONFIG_ALL="--disable-dependency-tracking --prefix=$GITHUB_WORKSPACE/depends/${{ matrix.config.host }} --bindir=$OUTDIR_PATH/bin --libdir=$OUTDIR_PATH/lib"
+          if [[ ${{ matrix.config.os }} = macos* ]]; then
+            CC=${{ matrix.config.cc }}
+            CXX=${{ matrix.config.cxx }}
+            export CC
+            export CXX
+          fi
+
+          if [[ ${{ matrix.config.os }} = ubuntu* ]]; then
+            OUTDIR_PATH="$GITHUB_WORKSPACE/$GITHUB_RUN_NUMBER-${{ matrix.config.host }}"
+            BITCOIN_CONFIG_ALL="--disable-dependency-tracking --prefix=$GITHUB_WORKSPACE/depends/${{ matrix.config.host }} --bindir=$OUTDIR_PATH/bin --libdir=$OUTDIR_PATH/lib"
+          fi
 
           if [ "${{ matrix.config.unit_tests }}" = "true" ] || [ "${{ matrix.config.functional_tests }}" = "true" ]; then
             mkdir -p $PARAMS_DIR
@@ -430,7 +457,11 @@ jobs:
 
           if [ "${{ matrix.config.unit_tests }}" = "true" ]; then
             echo ::group::Unit-Tests
-            LD_LIBRARY_PATH=$GITHUB_WORKSPACE/depends/"${{ matrix.config.host }}"/lib make -j2 check VERBOSE=1
+            if [[ ${{ matrix.config.os }} = ubuntu* ]]; then
+              LD_LIBRARY_PATH=$GITHUB_WORKSPACE/depends/"${{ matrix.config.host }}"/lib make -j2 check VERBOSE=1
+            else
+              make -j2 check VERBOSE=1
+            fi
             echo ::endgroup::
           fi
 
