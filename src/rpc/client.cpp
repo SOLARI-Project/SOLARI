@@ -152,7 +152,6 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "signrawtransaction", 2, "privkeys" },
     { "spork", 1, "value" },
     { "startmasternode", 3, "lockwallet" },
-    { "stop", 0, "detach" },
     { "submitbudget", 2, "npayments" },
     { "submitbudget", 3, "start" },
     { "submitbudget", 5, "montly_payment" },

@@ -257,8 +257,7 @@ UniValue help(const JSONRPCRequest& jsonRequest)
 
 UniValue stop(const JSONRPCRequest& jsonRequest)
 {
-    // Accept the deprecated and ignored 'detach' boolean argument
-    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
+    if (jsonRequest.fHelp || !jsonRequest.params.empty())
         throw std::runtime_error(
             "stop\n"
             "\nStop PIVX server.");
@@ -278,7 +277,7 @@ static const CRPCCommand vRPCCommands[] =
   //  --------------------- ------------------------  -----------------------  ------ ----------
     /* Overall control/query calls */
     { "control",            "help",                   &help,                   true,  {"command"}  },
-    { "control",            "stop",                   &stop,                   true,  {"detach"}  },
+    { "control",            "stop",                   &stop,                   true,  {}  },
 };
 
 CRPCTable::CRPCTable()

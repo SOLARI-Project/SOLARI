@@ -132,6 +132,8 @@ Low-level RPC changes
   - `maximumCount` - a number specifying the minimum number of UTXOs
   - `minimumSumAmount` - a number specifying the minimum sum value of all UTXOs
 
+- the `stop` RPC no longer accepts the (already deprecated, ignored, and undocumented) optional boolean argument `detach`.
+
 
 #### Show wallet's auto-combine settings in getwalletinfo
 
