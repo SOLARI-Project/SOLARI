@@ -11,7 +11,6 @@
 #include <QFile>
 #include <QGraphicsDropShadowEffect>
 #include <QListView>
-#include <QStyle>
 
 Qt::Modifier SHORT_KEY
 #ifdef Q_OS_MAC
@@ -100,7 +99,7 @@ bool openDialogWithOpaqueBackgroundFullScreen(QDialog* widget, PIVXGUI* gui)
     return res;
 }
 
-QPixmap encodeToQr(QString str, QString& errorStr, QColor qrColor)
+QPixmap encodeToQr(const QString& str, QString& errorStr, const QColor& qrColor)
 {
     if (!str.isEmpty()) {
         // limit URI length
@@ -230,28 +229,18 @@ void updateStyle(QWidget* widget)
 
 QColor getRowColor(bool isLightTheme, bool isHovered, bool isSelected)
 {
-    if (isLightTheme) {
-        if (isSelected) {
-            return QColor("#25b088ff");
-        } else if (isHovered) {
-            return QColor("#25bababa");
-        } else {
-            return QColor("#ffffff");
-        }
+    if (isSelected) {
+        return QColor("#25b088ff");
+    } else if (isHovered) {
+        return QColor("#25bababa");
     } else {
-        if (isSelected) {
-            return QColor("#25b088ff");
-        } else if (isHovered) {
-            return QColor("#25bababa");
-        } else {
-            return QColor("#0f0b16");
-        }
+        return isLightTheme ? QColor("#ffffff") : QColor("#0f0b16");
     }
 }
 
 void initComboBox(QComboBox* combo, QLineEdit* lineEdit, QString cssClass)
 {
-    setCssProperty(combo, cssClass);
+    setCssProperty(combo, std::move(cssClass));
     combo->setEditable(true);
     if (lineEdit) {
         lineEdit->setReadOnly(true);
@@ -284,7 +273,7 @@ void initCssEditLine(QLineEdit* edit, bool isDialog)
     else
         setCssEditLine(edit, true, false);
     setShadow(edit);
-    edit->setAttribute(Qt::WA_MacShowFocusRect, 0);
+    edit->setAttribute(Qt::WA_MacShowFocusRect, false);
 }
 
 void setCssEditLine(QLineEdit* edit, bool isValid, bool forceUpdate)
@@ -339,14 +328,14 @@ void setCssSubtitleScreen(QWidget* wid)
     setCssProperty(wid, "text-subtitle", false);
 }
 
-void setCssProperty(std::initializer_list<QWidget*> args, QString value)
+void setCssProperty(std::initializer_list<QWidget*> args, const QString& value)
 {
     for (QWidget* w : args) {
         setCssProperty(w, value);
     }
 }
 
-void setCssProperty(QWidget* wid, QString value, bool forceUpdate)
+void setCssProperty(QWidget* wid, const QString& value, bool forceUpdate)
 {
     wid->setProperty("cssClass", value);
     forceUpdateStyle(wid, forceUpdate);
