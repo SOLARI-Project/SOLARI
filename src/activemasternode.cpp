@@ -274,6 +274,13 @@ OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const s
     activeMasternode.privKeyMasternode = key;
     activeMasternode.service = addrTest;
     fMasterNode = true;
+
+    if (masternodeSync.IsBlockchainSynced()) {
+        // Check if the masternode already exists in the list
+        CMasternode* pmn = mnodeman.Find(pubkey);
+        if (pmn) activeMasternode.EnableHotColdMasterNode(pmn->vin, pmn->addr);
+    }
+
     return OperationResult(true);
 }
 
@@ -292,8 +299,7 @@ void CActiveMasternode::ManageStatus()
     LogPrint(BCLog::MASTERNODE, "CActiveMasternode::ManageStatus() - Begin\n");
 
     // If a DMN has been registered with same collateral, disable me.
-    CMasternode* pmn;
-    pmn = mnodeman.Find(pubKeyMasternode);
+    CMasternode* pmn = mnodeman.Find(pubKeyMasternode);
     if (pmn && deterministicMNManager->GetListAtChainTip().HasMNByCollateral(pmn->vin.prevout)) {
         LogPrintf("%s: Disabling active legacy Masternode %s as the collateral is now registered with a DMN\n",
                          __func__, pmn->vin.prevout.ToString());
@@ -312,9 +318,14 @@ void CActiveMasternode::ManageStatus()
     if (status == ACTIVE_MASTERNODE_SYNC_IN_PROCESS) status = ACTIVE_MASTERNODE_INITIAL;
 
     if (status == ACTIVE_MASTERNODE_INITIAL) {
-        if (pmn != nullptr) {
-            if (pmn->IsEnabled() && pmn->protocolVersion == PROTOCOL_VERSION)
-                EnableHotColdMasterNode(pmn->vin, pmn->addr);
+        if (pmn) {
+            if (pmn->protocolVersion != PROTOCOL_VERSION) {
+                LogPrintf("%s: ERROR Trying to start a masternode running an old protocol version, "
+                          "the controller and masternode wallets need to be running the latest release version.\n", __func__);
+                return;
+            }
+            // Update vin and service
+            EnableHotColdMasterNode(pmn->vin, pmn->addr);
         }
     }
 
