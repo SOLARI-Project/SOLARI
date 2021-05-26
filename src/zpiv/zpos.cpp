@@ -49,11 +49,19 @@ static const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDen
     return nullptr;
 }
 
-CLegacyZPivStake* CLegacyZPivStake::NewZPivStake(const CTxIn& txin)
+CLegacyZPivStake* CLegacyZPivStake::NewZPivStake(const CTxIn& txin, int nHeight)
 {
     // Construct the stakeinput object
     if (!txin.IsZerocoinSpend()) {
         LogPrintf("%s: unable to initialize CLegacyZPivStake from non zc-spend", __func__);
+        return nullptr;
+    }
+
+    // Return immediately if zPOS not enforced
+    const Consensus::Params& consensus = Params().GetConsensus();
+    if (!consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC_V2) ||
+            nHeight >= consensus.height_last_ZC_AccumCheckpoint) {
+        LogPrint(BCLog::LEGACYZC, "%s : zPIV stake block: height %d outside range", __func__, nHeight);
         return nullptr;
     }
 
@@ -69,7 +77,13 @@ CLegacyZPivStake* CLegacyZPivStake::NewZPivStake(const CTxIn& txin)
     const arith_uint256& nSerial = spend.getCoinSerialNumber().getuint256();
     const uint256& _hashSerial = Hash(nSerial.begin(), nSerial.end());
 
-    // Find the pindex with the accumulator checksum
+    // The checkpoint needs to be from 200 blocks ago
+    const int cpHeight = nHeight - 1 - consensus.ZC_MinStakeDepth;
+    if (ParseAccChecksum(chainActive[cpHeight]->nAccumulatorCheckpoint, _denom) != _nChecksum) {
+        LogPrint(BCLog::LEGACYZC, "%s : accum. checksum at height %d is wrong.", __func__, nHeight);
+    }
+
+    // Find the pindex of the first block with the accumulator checksum
     const CBlockIndex* _pindexFrom = FindIndexFrom(_nChecksum, _denom);
     if (_pindexFrom == nullptr) {
         LogPrintf("%s : Failed to find the block index for zpiv stake origin", __func__);
@@ -95,21 +109,4 @@ CDataStream CLegacyZPivStake::GetUniqueness() const
     CDataStream ss(SER_GETHASH, 0);
     ss << hashSerial;
     return ss;
-}
-
-// Verify stake contextual checks
-bool CLegacyZPivStake::ContextCheck(int nHeight, uint32_t nTime)
-{
-    const Consensus::Params& consensus = Params().GetConsensus();
-    if (!consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC_V2) || nHeight >= consensus.height_last_ZC_AccumCheckpoint)
-        return error("%s : zPIV stake block: height %d outside range", __func__, nHeight);
-
-    // The checkpoint needs to be from 200 blocks ago
-    const int cpHeight = nHeight - 1 - consensus.ZC_MinStakeDepth;
-    const libzerocoin::CoinDenomination denom = libzerocoin::AmountToZerocoinDenomination(GetValue());
-    if (ParseAccChecksum(chainActive[cpHeight]->nAccumulatorCheckpoint, denom) != GetChecksum())
-        return error("%s : accum. checksum at height %d is wrong.", __func__, nHeight);
-
-    // All good
-    return true;
 }

@@ -23,7 +23,7 @@ public:
         hashSerial(_hashSerial)
     {}
 
-    static CLegacyZPivStake* NewZPivStake(const CTxIn& txin);
+    static CLegacyZPivStake* NewZPivStake(const CTxIn& txin, int nHeight);
 
     bool IsZPIV() const override { return true; }
     uint32_t GetChecksum() const { return nChecksum; }
@@ -31,7 +31,6 @@ public:
     CAmount GetValue() const override;
     CDataStream GetUniqueness() const override;
     bool GetTxOutFrom(CTxOut& out) const override { return false; /* not available */ }
-    virtual bool ContextCheck(int nHeight, uint32_t nTime) override;
 };
 
 #endif //PIVX_LEGACY_ZPOS_H

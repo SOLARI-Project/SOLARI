@@ -26,7 +26,6 @@ public:
     virtual CAmount GetValue() const = 0;
     virtual bool IsZPIV() const = 0;
     virtual CDataStream GetUniqueness() const = 0;
-    virtual bool ContextCheck(int nHeight, uint32_t nTime) = 0;
 };
 
 
@@ -40,7 +39,7 @@ public:
     CPivStake(const CTxOut& _from, const COutPoint& _outPointFrom, const CBlockIndex* _pindexFrom) :
             CStakeInput(_pindexFrom), outputFrom(_from), outpointFrom(_outPointFrom) {}
 
-    static CPivStake* NewPivStake(const CTxIn& txin);
+    static CPivStake* NewPivStake(const CTxIn& txin, int nHeight, uint32_t nTime);
 
     const CBlockIndex* GetIndexFrom() const override;
     bool GetTxOutFrom(CTxOut& out) const override;
@@ -49,7 +48,6 @@ public:
     CTxIn GetTxIn() const;
     bool CreateTxOuts(const CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) const;
     bool IsZPIV() const override { return false; }
-    bool ContextCheck(int nHeight, uint32_t nTime) override;
 };
 
 
