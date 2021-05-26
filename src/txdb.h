@@ -172,4 +172,22 @@ public:
     bool WipeAccChecksums();
 };
 
+class AccumulatorCache
+{
+private:
+    // underlying database
+    CZerocoinDB* db{nullptr};
+    // in-memory map [checksum, denom] --> block height
+    std::map<std::pair<uint32_t, libzerocoin::CoinDenomination>, int> mapCheckpoints;
+
+public:
+    explicit AccumulatorCache(CZerocoinDB* _db) : db(_db) {}
+
+    Optional<int> Get(uint32_t checksum, libzerocoin::CoinDenomination denom);
+    void Set(uint32_t checksum, libzerocoin::CoinDenomination denom, int height);
+    void Erase(uint32_t checksum, libzerocoin::CoinDenomination denom);
+    void Flush();
+    void Wipe();
+};
+
 #endif // BITCOIN_TXDB_H

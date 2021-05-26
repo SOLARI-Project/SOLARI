@@ -24,9 +24,9 @@ uint32_t ParseAccChecksum(uint256 nCheckpoint, const libzerocoin::CoinDenominati
 static const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDenomination denom)
 {
     // First look in the legacy database
-    int nHeightChecksum = 0;
-    if (zerocoinDB->ReadAccChecksum(nChecksum, denom, nHeightChecksum)) {
-        return chainActive[nHeightChecksum];
+    Optional<int> nHeightChecksum = accumulatorCache ? accumulatorCache->Get(nChecksum, denom) : nullopt;
+    if (nHeightChecksum != nullopt) {
+        return mapBlockIndex.at(chainActive[*nHeightChecksum]->GetBlockHash());
     }
 
     // Not found. Scan the chain.
@@ -35,8 +35,8 @@ static const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDen
     if (!pindex) return nullptr;
     while (pindex && pindex->nHeight <= consensus.height_last_ZC_AccumCheckpoint) {
         if (ParseAccChecksum(pindex->nAccumulatorCheckpoint, denom) == nChecksum) {
-            // Found. Save to database and return
-            zerocoinDB->WriteAccChecksum(nChecksum, denom, pindex->nHeight);
+            // Found. Save to cache and return
+            if (accumulatorCache) accumulatorCache->Set(nChecksum, denom, pindex->nHeight);
             return pindex;
         }
         //Skip forward in groups of 10 blocks since checkpoints only change every 10 blocks

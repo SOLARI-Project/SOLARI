@@ -528,3 +528,52 @@ bool CCoinsViewDB::Upgrade() {
     db.WriteBatch(batch);
     return true;
 }
+
+Optional<int> AccumulatorCache::Get(uint32_t checksum, libzerocoin::CoinDenomination denom)
+{
+    const auto& p = std::make_pair(checksum, denom);
+
+    // First check the map in-memory.
+    const auto it = mapCheckpoints.find(p);
+    if (it != mapCheckpoints.end()) {
+        return Optional<int>(it->second);
+    }
+
+    // Not found. Check disk.
+    int checksum_height = 0;
+    if (db->ReadAccChecksum(checksum, denom, checksum_height)) {
+        // save in memory and return
+        mapCheckpoints[p] = checksum_height;
+        return Optional<int>(checksum_height);
+    }
+
+    // Not found. Scan the chain.
+    return nullopt;
+}
+
+void AccumulatorCache::Set(uint32_t checksum, libzerocoin::CoinDenomination denom, int height)
+{
+    // Update memory cache
+    mapCheckpoints[std::make_pair(checksum, denom)] = height;
+}
+
+void AccumulatorCache::Erase(uint32_t checksum, libzerocoin::CoinDenomination denom)
+{
+    // Update memory cache and database
+    mapCheckpoints.erase(std::make_pair(checksum, denom));
+    db->EraseAccChecksum(checksum, denom);
+}
+
+void AccumulatorCache::Flush()
+{
+    for (const auto& it : mapCheckpoints) {
+        // Write to disk
+        db->WriteAccChecksum(it.first.first, it.first.second, it.second);
+    }
+}
+
+void AccumulatorCache::Wipe()
+{
+    mapCheckpoints.clear();
+    db->WipeAccChecksums();
+}
