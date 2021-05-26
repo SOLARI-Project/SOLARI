@@ -21,7 +21,7 @@ uint32_t ParseAccChecksum(uint256 nCheckpoint, const libzerocoin::CoinDenominati
     return (UintToArith256(nCheckpoint) >> (32*((libzerocoin::zerocoinDenomList.size() - 1) - pos))).Get32();
 }
 
-static const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDenomination denom)
+static const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDenomination denom, int cpHeight)
 {
     // First look in the legacy database
     Optional<int> nHeightChecksum = accumulatorCache ? accumulatorCache->Get(nChecksum, denom) : nullopt;
@@ -29,22 +29,28 @@ static const CBlockIndex* FindIndexFrom(uint32_t nChecksum, libzerocoin::CoinDen
         return mapBlockIndex.at(chainActive[*nHeightChecksum]->GetBlockHash());
     }
 
-    // Not found. Scan the chain.
+    // Not found. This should never happen (during IBD we save the accumulator checksums
+    // in the cache as they are updated, and persist the cache to DB) but better to have a fallback.
+    LogPrintf("WARNING: accumulatorCache corrupt - missing (%d-%d), height=%d",
+              nChecksum, libzerocoin::ZerocoinDenominationToInt(denom), cpHeight);
+
+    // Start at the current checkpoint and go backwards
     const Consensus::Params& consensus = Params().GetConsensus();
-    CBlockIndex* pindex = chainActive[consensus.vUpgrades[Consensus::UPGRADE_ZC].nActivationHeight];
+    int zc_activation = consensus.vUpgrades[Consensus::UPGRADE_ZC].nActivationHeight;
+    // Height limits are ensured by the contextual checks in NewZPivStake
+    assert(cpHeight <= consensus.height_last_ZC_AccumCheckpoint && cpHeight > zc_activation);
+
+    CBlockIndex* pindex = chainActive[(cpHeight/10)*10 - 10];
     if (!pindex) return nullptr;
-    while (pindex && pindex->nHeight <= consensus.height_last_ZC_AccumCheckpoint) {
-        if (ParseAccChecksum(pindex->nAccumulatorCheckpoint, denom) == nChecksum) {
-            // Found. Save to cache and return
-            if (accumulatorCache) accumulatorCache->Set(nChecksum, denom, pindex->nHeight);
-            return pindex;
-        }
-        //Skip forward in groups of 10 blocks since checkpoints only change every 10 blocks
-        if (pindex->nHeight % 10 == 0) {
-            pindex = chainActive[pindex->nHeight + 10];
-            continue;
-        }
-        pindex = chainActive.Next(pindex);
+    while (ParseAccChecksum(pindex->nAccumulatorCheckpoint, denom) == nChecksum && pindex->nHeight > zc_activation) {
+        //Skip backwards in groups of 10 blocks since checkpoints only change every 10 blocks
+        pindex = chainActive[pindex->nHeight - 10];
+    }
+    if (pindex->nHeight > zc_activation) {
+        // Found. update cache.
+        CBlockIndex* pindexFrom = mapBlockIndex.at(chainActive[pindex->nHeight + 10]->GetBlockHash());
+        if (accumulatorCache) accumulatorCache->Set(nChecksum, denom, pindexFrom->nHeight);
+        return pindexFrom;
     }
     return nullptr;
 }
@@ -84,7 +90,7 @@ CLegacyZPivStake* CLegacyZPivStake::NewZPivStake(const CTxIn& txin, int nHeight)
     }
 
     // Find the pindex of the first block with the accumulator checksum
-    const CBlockIndex* _pindexFrom = FindIndexFrom(_nChecksum, _denom);
+    const CBlockIndex* _pindexFrom = FindIndexFrom(_nChecksum, _denom, cpHeight);
     if (_pindexFrom == nullptr) {
         LogPrintf("%s : Failed to find the block index for zpiv stake origin", __func__);
         return nullptr;
