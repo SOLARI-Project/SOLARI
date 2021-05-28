@@ -2221,6 +2221,24 @@ QComboBox[cssClass="btn-combo-small"]::down-arrow {
     height: 15px;
 }
 
+QComboBox[cssClass="btn-filter"] {
+    background-image: url("://ic-filter");
+    background-position:right center;
+    background-repeat:no-repeat;
+    background-color:#0f0b16;
+    padding:10px 10px 10px 10px;
+    border:1px solid #0f0b16;
+    font-size:16px;
+    color: #B3FFFFFF;
+    text-align: right;
+}
+
+QComboBox[cssClass="btn-filter"]::down-arrow {
+    image: url(noimg);
+    width: 24px;
+    height: 24px;
+}
+
 QComboBox[cssClass="btn-combo-edit"] {
     background-color:#0f0b16;
     padding:10px 20px 10px 10px;
