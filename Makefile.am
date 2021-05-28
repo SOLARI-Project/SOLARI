@@ -247,7 +247,8 @@ dist_noinst_SCRIPTS = autogen.sh
 EXTRA_DIST = $(DIST_SHARE) $(DIST_CONTRIB) $(DIST_DOCS) $(DIST_CARGO) $(WINDOWS_PACKAGING) $(LINUX_PACKAGING) $(OSX_PACKAGING) $(BIN_CHECKS)
 
 EXTRA_DIST += \
-    test/functional
+    test/functional \
+    test/fuzz
 
 EXTRA_DIST += \
     test/util/bitcoin-util-test.py \

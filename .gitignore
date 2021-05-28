@@ -13,7 +13,29 @@ src/pivx-cli
 src/pivx-tx
 src/bench/bench_pivx
 src/test/test_pivx
+src/test/test_pivx_fuzzy
 src/qt/test/test_pivx-qt
+src/test/fuzz/address_deserialize
+src/test/fuzz/addrman_deserialize
+src/test/fuzz/banentry_deserialize
+src/test/fuzz/block_deserialize
+src/test/fuzz/blockheader_deserialize
+src/test/fuzz/blocklocator_deserialize
+src/test/fuzz/blockmerkleroot
+src/test/fuzz/blockundo_deserialize
+src/test/fuzz/bloomfilter_deserialize
+src/test/fuzz/coins_deserialize
+src/test/fuzz/diskblockindex_deserialize
+src/test/fuzz/inv_deserialize
+src/test/fuzz/messageheader_deserialize
+src/test/fuzz/netaddr_deserialize
+src/test/fuzz/service_deserialize
+src/test/fuzz/transaction_deserialize
+src/test/fuzz/txoutcompressor_deserialize
+src/test/fuzz/txundo_deserialize
+src/test/fuzz/transaction
+src/test/fuzz/*deserialize
+
 
 # autoreconf
 Makefile.in
