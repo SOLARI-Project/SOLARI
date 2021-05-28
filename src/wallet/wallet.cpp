@@ -2465,9 +2465,10 @@ void CWallet::GetAvailableP2CSCoins(std::vector<COutput>& vCoins) const {
 /**
  * Test if the transaction is spendable.
  */
-static bool CheckTXAvailabilityInternal(const CWalletTx* pcoin, bool fOnlySafe, int& nDepth)
+static bool CheckTXAvailabilityInternal(const CWalletTx* pcoin, bool fOnlySafe, int& nDepth, bool& safeTx)
 {
-    if (fOnlySafe && !pcoin->IsTrusted()) return false;
+    safeTx = pcoin->IsTrusted();
+    if (fOnlySafe && !safeTx) return false;
     if (pcoin->GetBlocksToMaturity() > 0) return false;
 
     nDepth = pcoin->GetDepthInMainChain();
@@ -2480,22 +2481,23 @@ static bool CheckTXAvailabilityInternal(const CWalletTx* pcoin, bool fOnlySafe, 
 }
 
 // cs_main lock required
-static bool CheckTXAvailability(const CWalletTx* pcoin, bool fOnlySafe, int& nDepth)
+static bool CheckTXAvailability(const CWalletTx* pcoin, bool fOnlySafe, int& nDepth, bool& safeTx)
 {
     AssertLockHeld(cs_main);
     if (!CheckFinalTx(pcoin->tx)) return false;
-    return CheckTXAvailabilityInternal(pcoin, fOnlySafe, nDepth);
+    return CheckTXAvailabilityInternal(pcoin, fOnlySafe, nDepth, safeTx);
 }
 
 // cs_main lock NOT required
 static bool CheckTXAvailability(const CWalletTx* pcoin,
                          bool fOnlySafe,
                          int& nDepth,
+                         bool& safeTx,
                          int nBlockHeight)
 {
     // Mimic CheckFinalTx without cs_main lock
     if (!IsFinalTx(pcoin->tx, nBlockHeight + 1, GetAdjustedTime())) return false;
-    return CheckTXAvailabilityInternal(pcoin, fOnlySafe, nDepth);
+    return CheckTXAvailabilityInternal(pcoin, fOnlySafe, nDepth, safeTx);
 }
 
 bool CWallet::GetMasternodeVinAndKeys(CTxIn& txinRet, CPubKey& pubKeyRet, CKey& keyRet, std::string strTxHash, std::string strOutputIndex, std::string& strError)
@@ -2539,10 +2541,11 @@ bool CWallet::GetMasternodeVinAndKeys(CTxIn& txinRet, CPubKey& pubKeyRet, CKey& 
     }
 
     int nDepth = 0;
+    bool safeTx = false;
     {
         LOCK(cs_wallet);
         // Check availability
-        if (!CheckTXAvailability(wtx, true, nDepth, m_last_block_processed_height)) {
+        if (!CheckTXAvailability(wtx, true, nDepth, safeTx, m_last_block_processed_height)) {
             strError = "Not available collateral transaction";
             return error("%s: tx %s not available", __func__, strTxHash);
         }
@@ -2640,14 +2643,13 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
             const CWalletTx* pcoin = &(*it).second;
 
             // Check if the tx is selectable
-            int nDepth;
-            if (!CheckTXAvailability(pcoin, coinsFilter.fOnlySafe, nDepth, m_last_block_processed_height))
+            int nDepth = 0;
+            bool safeTx = false;
+            if (!CheckTXAvailability(pcoin, coinsFilter.fOnlySafe, nDepth, safeTx, m_last_block_processed_height))
                 continue;
 
             // Check min depth filtering requirements
             if (nDepth < coinsFilter.minDepth) continue;
-
-            bool safeTx = pcoin->IsTrusted();
 
             for (unsigned int i = 0; i < pcoin->tx->vout.size(); i++) {
                 const auto& output = pcoin->tx->vout[i];
@@ -2789,8 +2791,9 @@ bool CWallet::StakeableCoins(std::vector<CStakeableOutput>* pCoins)
         const CWalletTx* pcoin = &(it).second;
 
         // Check if the tx is selectable
-        int nDepth;
-        if (!CheckTXAvailability(pcoin, true, nDepth))
+        int nDepth = 0;
+        bool safeTx = false;
+        if (!CheckTXAvailability(pcoin, true, nDepth, safeTx))
             continue;
 
         // Check min depth requirement for stake inputs
