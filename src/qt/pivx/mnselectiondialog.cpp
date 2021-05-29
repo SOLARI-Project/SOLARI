@@ -141,8 +141,6 @@ void MnSelectionDialog::appendItem(QFlags<Qt::ItemFlag> flgCheckbox,
 
     if (mnStatus != "ENABLED") {
         itemOutput->setDisabled(true);
-        // TODO: add disable icon.
-        //itemOutput->setIcon(COLUMN_CHECKBOX, QIcon(":/icons/check_disabled"));
     }
 }
 
