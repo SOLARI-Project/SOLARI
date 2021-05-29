@@ -19,6 +19,7 @@
 #include "script/sign.h"
 #include "spork.h"
 #include "validation.h"
+#include "validationinterface.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -198,7 +199,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     CreateAndProcessBlock({}, coinbaseKey);
     chainTip = chainActive.Tip();
     BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
-    deterministicMNManager->UpdatedBlockTip(chainTip);
 
     // force mnsync complete and enable spork 8
     masternodeSync.RequestedMasternodeAssets = MASTERNODE_SYNC_FINISHED;
@@ -240,8 +240,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock({tx}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
-
-        deterministicMNManager->UpdatedBlockTip(chainTip);
+        SyncWithValidationInterfaceQueue();
         BOOST_CHECK(deterministicMNManager->GetListAtChainTip().HasMN(txid));
 
         // Add change to the utxos map
@@ -260,10 +259,10 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     // Mine 20 blocks, checking MN reward payments
     std::map<uint256, int> mapPayments;
     for (size_t i = 0; i < 20; i++) {
+        SyncWithValidationInterfaceQueue();
         auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
         CBlock block = CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
-        deterministicMNManager->UpdatedBlockTip(chainTip);
         BOOST_ASSERT(!block.vtx.empty());
         BOOST_CHECK(IsMNPayeeInBlock(block, dmnExpectedPayee->pdmnState->scriptPayout));
         mapPayments[dmnExpectedPayee->proTxHash]++;
@@ -364,8 +363,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock(txns, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
-
-        deterministicMNManager->UpdatedBlockTip(chainTip);
+        SyncWithValidationInterfaceQueue();
         auto mnList = deterministicMNManager->GetListAtChainTip();
         for (size_t j = 0; j < 3; j++) {
             BOOST_CHECK(mnList.HasMN(txns[j].GetHash()));
@@ -377,10 +375,10 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     // Mine 30 blocks, checking MN reward payments
     mapPayments.clear();
     for (size_t i = 0; i < 30; i++) {
+        SyncWithValidationInterfaceQueue();
         auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
         CBlock block = CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
-        deterministicMNManager->UpdatedBlockTip(chainTip);
         BOOST_ASSERT(!block.vtx.empty());
         BOOST_CHECK(IsMNPayeeInBlock(block, dmnExpectedPayee->pdmnState->scriptPayout));
         mapPayments[dmnExpectedPayee->proTxHash]++;
