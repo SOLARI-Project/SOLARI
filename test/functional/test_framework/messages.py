@@ -305,6 +305,9 @@ class COutPoint():
     def __repr__(self):
         return "COutPoint(hash=%064x n=%i)" % (self.hash, self.n)
 
+    def to_json(self):
+        return {"txid": "%064x" % self.hash, "vout": self.n}
+
 NullOutPoint = COutPoint(0, 0xffffffff)
 
 class CTxIn():

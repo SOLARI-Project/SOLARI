@@ -70,4 +70,8 @@ public:
 
 bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
 
+// If tx is a ProRegTx, return the collateral outpoint in outRet.
+bool GetProRegCollateral(const CTransactionRef& tx, COutPoint& outRet);
+
+
 #endif  //PIVX_PROVIDERTX_H

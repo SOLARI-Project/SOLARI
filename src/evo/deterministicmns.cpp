@@ -7,6 +7,7 @@
 
 #include "base58.h"
 #include "chainparams.h"
+#include "consensus/upgrades.h"
 #include "core_io.h"
 #include "evo/specialtx.h"
 #include "guiinterface.h"
@@ -762,6 +763,7 @@ CDeterministicMNList CDeterministicMNManager::GetListForBlock(const CBlockIndex*
 {
     LOCK(cs);
 
+    // Return early before enforcement
     if (!IsDIP3Enforced(pindex->nHeight)) {
         return {};
     }
@@ -792,7 +794,13 @@ CDeterministicMNList CDeterministicMNManager::GetListForBlock(const CBlockIndex*
 
         CDeterministicMNListDiff diff;
         if (!evoDb.Read(std::make_pair(DB_LIST_DIFF, pindex->GetBlockHash()), diff)) {
-            // no snapshot and no diff on disk means that it's the initial snapshot
+            // no snapshot and no diff on disk means that it's initial snapshot (empty list)
+            // If we get here, then this must be the block before the enforcement of DIP3.
+            if (!IsActivationHeight(pindex->nHeight + 1, Params().GetConsensus(), Consensus::UPGRADE_V6_0)) {
+                std::string err = strprintf("No masternode list data found for block %s at height %d. "
+                                            "Possible corrupt database.", pindex->GetBlockHash().ToString(), pindex->nHeight);
+                throw std::runtime_error(err);
+            }
             snapshot = CDeterministicMNList(pindex->GetBlockHash(), -1, 0);
             mnListsCache.emplace(pindex->GetBlockHash(), snapshot);
             break;

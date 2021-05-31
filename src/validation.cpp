@@ -1717,6 +1717,15 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                          REJECT_INVALID, "bad-blk-amount");
     }
 
+    // Masternode/Budget payments
+    // !TODO: after transition to DMN is complete, check this also during IBD
+    if (!fInitialBlockDownload) {
+        if (!IsBlockPayeeValid(block, pindex->pprev)) {
+            mapRejectedBlocks.emplace(block.GetHash(), GetTime());
+            return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee", false, "Couldn't find masternode/budget payment");
+        }
+    }
+
     // For blocks v10+: Check that the coinbase pays the exact amount
     if (isPoSActive && pindex->nVersion >= 10 && !IsCoinbaseValueValid(block.vtx[0], nBudgetAmt, state)) {
         // pass the state returned by the function above
@@ -2834,12 +2843,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
             // set Cold Staking Spork
             fColdStakingActive = !sporkManager.IsSporkActive(SPORK_19_COLDSTAKING_MAINTENANCE);
 
-            // check masternode/budget payment
-            // !TODO: after transition to DMN is complete, check this also during IBD
-            if (!IsBlockPayeeValid(block, pindexPrev)) {
-                mapRejectedBlocks.emplace(block.GetHash(), GetTime());
-                return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee", false, "Couldn't find masternode/budget payment");
-            }
         } else {
             LogPrintf("%s: Masternode/Budget payment checks skipped on sync\n", __func__);
         }
@@ -3743,6 +3746,13 @@ static bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs,
         // Pass check = true as every addition may be an overwrite.
         AddCoins(inputs, *tx, pindex->nHeight, true, fSkipInvalid);
     }
+
+    CValidationState state;
+    if (!ProcessSpecialTxsInBlock(block, pindex, state, false /*fJustCheck*/)) {
+        return error("%s: Special tx processing failed for block %s with %s",
+                     __func__, pindex->GetBlockHash().ToString(), FormatStateMessage(state));
+    }
+
     return true;
 }
 

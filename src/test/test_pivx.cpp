@@ -11,6 +11,7 @@
 #include "guiinterface.h"
 #include "evo/deterministicmns.h"
 #include "evo/evodb.h"
+#include "evo/evonotificationinterface.h"
 #include "miner.h"
 #include "net_processing.h"
 #include "rpc/server.h"
@@ -81,6 +82,12 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         // our unit tests aren't testing multiple parts of the code at once.
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
 
+        // Register EvoNotificationInterface
+        g_connman = std::unique_ptr<CConnman>(new CConnman(0x1337, 0x1337)); // Deterministic randomness for tests.
+        connman = g_connman.get();
+        pEvoNotificationInterface = new EvoNotificationInterface(*connman);
+        RegisterValidationInterface(pEvoNotificationInterface);
+
         // Ideally we'd move all the RPC tests to the functional testing framework
         // instead of unit tests, but for now we need these here.
         RegisterAllCoreRPCCommands(tableRPC);
@@ -100,8 +107,6 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         nScriptCheckThreads = 3;
         for (int i=0; i < nScriptCheckThreads-1; i++)
             threadGroup.create_thread(&ThreadScriptCheck);
-        g_connman = std::unique_ptr<CConnman>(new CConnman(0x1337, 0x1337)); // Deterministic randomness for tests.
-        connman = g_connman.get();
         RegisterNodeSignals(GetNodeSignals());
 }
 
@@ -114,6 +119,7 @@ TestingSetup::~TestingSetup()
         UnregisterAllValidationInterfaces();
         GetMainSignals().UnregisterBackgroundSignalScheduler();
         UnloadBlockIndex();
+        delete pEvoNotificationInterface;
         delete pcoinsTip;
         delete pcoinsdbview;
         delete pblocktree;

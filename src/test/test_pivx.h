@@ -50,11 +50,13 @@ private:
  * and wallet (if enabled) setup.
  */
 class CConnman;
+class EvoNotificationInterface;
 struct TestingSetup: public BasicTestingSetup
 {
     CCoinsViewDB *pcoinsdbview;
     boost::thread_group threadGroup;
     CConnman* connman;
+    EvoNotificationInterface* pEvoNotificationInterface;
     CScheduler scheduler;
 
     TestingSetup(const std::string& chainName = CBaseChainParams::MAIN);

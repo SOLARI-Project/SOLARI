@@ -246,3 +246,20 @@ void ProRegPL::ToJson(UniValue& obj) const
     obj.pushKV("operatorReward", (double)nOperatorReward / 100);
     obj.pushKV("inputsHash", inputsHash.ToString());
 }
+
+bool GetProRegCollateral(const CTransactionRef& tx, COutPoint& outRet)
+{
+    if (tx == nullptr) {
+        return false;
+    }
+    if (!tx->IsSpecialTx() || tx->nType != CTransaction::TxType::PROREG) {
+        return false;
+    }
+    ProRegPL pl;
+    if (!GetTxPayload(*tx, pl)) {
+        return false;
+    }
+    outRet = pl.collateralOutpoint.hash.IsNull() ? COutPoint(tx->GetHash(), pl.collateralOutpoint.n)
+                                                 : pl.collateralOutpoint;
+    return true;
+}

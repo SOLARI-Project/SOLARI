@@ -583,9 +583,8 @@ def get_coinstake_address(node, expected_utxos=None):
     return addrs[0]
 
 # Deterministic masternodes
-
-def lock_utxo(node, outpoint):
-    node.lockunspent(False, [{"txid": "%064x" % outpoint.hash, "vout": outpoint.n}])
+def is_coin_locked_by(node, outpoint):
+    return outpoint.to_json() in node.listlockunspent()
 
 def get_collateral_vout(json_tx):
     funding_txidn = -1
@@ -599,7 +598,8 @@ def get_collateral_vout(json_tx):
 # owner and voting keys are created from controller node.
 # operator key and address are created, if operator_addr_and_key is None.
 def create_new_dmn(idx, controller, payout_addr, operator_addr_and_key):
-    ipport = "127.0.0.1:" + str(p2p_port(idx))
+    port = p2p_port(idx) if idx <= MAX_NODES else p2p_port(MAX_NODES) + (idx - MAX_NODES)
+    ipport = "127.0.0.1:" + str(port)
     owner_addr = controller.getnewaddress("mnowner-%d" % idx)
     voting_addr = controller.getnewaddress("mnvoting-%d" % idx)
     if operator_addr_and_key is None:
@@ -611,7 +611,7 @@ def create_new_dmn(idx, controller, payout_addr, operator_addr_and_key):
     return messages.Masternode(idx, owner_addr, operator_addr, voting_addr, ipport, payout_addr, operator_key)
 
 def spend_mn_collateral(spender, dmn):
-    inputs = [{"txid": "%064x" % dmn.collateral.hash, "vout": dmn.collateral.n}]
+    inputs = [dmn.collateral.to_json()]
     outputs = {spender.getnewaddress(): Decimal('99.99')}
     sig_res = spender.signrawtransaction(spender.createrawtransaction(inputs, outputs))
     assert_equal(sig_res['complete'], True)

@@ -19,6 +19,7 @@
 #include "script/sign.h"
 #include "spork.h"
 #include "validation.h"
+#include "validationinterface.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -192,13 +193,20 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
 
     CBlockIndex* chainTip = chainActive.Tip();
     int nHeight = chainTip->nHeight;
-    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, nHeight);
+    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, nHeight + 2);
+
+    // load empty list (last block before enforcement)
+    CreateAndProcessBlock({}, coinbaseKey);
+    chainTip = chainActive.Tip();
+    BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+
+    // force mnsync complete and enable spork 8
     masternodeSync.RequestedMasternodeAssets = MASTERNODE_SYNC_FINISHED;
-    // enable SPORK_8
     int64_t nTime = GetTime() - 10;
     const CSporkMessage& sporkMnPayment = CSporkMessage(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT, nTime + 1, nTime);
     sporkManager.AddOrUpdateSporkMessage(sporkMnPayment);
     BOOST_CHECK(sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT));
+
     int port = 1;
 
     std::vector<uint256> dmnHashes;
@@ -232,8 +240,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock({tx}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
-
-        deterministicMNManager->UpdatedBlockTip(chainTip);
+        SyncWithValidationInterfaceQueue();
         BOOST_CHECK(deterministicMNManager->GetListAtChainTip().HasMN(txid));
 
         // Add change to the utxos map
@@ -252,10 +259,10 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     // Mine 20 blocks, checking MN reward payments
     std::map<uint256, int> mapPayments;
     for (size_t i = 0; i < 20; i++) {
+        SyncWithValidationInterfaceQueue();
         auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
         CBlock block = CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
-        deterministicMNManager->UpdatedBlockTip(chainTip);
         BOOST_ASSERT(!block.vtx.empty());
         BOOST_CHECK(IsMNPayeeInBlock(block, dmnExpectedPayee->pdmnState->scriptPayout));
         mapPayments[dmnExpectedPayee->proTxHash]++;
@@ -356,8 +363,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock(txns, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
-
-        deterministicMNManager->UpdatedBlockTip(chainTip);
+        SyncWithValidationInterfaceQueue();
         auto mnList = deterministicMNManager->GetListAtChainTip();
         for (size_t j = 0; j < 3; j++) {
             BOOST_CHECK(mnList.HasMN(txns[j].GetHash()));
@@ -369,10 +375,10 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     // Mine 30 blocks, checking MN reward payments
     mapPayments.clear();
     for (size_t i = 0; i < 30; i++) {
+        SyncWithValidationInterfaceQueue();
         auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
         CBlock block = CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
-        deterministicMNManager->UpdatedBlockTip(chainTip);
         BOOST_ASSERT(!block.vtx.empty());
         BOOST_CHECK(IsMNPayeeInBlock(block, dmnExpectedPayee->pdmnState->scriptPayout));
         mapPayments[dmnExpectedPayee->proTxHash]++;
@@ -403,8 +409,11 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     pblock->vtx[0] = MakeTransactionRef(invalidCoinbaseTx);
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     CValidationState state;
-    BOOST_CHECK_MESSAGE(!ProcessNewBlock(state, nullptr, pblock, nullptr), "Error, invalid block paying to an already paid DMN passed");
-    BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Height()) == nHeight); // no block connected
+    ProcessNewBlock(state, nullptr, pblock, nullptr);
+    // block not connected
+    chainTip = WITH_LOCK(cs_main, return chainActive.Tip());
+    BOOST_CHECK(chainTip->nHeight == nHeight);
+    BOOST_CHECK(chainTip->GetBlockHash() != pblock->GetHash());
 
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT);
 }

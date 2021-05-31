@@ -170,6 +170,12 @@ void CMasternodeSync::RequestDataTo(CNode* pnode, const char* msg, bool forceReq
 
 void CMasternodeSync::SyncRegtest(CNode* pnode)
 {
+    // skip mn list and winners sync if legacy mn are obsolete
+    if (deterministicMNManager->LegacyMNObsolete() &&
+            (RequestedMasternodeAssets == MASTERNODE_SYNC_LIST || RequestedMasternodeAssets == MASTERNODE_SYNC_MNW)) {
+        RequestedMasternodeAssets = MASTERNODE_SYNC_BUDGET;
+    }
+
     // Initial sync, verify that the other peer answered to all of the messages successfully
     if (RequestedMasternodeAssets == MASTERNODE_SYNC_SPORKS) {
         RequestDataTo(pnode, NetMsgType::GETSPORKS, false);
