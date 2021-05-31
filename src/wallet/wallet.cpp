@@ -2576,7 +2576,6 @@ CWallet::OutputAvailabilityResult CWallet::CheckOutputAvailability(
         const CTxOut& output,
         const unsigned int outIndex,
         const uint256& wtxid,
-        AvailableCoinsType nCoinType,
         const CCoinControl* coinControl,
         const bool fCoinsSelected,
         const bool fIncludeColdStaking,
@@ -2584,12 +2583,6 @@ CWallet::OutputAvailabilityResult CWallet::CheckOutputAvailability(
         const bool fIncludeLocked) const
 {
     OutputAvailabilityResult res;
-
-    // Check for only 10k utxo
-    if (nCoinType == ONLY_10000 && output.nValue != Params().GetConsensus().nMNCollateralAmt) return res;
-
-    // Check for stakeable utxo
-    if (nCoinType == STAKEABLE_COINS && output.IsZerocoinMint()) return res;
 
     // Check if the utxo was spent.
     if (IsSpent(wtxid, outIndex)) return res;
@@ -2600,7 +2593,7 @@ CWallet::OutputAvailabilityResult CWallet::CheckOutputAvailability(
     if (mine == ISMINE_NO) return res;
 
     // Skip locked utxo
-    if (!fIncludeLocked && IsLockedCoin(wtxid, outIndex) && nCoinType != ONLY_10000) return res;
+    if (!fIncludeLocked && IsLockedCoin(wtxid, outIndex)) return res;
 
     // Check if we should include zero value utxo
     if (output.nValue <= 0) return res;
@@ -2649,9 +2642,6 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
             if (!CheckTXAvailability(pcoin, coinsFilter.fOnlyConfirmed, nDepth, m_last_block_processed_height))
                 continue;
 
-            // Check min depth requirement for stake inputs
-            if (coinsFilter.nCoinType == STAKEABLE_COINS && nDepth < Params().GetConsensus().nStakeMinDepth) continue;
-
             // Check min depth filtering requirements
             if (nDepth < coinsFilter.minDepth) continue;
 
@@ -2679,7 +2669,6 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
                         output,
                         i,
                         wtxid,
-                        coinsFilter.nCoinType,
                         coinControl,
                         fCoinsSelected,
                         coinsFilter.fIncludeColdStaking,
@@ -2810,7 +2799,6 @@ bool CWallet::StakeableCoins(std::vector<CStakeableOutput>* pCoins)
                     pcoin->tx->vout[index],
                     index,
                     wtxid,
-                    STAKEABLE_COINS,
                     nullptr, // coin control
                     false,   // fIncludeDelegated
                     fIncludeColdStaking,
@@ -2985,7 +2973,7 @@ bool CWallet::CreateBudgetFeeTX(CTransactionRef& tx, const uint256& hash, CReser
 
     CCoinControl* coinControl = nullptr;
     int nChangePosInOut = -1;
-    bool success = CreateTransaction(vecSend, tx, keyChange, nFeeRet, nChangePosInOut, strFail, coinControl, ALL_COINS, true, (CAmount)0);
+    bool success = CreateTransaction(vecSend, tx, keyChange, nFeeRet, nChangePosInOut, strFail, coinControl, true, (CAmount)0);
     if (!success) {
         LogPrintf("%s: Error - %s\n", __func__, strFail);
         return false;
@@ -3023,7 +3011,7 @@ bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, bool ov
 
     CReserveKey reservekey(this);
     CTransactionRef wtx;
-    if (!CreateTransaction(vecSend, wtx, reservekey, nFeeRet, nChangePosInOut, strFailReason, &coinControl, ALL_COINS, false, 0, false, nullptr, nExtraSize)) {
+    if (!CreateTransaction(vecSend, wtx, reservekey, nFeeRet, nChangePosInOut, strFailReason, &coinControl, false, 0, false, nullptr, nExtraSize)) {
         return false;
     }
 
@@ -3052,7 +3040,6 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
     int& nChangePosInOut,
     std::string& strFailReason,
     const CCoinControl* coinControl,
-    AvailableCoinsType coin_type,
     bool sign,
     CAmount nFeePay,
     bool fIncludeDelegated,
@@ -3080,7 +3067,6 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
     CWallet::AvailableCoinsFilter coinFilter;
     coinFilter.fOnlySpendable = true;
     coinFilter.fIncludeDelegated = fIncludeDelegated;
-    coinFilter.nCoinType = coin_type;
 
     {
         std::set<std::pair<const CWalletTx*,unsigned int> > setCoins;
@@ -3112,9 +3098,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
                 setCoins.clear();
 
                 if (!SelectCoinsToSpend(vAvailableCoins, nTotalValue, setCoins, nValueIn, coinControl)) {
-                    if (coin_type == ALL_COINS) {
-                        strFailReason = _("Insufficient funds.");
-                    }
+                    strFailReason = _("Insufficient funds.");
                     return false;
                 }
 
@@ -3281,12 +3265,12 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
     return true;
 }
 
-bool CWallet::CreateTransaction(CScript scriptPubKey, const CAmount& nValue, CTransactionRef& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl, AvailableCoinsType coin_type, CAmount nFeePay, bool fIncludeDelegated)
+bool CWallet::CreateTransaction(CScript scriptPubKey, const CAmount& nValue, CTransactionRef& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl, CAmount nFeePay, bool fIncludeDelegated)
 {
     std::vector<CRecipient> vecSend;
     vecSend.emplace_back(scriptPubKey, nValue, false);
     int nChangePosInOut = -1;
-    return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coinControl, coin_type, true, nFeePay, fIncludeDelegated);
+    return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coinControl, true, nFeePay, fIncludeDelegated);
 }
 
 bool CWallet::CreateCoinStake(
@@ -4134,7 +4118,7 @@ void CWallet::AutoCombineDust(CConnman* connman)
         {
             // For now, CreateTransaction requires cs_main lock.
             LOCK2(cs_main, cs_wallet);
-            if (!CreateTransaction(vecSend, wtx, keyChange, nFeeRet, nChangePosInOut, strErr, coinControl, ALL_COINS,
+            if (!CreateTransaction(vecSend, wtx, keyChange, nFeeRet, nChangePosInOut, strErr, coinControl,
                                    true, false, CAmount(0))) {
                 LogPrintf("AutoCombineDust createtransaction failed, reason: %s\n", strErr);
                 continue;

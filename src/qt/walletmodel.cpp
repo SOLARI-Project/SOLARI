@@ -518,7 +518,6 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
                                                   nChangePosInOut,
                                                   strFailReason,
                                                   coinControl,
-                                                  ALL_COINS,
                                                   true,
                                                   0,
                                                   fIncludeDelegations,
@@ -1002,7 +1001,9 @@ bool WalletModel::getMNCollateralCandidate(COutPoint& outPoint)
 {
     CWallet::AvailableCoinsFilter coinsFilter;
     coinsFilter.fIncludeDelegated = false;
-    coinsFilter.nCoinType = ONLY_10000;
+    coinsFilter.nMaxOutValue = Params().GetConsensus().nMNCollateralAmt;
+    coinsFilter.nMinOutValue = coinsFilter.nMaxOutValue;
+    coinsFilter.fIncludeLocked = true;
     std::vector<COutput> vCoins;
     wallet->AvailableCoins(&vCoins, nullptr, coinsFilter);
     for (const COutput& out : vCoins) {
