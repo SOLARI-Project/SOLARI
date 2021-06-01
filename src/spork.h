@@ -63,17 +63,7 @@ public:
 
     void Relay();
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(nSporkID);
-        READWRITE(nValue);
-        READWRITE(nTimeSigned);
-        READWRITE(vchSig);
-        READWRITE(nMessVersion);
-    }
+    SERIALIZE_METHODS(CSporkMessage, obj) { READWRITE(obj.nSporkID, obj.nValue, obj.nTimeSigned, obj.vchSig, obj.nMessVersion); }
 };
 
 

@@ -185,17 +185,7 @@ public:
         payee = payeeIn;
     }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(vinMasternode);
-        READWRITE(nBlockHeight);
-        READWRITE(payee);
-        READWRITE(vchSig);
-        READWRITE(nMessVersion);
-    }
+    SERIALIZE_METHODS(CMasternodePaymentWinner, obj) { READWRITE(obj.vinMasternode, obj.nBlockHeight, obj.payee, obj.vchSig, obj.nMessVersion); }
 
     std::string ToString()
     {

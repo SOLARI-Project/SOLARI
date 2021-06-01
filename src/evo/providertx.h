@@ -38,25 +38,23 @@ public:
     std::vector<unsigned char> vchSig;
 
 public:
-    ADD_SERIALIZE_METHODS;
 
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(ProRegPL, obj)
     {
-        READWRITE(nVersion);
-        READWRITE(nType);
-        READWRITE(nMode);
-        READWRITE(collateralOutpoint);
-        READWRITE(addr);
-        READWRITE(keyIDOwner);
-        READWRITE(keyIDOperator);
-        READWRITE(keyIDVoting);
-        READWRITE(scriptPayout);
-        READWRITE(nOperatorReward);
-        READWRITE(scriptOperatorPayout);
-        READWRITE(inputsHash);
+        READWRITE(obj.nVersion);
+        READWRITE(obj.nType);
+        READWRITE(obj.nMode);
+        READWRITE(obj.collateralOutpoint);
+        READWRITE(obj.addr);
+        READWRITE(obj.keyIDOwner);
+        READWRITE(obj.keyIDOperator);
+        READWRITE(obj.keyIDVoting);
+        READWRITE(obj.scriptPayout);
+        READWRITE(obj.nOperatorReward);
+        READWRITE(obj.scriptOperatorPayout);
+        READWRITE(obj.inputsHash);
         if (!(s.GetType() & SER_GETHASH)) {
-            READWRITE(vchSig);
+            READWRITE(obj.vchSig);
         }
     }
 
@@ -82,18 +80,11 @@ public:
     std::vector<unsigned char> vchSig;
 
 public:
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(ProUpServPL, obj)
     {
-        READWRITE(nVersion);
-        READWRITE(proTxHash);
-        READWRITE(addr);
-        READWRITE(scriptOperatorPayout);
-        READWRITE(inputsHash);
+        READWRITE(obj.nVersion, obj.proTxHash, obj.addr, obj.scriptOperatorPayout, obj.inputsHash);
         if (!(s.GetType() & SER_GETHASH)) {
-            READWRITE(vchSig);
+            READWRITE(obj.vchSig);
         }
     }
 

@@ -48,17 +48,7 @@ public:
     CMasternodePing();
     CMasternodePing(const CTxIn& newVin, const uint256& nBlockHash, uint64_t _sigTime);
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(vin);
-        READWRITE(blockHash);
-        READWRITE(sigTime);
-        READWRITE(vchSig);
-        READWRITE(nMessVersion);
-    }
+    SERIALIZE_METHODS(CMasternodePing, obj) { READWRITE(obj.vin, obj.blockHash, obj.sigTime, obj.vchSig, obj.nMessVersion); }
 
     uint256 GetHash() const;
 
@@ -153,23 +143,12 @@ public:
 
     arith_uint256 CalculateScore(const uint256& hash) const;
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CMasternode, obj)
     {
-        LOCK(cs);
-
-        READWRITE(vin);
-        READWRITE(addr);
-        READWRITE(pubKeyCollateralAddress);
-        READWRITE(pubKeyMasternode);
-        READWRITE(vchSig);
-        READWRITE(sigTime);
-        READWRITE(protocolVersion);
-        READWRITE(lastPing);
-        READWRITE(nScanningErrorCount);
-        READWRITE(nLastScanningErrorBlockHeight);
+        LOCK(obj.cs);
+        READWRITE(obj.vin, obj.addr, obj.pubKeyCollateralAddress);
+        READWRITE(obj.pubKeyMasternode, obj.vchSig, obj.sigTime, obj.protocolVersion);
+        READWRITE(obj.lastPing, obj.nScanningErrorCount, obj.nLastScanningErrorBlockHeight);
     }
 
     template <typename Stream>

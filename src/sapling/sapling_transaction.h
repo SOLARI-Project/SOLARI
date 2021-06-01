@@ -52,17 +52,7 @@ public:
 
     SpendDescription() {}
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(cv);
-        READWRITE(anchor);
-        READWRITE(nullifier);
-        READWRITE(rk);
-        READWRITE(zkproof);
-        READWRITE(spendAuthSig);
-    }
+    SERIALIZE_METHODS(SpendDescription, obj) { READWRITE(obj.cv, obj.anchor, obj.nullifier, obj.rk, obj.zkproof, obj.spendAuthSig); }
 
     friend bool operator==(const SpendDescription& a, const SpendDescription& b)
     {
@@ -97,17 +87,7 @@ public:
 
     OutputDescription() {}
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(cv);
-        READWRITE(cmu);
-        READWRITE(ephemeralKey);
-        READWRITE(encCiphertext);
-        READWRITE(outCiphertext);
-        READWRITE(zkproof);
-    }
+    SERIALIZE_METHODS(OutputDescription, obj) { READWRITE(obj.cv, obj.cmu, obj.ephemeralKey, obj.encCiphertext, obj.outCiphertext, obj.zkproof); }
 
     friend bool operator==(const OutputDescription& a, const OutputDescription& b)
     {
