@@ -281,20 +281,17 @@ public:
     bool Sign(const std::string strSignKey);
     bool CheckSignature() const;
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CMasternodeBroadcast, obj)
     {
-        READWRITE(vin);
-        READWRITE(addr);
-        READWRITE(pubKeyCollateralAddress);
-        READWRITE(pubKeyMasternode);
-        READWRITE(vchSig);
-        READWRITE(sigTime);
-        READWRITE(protocolVersion);
-        READWRITE(lastPing);
-        READWRITE(nMessVersion);
+        READWRITE(obj.vin);
+        READWRITE(obj.addr);
+        READWRITE(obj.pubKeyCollateralAddress);
+        READWRITE(obj.pubKeyMasternode);
+        READWRITE(obj.vchSig);
+        READWRITE(obj.sigTime);
+        READWRITE(obj.protocolVersion);
+        READWRITE(obj.lastPing);
+        READWRITE(obj.nMessVersion);
     }
 
     /// Create Masternode broadcast, needs to be relayed manually after that

@@ -80,14 +80,7 @@ public:
         nVotes = nVotesIn;
     }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(scriptPubKey);
-        READWRITE(nVotes);
-    }
+    SERIALIZE_METHODS(CMasternodePayee, obj) { READWRITE(obj.scriptPubKey, obj.nVotes); }
 };
 
 // Keep track of votes for payees from masternodes
@@ -152,14 +145,7 @@ public:
     bool IsTransactionValid(const CTransaction& txNew);
     std::string GetRequiredPaymentsString();
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(nBlockHeight);
-        READWRITE(vecPayments);
-    }
+    SERIALIZE_METHODS(CMasternodeBlockPayees, obj) { READWRITE(obj.nBlockHeight, obj.vecPayments); }
 };
 
 // for storing the winning payments
@@ -290,14 +276,7 @@ public:
     void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const CBlockIndex* pindexPrev, bool fProofOfStake) const;
     std::string ToString() const;
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(mapMasternodePayeeVotes);
-        READWRITE(mapMasternodeBlocks);
-    }
+    SERIALIZE_METHODS(CMasternodePayments, obj) { READWRITE(obj.mapMasternodePayeeVotes, obj.mapMasternodeBlocks); }
 };
 
 

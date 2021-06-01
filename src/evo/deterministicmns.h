@@ -57,30 +57,24 @@ public:
         scriptOperatorPayout = pl.scriptOperatorPayout;
     }
     template <typename Stream>
-    CDeterministicMNState(deserialize_type, Stream& s)
-    {
-        s >> *this;
-    }
+    CDeterministicMNState(deserialize_type, Stream& s) { s >> *this; }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CDeterministicMNState, obj)
     {
-        READWRITE(nRegisteredHeight);
-        READWRITE(nLastPaidHeight);
-        READWRITE(nPoSePenalty);
-        READWRITE(nPoSeRevivedHeight);
-        READWRITE(nPoSeBanHeight);
-        READWRITE(nRevocationReason);
-        READWRITE(confirmedHash);
-        READWRITE(confirmedHashWithProRegTxHash);
-        READWRITE(keyIDOwner);
-        READWRITE(keyIDOperator);
-        READWRITE(keyIDVoting);
-        READWRITE(addr);
-        READWRITE(scriptPayout);
-        READWRITE(scriptOperatorPayout);
+        READWRITE(obj.nRegisteredHeight);
+        READWRITE(obj.nLastPaidHeight);
+        READWRITE(obj.nPoSePenalty);
+        READWRITE(obj.nPoSeRevivedHeight);
+        READWRITE(obj.nPoSeBanHeight);
+        READWRITE(obj.nRevocationReason);
+        READWRITE(obj.confirmedHash);
+        READWRITE(obj.confirmedHashWithProRegTxHash);
+        READWRITE(obj.keyIDOwner);
+        READWRITE(obj.keyIDOperator);
+        READWRITE(obj.keyIDVoting);
+        READWRITE(obj.addr);
+        READWRITE(obj.scriptPayout);
+        READWRITE(obj.scriptOperatorPayout);
     }
 
     void UpdateConfirmedHash(const uint256& _proTxHash, const uint256& _confirmedHash)
