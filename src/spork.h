@@ -72,12 +72,7 @@ public:
         READWRITE(nValue);
         READWRITE(nTimeSigned);
         READWRITE(vchSig);
-        try
-        {
-            READWRITE(nMessVersion);
-        } catch (...) {
-            nMessVersion = MessageVersion::MESS_VER_STRMESS;
-        }
+        READWRITE(nMessVersion);
     }
 };
 

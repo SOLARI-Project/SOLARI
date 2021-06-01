@@ -55,12 +55,7 @@ public:
         READWRITE(nBudgetHash);
         READWRITE(nTime);
         READWRITE(vchSig);
-        try
-        {
-            READWRITE(nMessVersion);
-        } catch (...) {
-            nMessVersion = MessageVersion::MESS_VER_STRMESS;
-        }
+        READWRITE(nMessVersion);
     }
 };
 

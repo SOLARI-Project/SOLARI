@@ -742,9 +742,7 @@ UniValue mnbudgetrawvote(const JSONRPCRequest& request)
     vote.SetVchSig(vchSig);
 
     if (!vote.CheckSignature(pmn->pubKeyMasternode.GetID())) {
-        // try old message version
-        vote.nMessVersion = MessageVersion::MESS_VER_STRMESS;
-        if (!vote.CheckSignature(pmn->pubKeyMasternode.GetID())) return "Failure to verify signature.";
+        return "Failure to verify signature.";
     }
 
     std::string strError;

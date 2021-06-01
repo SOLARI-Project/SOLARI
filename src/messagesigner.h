@@ -12,7 +12,7 @@
 extern const std::string strMessageMagic;
 
 enum MessageVersion {
-        MESS_VER_STRMESS    = 0,
+        MESS_VER_STRMESS    = 0, // old format
         MESS_VER_HASH       = 1,
 };
 
