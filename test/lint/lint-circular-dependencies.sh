@@ -51,7 +51,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "consensus/zerocoin_verify -> spork -> validation -> consensus/zerocoin_verify"
     "evo/deterministicmns -> masternode -> masternode-sync -> evo/deterministicmns"
     "evo/deterministicmns -> masternode -> wallet/wallet -> evo/deterministicmns"
-    "evo/specialtx_validation -> llmq/quorums_commitment -> validation -> evo/specialtx_validation"
+    "evo/specialtx_validation -> llmq/quorums_blockprocessor -> validation -> evo/specialtx_validation"
     "kernel -> stakeinput -> wallet/wallet -> kernel"
     "legacy/validation_zerocoin_legacy -> wallet/wallet -> validation -> legacy/validation_zerocoin_legacy"
     "qt/askpassphrasedialog -> qt/pivx/pivxgui -> qt/pivx/topbar -> qt/askpassphrasedialog"
