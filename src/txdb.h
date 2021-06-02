@@ -142,7 +142,6 @@ public:
     bool WriteInt(const std::string& name, int nValue);
     bool ReadInt(const std::string& name, int& nValue);
     bool LoadBlockIndexGuts(std::function<CBlockIndex*(const uint256&)> insertBlockIndex);
-    bool ReadLegacyBlockIndex(const uint256& blockHash, CLegacyBlockIndex& biRet);
 };
 
 /** Zerocoin database (zerocoin/) */
