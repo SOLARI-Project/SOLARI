@@ -9,7 +9,6 @@
 
 #include "uint256.h"
 #include "chain.h"
-#include "mapport.h"
 
 #include <QObject>
 #include <QDateTime>
@@ -96,7 +95,8 @@ public:
 
     bool getTorInfo(std::string& ip_port) const;
 
-    static void mapPort(bool use_upnp, bool use_natpmp) { StartMapPort(use_upnp, use_natpmp); }
+    //! Set the automatic port mapping options
+    static void mapPort(bool use_upnp, bool use_natpmp);
 
     // Start/Stop the masternode polling timer
     void startMasternodesTimer();

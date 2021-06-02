@@ -224,6 +224,9 @@ void SettingsWidget::onSaveOptionsClicked()
         return;
     }
 
+    // Save port mapping settings
+    settingsWalletOptionsWidget->saveMapPortOptions();
+
     if (mapper->submit()) {
         OptionsModel* optionsModel = this->clientModel->getOptionsModel();
         if (optionsModel->isRestartRequired()) {

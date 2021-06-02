@@ -25,6 +25,8 @@ public:
     void discardWalletOnlyOptions();
     bool saveWalletOnlyOptions();
 
+    void saveMapPortOptions();
+
 Q_SIGNALS:
     void saveSettings();
     void discardSettings();
