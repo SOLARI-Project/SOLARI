@@ -108,16 +108,16 @@ UniValue preparebudget(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 6)
         throw std::runtime_error(
-            "preparebudget \"proposal-name\" \"url\" payment-count block-start \"pivx-address\" monthy-payment\n"
+            "preparebudget \"name\" \"url\" npayments start \"address\" monthly_payment\n"
             "\nPrepare proposal for network by signing and creating tx\n"
 
             "\nArguments:\n"
-            "1. \"proposal-name\":  (string, required) Desired proposal name (20 character limit)\n"
-            "2. \"url\":            (string, required) URL of proposal details (64 character limit)\n"
-            "3. payment-count:    (numeric, required) Total number of monthly payments\n"
-            "4. block-start:      (numeric, required) Starting super block height\n"
-            "5. \"pivx-address\":   (string, required) PIVX address to send payments to\n"
-            "6. monthly-payment:  (numeric, required) Monthly payment amount\n"
+            "1. \"name\":        (string, required) Desired proposal name (20 character limit)\n"
+            "2. \"url\":         (string, required) URL of proposal details (64 character limit)\n"
+            "3. npayments:       (numeric, required) Total number of monthly payments\n"
+            "4. start:           (numeric, required) Starting super block height\n"
+            "5. \"address\":     (string, required) PIVX address to send payments to\n"
+            "6. monthly_payment: (numeric, required) Monthly payment amount\n"
 
             "\nResult:\n"
             "\"xxxx\"       (string) proposal fee hash (if successful) or error message (if failed)\n"
@@ -171,17 +171,17 @@ UniValue submitbudget(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 7)
         throw std::runtime_error(
-            "submitbudget \"proposal-name\" \"url\" payment-count block-start \"pivx-address\" monthly-payment \"fee-tx\"\n"
+            "submitbudget \"name\" \"url\" npayments start \"address\" monthly_payment \"fee_txid\"\n"
             "\nSubmit proposal to the network\n"
 
             "\nArguments:\n"
-            "1. \"proposal-name\":  (string, required) Desired proposal name (20 character limit)\n"
-            "2. \"url\":            (string, required) URL of proposal details (64 character limit)\n"
-            "3. payment-count:    (numeric, required) Total number of monthly payments\n"
-            "4. block-start:      (numeric, required) Starting super block height\n"
-            "5. \"pivx-address\":   (string, required) PIVX address to send payments to\n"
-            "6. monthly-payment:  (numeric, required) Monthly payment amount\n"
-            "7. \"fee-tx\":         (string, required) Transaction hash from preparebudget command\n"
+            "1. \"name\":         (string, required) Desired proposal name (20 character limit)\n"
+            "2. \"url\":          (string, required) URL of proposal details (64 character limit)\n"
+            "3. npayments:        (numeric, required) Total number of monthly payments\n"
+            "4. start:            (numeric, required) Starting super block height\n"
+            "5. \"address\":      (string, required) PIVX address to send payments to\n"
+            "6. monthly_payment:  (numeric, required) Monthly payment amount\n"
+            "7. \"fee_txid\":     (string, required) Transaction hash from preparebudget command\n"
 
             "\nResult:\n"
             "\"xxxx\"       (string) proposal hash (if successful) or error message (if failed)\n"
@@ -471,13 +471,13 @@ UniValue mnbudgetvote(const JSONRPCRequest& request)
     if (request.fHelp || (request.params.size() == 3 && (strCommand != "local" && strCommand != "many")) || (request.params.size() == 4 && strCommand != "alias") ||
         request.params.size() > 5 || request.params.size() < 3)
         throw std::runtime_error(
-            "mnbudgetvote \"local|many|alias\" \"votehash\" \"yes|no\" ( \"alias\" legacy )\n"
+            "mnbudgetvote \"local|many|alias\" \"hash\" \"yes|no\" ( \"alias\" legacy )\n"
             "\nVote on a budget proposal\n"
             "\nAfter V6 enforcement, the deterministic masternode system is used by default. Set the \"legacy\" parameter to true to vote with legacy masternodes."
 
             "\nArguments:\n"
             "1. \"mode\"      (string, required) The voting mode. 'local' for voting directly from a masternode, 'many' for voting with a MN controller and casting the same vote for each MN, 'alias' for voting with a MN controller and casting a vote for a single MN\n"
-            "2. \"votehash\"  (string, required) The vote hash for the proposal\n"
+            "2. \"hash\"      (string, required) The budget proposal hash\n"
             "3. \"votecast\"  (string, required) Your vote. 'yes' to vote for the proposal, 'no' to vote against\n"
             "4. \"alias\"     (string, required for 'alias' mode) The MN alias to cast a vote for (for deterministic masternodes it's the hash of the proTx transaction).\n"
             "5. \"legacy\"    (boolean, optional, default=false) Use the legacy masternode system after deterministic masternodes enforcement.\n"
@@ -529,11 +529,11 @@ UniValue getbudgetvotes(const JSONRPCRequest& request)
 {
     if (request.params.size() != 1)
         throw std::runtime_error(
-            "getbudgetvotes \"proposal-name\"\n"
+            "getbudgetvotes \"name\"\n"
             "\nPrint vote information for a budget proposal\n"
 
             "\nArguments:\n"
-            "1. \"proposal-name\":      (string, required) Name of the proposal\n"
+            "1. \"name\":      (string, required) Name of the proposal\n"
 
             "\nResult:\n"
             "[\n"
@@ -636,11 +636,11 @@ UniValue getbudgetinfo(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-            "getbudgetinfo ( \"proposal\" )\n"
+            "getbudgetinfo ( \"name\" )\n"
             "\nShow current masternode budgets\n"
 
             "\nArguments:\n"
-            "1. \"proposal\"    (string, optional) Proposal name\n"
+            "1. \"name\"    (string, optional) Proposal name\n"
 
             "\nResult:\n"
             "[\n"
@@ -699,16 +699,16 @@ UniValue mnbudgetrawvote(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 6)
         throw std::runtime_error(
-            "mnbudgetrawvote \"masternode-tx-hash\" masternode-tx-index \"proposal-hash\" yes|no time \"vote-sig\"\n"
+            "mnbudgetrawvote \"collat_txid\" collat_vout \"hash\" votecast time \"sig\"\n"
             "\nCompile and relay a proposal vote with provided external signature instead of signing vote internally\n"
 
             "\nArguments:\n"
-            "1. \"masternode-tx-hash\"  (string, required) Transaction hash for the masternode\n"
-            "2. masternode-tx-index   (numeric, required) Output index for the masternode\n"
-            "3. \"proposal-hash\"       (string, required) Proposal vote hash\n"
-            "4. yes|no                (boolean, required) Vote to cast\n"
-            "5. time                  (numeric, required) Time since epoch in seconds\n"
-            "6. \"vote-sig\"            (string, required) External signature\n"
+            "1. \"collat_txid\"   (string, required) Transaction hash for the masternode collateral\n"
+            "2. collat_vout       (numeric, required) Output index for the masternode collateral\n"
+            "3. \"hash\"          (string, required) Budget Proposal hash\n"
+            "4. \"votecast\"      (string, required) Your vote. 'yes' to vote for the proposal, 'no' to vote against\n"
+            "5. time              (numeric, required) Time since epoch in seconds\n"
+            "6. \"sig\"           (string, required) External signature\n"
 
             "\nResult:\n"
             "\"status\"     (string) Vote status or error message\n"
@@ -865,21 +865,21 @@ UniValue checkbudgets(const JSONRPCRequest& request)
 }
 
 static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         okSafeMode
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "budget",             "preparebudget",          &preparebudget,          true  },
-    { "budget",             "submitbudget",           &submitbudget,           true  },
-    { "budget",             "mnbudgetvote",           &mnbudgetvote,           true  },
-    { "budget",             "getbudgetvotes",         &getbudgetvotes,         true  },
-    { "budget",             "getnextsuperblock",      &getnextsuperblock,      true  },
-    { "budget",             "getbudgetprojection",    &getbudgetprojection,    true  },
-    { "budget",             "getbudgetinfo",          &getbudgetinfo,          true  },
-    { "budget",             "mnbudgetrawvote",        &mnbudgetrawvote,        true  },
-    { "budget",             "mnfinalbudget",          &mnfinalbudget,          true  },
-    { "budget",             "checkbudgets",           &checkbudgets,           true  },
+{ //  category              name                      actor (function)         okSafe argNames
+  //  --------------------- ------------------------  -----------------------  ------ --------
+    { "budget",             "checkbudgets",           &checkbudgets,           true,  {} },
+    { "budget",             "getbudgetinfo",          &getbudgetinfo,          true,  {"name"} },
+    { "budget",             "getbudgetprojection",    &getbudgetprojection,    true,  {} },
+    { "budget",             "getbudgetvotes",         &getbudgetvotes,         true,  {"name"} },
+    { "budget",             "getnextsuperblock",      &getnextsuperblock,      true,  {} },
+    { "budget",             "mnbudgetrawvote",        &mnbudgetrawvote,        true,  {"collat_txid","collat_vout","hash","votecast","time","sig"} },
+    { "budget",             "mnbudgetvote",           &mnbudgetvote,           true,  {"mode","hash","votecast","alias","legacy"} },
+    { "budget",             "mnfinalbudget",          &mnfinalbudget,          true,  {"command"} },
+    { "budget",             "preparebudget",          &preparebudget,          true,  {"name","url","npayments","start","address","monthly_payment"} },
+    { "budget",             "submitbudget",           &submitbudget,           true,  {"name","url","npayments","start","address","monthly_payment","fee_txid"}  },
 
     /* Not shown in help */
-    { "hidden",             "mnfinalbudgetsuggest",   &mnfinalbudgetsuggest,   true  },
+    { "hidden",             "mnfinalbudgetsuggest",   &mnfinalbudgetsuggest,   true,  {} },
 
 };
 

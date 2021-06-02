@@ -751,14 +751,14 @@ UniValue protx_list(const JSONRPCRequest& request)
 
 
 static const CRPCCommand commands[] =
-{ //  category       name                              actor (function)
-  //  -------------- --------------------------------- ------------------------
-    { "evo",         "protx_list",                     &protx_list,             {}  },
+{ //  category       name                              actor (function)         okSafe argNames
+  //  -------------- --------------------------------- ------------------------ ------ --------
+    { "evo",         "protx_list",                     &protx_list,             true,  {"detailed","wallet_only","valid_only","height"}  },
 #ifdef ENABLE_WALLET
-    { "evo",         "protx_register",                 &protx_register,         {}  },
-    { "evo",         "protx_register_fund",            &protx_register_fund,    {}  },
-    { "evo",         "protx_register_prepare",         &protx_register_prepare, {}  },
-    { "evo",         "protx_register_submit",          &protx_register_submit,  {}  },
+    { "evo",         "protx_register",                 &protx_register,         true,  {"collateralHash","collateralIndex","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
+    { "evo",         "protx_register_fund",            &protx_register_fund,    true,  {"collateralAddress","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
+    { "evo",         "protx_register_prepare",         &protx_register_prepare, true,  {"collateralHash","collateralIndex","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
+    { "evo",         "protx_register_submit",          &protx_register_submit,  true,  {"tx","sig"}  },
 #endif  //ENABLE_WALLET
 };
 
