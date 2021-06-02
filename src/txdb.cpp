@@ -382,11 +382,6 @@ bool CZerocoinDB::ReadCoinSpend(const CBigNum& bnSerial, uint256& txHash)
     return Read(std::make_pair('s', hash), txHash);
 }
 
-bool CZerocoinDB::ReadCoinSpend(const uint256& hashSerial, uint256 &txHash)
-{
-    return Read(std::make_pair('s', hashSerial), txHash);
-}
-
 bool CZerocoinDB::EraseCoinSpend(const CBigNum& bnSerial)
 {
     CDataStream ss(SER_GETHASH, 0);
@@ -396,55 +391,9 @@ bool CZerocoinDB::EraseCoinSpend(const CBigNum& bnSerial)
     return Erase(std::make_pair('s', hash));
 }
 
-bool CZerocoinDB::WipeCoins(std::string strType)
-{
-    if (strType != "spends" && strType != "mints")
-        return error("%s: did not recognize type %s", __func__, strType);
-
-    std::unique_ptr<CDBIterator> pcursor(NewIterator());
-
-    char type = (strType == "spends" ? 's' : 'm');
-    pcursor->Seek(std::make_pair(type, UINT256_ZERO));
-    // Load mapBlockIndex
-    std::set<uint256> setDelete;
-    while (pcursor->Valid()) {
-        boost::this_thread::interruption_point();
-        std::pair<char, uint256> key;
-        if (pcursor->GetKey(key) && key.first == type) {
-            uint256 hash;
-            if (pcursor->GetValue(hash)) {
-                setDelete.insert(hash);
-                pcursor->Next();
-            } else {
-                return error("%s : failed to read value", __func__);
-            }
-        } else {
-            break;
-        }
-    }
-
-    for (auto& hash : setDelete) {
-        if (!Erase(std::make_pair(type, hash)))
-            LogPrintf("%s: error failed to delete %s\n", __func__, hash.GetHex());
-    }
-
-    return true;
-}
-
-
 // Legacy Zerocoin Database
 static const char LZC_ACCUMCS = 'A';
-static const char LZC_MAPSUPPLY = 'M';
-
-bool CZerocoinDB::WriteZCSupply(const std::map<libzerocoin::CoinDenomination, int64_t>& mapZCS)
-{
-    return Write(LZC_MAPSUPPLY, mapZCS);
-}
-
-bool CZerocoinDB::ReadZCSupply(std::map<libzerocoin::CoinDenomination, int64_t>& mapZCS) const
-{
-    return Read(LZC_MAPSUPPLY, mapZCS);
-}
+//static const char LZC_MAPSUPPLY = 'M'; // TODO: add removal for LZC_MAPSUPPLY key-value if is found in db
 
 bool CZerocoinDB::WriteAccChecksum(const uint32_t& nChecksum, const libzerocoin::CoinDenomination denom, const int nHeight)
 {

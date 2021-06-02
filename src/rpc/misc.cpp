@@ -226,9 +226,6 @@ UniValue mnsync(const JSONRPCRequest& request)
 #ifdef ENABLE_WALLET
 class DescribeAddressVisitor : public boost::static_visitor<UniValue>
 {
-private:
-    isminetype mine;
-
 public:
     CWallet * const pwallet;
 
