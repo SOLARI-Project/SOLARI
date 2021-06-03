@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "bls/bls.h"
 #include "core_io.h"
 #include "destination_io.h"
 #include "evo/deterministicmns.h"
@@ -206,6 +207,24 @@ static CKeyID ParsePubKeyIDFromAddress(const std::string& strAddress)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("invalid PIVX address %s", strAddress));
     }
     return *keyID;
+}
+
+static CBLSPublicKey ParseBLSPubKey(const std::string& hexKey)
+{
+    CBLSPublicKey pubKey;
+    if (!pubKey.SetHexStr(hexKey)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid BLS public key: %s", hexKey));
+    }
+    return pubKey;
+}
+
+static CBLSSecretKey ParseBLSSecretKey(const std::string& hexKey)
+{
+    CBLSSecretKey secKey;
+    if (!secKey.SetHexStr(hexKey)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid BLS secret key: %s", hexKey));
+    }
+    return secKey;
 }
 
 #ifdef ENABLE_WALLET
@@ -976,9 +995,36 @@ UniValue protx_revoke(const JSONRPCRequest& request)
 }
 #endif
 
+UniValue generateblskeypair(const JSONRPCRequest& request)
+{
+    if (request.fHelp || !request.params.empty()) {
+        throw std::runtime_error(
+                "generateblskeypair\n"
+                "\nReturns a BLS secret/public key pair.\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"secret\": \"xxxx\",        (string) BLS secret key\n"
+                "  \"public\": \"xxxx\",        (string) BLS public key\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("generateblskeypair", "")
+                + HelpExampleRpc("generateblskeypair", "")
+        );
+    }
+
+    CBLSSecretKey sk;
+    sk.MakeNewKey();
+    UniValue ret(UniValue::VOBJ);
+    ret.pushKV("secret", sk.ToString());
+    ret.pushKV("public", sk.GetPublicKey().ToString());
+    return ret;
+}
+
+
 static const CRPCCommand commands[] =
 { //  category       name                              actor (function)         okSafe argNames
   //  -------------- --------------------------------- ------------------------ ------ --------
+    { "evo",         "generateblskeypair",             &generateblskeypair,     true,  {}  },
     { "evo",         "protx_list",                     &protx_list,             true,  {"detailed","wallet_only","valid_only","height"}  },
 #ifdef ENABLE_WALLET
     { "evo",         "protx_register",                 &protx_register,         true,  {"collateralHash","collateralIndex","ipAndPort","ownerAddress","operatorPubKey","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
