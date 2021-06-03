@@ -2029,17 +2029,17 @@ bool ProcessMessages(CNode* pfrom, CConnman& connman, std::atomic<bool>& interru
     // Message size
     unsigned int nMessageSize = hdr.nMessageSize;
 
-        // Checksum
-        CDataStream& vRecv = msg.vRecv;
-        uint256 hash = msg.GetMessageHash();
-        if (memcmp(hash.begin(), hdr.pchChecksum, CMessageHeader::CHECKSUM_SIZE) != 0)
-        {
-            LogPrint(BCLog::NET, "%s(%s, %u bytes): CHECKSUM ERROR expected %s was %s\n", __func__,
-               SanitizeString(strCommand), nMessageSize,
-               HexStr(hash.begin(), hash.begin()+CMessageHeader::CHECKSUM_SIZE),
-               HexStr(hdr.pchChecksum, hdr.pchChecksum+CMessageHeader::CHECKSUM_SIZE));
-            return fMoreWork;
-        }
+    // Checksum
+    CDataStream& vRecv = msg.vRecv;
+    uint256 hash = msg.GetMessageHash();
+    if (memcmp(hash.begin(), hdr.pchChecksum, CMessageHeader::CHECKSUM_SIZE) != 0)
+    {
+        LogPrint(BCLog::NET, "%s(%s, %u bytes): CHECKSUM ERROR expected %s was %s\n", __func__,
+           SanitizeString(strCommand), nMessageSize,
+           HexStr(hash.begin(), hash.begin()+CMessageHeader::CHECKSUM_SIZE),
+           HexStr(hdr.pchChecksum, hdr.pchChecksum+CMessageHeader::CHECKSUM_SIZE));
+        return fMoreWork;
+    }
 
     // Process message
     bool fRet = false;
