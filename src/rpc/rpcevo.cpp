@@ -3,7 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "bls/bls.h"
+#include "activemasternode.h"
+#include "bls/bls_wrapper.h"
 #include "core_io.h"
 #include "destination_io.h"
 #include "evo/deterministicmns.h"
@@ -71,17 +72,18 @@ static const std::map<ProRegParam, std::string> mapParamHelp = {
             "                                If set to an empty string, the currently active ip is reused.\n"
         },
         {operatorPubKey_register,
-            "%d. \"operatorPubKey\"       (string, required) The operator key address. The private key does not have to be known by your wallet.\n"
-            "                                If set to an empty string, ownerAddr will be used.\n"
+            "%d. \"operatorPubKey\"       (string, required) The operator BLS public key. The BLS private key does not have to be known.\n"
+            "                              It has to match the BLS private key which is later used when operating the masternode.\n"
         },
         {operatorPubKey_update,
-            "%d. \"operatorPubKey\"       (string, required) The operator key address. The private key does not have to be known by your wallet.\n"
-            "                                 It has to match the private key which can be used later to update the service.\n"
-            "                                 If set to an empty string, the currently active operator key is reused.\n"
+            "%d. \"operatorPubKey\"       (string, required) The operator BLS public key. The BLS private key does not have to be known.\n"
+            "                                It has to match the BLS private key which is later used when operating the masternode.\n"
+            "                                If set to an empty string, the currently active operator BLS public key is reused.\n"
         },
         {operatorKey,
-            "%d. \"operatorKey\"           (string, optional) The operator key associated with the operator address of the masternode.\n"
-            "                                If not specified, or set to an empty string, then the mn key must be known by your wallet, in order to sign the tx.\n"
+            "%d. \"operatorKey\"           (string, optional) The operator BLS private key associated with the\n"
+            "                                 registered operator public key. If not specified, or set to an empty string, then this command must\n"
+            "                                 be performed on the active masternode with the corresponding operator key.\n"
         },
         {operatorPayoutAddress_register,
             "%d. \"operatorPayoutAddress\" (string, optional) The address used for operator reward payments.\n"
@@ -263,6 +265,8 @@ static void FundSpecialTx(CWallet* pwallet, CMutableTransaction& tx, SpecialTxPa
     UpdateSpecialTxInputsHash(tx, payload);
 }
 
+#endif
+
 template<typename SpecialTxPayload>
 static void UpdateSpecialTxInputsHash(const CMutableTransaction& tx, SpecialTxPayload& payload)
 {
@@ -276,6 +280,15 @@ static void SignSpecialTxPayloadByHash(const CMutableTransaction& tx, SpecialTxP
 
     uint256 hash = ::SerializeHash(payload);
     if (!CHashSigner::SignHash(hash, key, payload.vchSig)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "failed to sign special tx payload");
+    }
+}
+
+template<typename SpecialTxPayload>
+static void SignSpecialTxPayloadByHash(const CMutableTransaction& tx, SpecialTxPayload& payload, const CBLSSecretKey& key)
+{
+    payload.sig = key.Sign(::SerializeHash(payload));
+    if (!payload.sig.IsValid()) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "failed to sign special tx payload");
     }
 }
@@ -295,6 +308,8 @@ static std::string TxInErrorToString(int i, const CTxIn& txin, const std::string
 {
     return strprintf("Input %d (%s): %s", i, txin.prevout.ToStringShort(), strError);
 }
+
+#ifdef ENABLE_WALLET
 
 static OperationResult SignTransaction(CWallet* const pwallet, CMutableTransaction& tx)
 {
@@ -356,13 +371,10 @@ static ProRegPL ParseProRegPLParams(const UniValue& params, unsigned int paramId
 
     // addresses/keys
     const std::string& strAddOwner = params[paramIdx + 1].get_str();
-    const std::string& strAddOperator = params[paramIdx + 2].get_str();
+    const std::string& strPubKeyOperator = params[paramIdx + 2].get_str();
     const std::string& strAddVoting = params[paramIdx + 3].get_str();
     pl.keyIDOwner = ParsePubKeyIDFromAddress(strAddOwner);
-    pl.pubKeyOperator = pl.keyIDOwner;
-    if (!strAddOperator.empty()) {
-        pl.pubKeyOperator = ParsePubKeyIDFromAddress(strAddOperator);
-    }
+    pl.pubKeyOperator = ParseBLSPubKey(strPubKeyOperator);
     pl.keyIDVoting = pl.keyIDOwner;
     if (!strAddVoting.empty()) {
         pl.keyIDVoting = ParsePubKeyIDFromAddress(strAddVoting);
@@ -670,7 +682,6 @@ static void AddDMNEntryToList(UniValue& ret, CWallet* pwallet, const CDeterminis
     assert(ret.isArray());
 
     bool hasOwnerKey{false};
-    bool hasOperatorKey{false};
     bool hasVotingKey{false};
     bool ownsCollateral{false};
     bool ownsPayeeScript{false};
@@ -681,7 +692,6 @@ static void AddDMNEntryToList(UniValue& ret, CWallet* pwallet, const CDeterminis
     if (pwallet && !skipWalletCheck) {
         LOCK(pwallet->cs_wallet);
         hasOwnerKey = pwallet->HaveKey(dmn->pdmnState->keyIDOwner);
-        hasOperatorKey = pwallet->HaveKey(dmn->pdmnState->pubKeyOperator);
         hasVotingKey = pwallet->HaveKey(dmn->pdmnState->keyIDVoting);
         ownsPayeeScript = CheckWalletOwnsScript(pwallet, dmn->pdmnState->scriptPayout);
         CTransactionRef collTx;
@@ -691,7 +701,7 @@ static void AddDMNEntryToList(UniValue& ret, CWallet* pwallet, const CDeterminis
         }
     }
 
-    if (fFromWallet && !hasOwnerKey && !hasOperatorKey  && !hasVotingKey && !ownsCollateral && !ownsPayeeScript) {
+    if (fFromWallet && !hasOwnerKey && !hasVotingKey && !ownsCollateral && !ownsPayeeScript) {
         // not one of ours
         return;
     }
@@ -702,7 +712,6 @@ static void AddDMNEntryToList(UniValue& ret, CWallet* pwallet, const CDeterminis
         Optional<int> confirmations = GetUTXOConfirmations(dmn->collateralOutpoint);
         o.pushKV("confirmations", confirmations ? *confirmations : -1);
         o.pushKV("hasOwnerKey", hasOwnerKey);
-        o.pushKV("hasOperatorKey", hasOperatorKey);
         o.pushKV("hasVotingKey", hasVotingKey);
         o.pushKV("ownsCollateral", ownsCollateral);
         o.pushKV("ownsPayeeScript", ownsPayeeScript);
@@ -838,15 +847,20 @@ UniValue protx_update_service(const JSONRPCRequest& request)
     }
 
     const std::string& strOpKey = request.params.size() > 3 ? request.params[3].get_str() : "";
-    const CKey& operatorKey = strOpKey.empty() ? GetKeyFromWallet(pwallet, dmn->pdmnState->pubKeyOperator)
-                                               : ParsePrivKey(pwallet, strOpKey, false);
+    CBLSSecretKey operatorKey;
+    if (strOpKey.empty()) {
+        CBLSPublicKey pk; CTxIn vin;
+        if (!GetActiveDMNKeys(operatorKey, pk, vin)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Active masternode key not found. Insert DMN operator private key.");
+        }
+    } else {
+        operatorKey = ParseBLSSecretKey(strOpKey);
+    }
 
     CMutableTransaction tx;
     tx.nVersion = CTransaction::TxVersion::SAPLING;
     tx.nType = CTransaction::TxType::PROUPSERV;
 
-    // make sure fee calculation works
-    pl.vchSig.resize(CPubKey::COMPACT_SIGNATURE_SIZE);
     FundSpecialTx(pwallet, tx, pl);
     SignSpecialTxPayloadByHash(tx, pl, operatorKey);
 
@@ -898,9 +912,9 @@ UniValue protx_update_registrar(const JSONRPCRequest& request)
     if (!dmn) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("masternode with hash %s not found", pl.proTxHash.ToString()));
     }
-    const std::string& strOperatorAddress = request.params[1].get_str();
-    pl.pubKeyOperator = strOperatorAddress.empty() ? dmn->pdmnState->pubKeyOperator
-                                                  : ParsePubKeyIDFromAddress(strOperatorAddress);
+    const std::string& strPubKeyOperator = request.params[1].get_str();
+    pl.pubKeyOperator = strPubKeyOperator.empty() ? dmn->pdmnState->pubKeyOperator.Get()
+                                                  : ParseBLSPubKey(strPubKeyOperator);
 
     const std::string& strVotingAddress = request.params[2].get_str();
     pl.keyIDVoting = strVotingAddress.empty() ? dmn->pdmnState->keyIDVoting
@@ -969,8 +983,15 @@ UniValue protx_revoke(const JSONRPCRequest& request)
     }
 
     const std::string& strOpKey = request.params.size() > 1 ? request.params[1].get_str() : "";
-    const CKey& operatorKey = strOpKey.empty() ? GetKeyFromWallet(pwallet, dmn->pdmnState->pubKeyOperator)
-                                               : ParsePrivKey(pwallet, strOpKey, false);
+    CBLSSecretKey operatorKey;
+    if (strOpKey.empty()) {
+        CBLSPublicKey pk; CTxIn vin;
+        if (!GetActiveDMNKeys(operatorKey, pk, vin)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Active masternode key not found. Insert DMN operator private key.");
+        }
+    } else {
+        operatorKey = ParseBLSSecretKey(strOpKey);
+    }
 
     pl.nReason = ProUpRevPL::RevocationReason::REASON_NOT_SPECIFIED;
     if (request.params.size() > 2) {
@@ -986,8 +1007,6 @@ UniValue protx_revoke(const JSONRPCRequest& request)
     tx.nVersion = CTransaction::TxVersion::SAPLING;
     tx.nType = CTransaction::TxType::PROUPREV;
 
-    // make sure fee calculation works
-    pl.vchSig.resize(CPubKey::COMPACT_SIGNATURE_SIZE);
     FundSpecialTx(pwallet, tx, pl);
     SignSpecialTxPayloadByHash(tx, pl, operatorKey);
 

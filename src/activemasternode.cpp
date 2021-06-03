@@ -6,6 +6,7 @@
 #include "activemasternode.h"
 
 #include "addrman.h"
+#include "bls/bls_wrapper.h"
 #include "evo/providertx.h"
 #include "masternode-sync.h"
 #include "masternode.h"
@@ -54,19 +55,19 @@ std::string CActiveDeterministicMasternodeManager::GetStatus() const
 
 OperationResult CActiveDeterministicMasternodeManager::SetOperatorKey(const std::string& strMNOperatorPrivKey)
 {
-
     LOCK(cs_main); // Lock cs_main so the node doesn't perform any action while we setup the Masternode
     LogPrintf("Initializing deterministic masternode...\n");
     if (strMNOperatorPrivKey.empty()) {
         return errorOut("ERROR: Masternode operator priv key cannot be empty.");
     }
-    if (!CMessageSigner::GetKeysFromSecret(strMNOperatorPrivKey, info.keyOperator, info.pubKeyOperator)) {
+    if (!info.keyOperator.SetHexStr(strMNOperatorPrivKey)) {
         return errorOut(_("Invalid mnoperatorprivatekey. Please see the documentation."));
     }
+    info.pubKeyOperator = info.keyOperator.GetPublicKey();
     return OperationResult(true);
 }
 
-OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CKey& key, CKeyID& keyID, CDeterministicMNCPtr& dmn) const
+OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CBLSSecretKey& key, CBLSPublicKey& pubKey, CDeterministicMNCPtr& dmn) const
 {
     if (!IsReady()) {
         return errorOut("Active masternode not ready");
@@ -75,12 +76,12 @@ OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CKey& key,
     if (!dmn) {
         return errorOut(strprintf("Active masternode %s not registered or PoSe banned", info.proTxHash.ToString()));
     }
-    if (info.pubKeyOperator != dmn->pdmnState->pubKeyOperator) {
+    if (info.pubKeyOperator != dmn->pdmnState->pubKeyOperator.Get()) {
         return errorOut("Active masternode operator key changed or revoked");
     }
     // return keys
     key = info.keyOperator;
-    keyID = info.pubKeyOperator;
+    pubKey = info.pubKeyOperator;
     return OperationResult(true);
 }
 
@@ -466,32 +467,40 @@ void CActiveMasternode::GetKeys(CKey& _privKeyMasternode, CPubKey& _pubKeyMaster
     _pubKeyMasternode = pubKeyMasternode;
 }
 
-bool GetActiveMasternodeKeys(CKey& key, CKeyID& keyID, CTxIn& vin)
+bool GetActiveDMNKeys(CBLSSecretKey& key, CBLSPublicKey& pubkey, CTxIn& vin)
+{
+    if (activeMasternodeManager == nullptr) {
+        return error("%s: Active Masternode not initialized", __func__);
+    }
+    CDeterministicMNCPtr dmn;
+    auto res = activeMasternodeManager->GetOperatorKey(key, pubkey, dmn);
+    if (!res) {
+        return error("%s: %s", __func__, res.getError());
+    }
+    vin = CTxIn(dmn->collateralOutpoint);
+    return true;
+}
+
+bool GetActiveMasternodeKeys(CTxIn& vin, Optional<CKey>& key, CBLSSecretKey& blsKey)
 {
     if (activeMasternodeManager != nullptr) {
         // deterministic mn
-        CDeterministicMNCPtr dmn;
-        auto res = activeMasternodeManager->GetOperatorKey(key, keyID, dmn);
-        if (!res) {
-            LogPrint(BCLog::MNBUDGET,"%s: %s\n", __func__, res.getError());
-            return false;
-        }
-        vin = CTxIn(dmn->collateralOutpoint);
-        return true;
+        key = nullopt;
+        CBLSPublicKey pk;
+        return GetActiveDMNKeys(blsKey, pk, vin);
     }
-
     // legacy mn
     if (activeMasternode.vin == nullopt) {
-        LogPrint(BCLog::MNBUDGET,"%s: Active Masternode not initialized\n", __func__);
-        return false;
+        return error("%s: Active Masternode not initialized", __func__);
     }
     if (activeMasternode.GetStatus() != ACTIVE_MASTERNODE_STARTED) {
-        LogPrint(BCLog::MNBUDGET,"%s: MN not started (%s)\n", __func__, activeMasternode.GetStatusMessage());
-        return false;
+        return error("%s: MN not started (%s)", __func__, activeMasternode.GetStatusMessage());
     }
-    CPubKey mnPubKey;
-    activeMasternode.GetKeys(key, mnPubKey);
-    keyID = mnPubKey.GetID();
     vin = *activeMasternode.vin;
+    CKey sk;
+    CPubKey pk;
+    activeMasternode.GetKeys(sk, pk);
+    key = Optional<CKey>(sk);
+    blsKey.Reset();
     return true;
 }

@@ -5,6 +5,7 @@
 #ifndef PIVX_PROVIDERTX_H
 #define PIVX_PROVIDERTX_H
 
+#include "bls/bls_wrapper.h"
 #include "primitives/transaction.h"
 #include "consensus/validation.h"
 
@@ -29,7 +30,7 @@ public:
     COutPoint collateralOutpoint{UINT256_ZERO, (uint32_t)-1};   // if hash is null, we refer to a ProRegTx output
     CService addr;
     CKeyID keyIDOwner;
-    CKeyID pubKeyOperator;
+    CBLSPublicKey pubKeyOperator;
     CKeyID keyIDVoting;
     CScript scriptPayout;
     uint16_t nOperatorReward{0};
@@ -79,14 +80,14 @@ public:
     CService addr;
     CScript scriptOperatorPayout;
     uint256 inputsHash; // replay protection
-    std::vector<unsigned char> vchSig;
+    CBLSSignature sig;
 
 public:
     SERIALIZE_METHODS(ProUpServPL, obj)
     {
         READWRITE(obj.nVersion, obj.proTxHash, obj.addr, obj.scriptOperatorPayout, obj.inputsHash);
         if (!(s.GetType() & SER_GETHASH)) {
-            READWRITE(obj.vchSig);
+            READWRITE(obj.sig);
         }
     }
 
@@ -105,7 +106,7 @@ public:
     uint16_t nVersion{CURRENT_VERSION}; // message version
     uint256 proTxHash;
     uint16_t nMode{0}; // only 0 supported for now
-    CKeyID pubKeyOperator;
+    CBLSPublicKey pubKeyOperator;
     CKeyID keyIDVoting;
     CScript scriptPayout;
     uint256 inputsHash; // replay protection
@@ -145,14 +146,14 @@ public:
     uint256 proTxHash;
     uint16_t nReason{REASON_NOT_SPECIFIED};
     uint256 inputsHash; // replay protection
-    std::vector<unsigned char> vchSig;
+    CBLSSignature sig;
 
 public:
     SERIALIZE_METHODS(ProUpRevPL, obj)
     {
         READWRITE(obj.nVersion, obj.proTxHash, obj.nReason, obj.inputsHash);
         if (!(s.GetType() & SER_GETHASH)) {
-            READWRITE(obj.vchSig);
+            READWRITE(obj.sig);
         }
     }
 

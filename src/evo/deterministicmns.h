@@ -7,6 +7,7 @@
 #define PIVX_DETERMINISTICMNS_H
 
 #include "arith_uint256.h"
+#include "bls/bls_wrapper.h"
 #include "dbwrapper.h"
 #include "evo/evodb.h"
 #include "evo/providertx.h"
@@ -39,7 +40,7 @@ public:
     uint256 confirmedHashWithProRegTxHash;
 
     CKeyID keyIDOwner;
-    CKeyID pubKeyOperator;
+    CBLSLazyPublicKey pubKeyOperator;
     CKeyID keyIDVoting;
     CService addr;
     CScript scriptPayout;
@@ -50,7 +51,7 @@ public:
     explicit CDeterministicMNState(const ProRegPL& pl)
     {
         keyIDOwner = pl.keyIDOwner;
-        pubKeyOperator = pl.pubKeyOperator;
+        pubKeyOperator.Set(pl.pubKeyOperator);
         keyIDVoting = pl.keyIDVoting;
         addr = pl.addr;
         scriptPayout = pl.scriptPayout;
@@ -79,7 +80,7 @@ public:
 
     void ResetOperatorFields()
     {
-        pubKeyOperator = CKeyID();
+        pubKeyOperator.Set(CBLSPublicKey());
         addr = CService();
         scriptOperatorPayout = CScript();
         nRevocationReason = ProUpRevPL::REASON_NOT_SPECIFIED;
@@ -360,7 +361,7 @@ public:
     }
     CDeterministicMNCPtr GetMN(const uint256& proTxHash) const;
     CDeterministicMNCPtr GetValidMN(const uint256& proTxHash) const;
-    CDeterministicMNCPtr GetMNByOperatorKey(const CKeyID& keyID);
+    CDeterministicMNCPtr GetMNByOperatorKey(const CBLSPublicKey& pubKey);
     CDeterministicMNCPtr GetMNByCollateral(const COutPoint& collateralOutpoint) const;
     CDeterministicMNCPtr GetValidMNByCollateral(const COutPoint& collateralOutpoint) const;
     CDeterministicMNCPtr GetMNByService(const CService& service) const;

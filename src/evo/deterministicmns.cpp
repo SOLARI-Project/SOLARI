@@ -39,7 +39,7 @@ std::string CDeterministicMNState::ToString() const
 
     return strprintf("CDeterministicMNState(nRegisteredHeight=%d, nLastPaidHeight=%d, nPoSePenalty=%d, nPoSeRevivedHeight=%d, nPoSeBanHeight=%d, nRevocationReason=%d, ownerAddress=%s, operatorPubKey=%s, votingAddress=%s, addr=%s, payoutAddress=%s, operatorPayoutAddress=%s)",
         nRegisteredHeight, nLastPaidHeight, nPoSePenalty, nPoSeRevivedHeight, nPoSeBanHeight, nRevocationReason,
-        EncodeDestination(keyIDOwner), EncodeDestination(pubKeyOperator), EncodeDestination(keyIDVoting), addr.ToStringIPPort(), payoutAddress, operatorPayoutAddress);
+        EncodeDestination(keyIDOwner), pubKeyOperator.Get().ToString(), EncodeDestination(keyIDVoting), addr.ToStringIPPort(), payoutAddress, operatorPayoutAddress);
 }
 
 void CDeterministicMNState::ToJson(UniValue& obj) const
@@ -54,7 +54,7 @@ void CDeterministicMNState::ToJson(UniValue& obj) const
     obj.pushKV("PoSeBanHeight", nPoSeBanHeight);
     obj.pushKV("revocationReason", nRevocationReason);
     obj.pushKV("ownerAddress", EncodeDestination(keyIDOwner));
-    obj.pushKV("operatorPubKey", pubKeyOperator == CKeyID() ? "" : EncodeDestination(pubKeyOperator));
+    obj.pushKV("operatorPubKey", pubKeyOperator.Get().ToString());
     obj.pushKV("votingAddress", EncodeDestination(keyIDVoting));
 
     CTxDestination dest1;
@@ -122,10 +122,10 @@ CDeterministicMNCPtr CDeterministicMNList::GetValidMN(const uint256& proTxHash) 
     return dmn;
 }
 
-CDeterministicMNCPtr CDeterministicMNList::GetMNByOperatorKey(const CKeyID& keyID)
+CDeterministicMNCPtr CDeterministicMNList::GetMNByOperatorKey(const CBLSPublicKey& pubKey)
 {
     for (const auto& p : mnMap) {
-        if (p.second->pdmnState->pubKeyOperator == keyID) {
+        if (p.second->pdmnState->pubKeyOperator.Get() == pubKey) {
             return p.second;
         }
     }
@@ -397,7 +397,7 @@ void CDeterministicMNList::AddMN(const CDeterministicMNCPtr& dmn, bool fBumpTota
         throw(std::runtime_error(strprintf("%s: can't add a masternode with a duplicate address %s", __func__, dmn->pdmnState->addr.ToStringIPPort())));
     }
     if (HasUniqueProperty(dmn->pdmnState->keyIDOwner) || HasUniqueProperty(dmn->pdmnState->pubKeyOperator)) {
-        throw(std::runtime_error(strprintf("%s: can't add a masternode with a duplicate key (%s or %s)", __func__, EncodeDestination(dmn->pdmnState->keyIDOwner), EncodeDestination(dmn->pdmnState->pubKeyOperator))));
+        throw(std::runtime_error(strprintf("%s: can't add a masternode with a duplicate key (%s or %s)", __func__, EncodeDestination(dmn->pdmnState->keyIDOwner), dmn->pdmnState->pubKeyOperator.Get().ToString())));
     }
 
     mnMap = mnMap.set(dmn->proTxHash, dmn);
@@ -702,7 +702,7 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, const C
 
             if (newState->nPoSeBanHeight != -1) {
                 // only revive when all keys are set
-                if (!newState->pubKeyOperator.IsNull() && !newState->keyIDVoting.IsNull() && !newState->keyIDOwner.IsNull()) {
+                if (newState->pubKeyOperator.Get().IsValid() && !newState->keyIDVoting.IsNull() && !newState->keyIDOwner.IsNull()) {
                     newState->nPoSePenalty = 0;
                     newState->nPoSeBanHeight = -1;
                     newState->nPoSeRevivedHeight = nHeight;
@@ -734,12 +734,12 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, const C
                 return _state.DoS(100, false, REJECT_DUPLICATE, "bad-protx-dup-operator-key");
             }
             auto newState = std::make_shared<CDeterministicMNState>(*dmn->pdmnState);
-            if (newState->pubKeyOperator != pl.pubKeyOperator) {
+            if (newState->pubKeyOperator.Get() != pl.pubKeyOperator) {
                 // reset all operator related fields and put MN into PoSe-banned state in case the operator key changes
                 newState->ResetOperatorFields();
                 newState->BanIfNotBanned(nHeight);
             }
-            newState->pubKeyOperator = pl.pubKeyOperator;
+            newState->pubKeyOperator.Set(pl.pubKeyOperator);
             newState->keyIDVoting = pl.keyIDVoting;
             newState->scriptPayout = pl.scriptPayout;
 
