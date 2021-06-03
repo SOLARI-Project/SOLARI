@@ -8,7 +8,6 @@ from io import BytesIO
 from time import sleep
 
 from test_framework.messages import CTransaction, CTxIn, CTxOut, COIN, COutPoint
-from test_framework.mininode import network_thread_start
 from test_framework.pivx_node import PivxTestNode
 from test_framework.script import CScript, OP_CHECKSIG
 from test_framework.test_framework import PivxTestFramework
@@ -51,8 +50,6 @@ class PIVX_ColdStakingTest(PivxTestFramework):
         for i in range(self.num_nodes):
             self.test_nodes.append(PivxTestNode())
             self.test_nodes[i].peer_connect('127.0.0.1', p2p_port(i))
-
-        network_thread_start()  # Start up network handling in another thread
 
         # Let the test nodes get in sync
         for i in range(self.num_nodes):

@@ -13,7 +13,7 @@ from test_framework.messages import (
     CTxIn,
     CTxOut,
 )
-from test_framework.mininode import network_thread_start, P2PDataStore, network_thread_join
+from test_framework.mininode import P2PDataStore, network_thread_join
 from test_framework.script import (
     CScript,
     OP_NOTIF,
@@ -37,7 +37,6 @@ class InvalidTxRequestTest(PivxTestFramework):
         Helper to connect and wait for version handshake."""
         for _ in range(num_connections):
             self.nodes[0].add_p2p_connection(P2PDataStore())
-        network_thread_start()
         self.nodes[0].p2p.wait_for_verack()
 
     def reconnect_p2p(self, **kwargs):
@@ -46,7 +45,6 @@ class InvalidTxRequestTest(PivxTestFramework):
         The node gets disconnected several times in this test. This helper
         method reconnects the p2p and restarts the network thread."""
         self.nodes[0].disconnect_p2ps()
-        network_thread_join()
         self.bootstrap_p2p(**kwargs)
 
     def new_spend_tx(self, prev_hash, prev_n, values):
