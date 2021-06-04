@@ -92,8 +92,7 @@ class P2PConnection(asyncio.Protocol):
 
         loop = NetworkThread.network_event_loop
         conn_gen_unsafe = loop.create_connection(lambda: self, host=self.dstaddr, port=self.dstport)
-        conn_gen = lambda: loop.call_soon_threadsafe(loop.create_task, conn_gen_unsafe)
-        return conn_gen
+        return lambda: loop.call_soon_threadsafe(loop.create_task, conn_gen_unsafe)
 
     def peer_disconnect(self):
         # Connection could have already been closed by other end.
