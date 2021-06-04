@@ -82,7 +82,7 @@ class InvalidMessagesTest(PivxTestFramework):
 
             # Peer 1, despite serving up a bunch of nonsense, should still be connected.
             self.log.info("Waiting for node to drop junk messages.")
-            node.p2p.sync_with_ping(timeout=30)
+            node.p2p.sync_with_ping(timeout=320)
             assert node.p2p.is_connected
 
         #
@@ -158,7 +158,7 @@ class InvalidMessagesTest(PivxTestFramework):
         # we might run into races later on
         asyncio.run_coroutine_threadsafe(swap_magic_bytes(), NetworkThread.network_event_loop).result()
 
-        with self.nodes[0].assert_debug_log(['PROCESSMESSAGE: INVALID MESSAGESTART ping']):
+        with self.nodes[0].assert_debug_log(['PROCESSMESSAGE: INVALID MESSAGESTART ping peer=1']):
             conn.send_message(messages.msg_ping(nonce=0xff))
             conn.wait_for_disconnect(timeout=1)
             self.nodes[0].disconnect_p2ps()
@@ -196,7 +196,6 @@ class InvalidMessagesTest(PivxTestFramework):
         conn = self.nodes[0].add_p2p_connection(P2PDataStore())
         with self.nodes[0].assert_debug_log(['PROCESSMESSAGE: ERRORS IN HEADER']):
             msg = msg_unrecognized(str_data="d")
-            msg.command = b'\xff' * 12
             msg = conn.build_message(msg)
             # Modify command
             msg = msg[:7] + b'\x00' + msg[7 + 1:]
