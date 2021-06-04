@@ -1352,7 +1352,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         if (vInv.size() > MAX_INV_SZ) {
             LOCK(cs_main);
             Misbehaving(pfrom->GetId(), 20);
-            return error("message inv size() = %u", vInv.size());
+            return error("peer=%d message inv size() = %u", pfrom->GetId(), vInv.size());
         }
 
         LOCK(cs_main);
@@ -1402,7 +1402,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         if (vInv.size() > MAX_INV_SZ) {
             LOCK(cs_main);
             Misbehaving(pfrom->GetId(), 20);
-            return error("message getdata size() = %u", vInv.size());
+            return error("peer=%d message getdata size() = %u", pfrom->GetId(), vInv.size());
         }
 
         if (vInv.size() != 1)
@@ -2021,7 +2021,7 @@ bool ProcessMessages(CNode* pfrom, CConnman& connman, std::atomic<bool>& interru
     // Read header
     CMessageHeader& hdr = msg.hdr;
     if (!hdr.IsValid(Params().MessageStart())) {
-        LogPrint(BCLog::NET, "PROCESSMESSAGE: ERRORS IN HEADER %s peer=%d\n", SanitizeString(hdr.GetCommand()), pfrom->id);
+        LogPrint(BCLog::NET, "PROCESSMESSAGE: ERRORS IN HEADER '%s' peer=%d\n", SanitizeString(hdr.GetCommand()), pfrom->id);
         return fMoreWork;
     }
     std::string strCommand = hdr.GetCommand();
