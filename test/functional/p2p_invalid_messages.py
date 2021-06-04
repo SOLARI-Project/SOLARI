@@ -10,7 +10,7 @@ from test_framework.mininode import (
 )
 from test_framework.test_framework import PivxTestFramework
 
-MSG_LIMIT = 4 * 1000 * 1000  # 4MB, per MAX_PROTOCOL_MESSAGE_LENGTH
+MSG_LIMIT = 2 * 1024 * 1024  # 2MB, per MAX_PROTOCOL_MESSAGE_LENGTH
 VALID_DATA_LIMIT = MSG_LIMIT - 5  # Account for the 5-byte length prefix
 
 class msg_unrecognized:
