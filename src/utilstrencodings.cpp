@@ -506,6 +506,20 @@ void Downcase(std::string& str)
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){return ToLower(c);});
 }
 
+std::string ToLower(const std::string& str)
+{
+    std::string r;
+    for (auto ch : str) r += ToLower((unsigned char)ch);
+    return r;
+}
+
+std::string ToUpper(const std::string& str)
+{
+    std::string r;
+    for (auto ch : str) r += ToUpper((unsigned char)ch);
+    return r;
+}
+
 std::string Capitalize(std::string str)
 {
     if (str.empty()) return str;
