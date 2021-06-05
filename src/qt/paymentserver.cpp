@@ -6,28 +6,19 @@
 
 #include "paymentserver.h"
 
-#include "bitcoinunits.h"
 #include "guiutil.h"
 #include "optionsmodel.h"
-#include "policy/policy.h"
 
-#include "base58.h"
+#include "key_io.h"
 #include "chainparams.h"
 #include "guiinterface.h"
 #include "util/system.h"
-#include "wallet/wallet.h"
-
-#include <cstdlib>
 
 #include <QApplication>
 #include <QByteArray>
 #include <QDataStream>
 #include <QDateTime>
-#include <QDebug>
-#include <QFile>
 #include <QFileOpenEvent>
-#include <QHash>
-#include <QList>
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QStringList>

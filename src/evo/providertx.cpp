@@ -5,10 +5,9 @@
 
 #include "evo/providertx.h"
 
-#include "base58.h"
 #include "core_io.h"
 #include "evo/deterministicmns.h"
-#include "masternode.h"     // MN_COLL_AMT
+#include "key_io.h"
 #include "messagesigner.h"
 #include "evo/specialtx.h"
 #include "tinyformat.h"

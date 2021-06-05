@@ -6,9 +6,9 @@
 
 #include "base58.h"
 #include "crypto/aes.h"
+#include "key_io.h"
 #include "hash.h"
 #include "pubkey.h"
-#include "util/system.h"
 #include "utilstrencodings.h"
 #include "random.h"
 

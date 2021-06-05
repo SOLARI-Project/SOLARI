@@ -9,7 +9,7 @@
 
 #include "fs.h"
 
-#include "base58.h"
+#include "key_io.h"
 #include "protocol.h"
 #include "reverse_iterate.h"
 #include "sapling/key_io_sapling.h"

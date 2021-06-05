@@ -13,6 +13,16 @@
 
 #include <string>
 
+std::string EncodeDestination(const CTxDestination& dest, bool isStaking);
+std::string EncodeDestination(const CTxDestination& dest, const CChainParams::Base58Type addrType = CChainParams::PUBKEY_ADDRESS);
+// DecodeDestinationisStaking flag is set to true when the string arg is from an staking address
+CTxDestination DecodeDestination(const std::string& str, bool& isStaking);
+CTxDestination DecodeDestination(const std::string& str);
+
+// Return true if the address is valid and is following the fStaking flag type (true means that the destination must be a staking address, false the opposite).
+bool IsValidDestinationString(const std::string& str, bool fStaking);
+bool IsValidDestinationString(const std::string& str, bool fStaking, const CChainParams& params);
+
 namespace KeyIO {
 
     CKey DecodeSecret(const std::string &str);
@@ -27,5 +37,33 @@ namespace KeyIO {
     std::string EncodeExtPubKey(const CExtPubKey& extpubkey);
 
 }
+
+/**
+ * Wrapper class for every supported address
+ */
+struct Destination {
+public:
+    explicit Destination() {}
+    explicit Destination(const CTxDestination& _dest, bool _isP2CS) : dest(_dest), isP2CS(_isP2CS) {}
+
+    CTxDestination dest{CNoDestination()};
+    bool isP2CS{false};
+
+    Destination& operator=(const Destination& from)
+    {
+        this->dest = from.dest;
+        this->isP2CS = from.isP2CS;
+        return *this;
+    }
+
+    std::string ToString()
+    {
+        if (!IsValidDestination(dest)) {
+            // Invalid address
+            return "";
+        }
+        return EncodeDestination(dest, isP2CS ? CChainParams::STAKING_ADDRESS : CChainParams::PUBKEY_ADDRESS);
+    }
+};
 
 #endif //PIVX_KEY_IO_H

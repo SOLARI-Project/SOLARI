@@ -6,14 +6,13 @@
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include "amount.h"
-#include "base58.h"
 #include "blockassembler.h"
 #include "chainparams.h"
 #include "core_io.h"
 #include "init.h"
+#include "key_io.h"
 #include "miner.h"
 #include "net.h"
-#include "pow.h"
 #include "rpc/server.h"
 #include "validationinterface.h"
 #ifdef ENABLE_WALLET
@@ -21,8 +20,6 @@
 #include "wallet/db.h"
 #include "wallet/wallet.h"
 #endif
-
-#include <stdint.h>
 
 #include <univalue.h>
 

@@ -1,7 +1,6 @@
 // Copyright (c) 2020 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
-#include "base58.h"
 #include "key.h"
 #include "key_io.h"
 #include "policy/policy.h"

@@ -6,11 +6,8 @@
 #include "base58.h"
 
 #include "hash.h"
-#include "script/script.h"
-#include "uint256.h"
 
-#include <boost/variant/apply_visitor.hpp>
-#include <boost/variant/static_visitor.hpp>
+#include "uint256.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -166,97 +163,4 @@ bool DecodeBase58Check(const char* psz, std::vector<unsigned char>& vchRet, int 
 bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRet, int max_ret)
 {
     return DecodeBase58Check(str.c_str(), vchRet, max_ret);
-}
-
-namespace
-{
-class DestinationEncoder : public boost::static_visitor<std::string>
-{
-private:
-    const CChainParams& m_params;
-    const CChainParams::Base58Type m_addrType;
-
-public:
-    DestinationEncoder(const CChainParams& params, const CChainParams::Base58Type _addrType = CChainParams::PUBKEY_ADDRESS) : m_params(params), m_addrType(_addrType) {}
-
-    std::string operator()(const CKeyID& id) const
-    {
-        std::vector<unsigned char> data = m_params.Base58Prefix(m_addrType);
-        data.insert(data.end(), id.begin(), id.end());
-        return EncodeBase58Check(data);
-    }
-
-    std::string operator()(const CScriptID& id) const
-    {
-        std::vector<unsigned char> data = m_params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
-        data.insert(data.end(), id.begin(), id.end());
-        return EncodeBase58Check(data);
-    }
-
-    std::string operator()(const CNoDestination& no) const { return ""; }
-};
-
-CTxDestination DecodeDestination(const std::string& str, const CChainParams& params, bool& isStaking)
-{
-    std::vector<unsigned char> data;
-    uint160 hash;
-    if (DecodeBase58Check(str, data)) {
-        // base58-encoded PIVX addresses.
-        // Public-key-hash-addresses have version 30 (or 139 testnet).
-        // The data vector contains RIPEMD160(SHA256(pubkey)), where pubkey is the serialized public key.
-        const std::vector<unsigned char>& pubkey_prefix = params.Base58Prefix(CChainParams::PUBKEY_ADDRESS);
-        if (data.size() == hash.size() + pubkey_prefix.size() && std::equal(pubkey_prefix.begin(), pubkey_prefix.end(), data.begin())) {
-            std::copy(data.begin() + pubkey_prefix.size(), data.end(), hash.begin());
-            return CKeyID(hash);
-        }
-        // Public-key-hash-coldstaking-addresses have version 63 (or 73 testnet).
-        const std::vector<unsigned char>& staking_prefix = params.Base58Prefix(CChainParams::STAKING_ADDRESS);
-        if (data.size() == hash.size() + staking_prefix.size() && std::equal(staking_prefix.begin(), staking_prefix.end(), data.begin())) {
-            isStaking = true;
-            std::copy(data.begin() + staking_prefix.size(), data.end(), hash.begin());
-            return CKeyID(hash);
-        }
-        // Script-hash-addresses have version 13 (or 19 testnet).
-        // The data vector contains RIPEMD160(SHA256(cscript)), where cscript is the serialized redemption script.
-        const std::vector<unsigned char>& script_prefix = params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
-        if (data.size() == hash.size() + script_prefix.size() && std::equal(script_prefix.begin(), script_prefix.end(), data.begin())) {
-            std::copy(data.begin() + script_prefix.size(), data.end(), hash.begin());
-            return CScriptID(hash);
-        }
-    }
-    return CNoDestination();
-}
-
-} // anon namespace
-
-std::string EncodeDestination(const CTxDestination& dest, bool isStaking)
-{
-    return EncodeDestination(dest, isStaking ? CChainParams::STAKING_ADDRESS : CChainParams::PUBKEY_ADDRESS);
-}
-
-std::string EncodeDestination(const CTxDestination& dest, const CChainParams::Base58Type addrType)
-{
-    return boost::apply_visitor(DestinationEncoder(Params(), addrType), dest);
-}
-
-CTxDestination DecodeDestination(const std::string& str)
-{
-    bool isStaking;
-    return DecodeDestination(str, Params(), isStaking);
-}
-
-CTxDestination DecodeDestination(const std::string& str, bool& isStaking)
-{
-    return DecodeDestination(str, Params(), isStaking);
-}
-
-bool IsValidDestinationString(const std::string& str, bool fStaking, const CChainParams& params)
-{
-    bool isStaking = false;
-    return IsValidDestination(DecodeDestination(str, params, isStaking)) && (isStaking == fStaking);
-}
-
-bool IsValidDestinationString(const std::string& str, bool isStaking)
-{
-    return IsValidDestinationString(str, isStaking, Params());
 }

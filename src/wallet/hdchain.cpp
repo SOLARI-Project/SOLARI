@@ -4,8 +4,8 @@
 
 #include "wallet/hdchain.h"
 
-#include "base58.h"
 #include "chainparams.h"
+#include "key_io.h"
 #include "tinyformat.h"
 #include "util/system.h"
 #include "utilstrencodings.h"
