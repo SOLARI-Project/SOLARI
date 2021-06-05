@@ -7,13 +7,13 @@
 #include "db.h"
 #include "evo/deterministicmns.h"
 #include "init.h"
+#include "key_io.h"
 #include "masternode-payments.h"
 #include "masternode-sync.h"
 #include "masternodeconfig.h"
 #include "masternodeman.h"
 #include "netbase.h"
 #include "rpc/server.h"
-#include "utilmoneystr.h"
 #ifdef ENABLE_WALLET
 #include "wallet/rpcwallet.h"
 #endif
@@ -554,7 +554,7 @@ UniValue createmasternodekey(const JSONRPCRequest& request)
     CKey secret;
     secret.MakeNewKey(false);
 
-    return EncodeSecret(secret);
+    return KeyIO::EncodeSecret(secret);
 }
 
 UniValue getmasternodeoutputs(const JSONRPCRequest& request)

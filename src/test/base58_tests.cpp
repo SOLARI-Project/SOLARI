@@ -10,9 +10,8 @@
 #include "data/base58_keys_valid.json.h"
 
 #include "key.h"
-#include "script/script.h"
+#include "key_io.h"
 #include "uint256.h"
-#include "util/system.h"
 #include "utilstrencodings.h"
 #include "test/test_pivx.h"
 
@@ -146,7 +145,7 @@ BOOST_AUTO_TEST_CASE(base58_keys_valid_parse)
         if(isPrivkey) {
             bool isCompressed = find_value(metadata, "isCompressed").get_bool();
             // Must be valid private key
-            privkey = DecodeSecret(exp_base58string);
+            privkey = KeyIO::DecodeSecret(exp_base58string);
             BOOST_CHECK_MESSAGE(privkey.IsValid(), "!IsValid:" + strTest);
             BOOST_CHECK_MESSAGE(privkey.IsCompressed() == isCompressed, "compressed mismatch:" + strTest);
             BOOST_CHECK_MESSAGE(privkey.size() == exp_payload.size() && std::equal(privkey.begin(), privkey.end(), exp_payload.begin()), "key mismatch:" + strTest);
@@ -163,7 +162,7 @@ BOOST_AUTO_TEST_CASE(base58_keys_valid_parse)
             BOOST_CHECK_MESSAGE(boost::apply_visitor(TestAddrTypeVisitor(exp_addrType), destination), "addrType mismatch" + strTest);
 
             // Public key must be invalid private key
-            privkey = DecodeSecret(exp_base58string);
+            privkey = KeyIO::DecodeSecret(exp_base58string);
             BOOST_CHECK_MESSAGE(!privkey.IsValid(), "IsValid pubkey as privkey:" + strTest);
         }
     }
@@ -198,7 +197,7 @@ BOOST_AUTO_TEST_CASE(base58_keys_valid_gen)
             CKey key;
             key.Set(exp_payload.begin(), exp_payload.end(), isCompressed);
             assert(key.IsValid());
-            BOOST_CHECK_MESSAGE(EncodeSecret(key) == exp_base58string, "result mismatch: " + strTest);
+            BOOST_CHECK_MESSAGE(KeyIO::EncodeSecret(key) == exp_base58string, "result mismatch: " + strTest);
         }
         else
         {
@@ -250,7 +249,7 @@ BOOST_AUTO_TEST_CASE(base58_keys_invalid)
         // must be invalid as public and as private key
         destination = DecodeDestination(exp_base58string);
         BOOST_CHECK_MESSAGE(!IsValidDestination(destination), "IsValid pubkey:" + strTest);
-        privkey = DecodeSecret(exp_base58string);
+        privkey = KeyIO::DecodeSecret(exp_base58string);
         BOOST_CHECK_MESSAGE(!privkey.IsValid(), "IsValid privkey:" + strTest);
     }
 }

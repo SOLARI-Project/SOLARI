@@ -70,16 +70,12 @@ inline bool DecodeBase58Check(const char* psz, std::vector<unsigned char>& vchRe
  */
 bool DecodeBase58Check(const std::string& str, std::vector<unsigned char>& vchRet);
 
-CKey DecodeSecret(const std::string& str);
-std::string EncodeSecret(const CKey& key);
-
 std::string EncodeDestination(const CTxDestination& dest, bool isStaking);
 std::string EncodeDestination(const CTxDestination& dest, const CChainParams::Base58Type addrType = CChainParams::PUBKEY_ADDRESS);
 // DecodeDestinationisStaking flag is set to true when the string arg is from an staking address
 CTxDestination DecodeDestination(const std::string& str, bool& isStaking);
 CTxDestination DecodeDestination(const std::string& str);
-// Return true if the address is valid without care on the type.
-bool IsValidDestinationString(const std::string& str);
+
 // Return true if the address is valid and is following the fStaking flag type (true means that the destination must be a staking address, false the opposite).
 bool IsValidDestinationString(const std::string& str, bool fStaking);
 bool IsValidDestinationString(const std::string& str, bool fStaking, const CChainParams& params);

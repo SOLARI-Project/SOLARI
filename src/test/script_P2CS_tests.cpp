@@ -1,10 +1,9 @@
 // Copyright (c) 2020 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
-#include "test/test_pivx.h"
-
 #include "base58.h"
 #include "key.h"
+#include "key_io.h"
 #include "policy/policy.h"
 #include "wallet/test/wallet_test_fixture.h"
 #include "wallet/wallet.h"
@@ -59,8 +58,8 @@ BOOST_AUTO_TEST_CASE(extract_cold_staking_destination_keys)
 
 static CScript GetNewP2CS(CKey& stakerKey, CKey& ownerKey, bool fLastOutFree)
 {
-    stakerKey = DecodeSecret("YNdsth3BsW53DYmCiR12SofWSAt2utXQUSGoin3PekVQCMbzfS7E");
-    ownerKey = DecodeSecret("YUo8oW3y8cUQdQxQxCdnUJ4Ww5H7nHBEMwD2bNDpBbuLM59t4rvd");
+    stakerKey = KeyIO::DecodeSecret("YNdsth3BsW53DYmCiR12SofWSAt2utXQUSGoin3PekVQCMbzfS7E");
+    ownerKey = KeyIO::DecodeSecret("YUo8oW3y8cUQdQxQxCdnUJ4Ww5H7nHBEMwD2bNDpBbuLM59t4rvd");
     return fLastOutFree ? GetScriptForStakeDelegationLOF(stakerKey.GetPubKey().GetID(), ownerKey.GetPubKey().GetID())
                         : GetScriptForStakeDelegation(stakerKey.GetPubKey().GetID(), ownerKey.GetPubKey().GetID());
 }
@@ -149,7 +148,7 @@ BOOST_AUTO_TEST_CASE(coldstake_lof_script)
     SignColdStake(tx, 0, scriptP2CS, stakerKey, true);
     BOOST_CHECK(CheckP2CSScript(tx.vin[0].scriptSig, scriptP2CS, tx, err));
 
-    const CKey& dummyKey = DecodeSecret("YNdsth3BsW53DYmCiR12SofWSAt2utXQUSGoin3PekVQCMbzfS7E");
+    const CKey& dummyKey = KeyIO::DecodeSecret("YNdsth3BsW53DYmCiR12SofWSAt2utXQUSGoin3PekVQCMbzfS7E");
     const CKeyID& dummyKeyID = dummyKey.GetPubKey().GetID();
     const CScript& dummyP2PKH = GetDummyP2PKH(dummyKeyID);
 
@@ -225,7 +224,7 @@ BOOST_AUTO_TEST_CASE(coldstake_script)
     SignColdStake(tx, 0, scriptP2CS, stakerKey, true);
     BOOST_CHECK(CheckP2CSScript(tx.vin[0].scriptSig, scriptP2CS, tx, err));
 
-    const CKey& dummyKey = DecodeSecret("YNdsth3BsW53DYmCiR12SofWSAt2utXQUSGoin3PekVQCMbzfS7E");
+    const CKey& dummyKey = KeyIO::DecodeSecret("YNdsth3BsW53DYmCiR12SofWSAt2utXQUSGoin3PekVQCMbzfS7E");
     const CKeyID& dummyKeyID = dummyKey.GetPubKey().GetID();
     const CScript& dummyP2PKH = GetDummyP2PKH(dummyKeyID);
 

@@ -5,6 +5,7 @@
 
 #include "base58.h"
 #include "hash.h"
+#include "key_io.h"
 #include "messagesigner.h"
 #include "tinyformat.h"
 #include "util/system.h"
@@ -14,7 +15,7 @@ const std::string strMessageMagic = "DarkNet Signed Message:\n";
 
 bool CMessageSigner::GetKeysFromSecret(const std::string& strSecret, CKey& keyRet, CPubKey& pubkeyRet)
 {
-    keyRet = DecodeSecret(strSecret);
+    keyRet = KeyIO::DecodeSecret(strSecret);
     if (!keyRet.IsValid())
         return false;
 

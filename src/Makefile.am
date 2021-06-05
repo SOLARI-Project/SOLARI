@@ -396,7 +396,6 @@ libbitcoin_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
   addressbook.cpp \
   crypter.cpp \
-  key_io.cpp \
   legacy/stakemodifier.cpp \
   kernel.cpp \
   wallet/db.cpp \
@@ -498,6 +497,7 @@ libbitcoin_common_a_SOURCES = \
   coins.cpp \
   compressor.cpp \
   consensus/merkle.cpp \
+  key_io.cpp \
   primitives/block.cpp \
   primitives/transaction.cpp \
   zpiv/zerocoin.cpp \

@@ -8,6 +8,7 @@
 #include "evo/deterministicmns.h"
 #include "evo/specialtx.h"
 #include "evo/providertx.h"
+#include "key_io.h"
 #include "masternode.h"
 #include "messagesigner.h"
 #include "netbase.h"
@@ -180,7 +181,7 @@ static CKey ParsePrivKey(CWallet* pwallet, const std::string &strKeyOrAddress, b
 #endif  // ENABLE_WALLET
     }
 
-    CKey key = DecodeSecret(strKeyOrAddress);
+    CKey key = KeyIO::DecodeSecret(strKeyOrAddress);
     if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
     return key;
 }

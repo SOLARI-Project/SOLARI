@@ -8,8 +8,8 @@
 #include "coins.h"
 #include "core_io.h"
 #include "keystore.h"
+#include "key_io.h"
 #include "policy/policy.h"
-#include "primitives/block.h" // for MAX_BLOCK_SIZE
 #include "primitives/transaction.h"
 #include "script/script.h"
 #include "script/sign.h"
@@ -472,7 +472,7 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
     for (unsigned int kidx = 0; kidx < keysObj.size(); kidx++) {
         if (!keysObj[kidx].isStr())
             throw std::runtime_error("privatekey not a string");
-        CKey key = DecodeSecret(keysObj[kidx].getValStr());
+        CKey key = KeyIO::DecodeSecret(keysObj[kidx].getValStr());
         if (!key.IsValid()) {
             throw std::runtime_error("privatekey not valid");
         }
