@@ -18,6 +18,8 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "consensus/params -> consensus/upgrades -> consensus/params"
     "crypter -> wallet/wallet -> crypter"
     "evo/deterministicmns -> masternodeman -> evo/deterministicmns"
+    "evo/deterministicmns -> llmq/quorums_utils -> evo/deterministicmns"
+    "llmq/quorums_blockprocessor -> net_processing -> llmq/quorums_blockprocessor"
     "kernel -> validation -> kernel"
     "masternode -> masternode-sync -> masternode"
     "masternode -> masternodeman -> masternode"
@@ -65,7 +67,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> validation -> pow -> chain"
     "chain -> legacy/stakemodifier -> validation -> zpivchain -> chain"
     "consensus/tx_verify -> consensus/zerocoin_verify -> spork -> validation -> consensus/tx_verify"
-    "evo/deterministicmns -> masternodeman -> validation -> validationinterface -> evo/deterministicmns"
+    "evo/deterministicmns -> llmq/quorums_commitment -> validation -> validationinterface -> evo/deterministicmns"
 )
 
 EXIT_CODE=0
