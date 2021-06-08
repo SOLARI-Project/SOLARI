@@ -137,7 +137,6 @@ LIBSAPLING_H = \
   sapling/zip32.h \
   sapling/saplingscriptpubkeyman.h \
   sapling/incrementalmerkletree.h \
-  sapling/proof.h \
   sapling/sapling_transaction.h \
   sapling/transaction_builder.h \
   sapling/sapling_operation.h
@@ -577,7 +576,6 @@ libsapling_a_SOURCES = \
   sapling/crypter_sapling.cpp \
   sapling/saplingscriptpubkeyman.cpp \
   sapling/incrementalmerkletree.cpp \
-  sapling/proof.cpp \
   sapling/transaction_builder.cpp \
   sapling/sapling_operation.cpp
 
