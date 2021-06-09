@@ -44,6 +44,7 @@ Notable Changes
 
 (Developers: add your notes here as part of your pull requests whenever possible)
 
+
 Cold-Staking Re-Activation
 --------------------------
 PIVX Core v6.0.0 includes a fix for the vulnerability identified within the cold-staking protocol (see PR [#2258](https://github.com/PIVX-Project/PIVX/pull/2258)).
@@ -60,13 +61,24 @@ Scripts with the old opcode are still accepted on the network (the restriction o
 Multi-wallet support
 --------------------
 
-PIVX Core now supports loading multiple, separate wallets (See [PR 2337](https://github.com/PIVX-Project/PIVX/pull/2337)). The wallets are completely separated, with individual balances, keys and received transactions.
+PIVX Core now supports loading multiple, separate wallets (See [PR #2337](https://github.com/PIVX-Project/PIVX/pull/2337)). The wallets are completely separated, with individual balances, keys and received transactions.
 
 Multi-wallet is enabled by using more than one `-wallet` argument when starting PIVX client, either on the command line or in the pivx.conf config file.
 
 **In pivx-qt, only the first wallet will be displayed and accessible for creating and signing transactions.** GUI selectable multiple wallets will be supported in a future version. However, even in 6.0 other loaded wallets will remain synchronized to the node's current tip in the background.
 
-!TODO: update after endpoint support and multi-wallet RPC support
+PIVX Core 6.0.0 contains the following changes to the RPC interface and pivx-cli for multi-wallet:
+
+* When running PIVX Core with a single wallet, there are **no** changes to the RPC interface or `pivx-cli`. All RPC calls and `pivx-cli` commands continue to work as before.
+* When running PIVX Core with multi-wallet, all *node-level* RPC methods continue to work as before. HTTP RPC requests should be send to the normal `<RPC IP address>:<RPC port>` endpoint, and `pivx-cli` commands should be run as before. A *node-level* RPC method is any method which does not require access to the wallet.
+* When running PIVX Core with multi-wallet, *wallet-level* RPC methods must specify the wallet for which they're intended in every request. HTTP RPC requests should be send to the `<RPC IP address>:<RPC port>/wallet/<wallet name>` endpoint, for example `127.0.0.1:8332/wallet/wallet1.dat`. `pivx-cli` commands should be run with a `-rpcwallet` option, for example `pivx-cli -rpcwallet=wallet1.dat getbalance`.
+
+* A new *node-level* `listwallets` RPC method is added to display which wallets are currently loaded. The names returned by this method are the same as those used in the HTTP endpoint and for the `rpcwallet` argument.
+
+The `getwalletinfo` RPC method returns the name of the wallet used for the query.
+
+Note that while multi-wallet is now fully supported, the RPC multi-wallet interface should be considered unstable for version 6.0.0, and there may backwards-incompatible changes in future versions.
+
 
 
 GUI changes
@@ -125,12 +137,17 @@ A new init option flag '-blocksdir' will allow one to keep the blockfiles extern
 Low-level RPC changes
 ---------------------
 
-- The `listunspent` RPC now takes a `query_options` argument (see [PR 2317](https://github.com/PIVX-Project/PIVX/pull/2317)), which is a JSON object
+- The `listunspent` RPC now takes a `query_options` argument (see [PR #2317](https://github.com/PIVX-Project/PIVX/pull/2317)), which is a JSON object
   containing one or more of the following members:
   - `minimumAmount` - a number specifying the minimum value of each UTXO
   - `maximumAmount` - a number specifying the maximum value of each UTXO
   - `maximumCount` - a number specifying the minimum number of UTXOs
   - `minimumSumAmount` - a number specifying the minimum sum value of all UTXOs
+
+- The `listunspent` RPC also takes an additional boolean argument `include_unsafe` (true by default) to optionally exclude "unsafe" utxos.
+  An unconfirmed output from outside keys is considered unsafe (see [PR #2351](https://github.com/PIVX-Project/PIVX/pull/2351)).
+
+- The `listunspent` output also shows whether the utxo is considered safe to spend or not.
 
 - the `stop` RPC no longer accepts the (already deprecated, ignored, and undocumented) optional boolean argument `detach`.
 

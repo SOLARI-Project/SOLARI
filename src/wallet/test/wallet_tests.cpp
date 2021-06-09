@@ -53,7 +53,7 @@ static void add_coin(std::unique_ptr<CWallet>& pwallet, const CAmount& nValue, i
     if (fIsFromMe) {
         wtx->m_amounts[CWalletTx::DEBIT].Set(ISMINE_SPENDABLE, 1);
     }
-    COutput output(wtx.get(), nInput, nAge, true, true);
+    COutput output(wtx.get(), nInput, nAge, true /* spendable */, true /* solvable */, true /* safe */);
     vCoins.push_back(output);
     wtxn.emplace_back(std::move(wtx));
 }

@@ -57,13 +57,13 @@
 #include "validation.h"
 #include "validationinterface.h"
 #include "zpivchain.h"
+#include "warnings.h"
 
 #ifdef ENABLE_WALLET
+#include "wallet/init.h"
 #include "wallet/wallet.h"
 #include "wallet/rpcwallet.h"
-
 #endif
-#include "warnings.h"
 
 #include <atomic>
 #include <fstream>
@@ -507,7 +507,7 @@ std::string HelpMessage(HelpMessageMode mode)
         " " + _("Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway"));
 
 #if ENABLE_WALLET
-    strUsage += CWallet::GetWalletHelpString(showDebug);
+    strUsage += GetWalletHelpString(showDebug);
 #endif
 
     if (mode == HMM_BITCOIN_QT) {
@@ -561,6 +561,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-minrelaytxfee=<amt>", strprintf(_("Fees (in %s/Kb) smaller than this are considered zero fee for relaying, mining and transaction creation (default: %s)"), CURRENCY_UNIT, FormatMoney(::minRelayTxFee.GetFeePerK())));
     strUsage += HelpMessageOpt("-printtoconsole", strprintf(_("Send trace/debug info to console instead of debug.log file (default: %u)"), 0));
     if (showDebug) {
+        strUsage += HelpMessageOpt("-dustrelayfee=<amt>", strprintf("Fee rate (in %s/kB) used to define dust, the value of an output such that it will cost more than its value in fees at this fee rate to spend it. (default: %s)", CURRENCY_UNIT, FormatMoney(DUST_RELAY_TX_FEE)));
         strUsage += HelpMessageOpt("-printpriority", strprintf(_("Log transaction priority and fee per kB when mining blocks (default: %u)"), DEFAULT_PRINTPRIORITY));
     }
     strUsage += HelpMessageOpt("-shrinkdebugfile", _("Shrink debug.log file on client startup (default: 1 when no -debug)"));
@@ -1146,9 +1147,18 @@ bool AppInitParameterInteraction()
     if (!chainparams.IsTestChain() && !fRequireStandard)
         return UIError(strprintf("%s is not currently supported for %s chain", "-acceptnonstdtxn", chainparams.NetworkIDString()));
 
+    // Feerate used to define dust.  Shouldn't be changed lightly as old
+    // implementations may inadvertently create non-standard transactions
+    if (gArgs.IsArgSet("-dustrelayfee")) {
+        CAmount n = 0;
+        if (!ParseMoney(gArgs.GetArg("-dustrelayfee", ""), n) || 0 == n)
+            return UIError(AmountErrMsg("dustrelayfee", gArgs.GetArg("-dustrelayfee", "")));
+        dustRelayFee = CFeeRate(n);
+    }
+
 #ifdef ENABLE_WALLET
     strWalletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
-    if (!CWallet::ParameterInteraction())
+    if (!WalletParameterInteraction())
         return false;
 #endif // ENABLE_WALLET
 
@@ -1322,7 +1332,7 @@ bool AppInitMain()
 
 // ********************************************************* Step 5: Verify wallet database integrity
 #ifdef ENABLE_WALLET
-    if (!CWallet::Verify()) {
+    if (!WalletVerify()) {
         return false;
     }
 #endif
@@ -1711,7 +1721,7 @@ bool AppInitMain()
 
 // ********************************************************* Step 8: Backup and Load wallet
 #ifdef ENABLE_WALLET
-    if (!CWallet::InitLoadWallet())
+    if (!InitLoadWallet())
         return false;
 #else
     LogPrintf("No wallet compiled in!\n");

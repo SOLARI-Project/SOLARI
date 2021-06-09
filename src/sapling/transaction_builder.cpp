@@ -421,8 +421,8 @@ TransactionBuilderResult TransactionBuilder::Build(bool fDummySig)
 
     if (change > 0) {
         // If we get here and the change is dust, add it to the fee
-        CAmount dustThreshold = (spends.empty() && outputs.empty()) ? GetDustThreshold(minRelayTxFee) :
-                                GetShieldedDustThreshold(minRelayTxFee);
+        CAmount dustThreshold = (spends.empty() && outputs.empty()) ? GetDustThreshold(dustRelayFee)
+                                                                    : GetShieldedDustThreshold(dustRelayFee);
         if (change > dustThreshold) {
             // Send change to the specified change address. If no change address
             // was set, send change to the first Sapling address given as input

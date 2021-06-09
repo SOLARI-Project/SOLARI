@@ -296,6 +296,8 @@ BITCOIN_CORE_H = \
   wallet/rpcwallet.h \
   wallet/scriptpubkeyman.h \
   destination_io.h \
+  wallet/fees.h \
+  wallet/init.h \
   wallet/wallet.h \
   wallet/walletdb.h \
   warnings.h \
@@ -386,28 +388,16 @@ endif
 libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_wallet_a_SOURCES = \
-  activemasternode.cpp \
   bip38.cpp \
   interfaces/wallet.cpp \
   addressbook.cpp \
   crypter.cpp \
   key_io.cpp \
-  budget/budgetdb.cpp \
-  budget/budgetmanager.cpp \
-  budget/budgetproposal.cpp \
-  budget/budgetvote.cpp \
-  budget/finalizedbudget.cpp \
-  budget/finalizedbudgetvote.cpp \
-  masternode.cpp \
-  masternode-payments.cpp \
-  tiertwo_networksync.cpp \
-  masternode-sync.cpp \
-  masternodeconfig.cpp \
-  masternodeman.cpp \
-  messagesigner.cpp \
   legacy/stakemodifier.cpp \
   kernel.cpp \
   wallet/db.cpp \
+  wallet/fees.cpp \
+  wallet/init.cpp \
   wallet/rpcdump.cpp \
   wallet/rpcwallet.cpp \
   wallet/hdchain.cpp \
@@ -490,8 +480,15 @@ libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
 libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = \
+  activemasternode.cpp \
   base58.cpp \
   bip38.cpp \
+  budget/budgetdb.cpp \
+  budget/budgetmanager.cpp \
+  budget/budgetproposal.cpp \
+  budget/budgetvote.cpp \
+  budget/finalizedbudget.cpp \
+  budget/finalizedbudgetvote.cpp \
   chainparams.cpp \
   consensus/upgrades.cpp \
   coins.cpp \
@@ -506,6 +503,12 @@ libbitcoin_common_a_SOURCES = \
   invalid.cpp \
   key.cpp \
   keystore.cpp \
+  masternode.cpp \
+  masternode-payments.cpp \
+  masternode-sync.cpp \
+  masternodeconfig.cpp \
+  masternodeman.cpp \
+  messagesigner.cpp \
   netaddress.cpp \
   netbase.cpp \
   policy/feerate.cpp \
@@ -517,6 +520,7 @@ libbitcoin_common_a_SOURCES = \
   script/script.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  tiertwo_networksync.cpp \
   warnings.cpp \
   script/script_error.cpp \
   spork.cpp \

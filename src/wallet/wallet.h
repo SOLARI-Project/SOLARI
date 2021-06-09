@@ -98,6 +98,7 @@ class CScheduler;
 class ScriptPubKeyMan;
 class SaplingScriptPubKeyMan;
 class SaplingNoteData;
+struct SaplingNoteEntry;
 class CDeterministicMNList;
 
 /** (client) version numbers for particular wallet features */
@@ -766,7 +767,7 @@ public:
         AvailableCoinsFilter() {}
         AvailableCoinsFilter(bool _fIncludeDelegated,
                              bool _fIncludeColdStaking,
-                             bool _fOnlyConfirmed,
+                             bool _fOnlySafe,
                              bool _fOnlySpendable,
                              std::set<CTxDestination>* _onlyFilteredDest,
                              int _minDepth,
@@ -774,7 +775,7 @@ public:
                              CAmount _nMaxOutValue = 0) :
                 fIncludeDelegated(_fIncludeDelegated),
                 fIncludeColdStaking(_fIncludeColdStaking),
-                fOnlyConfirmed(_fOnlyConfirmed),
+                fOnlySafe(_fOnlySafe),
                 fOnlySpendable(_fOnlySpendable),
                 onlyFilteredDest(_onlyFilteredDest),
                 minDepth(_minDepth),
@@ -783,7 +784,7 @@ public:
 
         bool fIncludeDelegated{true};
         bool fIncludeColdStaking{false};
-        bool fOnlyConfirmed{true};
+        bool fOnlySafe{true};
         bool fOnlySpendable{false};
         std::set<CTxDestination>* onlyFilteredDest{nullptr};
         int minDepth{0};
@@ -809,6 +810,17 @@ public:
     void GetAvailableP2CSCoins(std::vector<COutput>& vCoins) const;
 
     std::map<CTxDestination, std::vector<COutput> > AvailableCoinsByAddress(bool fConfirmed, CAmount maxCoinValue, bool fIncludeColdStaking);
+
+    /**
+     * Return list of available coins and locked coins grouped by non-change output address.
+     * PIVX: group coins by pair <CTxDestination, Optional<CTxDestination>>. The optional destination
+     * is reserved for the staker address in case of P2CS.
+     */
+    std::map<std::pair<CTxDestination, Optional<CTxDestination>>, std::vector<COutput>> ListCoins() const;
+    /**
+     * Return list of available shield notes grouped by sapling address.
+     */
+    std::map<libzcash::SaplingPaymentAddress, std::vector<SaplingNoteEntry>> ListNotes() const;
 
     /// Get 10000 PIV output and keys which can be used for the Masternode
     bool GetMasternodeVinAndKeys(CTxIn& txinRet, CPubKey& pubKeyRet,
@@ -940,6 +952,8 @@ public:
     bool EraseDestData(const CTxDestination& dest, const std::string& key);
     //! Adds a destination data tuple to the store, without saving it to disk
     bool LoadDestData(const CTxDestination& dest, const std::string& key, const std::string& value);
+    //! Get all destination values matching a prefix.
+    std::vector<std::string> GetDestValues(const std::string& prefix) const;
 
     //! Adds a watch-only address to the store, and saves it to disk.
     bool AddWatchOnly(const CScript& dest) override;
@@ -1064,16 +1078,6 @@ public:
     CAmount GetUnconfirmedShieldedBalance() const;
 
     static CFeeRate minTxFee;
-    /**
-     * Estimate the minimum fee considering user set parameters
-     * and the required fee
-     */
-    static CAmount GetMinimumFee(unsigned int nTxBytes, unsigned int nConfirmTarget, const CTxMemPool& pool);
-    /**
-     * Return the minimum required fee taking into account the
-     * floating relay fee and user set minimum transaction fee
-     */
-    static CAmount GetRequiredFee(unsigned int nTxBytes);
 
     size_t KeypoolCountExternalKeys();
     bool TopUpKeyPool(unsigned int kpSize = 0);
@@ -1147,21 +1151,11 @@ public:
     //! Flush wallet (bitdb flush)
     void Flush(bool shutdown=false);
 
-    //! Verify the wallet database and perform salvage if required
-    static bool Verify();
-
     /* Mark a transaction (and it in-wallet descendants) as abandoned so its inputs may be respent. */
     bool AbandonTransaction(const uint256& hashTx);
 
-    /* Returns the wallets help message */
-    static std::string GetWalletHelpString(bool showDebug);
-
     /* Initializes the wallet, returns a new CWallet instance or a null pointer in case of an error */
     static CWallet* CreateWalletFromFile(const std::string walletFile);
-    static bool InitLoadWallet();
-
-    /* Wallets parameter interaction */
-    static bool ParameterInteraction();
 
     /**
      * Wallet post-init setup
@@ -1218,6 +1212,10 @@ public:
         pwallet = pwalletIn;
     }
 
+    CReserveKey() = default;
+    CReserveKey(const CReserveKey&) = delete;
+    CReserveKey& operator=(const CReserveKey&) = delete;
+
     ~CReserveKey()
     {
         ReturnKey();
@@ -1234,11 +1232,23 @@ public:
     const CWalletTx* tx;
     int i;
     int nDepth;
+
+    /** Whether we have the private keys to spend this output */
     bool fSpendable;
+
+    /** Whether we know how to spend this output, ignoring the lack of keys */
     bool fSolvable;
 
-    COutput(const CWalletTx* txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn) :
-        tx(txIn), i(iIn), nDepth(nDepthIn), fSpendable(fSpendableIn), fSolvable(fSolvableIn) {}
+    /**
+     * Whether this output is considered safe to spend. Unconfirmed transactions
+     * from outside keys and unconfirmed replacement transactions are considered
+     * unsafe and will not be used to fund new spending transactions.
+     */
+    bool fSafe;
+
+    COutput(const CWalletTx *txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn, bool fSafeIn) :
+        tx(txIn), i(iIn), nDepth(nDepthIn), fSpendable(fSpendableIn), fSolvable(fSolvableIn), fSafe(fSafeIn)
+    {}
 
     CAmount Value() const { return tx->tx->vout[i].nValue; }
     std::string ToString() const;
@@ -1249,7 +1259,7 @@ class CStakeableOutput : public COutput
 public:
     const CBlockIndex* pindex{nullptr};
 
-    CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn, bool fSpendableIn, bool fSolvableIn,
+    CStakeableOutput(const CWalletTx* txIn, int iIn, int nDepthIn,
                      const CBlockIndex*& pindex);
 
 };

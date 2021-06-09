@@ -76,6 +76,9 @@ class WalletTest(PivxTestFramework):
 
         # Exercise locking of unspent outputs
         unspent_0 = self.nodes[1].listunspent()[0]
+        assert unspent_0["solvable"]
+        assert unspent_0["spendable"]
+        assert unspent_0["safe"]
         unspent_0 = {"txid": unspent_0["txid"], "vout": unspent_0["vout"]}
         self.nodes[1].lockunspent(False, [unspent_0])
         assert_raises_rpc_error(-4, "Insufficient funds", self.nodes[1].sendtoaddress, self.nodes[1].getnewaddress(), 20)
@@ -84,16 +87,32 @@ class WalletTest(PivxTestFramework):
         assert_equal(len(self.nodes[1].listlockunspent()), 0)
 
         # Send 21 PIV from 1 to 0 using sendtoaddress call.
+        # Locked memory should use at least 32 bytes to sign the transaction
+        self.log.info("test getmemoryinfo")
+        memory_before = self.nodes[0].getmemoryinfo()
         self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 21)
-        self.nodes[1].generate(1)
-        self.sync_all(self.nodes[0:3])
+        memory_after = self.nodes[0].getmemoryinfo()
+        assert(memory_before['locked']['used'] + 32 <= memory_after['locked']['used'])
+        self.sync_mempools(self.nodes[0:3])
 
         # Node0 should have two unspent outputs.
+        # One safe, the other one not yet
+        node0utxos = self.nodes[0].listunspent(0)
+        assert_equal(len(node0utxos), 2)
+        newutxos = [x for x in node0utxos if x["txid"] != utxos[0]["txid"]]
+        assert_equal(len(newutxos), 1)
+        assert not newutxos[0]["safe"]
+
+        # Mine the other tx
+        self.nodes[1].generate(1)
+        self.sync_all(self.nodes[0:3])
+        node0utxos = self.nodes[0].listunspent()
+        assert_equal(len(node0utxos), 2)
+        for u in node0utxos:
+            assert u["safe"]
+
         # Create a couple of transactions to send them to node2, submit them through
         # node1, and make sure both node0 and node2 pick them up properly:
-        node0utxos = self.nodes[0].listunspent(1)
-        assert_equal(len(node0utxos), 2)
-
         # create both transactions
         fee_per_kbyte = Decimal('0.001')
         txns_to_send = []

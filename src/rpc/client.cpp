@@ -109,6 +109,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "listunspent", 2, "addresses" },
     { "listunspent", 3, "watchonly_config" },
     { "listunspent", 4, "query_options" },
+    { "listunspent", 5, "include_unsafe" },
     { "lockunspent", 0, "unlock" },
     { "lockunspent", 1, "transactions" },
     { "logging", 0, "include" },
