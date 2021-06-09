@@ -150,7 +150,7 @@ static std::vector<CAddress> convertSeed6(const std::vector<SeedSpec6>& vSeedsIn
 // one by discovery.
 CAddress GetLocalAddress(const CNetAddr* paddrPeer, ServiceFlags nLocalServices)
 {
-    CAddress ret(CService(CNetAddr(), GetListenPort()), NODE_NONE);
+    CAddress ret(CService(CNetAddr(), GetListenPort()), nLocalServices);
     CService addr;
     if (GetLocal(addr, paddrPeer)) {
         ret = CAddress(addr, nLocalServices);
@@ -238,7 +238,7 @@ bool RemoveLocal(const CService& addr)
 /** Make a particular network entirely off-limits (no automatic connects to it) */
 void SetLimited(enum Network net, bool fLimited)
 {
-    if (net == NET_UNROUTABLE)
+    if (net == NET_UNROUTABLE || net == NET_INTERNAL)
         return;
     LOCK(cs_mapLocalHost);
     vfLimited[net] = fLimited;
@@ -456,34 +456,30 @@ void CConnman::ClearBanned()
 
 bool CConnman::IsBanned(CNetAddr ip)
 {
-    bool fResult = false;
+    LOCK(cs_setBanned);
+    for (banmap_t::iterator it = setBanned.begin(); it != setBanned.end(); it++)
     {
-        LOCK(cs_setBanned);
-        for (banmap_t::iterator it = setBanned.begin(); it != setBanned.end(); it++)
-        {
-            CSubNet subNet = (*it).first;
-            CBanEntry banEntry = (*it).second;
+        CSubNet subNet = (*it).first;
+        CBanEntry banEntry = (*it).second;
 
-            if(subNet.Match(ip) && GetTime() < banEntry.nBanUntil)
-                fResult = true;
+        if (subNet.Match(ip) && GetTime() < banEntry.nBanUntil) {
+            return true;
         }
     }
-    return fResult;
+    return false;
 }
 
 bool CConnman::IsBanned(CSubNet subnet)
 {
-    bool fResult = false;
-    {
-        LOCK(cs_setBanned);
-        banmap_t::iterator i = setBanned.find(subnet);
-        if (i != setBanned.end()) {
-            CBanEntry banEntry = (*i).second;
-            if (GetTime() < banEntry.nBanUntil)
-                fResult = true;
+    LOCK(cs_setBanned);
+    banmap_t::iterator i = setBanned.find(subnet);
+    if (i != setBanned.end()) {
+        CBanEntry banEntry = (*i).second;
+        if (GetTime() < banEntry.nBanUntil) {
+            return true;
         }
     }
-    return fResult;
+    return false;
 }
 
 void CConnman::Ban(const CNetAddr& addr, const BanReason &banReason, int64_t bantimeoffset, bool sinceUnixEpoch)
@@ -1508,26 +1504,20 @@ void CConnman::ThreadDNSAddressSeed()
             std::vector<CNetAddr> vIPs;
             std::vector<CAddress> vAdd;
             ServiceFlags requiredServiceBits = nRelevantServices;
-            if (LookupHost(GetDNSHost(seed, &requiredServiceBits).c_str(), vIPs, 0, true)) {
+            std::string host = GetDNSHost(seed, &requiredServiceBits);
+            CNetAddr resolveSource;
+            if (!resolveSource.SetInternal(host)) {
+                continue;
+            }
+            if (LookupHost(host.c_str(), vIPs, 0, true)) {
                 for (CNetAddr& ip : vIPs) {
-                    int nOneDay = 24 * 3600;
+                    int nOneDay = 24*3600;
                     CAddress addr = CAddress(CService(ip, Params().GetDefaultPort()), requiredServiceBits);
                     addr.nTime = GetTime() - 3 * nOneDay - GetRand(4 * nOneDay); // use a random age between 3 and 7 days old
                     vAdd.push_back(addr);
                     found++;
                 }
-            }
-            if (interruptNet) {
-                return;
-            }
-            // TODO: The seed name resolve may fail, yielding an IP of [::], which results in
-            // addrman assigning the same source to results from different seeds.
-            // This should switch to a hard-coded stable dummy IP for each seed name, so that the
-            // resolve is not required at all.
-            if (!vIPs.empty()) {
-                CService seedSource;
-                Lookup(seed.name.c_str(), seedSource, 0, true);
-                addrman.Add(vAdd, seedSource);
+                addrman.Add(vAdd, resolveSource);
             }
         }
     }
@@ -1621,7 +1611,7 @@ void CConnman::ThreadOpenConnections()
             if (!done) {
                 LogPrintf("Adding fixed seed nodes as DNS doesn't seem to be available.\n");
                 CNetAddr local;
-                LookupHost("127.0.0.1", local, false);
+                local.SetInternal("fixedseeds");
                 addrman.Add(convertSeed6(Params().FixedSeeds()), local);
                 done = true;
             }
@@ -2476,14 +2466,17 @@ CNode::~CNode()
 {
     CloseSocket(hSocket);
 
-    if (pfilter)
-        delete pfilter;
+    delete pfilter;
 }
 
 void CNode::AskFor(const CInv& inv)
 {
-    if (mapAskFor.size() > MAPASKFOR_MAX_SZ)
+    if (mapAskFor.size() > MAPASKFOR_MAX_SZ || setAskFor.size() > SETASKFOR_MAX_SZ)
         return;
+    // a peer may not have multiple non-responded queue positions for a single inv item
+    if (!setAskFor.insert(inv.hash).second)
+        return;
+
     // We're using mapAskFor as a priority queue,
     // the key is the earliest time the request can be sent
     int64_t nRequestTime;
@@ -2599,6 +2592,6 @@ uint64_t CConnman::CalculateKeyedNetGroup(const CAddress& ad)
 {
     std::vector<unsigned char> vchNetGroup(ad.GetGroup());
 
-    return GetDeterministicRandomizer(RANDOMIZER_ID_NETGROUP).Write(&vchNetGroup[0], vchNetGroup.size()).Finalize();
+    return GetDeterministicRandomizer(RANDOMIZER_ID_NETGROUP).Write(vchNetGroup.data(), vchNetGroup.size()).Finalize();
 }
 

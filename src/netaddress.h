@@ -22,6 +22,7 @@ enum Network {
     NET_IPV4,
     NET_IPV6,
     NET_TOR,
+    NET_INTERNAL,
 
     NET_MAX,
 };
@@ -31,7 +32,7 @@ class CNetAddr
 {
 protected:
     unsigned char ip[16]; // in network byte order
-    uint32_t scopeId{0};     // for scoped/link-local ipv6 addresses
+    uint32_t scopeId{0};  // for scoped/link-local ipv6 addresses
 
 public:
     CNetAddr();
@@ -44,6 +45,12 @@ public:
          * @note Only NET_IPV4 and NET_IPV6 are allowed for network.
          */
     void SetRaw(Network network, const uint8_t* data);
+
+    /**
+      * Transform an arbitrary string into a non-routable ipv6 address.
+      * Useful for mapping resolved addresses back to their source.
+    */
+    bool SetInternal(const std::string& name);
 
     bool SetSpecial(const std::string& strName); // for Tor addresses
     bool IsIPv4() const;                         // IPv4 mapped address (::FFFF:0:0/96, 0.0.0.0/0)
@@ -64,6 +71,7 @@ public:
     bool IsTor() const;
     bool IsLocal() const;
     bool IsRoutable() const;
+    bool IsInternal() const;
     bool IsValid() const;
     enum Network GetNetwork() const;
     std::string ToString() const;
