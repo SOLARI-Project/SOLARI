@@ -1066,7 +1066,7 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
     CNode* pnode = new CNode(id, nLocalServices, GetBestHeight(), hSocket, addr, CalculateKeyedNetGroup(addr), nonce, "", true);
     pnode->AddRef();
     pnode->fWhitelisted = whitelisted;
-    GetNodeSignals().InitializeNode(pnode, *this);
+    GetNodeSignals().InitializeNode(pnode, this);
 
     LogPrint(BCLog::NET, "connection from %s accepted\n", addr.ToString());
 
@@ -1828,7 +1828,7 @@ bool CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
     if (fFeeler)
         pnode->fFeeler = true;
 
-    GetNodeSignals().InitializeNode(pnode, *this);
+    GetNodeSignals().InitializeNode(pnode, this);
     {
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
@@ -1856,7 +1856,7 @@ void CConnman::ThreadMessageHandler()
                 continue;
 
             // Receive messages
-            bool fMoreNodeWork = GetNodeSignals().ProcessMessages(pnode, *this, flagInterruptMsgProc);
+            bool fMoreNodeWork = GetNodeSignals().ProcessMessages(pnode, this, flagInterruptMsgProc);
             fMoreWork |= (fMoreNodeWork && !pnode->fPauseSend);
             if (flagInterruptMsgProc)
                 return;
@@ -1864,7 +1864,7 @@ void CConnman::ThreadMessageHandler()
             // Send messages
             {
                 LOCK(pnode->cs_sendProcessing);
-                GetNodeSignals().SendMessages(pnode, *this, flagInterruptMsgProc);
+                GetNodeSignals().SendMessages(pnode, this, flagInterruptMsgProc);
             }
             if (flagInterruptMsgProc)
                 return;
@@ -2105,7 +2105,7 @@ bool CConnman::Start(CScheduler& scheduler, std::string& strNodeError, Options c
         uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();
 
         pnodeLocalHost = new CNode(id, nLocalServices, GetBestHeight(), INVALID_SOCKET, CAddress(CService(local, 0), nLocalServices), 0, nonce);
-        GetNodeSignals().InitializeNode(pnodeLocalHost, *this);
+        GetNodeSignals().InitializeNode(pnodeLocalHost, this);
     }
 
     //
