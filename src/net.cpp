@@ -2311,8 +2311,6 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     filterInventoryKnown.reset();
     fSendMempool = false;
     fGetAddr = false;
-    nNextLocalAddrSend = 0;
-    nNextAddrSend = 0;
     fRelayTxes = false;
     pfilter = std::make_unique<CBloomFilter>();
     timeLastMempoolReq = 0;
