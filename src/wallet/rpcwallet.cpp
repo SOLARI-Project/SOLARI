@@ -997,7 +997,7 @@ UniValue setlabel(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-static void SendMoney(CWallet* const pwallet, const CTxDestination& address, CAmount nValue, CTransactionRef& tx)
+static void SendMoney(CWallet* const pwallet, const CTxDestination& address, CAmount nValue, bool fSubtractFeeFromAmount, CTransactionRef& tx)
 {
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -1018,8 +1018,12 @@ static void SendMoney(CWallet* const pwallet, const CTxDestination& address, CAm
     CReserveKey reservekey(pwallet);
     CAmount nFeeRequired;
     std::string strError;
-    if (!pwallet->CreateTransaction(scriptPubKey, nValue, tx, reservekey, nFeeRequired, strError, nullptr, (CAmount)0)) {
-        if (nValue + nFeeRequired > pwallet->GetAvailableBalance())
+    std::vector<CRecipient> vecSend;
+    int nChangePosRet = -1;
+    CRecipient recipient = {scriptPubKey, nValue, fSubtractFeeFromAmount};
+    vecSend.push_back(recipient);
+    if (!pwallet->CreateTransaction(vecSend, tx, reservekey, nFeeRequired, nChangePosRet, strError)) {
+        if (!fSubtractFeeFromAmount && nValue + nFeeRequired > pwallet->GetAvailableBalance())
             strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!", FormatMoney(nFeeRequired));
         LogPrintf("%s: %s\n", __func__, strError);
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
@@ -1039,7 +1043,8 @@ static UniValue ShieldSendManyTo(CWallet * const pwallet,
                                  const std::string& commentStr,
                                  const std::string& toStr,
                                  int nMinDepth,
-                                 bool fIncludeDelegated)
+                                 bool fIncludeDelegated,
+                                 UniValue subtractFeeFromAmount)
 {
     // convert params to 'shieldsendmany' format
     JSONRPCRequest req;
@@ -1058,6 +1063,8 @@ static UniValue ShieldSendManyTo(CWallet * const pwallet,
     }
     req.params.push_back(recipients);
     req.params.push_back(nMinDepth);
+    req.params.push_back(0);
+    req.params.push_back(subtractFeeFromAmount);
 
     // send
     SaplingOperation operation = CreateShieldedTransaction(pwallet, req);
@@ -1086,9 +1093,9 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 5)
         throw std::runtime_error(
-            "sendtoaddress \"address\" amount ( \"comment\" \"comment-to\" )\n"
+            "sendtoaddress \"address\" amount ( \"comment\" \"comment-to\" subtract_fee )\n"
             "\nSend an amount to a given address. The amount is a real and is rounded to the nearest 0.00000001\n" +
             HelpRequiringPassphrase(pwallet) + "\n"
 
@@ -1100,6 +1107,8 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
             "4. \"comment-to\"  (string, optional) A comment to store the name of the person or organization \n"
             "                             to which you're sending the transaction. This is not part of the \n"
             "                             transaction, just kept in your wallet.\n"
+            "5. subtract_fee    (boolean, optional, default=false) The fee will be deducted from the amount being sent.\n"
+            "                             The recipient will receive less bitcoins than you enter in the amount field.\n"
 
             "\nResult:\n"
             "\"transactionid\"  (string) The transaction id.\n"
@@ -1107,6 +1116,7 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
             "\nExamples:\n" +
             HelpExampleCli("sendtoaddress", "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" 0.1") +
             HelpExampleCli("sendtoaddress", "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" 0.1 \"donation\" \"seans outpost\"") +
+            HelpExampleCli("sendtoaddress", "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" 0.1 \"\" \"\" true") +
             HelpExampleRpc("sendtoaddress", "\"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\", 0.1, \"donation\", \"seans outpost\""));
 
     EnsureWalletIsUnlocked(pwallet);
@@ -1124,11 +1134,16 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
                                    request.params[2].get_str() : "";
     const std::string toStr = (request.params.size() > 3 && !request.params[3].isNull()) ?
                                    request.params[3].get_str() : "";
+    bool fSubtractFeeFromAmount = request.params.size() > 4 && request.params[4].get_bool();
 
     if (isShielded) {
         UniValue sendTo(UniValue::VOBJ);
         sendTo.pushKV(addrStr, request.params[1]);
-        return ShieldSendManyTo(pwallet, sendTo, commentStr, toStr, 1, false);
+        UniValue subtractFeeFromAmount(UniValue::VARR);
+        if (fSubtractFeeFromAmount) {
+            subtractFeeFromAmount.push_back(addrStr);
+        }
+        return ShieldSendManyTo(pwallet, sendTo, commentStr, toStr, 1, false, subtractFeeFromAmount);
     }
 
     const CTxDestination& address = *Standard::GetTransparentDestination(destination);
@@ -1137,7 +1152,7 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
     CAmount nAmount = AmountFromValue(request.params[1]);
 
     CTransactionRef tx;
-    SendMoney(pwallet, address, nAmount, tx);
+    SendMoney(pwallet, address, nAmount, fSubtractFeeFromAmount, tx);
 
     // Wallet comments
     CWalletTx& wtx = pwallet->mapWallet.at(tx->GetHash());
@@ -1655,6 +1670,9 @@ static SaplingOperation CreateShieldedTransaction(CWallet* const pwallet, const 
         }
     }
 
+    // Param 4: subtractFeeFromAmount addresses
+    const UniValue subtractFeeFromAmount = request.params[4];
+
     // Param 1: array of outputs
     UniValue outputs = request.params[1].get_array();
     if (outputs.empty())
@@ -1712,10 +1730,19 @@ static SaplingOperation CreateShieldedTransaction(CWallet* const pwallet, const 
         if (nAmount < 0)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, amount must be positive");
 
+        bool fSubtractFeeFromAmount = false;
+        for (unsigned int idx = 0; idx < subtractFeeFromAmount.size(); idx++) {
+            const UniValue& addr = subtractFeeFromAmount[idx];
+            if (addr.get_str() == address) {
+                fSubtractFeeFromAmount = true;
+                break;
+            }
+        }
+
         if (saddr) {
-            recipients.emplace_back(*saddr, nAmount, memo);
+            recipients.emplace_back(*saddr, nAmount, memo, fSubtractFeeFromAmount);
         } else {
-            recipients.emplace_back(taddr, nAmount);
+            recipients.emplace_back(taddr, nAmount, fSubtractFeeFromAmount);
         }
 
         nTotalOut += nAmount;
@@ -1745,11 +1772,13 @@ static SaplingOperation CreateShieldedTransaction(CWallet* const pwallet, const 
     // If not set, SaplingOperation will set the minimum fee (based on minRelayFee and tx size)
     if (request.params.size() > 3) {
         CAmount nFee = AmountFromValue(request.params[3]);
-        if (nFee <= 0) {
+        if (nFee < 0) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid fee. Must be positive.");
+        } else if (nFee > 0) {
+            // If the user-selected fee is not enough (or too much), the build operation will fail.
+            operation.setFee(nFee);
         }
-        // If the user-selected fee is not enough (or too much), the build operation will fail.
-        operation.setFee(nFee);
+        // If nFee=0 leave the default (build operation will compute the minimum fee)
     }
 
     if (fromSapling && nMinDepth == 0) {
@@ -1775,9 +1804,9 @@ UniValue shieldsendmany(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 5)
         throw std::runtime_error(
-                "shieldsendmany \"fromaddress\" [{\"address\":... ,\"amount\":...},...] ( minconf fee )\n"
+                "shieldsendmany \"fromaddress\" [{\"address\":... ,\"amount\":...},...] ( minconf fee subtract_fee_from )\n"
                 "\nSend to many recipients. Amounts are decimal numbers with at most 8 digits of precision."
                 "\nChange generated from a transparent addr flows to a new  transparent addr address, while change generated from a shield addr returns to itself."
                 "\nWhen sending coinbase UTXOs to a shield addr, change is not allowed. The entire value of the UTXO(s) must be consumed."
@@ -1797,8 +1826,16 @@ UniValue shieldsendmany(const JSONRPCRequest& request)
                 "    }, ... ]\n"
                 "3. minconf               (numeric, optional, default=1) Only use funds confirmed at least this many times.\n"
                 "4. fee                   (numeric, optional), The fee amount to attach to this transaction.\n"
-                "                            If not specified, the wallet will try to compute the minimum possible fee for a shield TX,\n"
+                "                            If not specified, or set to 0, the wallet will try to compute the minimum possible fee for a shield TX,\n"
                 "                            based on the expected transaction size and the current value of -minRelayTxFee.\n"
+                "5. subtract_fee_from     (array, optional) A json array with addresses.\n"
+                "                           The fee will be equally deducted from the amount of each selected address.\n"
+                "                           Those recipients will receive less PIV than you enter in their corresponding amount field.\n"
+                "                           If no addresses are specified here, the sender pays the fee.\n"
+                "    [\n"
+                "      \"address\"          (string) Subtract fee from this address\n"
+                "      ,...\n"
+                "    ]\n"
                 "\nResult:\n"
                 "\"id\"          (string) transaction hash in the network\n"
                 "\nExamples:\n"
@@ -2253,7 +2290,7 @@ UniValue getunconfirmedbalance(const JSONRPCRequest& request)
 /*
  * Only used for t->t transactions (via sendmany RPC)
  */
-static UniValue legacy_sendmany(CWallet* const pwallet, const UniValue& sendTo, int nMinDepth, std::string comment, bool fIncludeDelegated)
+static UniValue legacy_sendmany(CWallet* const pwallet, const UniValue& sendTo, int nMinDepth, std::string comment, bool fIncludeDelegated, const UniValue& subtractFeeFromAmount)
 {
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -2282,7 +2319,16 @@ static UniValue legacy_sendmany(CWallet* const pwallet, const UniValue& sendTo, 
         CAmount nAmount = AmountFromValue(sendTo[name_]);
         totalAmount += nAmount;
 
-        vecSend.emplace_back(scriptPubKey, nAmount, false);
+        bool fSubtractFeeFromAmount = false;
+        for (unsigned int idx = 0; idx < subtractFeeFromAmount.size(); idx++) {
+            const UniValue& addr = subtractFeeFromAmount[idx];
+            if (addr.get_str() == name_) {
+                fSubtractFeeFromAmount = true;
+                break;
+            }
+        }
+
+        vecSend.emplace_back(scriptPubKey, nAmount, fSubtractFeeFromAmount);
     }
 
     // Check funds
@@ -2326,7 +2372,7 @@ UniValue sendmany(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() < 2 || request.params.size() > 5)
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
         throw std::runtime_error(
             "sendmany \"\" {\"address\":amount,...} ( minconf \"comment\" include_delegated )\n"
             "\nSend to multiple destinations. Recipients are transparent or shield PIVX addresses.\n"
@@ -2344,6 +2390,14 @@ UniValue sendmany(const JSONRPCRequest& request)
             "3. minconf                 (numeric, optional, default=1) Only use the balance confirmed at least this many times.\n"
             "4. \"comment\"             (string, optional) A comment\n"
             "5. include_delegated       (bool, optional, default=false) Also include balance delegated to cold stakers\n"
+            "6. subtract_fee_from       (array, optional) A json array with addresses.\n"
+            "                           The fee will be equally deducted from the amount of each selected address.\n"
+            "                           Those recipients will receive less PIV than you enter in their corresponding amount field.\n"
+            "                           If no addresses are specified here, the sender pays the fee.\n"
+            "    [\n"
+            "      \"address\"          (string) Subtract fee from this address\n"
+            "      ,...\n"
+            "    ]\n"
 
             "\nResult:\n"
             "\"transactionid\"          (string) The transaction id for the send. Only 1 transaction is created regardless of \n"
@@ -2374,7 +2428,11 @@ UniValue sendmany(const JSONRPCRequest& request)
     const int nMinDepth = request.params.size() > 2 ? request.params[2].get_int() : 1;
     const std::string comment = (request.params.size() > 3 && !request.params[3].isNull() && !request.params[3].get_str().empty()) ?
                         request.params[3].get_str() : "";
-    const bool fIncludeDelegated = (request.params.size() > 5 && request.params[5].get_bool());
+    const bool fIncludeDelegated = (request.params.size() > 4 && request.params[4].get_bool());
+
+    UniValue subtractFeeFromAmount(UniValue::VARR);
+    if (request.params.size() > 5 && !request.params[5].isNull())
+        subtractFeeFromAmount = request.params[5].get_array();
 
     // Check  if any recipient address is shield
     bool fShieldSend = false;
@@ -2388,11 +2446,11 @@ UniValue sendmany(const JSONRPCRequest& request)
     }
 
     if (fShieldSend) {
-        return ShieldSendManyTo(pwallet, sendTo, comment, "", nMinDepth, fIncludeDelegated);
+        return ShieldSendManyTo(pwallet, sendTo, comment, "", nMinDepth, fIncludeDelegated, subtractFeeFromAmount);
     }
 
     // All recipients are transparent: use Legacy sendmany t->t
-    return legacy_sendmany(pwallet, sendTo, nMinDepth, comment, fIncludeDelegated);
+    return legacy_sendmany(pwallet, sendTo, nMinDepth, comment, fIncludeDelegated, subtractFeeFromAmount);
 }
 
 // Defined in rpc/misc.cpp
@@ -3792,6 +3850,154 @@ UniValue listunspent(const JSONRPCRequest& request)
     return results;
 }
 
+UniValue fundrawtransaction(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
+        throw std::runtime_error(
+            "fundrawtransaction \"hexstring\" ( options )\n"
+            "\nAdd inputs to a transaction until it has enough in value to meet its out value.\n"
+            "This will not modify existing inputs, and will add one change output to the outputs.\n"
+            "Note that inputs which were signed may need to be resigned after completion since in/outputs have been added.\n"
+            "The inputs added will not be signed, use signrawtransaction for that.\n"
+            "Note that all existing inputs must have their previous output transaction be in the wallet.\n"
+            "Note that all inputs selected must be of standard form and P2SH scripts must be "
+            "in the wallet using importaddress or addmultisigaddress (to calculate fees).\n"
+            "You can see whether this is the case by checking the \"solvable\" field in the listunspent output.\n"
+            "Only pay-to-pubkey, multisig, and P2SH versions thereof are currently supported for watch-only\n"
+
+            "\nArguments:\n"
+            "1. \"hexstring\"    (string, required) The hex string of the raw transaction\n"
+            "2. options          (object, optional)\n"
+            "   {\n"
+            "     \"changeAddress\"     (string, optional, default pool address) The PIVX address to receive the change\n"
+            "     \"changePosition\"    (numeric, optional, default random) The index of the change output\n"
+            "     \"includeWatching\"   (boolean, optional, default false) Also select inputs which are watch only\n"
+            "     \"lockUnspents\"      (boolean, optional, default false) Lock selected unspent outputs\n"
+            "     \"feeRate\"           (numeric, optional, default 0=estimate) Set a specific feerate (PIV per KB)\n"
+            "     \"subtractFeeFromOutputs\" (array, optional) A json array of integers.\n"
+            "                              The fee will be equally deducted from the amount of each specified output.\n"
+            "                              The outputs are specified by their zero-based index, before any change output is added.\n"
+            "                              Those recipients will receive less PIV than you enter in their corresponding amount field.\n"
+            "                              If no outputs are specified here, the sender pays the fee.\n"
+            "                                  [vout_index,...]\n"
+            "   }\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"hex\":       \"value\", (string)  The resulting raw transaction (hex-encoded string)\n"
+            "  \"fee\":       n,         (numeric) The fee added to the transaction\n"
+            "  \"changepos\": n          (numeric) The position of the added change output, or -1\n"
+            "}\n"
+            "\"hex\"             \n"
+            "\nExamples:\n"
+            "\nCreate a transaction with no inputs\n"
+            + HelpExampleCli("createrawtransaction", "\"[]\" \"{\\\"myaddress\\\":0.01}\"") +
+            "\nAdd sufficient unsigned inputs to meet the output value\n"
+            + HelpExampleCli("fundrawtransaction", "\"rawtransactionhex\"") +
+            "\nSign the transaction\n"
+            + HelpExampleCli("signrawtransaction", "\"fundedtransactionhex\"") +
+            "\nSend the transaction\n"
+            + HelpExampleCli("sendrawtransaction", "\"signedtransactionhex\"")
+            );
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    RPCTypeCheck(request.params, {UniValue::VSTR});
+
+    CTxDestination changeAddress = CNoDestination();
+    int changePosition = -1;
+    bool includeWatching = false;
+    bool lockUnspents = false;
+    UniValue subtractFeeFromOutputs;
+    std::set<int> setSubtractFeeFromOutputs;
+    CFeeRate feeRate = CFeeRate(0);
+    bool overrideEstimatedFeerate = false;
+
+    if (request.params.size() > 1) {
+        RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
+        UniValue options = request.params[1];
+        RPCTypeCheckObj(options,
+            {
+                {"changeAddress", UniValueType(UniValue::VSTR)},
+                {"changePosition", UniValueType(UniValue::VNUM)},
+                {"includeWatching", UniValueType(UniValue::VBOOL)},
+                {"lockUnspents", UniValueType(UniValue::VBOOL)},
+                {"feeRate", UniValueType()}, // will be checked below
+                {"subtractFeeFromOutputs", UniValueType(UniValue::VARR)},
+            },
+            true, true);
+
+        if (options.exists("changeAddress")) {
+            changeAddress = DecodeDestination(options["changeAddress"].get_str());
+
+            if (!IsValidDestination(changeAddress))
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "changeAddress must be a valid PIVX address");
+        }
+
+        if (options.exists("changePosition"))
+            changePosition = options["changePosition"].get_int();
+
+        if (options.exists("includeWatching"))
+            includeWatching = options["includeWatching"].get_bool();
+
+        if (options.exists("lockUnspents"))
+            lockUnspents = options["lockUnspents"].get_bool();
+
+        if (options.exists("feeRate")) {
+            feeRate = CFeeRate(AmountFromValue(options["feeRate"]));
+            overrideEstimatedFeerate = true;
+        }
+
+        if (options.exists("subtractFeeFromOutputs")) {
+            subtractFeeFromOutputs = options["subtractFeeFromOutputs"].get_array();
+        }
+    }
+
+    // parse hex string from parameter
+    CMutableTransaction origTx;
+    if (!DecodeHexTx(origTx, request.params[0].get_str()))
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+
+    if (origTx.vout.size() == 0)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "TX must have at least one output");
+
+    if (changePosition != -1 && (changePosition < 0 || (unsigned int) changePosition > origTx.vout.size()))
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "changePosition out of bounds");
+
+    for (unsigned int idx = 0; idx < subtractFeeFromOutputs.size(); idx++) {
+        int pos = subtractFeeFromOutputs[idx].get_int();
+        if (setSubtractFeeFromOutputs.count(pos))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, duplicated position: %d", pos));
+        if (pos < 0)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, negative position: %d", pos));
+        if (pos >= int(origTx.vout.size()))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, position too large: %d", pos));
+        setSubtractFeeFromOutputs.insert(pos);
+    }
+
+    CMutableTransaction tx(origTx);
+    CAmount nFeeOut;
+    std::string strFailReason;
+    if(!pwallet->FundTransaction(tx, nFeeOut, overrideEstimatedFeerate, feeRate,
+                                 changePosition, strFailReason, includeWatching,
+                                 lockUnspents, setSubtractFeeFromOutputs, changeAddress)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, strFailReason);
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("hex", EncodeHexTx(tx));
+    result.pushKV("changepos", changePosition);
+    result.pushKV("fee", ValueFromAmount(nFeeOut));
+
+    return result;
+}
+
 UniValue lockunspent(const JSONRPCRequest& request)
 {
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
@@ -4523,6 +4729,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "dumpprivkey",              &dumpprivkey,              true,  {"address"} },
     { "wallet",             "dumpwallet",               &dumpwallet,               true,  {"filename"} },
     { "wallet",             "encryptwallet",            &encryptwallet,            true,  {"passphrase"} },
+    { "wallet",             "fundrawtransaction",       &fundrawtransaction,       false, {"hexstring","options"} },
     { "wallet",             "getbalance",               &getbalance,               false, {"minconf","include_watchonly","include_delegated","include_shield"} },
     { "wallet",             "getcoldstakingbalance",    &getcoldstakingbalance,    false, {} },
     { "wallet",             "getdelegatedbalance",      &getdelegatedbalance,      false, {} },
@@ -4555,8 +4762,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "listwallets",              &listwallets,              true,  {} },
     { "wallet",             "lockunspent",              &lockunspent,              true,  {"unlock","transactions"} },
     { "wallet",             "rawdelegatestake",         &rawdelegatestake,         false, {"staking_addr","amount","owner_addr","ext_owner","include_delegated","from_shield","force"} },
-    { "wallet",             "sendmany",                 &sendmany,                 false, {"dummy","amounts","minconf","comment","include_delegated"} },
-    { "wallet",             "sendtoaddress",            &sendtoaddress,            false, {"address","amount","comment","comment-to"} },
+    { "wallet",             "sendmany",                 &sendmany,                 false, {"dummy","amounts","minconf","comment","include_delegated","subtract_fee_from"} },
+    { "wallet",             "sendtoaddress",            &sendtoaddress,            false, {"address","amount","comment","comment-to","subtract_fee"} },
     { "wallet",             "settxfee",                 &settxfee,                 true,  {"amount"} },
     { "wallet",             "setstakesplitthreshold",   &setstakesplitthreshold,   false, {"value"} },
     { "wallet",             "signmessage",              &signmessage,              true,  {"address","message"} },
@@ -4579,7 +4786,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "getshieldbalance",              &getshieldbalance,               false, {"address","minconf","include_watchonly"} },
     { "wallet",             "listshieldunspent",             &listshieldunspent,              false, {"minconf","maxconf","include_watchonly","addresses"} },
     { "wallet",             "rawshieldsendmany",             &rawshieldsendmany,              false, {"fromaddress","amounts","minconf","fee"} },
-    { "wallet",             "shieldsendmany",                &shieldsendmany,                 false, {"fromaddress","amounts","minconf","fee"} },
+    { "wallet",             "shieldsendmany",                &shieldsendmany,                 false, {"fromaddress","amounts","minconf","fee","subtract_fee_from"} },
     { "wallet",             "listreceivedbyshieldaddress",   &listreceivedbyshieldaddress,    false, {"address","minconf"} },
     { "wallet",             "viewshieldtransaction",         &viewshieldtransaction,          false, {"txid"} },
     { "wallet",             "getsaplingnotescount",          &getsaplingnotescount,           false, {"minconf"} },
