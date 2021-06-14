@@ -187,6 +187,7 @@ set(SERVER_SOURCES
         ./src/addrman.cpp
         ./src/bloom.cpp
         ./src/blocksignature.cpp
+        ./src/bls/bls_wrapper.cpp
         ./src/chain.cpp
         ./src/checkpoints.cpp
         ./src/consensus/tx_verify.cpp
