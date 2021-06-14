@@ -378,7 +378,7 @@ QPushButton[cssClass="img-nav-logo"] {
     qproperty-icon: url("://ic-nav-governance-hover");
     qproperty-iconSize: 32px 32px;
     background-color: transparent;
-    color: #FFFFFF;
+    color: #938da5;
 }
 
 *[cssClass="btn-nav-governance-active"] {
@@ -3596,6 +3596,12 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     background-color: transparent;
 }
 
+*[cssClass="img-empty-governance"] {
+    qproperty-icon: url("://img-empty-governance");
+    qproperty-iconSize: 100px 100px;
+    background-color: transparent;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH        TREE WIDGET
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -3737,12 +3743,6 @@ QHeaderView::section {
     font-size:14px;
     border-radius:0px;
     color: #707070;
-}
-
-*[cssClass="img-empty-governance"] {
-    qproperty-icon: url(://img-empty-governance);
-    qproperty-iconSize: 100px 100px;
-    background-color: transparent;
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
