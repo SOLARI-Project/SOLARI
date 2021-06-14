@@ -8,7 +8,6 @@
 #include "blockassembler.h"
 #include "consensus/merkle.h"
 #include "evo/specialtx.h"
-#include "evo/providertx.h"
 #include "evo/deterministicmns.h"
 #include "masternode-payments.h"
 #include "masternode-sync.h"
@@ -225,7 +224,7 @@ static CMutableTransaction MalleateProUpServTx(const CMutableTransaction& tx)
 {
     ProUpServPL pl;
     GetTxPayload(tx, pl);
-    pl.addr = LookupNumeric("1.1.1.1", InsecureRandRange(2000));
+    pl.addr = LookupNumeric("1.1.1.1", 1001 + InsecureRandRange(100));
     if (!pl.scriptOperatorPayout.empty()) {
         pl.scriptOperatorPayout = GenerateRandomAddress();
     }
@@ -515,7 +514,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         auto tx = CreateProUpServTx(utxos, proTx, operatorKeys.at(proTx), 1000, CScript(), coinbaseKey);
 
         CValidationState dummyState;
-        BOOST_CHECK(CheckProUpServTx(tx, chainTip, dummyState));
+        BOOST_CHECK(CheckSpecialTx(tx, chainTip, dummyState));
         BOOST_CHECK(CheckTransactionSignature(tx));
         // also verify that payloads are not malleable after they have been signed
         auto tx2 = MalleateProUpServTx(tx);
@@ -624,12 +623,12 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         // try first with wrong owner key
         CValidationState state;
         auto tx = CreateProUpRegTx(utxos, proTx, GetRandomKey(), new_operatorKey, new_votingKey, new_payee, coinbaseKey);
-        BOOST_CHECK_MESSAGE(!CheckProUpRegTx(tx, chainTip, state), "ProUpReg verifies with wrong owner key");
+        BOOST_CHECK_MESSAGE(!CheckSpecialTx(tx, chainTip, state), "ProUpReg verifies with wrong owner key");
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-sig");
         // then use the proper key
         state = CValidationState();
         tx = CreateProUpRegTx(utxos, proTx, ownerKeys.at(proTx), new_operatorKey, new_votingKey, new_payee, coinbaseKey);
-        BOOST_CHECK_MESSAGE(CheckProUpRegTx(tx, chainTip, state), state.GetRejectReason());
+        BOOST_CHECK_MESSAGE(CheckSpecialTx(tx, chainTip, state), state.GetRejectReason());
         BOOST_CHECK_MESSAGE(CheckTransactionSignature(tx), "ProUpReg signature verification failed");
         // also verify that payloads are not malleable after they have been signed
         auto tx2 = MalleateProTxPayout<ProUpRegPL>(tx);
@@ -689,7 +688,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         auto tx = CreateProUpRegTx(utxos, GetRandHash(), GetRandomKey(), GetRandomKey(), GetRandomKey(), GenerateRandomAddress(), coinbaseKey);
 
         CValidationState state;
-        BOOST_CHECK_MESSAGE(!CheckProUpRegTx(tx, chainTip, state), "Accepted ProUpReg with invalid protx hash");
+        BOOST_CHECK_MESSAGE(!CheckSpecialTx(tx, chainTip, state), "Accepted ProUpReg with invalid protx hash");
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-hash");
     }
 
@@ -704,7 +703,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         auto tx = CreateProUpRegTx(utxos, proTx, ownerKeys.at(proTx), new_operatorKey, GetRandomKey(), GenerateRandomAddress(), coinbaseKey);
 
         CValidationState state;
-        BOOST_CHECK_MESSAGE(!CheckProUpRegTx(tx, chainTip, state), "Accepted ProUpReg with duplicate operator key");
+        BOOST_CHECK_MESSAGE(!CheckSpecialTx(tx, chainTip, state), "Accepted ProUpReg with duplicate operator key");
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-key");
     }
 
@@ -760,12 +759,12 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         // try first with wrong operator key
         CValidationState state;
         auto tx = CreateProUpRevTx(utxos, proTx, reason, GetRandomKey(), coinbaseKey);
-        BOOST_CHECK_MESSAGE(!CheckProUpRevTx(tx, chainTip, state), "ProUpReg verifies with wrong owner key");
+        BOOST_CHECK_MESSAGE(!CheckSpecialTx(tx, chainTip, state), "ProUpReg verifies with wrong owner key");
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-sig");
         // then use the proper key
         state = CValidationState();
         tx = CreateProUpRevTx(utxos, proTx, reason, operatorKeys.at(proTx), coinbaseKey);
-        BOOST_CHECK_MESSAGE(CheckProUpRevTx(tx, chainTip, state), state.GetRejectReason());
+        BOOST_CHECK_MESSAGE(CheckSpecialTx(tx, chainTip, state), state.GetRejectReason());
         BOOST_CHECK_MESSAGE(CheckTransactionSignature(tx), "ProUpReg signature verification failed");
         // also verify that payloads are not malleable after they have been signed
         auto tx2 = MalleateProUpRevTx(tx);
