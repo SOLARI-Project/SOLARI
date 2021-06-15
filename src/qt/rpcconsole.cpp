@@ -12,6 +12,7 @@
 #include "guiutil.h"
 #include "peertablemodel.h"
 #include "qt/rpcexecutor.h"
+#include "walletmodel.h"
 
 #include "chainparams.h"
 #include "netbase.h"
@@ -62,11 +63,12 @@ const struct {
 
 RPCConsole::RPCConsole(QWidget* parent) : QDialog(parent, Qt::WindowSystemMenuHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint),
                                           ui(new Ui::RPCConsole),
-                                          clientModel(0),
+                                          clientModel(nullptr),
+                                          walletModel(nullptr),
                                           historyPtr(0),
                                           cachedNodeid(-1),
-                                          peersTableContextMenu(0),
-                                          banTableContextMenu(0)
+                                          peersTableContextMenu(nullptr),
+                                          banTableContextMenu(nullptr)
 {
     ui->setupUi(this);
     GUIUtil::restoreWindowGeometry("nRPCConsoleWindow", this->size(), this);
@@ -94,7 +96,6 @@ RPCConsole::RPCConsole(QWidget* parent) : QDialog(parent, Qt::WindowSystemMenuHi
     // set library version labels
 #ifdef ENABLE_WALLET
     ui->berkeleyDBVersion->setText(DbEnv::version(0, 0, 0));
-    ui->wallet_path->setText(QString::fromStdString(GetDataDir().string() + QDir::separator().toLatin1() + gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT)));
 #else
 
     ui->label_berkeleyDBVersion->hide();
@@ -284,6 +285,14 @@ void RPCConsole::setClientModel(ClientModel* model)
 
         // clear the lineEdit after activating from QCompleter
         autoCompleter->popup()->installEventFilter(this);
+    }
+}
+
+void RPCConsole::setWalletModel(WalletModel* model)
+{
+    walletModel = model;
+    if (walletModel) {
+        ui->wallet_path->setText(walletModel->getWalletPath());
     }
 }
 
