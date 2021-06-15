@@ -13,10 +13,6 @@
 #include "noui.h"
 #include "util/system.h"
 
-#ifdef ENABLE_WALLET
-#include "wallet/walletutil.h"
-#endif
-
 #include <stdio.h>
 
 /* Introduction text for doxygen: */
@@ -82,10 +78,6 @@ bool AppInit(int argc, char* argv[])
     try {
         if (!fs::is_directory(GetDataDir(false))) {
             fprintf(stderr, "Error: Specified data directory \"%s\" does not exist.\n", gArgs.GetArg("-datadir", "").c_str());
-            return false;
-        }
-        if (gArgs.IsArgSet("-walletdir") && !fs::is_directory(GetWalletDir())) {
-            fprintf(stderr, "Error: Specified wallet directory \"%s\" does not exist.\n", gArgs.GetArg("-walletdir", "").c_str());
             return false;
         }
         try {
