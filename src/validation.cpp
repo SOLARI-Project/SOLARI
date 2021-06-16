@@ -1554,7 +1554,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     CAmount nValueOut = 0;
     CAmount nValueIn = 0;
     unsigned int nMaxBlockSigOps = MAX_BLOCK_SIGOPS_CURRENT;
-    std::vector<uint256> vSpendsInBlock;
     uint256 hashBlock = block.GetHash();
 
     // Sapling
@@ -1588,11 +1587,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         }
 
         if (tx.HasZerocoinSpendInputs()) {
-            const uint256& txid = tx.GetHash();
-            vSpendsInBlock.emplace_back(txid);
-
-            //Check for double spending of serial #'s
-            std::set<CBigNum> setSerials;
             for (const CTxIn& txIn : tx.vin) {
                 bool isPublicSpend = txIn.IsZerocoinPublicSpend();
                 bool isPrivZerocoinSpend = txIn.IsZerocoinSpend();
@@ -1613,14 +1607,14 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                     nValueIn += publicSpend.getDenomination() * COIN;
                     //queue for db write after the 'justcheck' section has concluded
                     vSpends.emplace_back(publicSpend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, &publicSpend, pindex->nHeight, hashBlock))
+                    if (!ContextualCheckZerocoinSpend(tx, &publicSpend, pindex->nHeight))
                         return state.DoS(100, error("%s: failed to add block %s with invalid public zc spend", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
                 } else {
                     libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txIn);
                     nValueIn += spend.getDenomination() * COIN;
                     //queue for db write after the 'justcheck' section has concluded
                     vSpends.emplace_back(spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, &spend, pindex->nHeight, hashBlock))
+                    if (!ContextualCheckZerocoinSpend(tx, &spend, pindex->nHeight))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
                 }
             }
@@ -3309,7 +3303,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
                             return state.DoS(100, error("%s: serial double spent on main chain", __func__));
                     }
 
-                    if (!ContextualCheckZerocoinSpendNoSerialCheck(stakeTxIn, &spend, pindex->nHeight, UINT256_ZERO))
+                    if (!ContextualCheckZerocoinSpendNoSerialCheck(stakeTxIn, &spend, pindex->nHeight))
                         return state.DoS(100,error("%s: forked chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
                                                    stakeTxIn.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
 
@@ -3333,7 +3327,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
             if(!isBlockFromFork)
                 for (const CTxIn& zPivInput : zPIVInputs) {
                         libzerocoin::CoinSpend spend = TxInToZerocoinSpend(zPivInput);
-                        if (!ContextualCheckZerocoinSpend(stakeTxIn, &spend, pindex->nHeight, UINT256_ZERO))
+                        if (!ContextualCheckZerocoinSpend(stakeTxIn, &spend, pindex->nHeight))
                             return state.DoS(100,error("%s: main chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
                                     stakeTxIn.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
                 }

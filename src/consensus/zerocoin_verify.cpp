@@ -194,9 +194,9 @@ bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& stat
     return true;
 }
 
-bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight, const uint256& hashBlock)
+bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight)
 {
-    if(!ContextualCheckZerocoinSpendNoSerialCheck(tx, spend, nHeight, hashBlock)){
+    if(!ContextualCheckZerocoinSpendNoSerialCheck(tx, spend, nHeight)){
         return false;
     }
 
@@ -209,7 +209,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
     return true;
 }
 
-bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight, const uint256& hashBlock)
+bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight)
 {
     const Consensus::Params& consensus = Params().GetConsensus();
     //Check to see if the zPIV is properly signed
