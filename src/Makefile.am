@@ -306,7 +306,6 @@ BITCOIN_CORE_H = \
   wallet/walletdb.h \
   warnings.h \
   zpivchain.h \
-  zpiv/zerocoin.h \
   zpiv/zpos.h \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h \
@@ -408,7 +407,6 @@ libbitcoin_wallet_a_SOURCES = \
   destination_io.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
-  zpiv/zerocoin.cpp \
   stakeinput.cpp \
   zpiv/zpos.cpp \
   $(BITCOIN_CORE_H) \
@@ -499,7 +497,6 @@ libbitcoin_common_a_SOURCES = \
   key_io.cpp \
   primitives/block.cpp \
   primitives/transaction.cpp \
-  zpiv/zerocoin.cpp \
   core_read.cpp \
   core_write.cpp \
   hash.cpp \

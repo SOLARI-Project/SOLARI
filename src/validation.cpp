@@ -50,7 +50,6 @@
 #include "validationinterface.h"
 #include "warnings.h"
 #include "zpivchain.h"
-#include "zpiv/zerocoin.h"
 #include "zpiv/zpivmodule.h"
 
 #include <future>

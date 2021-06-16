@@ -259,7 +259,6 @@ set(WALLET_SOURCES
         ./src/crypter.cpp
         ./src/wallet/hdchain.cpp
         ./src/wallet/rpcdump.cpp
-        ./src/zpiv/zerocoin.cpp
         ./src/wallet/fees.cpp
         ./src/wallet/init.cpp
         ./src/wallet/scriptpubkeyman.cpp
@@ -366,7 +365,6 @@ set(COMMON_SOURCES
         ./src/consensus/zerocoin_verify.cpp
         ./src/primitives/block.cpp
         ./src/primitives/transaction.cpp
-        ./src/zpiv/zerocoin.cpp
         ./src/core_read.cpp
         ./src/core_write.cpp
         ./src/hash.cpp

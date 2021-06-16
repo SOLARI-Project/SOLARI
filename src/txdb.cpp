@@ -10,7 +10,6 @@
 #include "pow.h"
 #include "uint256.h"
 #include "util/system.h"
-#include "zpiv/zerocoin.h"
 #include "util/vector.h"
 
 #include <stdint.h>
