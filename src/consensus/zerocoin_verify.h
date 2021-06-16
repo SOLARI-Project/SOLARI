@@ -19,4 +19,15 @@ bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& stat
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight);
 bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight);
 
+struct CoinSpendValues {
+public:
+    explicit CoinSpendValues(const CBigNum& s, CAmount v) : serial(s), value(v) {}
+    CBigNum serial;
+    CAmount value;
+};
+// Returns nullopt if coin spend is invalid. Invalidity/DoS causes are treated inside the function.
+Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params& consensus,
+                                                               const CTransaction& tx, int chainHeight,
+                                                               CValidationState& state);
+
 #endif //PIVX_CONSENSUS_ZEROCOIN_VERIFY_H
