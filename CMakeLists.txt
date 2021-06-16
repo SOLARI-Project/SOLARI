@@ -257,7 +257,6 @@ set(WALLET_SOURCES
         ./src/wallet/db.cpp
         ./src/addressbook.cpp
         ./src/crypter.cpp
-        ./src/zpiv/mintpool.cpp
         ./src/wallet/hdchain.cpp
         ./src/wallet/rpcdump.cpp
         ./src/zpiv/zerocoin.cpp

@@ -306,7 +306,6 @@ BITCOIN_CORE_H = \
   wallet/walletdb.h \
   warnings.h \
   zpivchain.h \
-  zpiv/mintpool.h \
   zpiv/zerocoin.h \
   zpiv/zpos.h \
   zmq/zmqabstractnotifier.h \
@@ -410,7 +409,6 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   zpiv/zerocoin.cpp \
-  zpiv/mintpool.cpp \
   stakeinput.cpp \
   zpiv/zpos.cpp \
   $(BITCOIN_CORE_H) \
