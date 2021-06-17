@@ -360,6 +360,11 @@ void UpdateMempoolForReorg(DisconnectedBlockTransactions &disconnectpool, bool f
     // been previously seen in a block.
     auto it = disconnectpool.queuedTx.get<insertion_order>().rbegin();
     while (it != disconnectpool.queuedTx.get<insertion_order>().rend()) {
+        // if we are resurrecting a ProReg tx, we need to evict any special transaction that
+        // depends on it (which would not be accepted in the mempool, with the current chain)
+        if ((*it)->IsProRegTx()) {
+            mempool.removeProTxReferences((*it)->GetHash(), MemPoolRemovalReason::REORG);
+        }
         // ignore validation errors in resurrected transactions
         CValidationState stateDummy;
         if (!fAddToMempool || (*it)->IsCoinBase() || (*it)->IsCoinStake() ||

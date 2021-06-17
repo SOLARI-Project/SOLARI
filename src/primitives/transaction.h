@@ -273,6 +273,7 @@ public:
     enum TxType: int16_t {
         NORMAL = 0,
         PROREG = 1,
+        PROUPSERV = 2,
     };
 
     static const int16_t CURRENT_VERSION = TxVersion::LEGACY;
@@ -347,6 +348,11 @@ public:
     }
 
     bool IsNormalType() const { return nType == TxType::NORMAL; }
+
+    bool IsProRegTx() const
+    {
+        return IsSpecialTx() && nType == TxType::PROREG;
+    }
 
     // Ensure that special and sapling fields are signed
     SigVersion GetRequiredSigVersion() const

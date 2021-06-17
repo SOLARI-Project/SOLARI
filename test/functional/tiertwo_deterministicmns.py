@@ -8,7 +8,7 @@
 #
 
 from decimal import Decimal
-from random import randrange
+from random import randrange, getrandbits
 import time
 
 from test_framework.test_framework import PivxTestFramework
@@ -273,6 +273,34 @@ class DIP3Test(PivxTestFramework):
         block = self.create_block(mn_payee_script, miner.getblock(miner.getbestblockhash(), True))
         block.solve()
         assert_equal(miner.submitblock(bytes_to_hex_str(block.serialize())), "bad-cb-payee")
+
+        # Test ProUpServ txes
+        self.log.info("Trying to update a non-existent masternode...")
+        assert_raises_rpc_error(-8, "not found", miner.protx_update_service,
+                                "%064x" % getrandbits(256), "127.0.0.1:1000")
+        self.log.info("Trying to update an IP address to an already used one...")
+        assert_raises_rpc_error(-1, "bad-protx-dup-addr", miner.protx_update_service,
+                                mns[0].proTx, mns[1].ipport, "", mns[0].operator_key)
+        self.log.info("Trying to update the payout address when the reward is 0...")
+        assert_raises_rpc_error(-8, "Operator reward is 0. Cannot set operator payout address",
+                                miner.protx_update_service, mns[0].proTx, mns[0].ipport,
+                                miner.getnewaddress(), mns[0].operator_key)
+        self.log.info("Update IP address...")
+        mns[0].ipport = "127.0.0.1:1000"
+        # Controller should already have the key (as it was generated there), no need to pass it
+        controller.protx_update_service(mns[0].proTx, mns[0].ipport)
+        self.sync_mempools([miner, controller])
+        miner.generate(1)
+        self.sync_blocks()
+        self.check_mn_list(mns)
+        self.log.info("Update operator payout address...")
+        new_address = self.nodes[dmn2c.idx].getnewaddress()
+        miner.protx_update_service(dmn2c.proTx, dmn2c.ipport, new_address, dmn2c.operator_key)
+        miner.generate(len(mns) + 1)
+        self.sync_blocks()
+        # Check payment to new address
+        self.log.info("Checking payment...")
+        assert_equal(self.get_addr_balance(self.nodes[dmn2c.idx], new_address), Decimal('0.3'))
 
         self.log.info("All good.")
 
