@@ -345,7 +345,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CValidationState state;
         BOOST_CHECK(!ProcessSpecialTxsInBlock(block, &indexFake, state, true));
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-owner-key");
-        ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
+        ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
         BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
     }
     // Block with two ProReg txes using same operator key
@@ -362,7 +362,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CValidationState state;
         BOOST_CHECK(!ProcessSpecialTxsInBlock(block, &indexFake, state, true));
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-operator-key");
-        ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
+        ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
         BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
     }
     // Block with two ProReg txes using ip address
@@ -376,7 +376,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CValidationState state;
         BOOST_CHECK(!ProcessSpecialTxsInBlock(block, &indexFake, state, true));
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-IP-address");
-        ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
+        ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
         BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
     }
 
@@ -446,7 +446,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     pblock->vtx[0] = MakeTransactionRef(invalidCoinbaseTx);
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     CValidationState state;
-    ProcessNewBlock(state, nullptr, pblock, nullptr);
+    ProcessNewBlock(state, pblock, nullptr);
     // block not connected
     chainTip = WITH_LOCK(cs_main, return chainActive.Tip());
     BOOST_CHECK(chainTip->nHeight == nHeight);
@@ -552,7 +552,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CValidationState state;
         BOOST_CHECK(!ProcessSpecialTxsInBlock(block, &indexFake, state, true));
         BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-protx-dup-addr");
-        ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
+        ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
         BOOST_CHECK_EQUAL(chainActive.Height(), nHeight);   // bad block not connected
     }
 
