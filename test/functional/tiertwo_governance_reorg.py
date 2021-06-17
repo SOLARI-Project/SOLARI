@@ -165,10 +165,9 @@ class GovernanceReorgTest(PivxTestFramework):
         self.nodes.insert(self.minerBPos, minerB)
         set_node_times(self.nodes, self.mocktime)
         self.reconnect_nodes()
-        # !TODO: fix me
-        #self.sync_all()
-        #assert_equal(minerB.getblockcount(), next_superblock + 10)
-        #assert_equal(minerB.getbestblockhash(), minerA.getbestblockhash())
+        self.sync_all()
+        assert_equal(minerB.getblockcount(), next_superblock + 10)
+        assert_equal(minerB.getbestblockhash(), minerA.getbestblockhash())
 
         self.log.info("All good.")
 
