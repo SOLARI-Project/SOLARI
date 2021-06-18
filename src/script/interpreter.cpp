@@ -1342,7 +1342,7 @@ bool TransactionSignatureChecker::CheckLockTime(const CScriptNum& nLockTime) con
 
 bool TransactionSignatureChecker::CheckColdStake(bool fAllowLastOutputFree, const CScript& prevoutScript, std::vector<valtype>& stack, unsigned int flags, ScriptError* serror) const
 {
-    if (g_IsV6Active) {
+    if (g_newP2CSRules) {
         // the stack can contain only <sig> <pk> <pkh> at this point
         if ((int)stack.size() != 3) {
             return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
