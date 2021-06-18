@@ -160,8 +160,8 @@ BOOST_AUTO_TEST_CASE(coldstake_script)
     BOOST_CHECK(CheckP2CSScript(tx.vin[0].scriptSig, scriptP2CS, tx, err));
 
     // Transfer more coins to the masternode
-    tx.vout[2].nValue -= 2 * COIN;
-    tx.vout[3].nValue += 2 * COIN;
+    tx.vout[2].nValue -= 3 * COIN;
+    tx.vout[3].nValue += 3 * COIN;
     SignColdStake(tx, 0, scriptP2CS, stakerKey, true);
     BOOST_CHECK(!CheckP2CSScript(tx.vin[0].scriptSig, scriptP2CS, tx, err));
     BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_CHECKCOLDSTAKEVERIFY, ScriptErrorString(err));
