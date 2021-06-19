@@ -31,7 +31,7 @@ bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CA
 void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const CBlockIndex* pindexPrev, bool fProofOfStake);
 
 /**
- * Check coinbase output value for blocks v10+.
+ * Check coinbase output value for blocks after v6.0 enforcement.
  * It must pay the masternode for regular blocks and a proposal during superblocks.
  */
 bool IsCoinbaseValueValid(const CTransactionRef& tx, CAmount nBudgetAmt, CValidationState& _state);
