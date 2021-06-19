@@ -305,7 +305,7 @@ static void setupWallet(CWallet& wallet)
 
 BOOST_AUTO_TEST_CASE(fake_script_test)
 {
-    BOOST_ASSERT(!g_IsV6Active);
+    BOOST_ASSERT(!g_newP2CSRules);
 
     CWallet& wallet = *pwalletMain;
     LOCK(wallet.cs_wallet);
@@ -322,7 +322,7 @@ BOOST_AUTO_TEST_CASE(fake_script_test)
     const CScript& scriptP2CS = GetFakeLockingScript(stakerId, ownerId);
 
     // Create prev transaction:
-    // It has two outputs. The first one is spent before v6.
+    // It has two outputs. The first one is spent before v5.2.
     // The second one is tested after v6 enforcement.
     CMutableTransaction txFrom;
     txFrom.vout.resize(2);
@@ -361,8 +361,8 @@ BOOST_AUTO_TEST_CASE(fake_script_test)
     wallet.AddToWallet({&wallet, MakeTransactionRef(CTransaction(tx))});
     BOOST_CHECK_EQUAL(wallet.GetWalletTx(txFrom.GetHash())->GetAvailableCredit(false, ISMINE_SPENDABLE_TRANSPARENT), amtIn);
 
-    // Now let's activate v6
-    g_IsV6Active = true;
+    // Now let's activate new rules
+    g_newP2CSRules = true;
 
     // it does NOT pass IsPayToColdStaking
     BOOST_CHECK_MESSAGE(!scriptP2CS.IsPayToColdStaking(), "Fake script passes as P2CS");
