@@ -1636,6 +1636,14 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                          REJECT_INVALID, "bad-cb-amount");
     }
 
+    if (!fInitialBlockDownload) {
+        // check masternode/budget payment
+        if (!IsBlockPayeeValid(block, pindex->nHeight)) {
+            mapRejectedBlocks.emplace(block.GetHash(), GetTime());
+            return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee", false, "Couldn't find masternode/budget payment");
+        }
+    }
+
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
     int64_t nTime2 = GetTimeMicros();
@@ -2712,11 +2720,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
         }
 
         // PIVX
-        // It is entierly possible that we don't have enough data and this could fail
-        // (i.e. the block could indeed be valid). Store the block for later consideration
-        // but issue an initial reject message.
-        // The case also exists that the sending peer could not have enough data to see
-        // that this block is invalid, so don't issue an outright ban.
         if (nHeight != 0 && !IsInitialBlockDownload()) {
             // Last output of Cold-Stake is not abused
             if (IsPoS && !CheckColdStakeFreeOutput(*(block.vtx[1]), nHeight)) {
@@ -2727,13 +2730,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
             // set Cold Staking Spork
             fColdStakingActive = !sporkManager.IsSporkActive(SPORK_19_COLDSTAKING_MAINTENANCE);
 
-            // check masternode/budget payment
-            if (!IsBlockPayeeValid(block, nHeight)) {
-                mapRejectedBlocks.emplace(block.GetHash(), GetTime());
-                return state.DoS(0, false, REJECT_INVALID, "bad-cb-payee", false, "Couldn't find masternode/budget payment");
-            }
-        } else {
-            LogPrintf("%s: Masternode/Budget payment checks skipped on sync\n", __func__);
         }
     }
 
@@ -3264,7 +3260,6 @@ bool ProcessNewBlock(CValidationState& state, CNode* pfrom, const std::shared_pt
 
     // Preliminary checks
     int64_t nStartTime = GetTimeMillis();
-    const Consensus::Params& consensus = Params().GetConsensus();
     int newHeight = 0;
 
     {
