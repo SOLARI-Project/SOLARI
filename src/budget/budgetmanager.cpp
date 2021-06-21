@@ -1026,7 +1026,7 @@ int CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNode
     }
 
     std::string strError;
-    if (UpdateFinalizedBudget(vote, pfrom, strError)) {
+    if (pmn->IsEnabled() && UpdateFinalizedBudget(vote, pfrom, strError)) {
         vote.Relay();
         masternodeSync.AddedBudgetItem(vote.GetHash());
         LogPrint(BCLog::MNBUDGET, "fbvote - new finalized budget vote - %s from masternode %s\n", vote.GetHash().ToString(), HexStr(pmn->pubKeyMasternode));
