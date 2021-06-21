@@ -8,6 +8,7 @@
 #include "test/test_pivx.h"
 
 #include "blockassembler.h"
+#include "consensus/merkle.h"
 #include "guiinterface.h"
 #include "evo/deterministicmns.h"
 #include "evo/evodb.h"
@@ -153,7 +154,7 @@ CBlock TestChainSetup::CreateAndProcessBlock(const std::vector<CMutableTransacti
 {
     CBlock block = CreateBlock(txns, scriptPubKey, fNoMempoolTx);
     CValidationState state;
-    ProcessNewBlock(state, nullptr, std::make_shared<const CBlock>(block), nullptr);
+    ProcessNewBlock(state, std::make_shared<const CBlock>(block), nullptr);
     return block;
 }
 
@@ -188,6 +189,13 @@ CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns,
 {
     CScript scriptPubKey = CScript() <<  ToByteVector(scriptKey.GetPubKey()) << OP_CHECKSIG;
     return CreateBlock(txns, scriptPubKey);
+}
+
+std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
+{
+    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits)) { ++(pblock->nNonce); }
+    return pblock;
 }
 
 TestChainSetup::~TestChainSetup()
