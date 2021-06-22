@@ -84,17 +84,9 @@ class GovernanceInvalidBudgetTest(PivxTestFramework):
         time.sleep(1)
         self.stake_and_ping(self.minerAPos, 4, [self.mn1, self.mn2])
         res = self.minerA.createrawmnfinalbudget(budgetname, blockstart, proposals, feeBudgetId)
-        assert(res["result"] == "fin_budget_sent")
-        budgetFinHash = res["id"]
-        assert (budgetFinHash != "")
-        time.sleep(1)
+        assert(res["result"] == "error") # not accepted
 
-        self.log.info("Voting for invalid budget finalization...")
-        self.minerA.mnfinalbudget("vote-many", budgetFinHash)
-        self.stake_and_ping(self.minerAPos, 2, [self.mn1, self.mn2])
-        budFin = self.minerB.mnfinalbudget("show")
-        budget = budFin[next(iter(budFin))]
-        assert_equal(budget["VoteCount"], 2)
+        self.log.info("Good, invalid budget not accepted.")
 
         # Stake up until the block before the superblock.
         skip_blocks = next_superblock - self.minerA.getblockcount() - 1

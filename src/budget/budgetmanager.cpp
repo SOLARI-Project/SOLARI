@@ -185,7 +185,7 @@ std::string CBudgetManager::GetFinalizedBudgetStatus(const uint256& nHash) const
     return retBadHashes + " -- " + retBadPayeeOrAmount;
 }
 
-bool CBudgetManager::AddFinalizedBudget(CFinalizedBudget& finalizedBudget)
+bool CBudgetManager::AddFinalizedBudget(CFinalizedBudget& finalizedBudget, CNode* pfrom)
 {
     AssertLockNotHeld(cs_budgets);    // need to lock cs_main here (CheckCollateral)
     const uint256& nHash = finalizedBudget.GetHash();
@@ -216,6 +216,25 @@ bool CBudgetManager::AddFinalizedBudget(CFinalizedBudget& finalizedBudget)
         return false;
     }
 
+    // Compare budget payments with existent proposals, don't care on the order, just verify proposals existence.
+    std::vector<CBudgetProposal> vBudget = GetBudget();
+    std::map<uint256, CBudgetProposal> mapWinningProposals;
+    for (const CBudgetProposal& p: vBudget) { mapWinningProposals.emplace(p.GetHash(), p); }
+    if (!finalizedBudget.CheckProposals(mapWinningProposals)) {
+        finalizedBudget.SetStrInvalid("Invalid proposals");
+        LogPrint(BCLog::MNBUDGET,"%s: Budget finalization does not match with winning proposals\n", __func__);
+        // just for now (until v6), request proposals sync in case we are missing one of them.
+        if (pfrom) {
+            for (const auto& propId : finalizedBudget.GetProposalsHashes()) {
+                if (!g_budgetman.HaveProposal(propId)) {
+                    pfrom->PushInventory(CInv(MSG_BUDGET_PROPOSAL, propId));
+                }
+            }
+        }
+        return false;
+    }
+
+    // Add budget finalization.
     SetBudgetProposalsStr(finalizedBudget);
     {
         LOCK(cs_budgets);
@@ -979,14 +998,14 @@ int CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom)
     return 0;
 }
 
-int CBudgetManager::ProcessFinalizedBudget(CFinalizedBudget& finalbudget)
+int CBudgetManager::ProcessFinalizedBudget(CFinalizedBudget& finalbudget, CNode* pfrom)
 {
     const uint256& nHash = finalbudget.GetHash();
     if (HaveFinalizedBudget(nHash)) {
         masternodeSync.AddedBudgetItem(nHash);
         return 0;
     }
-    if (!AddFinalizedBudget(finalbudget)) {
+    if (!AddFinalizedBudget(finalbudget, pfrom)) {
         return 0;
     }
     finalbudget.Relay();
@@ -1080,7 +1099,7 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         if (!finalbudget.ParseBroadcast(vRecv)) {
             return 20;
         }
-        return ProcessFinalizedBudget(finalbudget);
+        return ProcessFinalizedBudget(finalbudget, pfrom);
     }
 
     if (strCommand == NetMsgType::FINALBUDGETVOTE) {
