@@ -11,5 +11,4 @@ QT_TS = \
   qt/locale/pivx_nl.ts \
   qt/locale/pivx_pl.ts \
   qt/locale/pivx_ru.ts \
-  qt/locale/pivx_tr.ts \
   qt/locale/pivx_zh_CN.ts
