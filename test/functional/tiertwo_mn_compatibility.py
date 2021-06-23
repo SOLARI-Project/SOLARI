@@ -61,13 +61,12 @@ class MasternodeCompatibilityTest(PivxTier2TestFramework):
         assert_equal(status["status"], "Ready")
 
     """
-    Checks the block at specified height (it must be a v10 block).
+    Checks the block at specified height
     Returns the address of the mn paid (in the coinbase), and the json coinstake tx
     """
     def get_block_mnwinner(self, height):
         blk = self.miner.getblock(self.miner.getblockhash(height), True)
         assert_equal(blk['height'], height)
-        assert_equal(blk['version'], 10)
         cbase_tx = self.miner.getrawtransaction(blk['tx'][0], True)
         assert_equal(len(cbase_tx['vin']), 1)
         cbase_script = height.to_bytes(1 + height // 256, byteorder="little")

@@ -23,7 +23,7 @@ class CBlockHeader
 {
 public:
     // header
-    static const int32_t CURRENT_VERSION=10;     //!> Version 10 Masternode/Budget payments in the coinbase
+    static const int32_t CURRENT_VERSION=10;    // since v5.1.99
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;

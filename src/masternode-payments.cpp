@@ -366,7 +366,7 @@ void CMasternodePayments::FillBlockPayee(CMutableTransaction& txCoinbase, CMutab
         return;
     }
 
-    // Starting from PIVX v6.0 masternode and budgets are paid in the coinbase tx (block v10)
+    // Starting from PIVX v6.0 masternode and budgets are paid in the coinbase tx
     const int nHeight = pindexPrev->nHeight + 1;
     bool fPayCoinstake = fProofOfStake && !Params().GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0);
 

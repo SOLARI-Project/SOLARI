@@ -1482,16 +1482,23 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         LogPrintf("%s: hashPrev=%s view=%s\n", __func__, hashPrevBlock.GetHex(), view.GetBestBlock().GetHex());
     assert(hashPrevBlock == view.GetBestBlock());
 
+    const bool isPoSBlock = block.IsProofOfStake();
+    const Consensus::Params& consensus = Params().GetConsensus();
+    const bool isPoSActive = consensus.NetworkUpgradeActive(pindex->nHeight, Consensus::UPGRADE_POS);
+    const bool isV5UpgradeEnforced = consensus.NetworkUpgradeActive(pindex->nHeight, Consensus::UPGRADE_V5_0);
+    const bool isV6UpgradeEnforced = consensus.NetworkUpgradeActive(pindex->nHeight, Consensus::UPGRADE_V6_0);
+
+    // Coinbase output should be empty if proof-of-stake block (before v6 enforcement)
+    if (!isV6UpgradeEnforced && isPoSBlock && (block.vtx[0]->vout.size() != 1 || !block.vtx[0]->vout[0].IsEmpty()))
+        return state.DoS(100, false, REJECT_INVALID, "bad-cb-pos", false, "coinbase output not empty for proof-of-stake block");
+
     if (pindex->pprev) {
-        bool fDIP3Active = Params().GetConsensus().NetworkUpgradeActive(pindex->nHeight, Consensus::UPGRADE_V6_0);
         bool fHasBestBlock = evoDb->VerifyBestBlock(hashPrevBlock);
 
-        if (fDIP3Active && !fHasBestBlock) {
+        if (isV6UpgradeEnforced && !fHasBestBlock) {
             return AbortNode(state, "Found EvoDB inconsistency, you must reindex to continue");
         }
     }
-
-    const Consensus::Params& consensus = Params().GetConsensus();
 
     // Special case for the genesis block, skipping connection of its transactions
     // (its coinbase is unspendable)
@@ -1502,12 +1509,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         return true;
     }
 
-    const bool isPoSActive = consensus.NetworkUpgradeActive(pindex->nHeight, Consensus::UPGRADE_POS);
-    if (!isPoSActive && block.IsProofOfStake())
+    if (!isPoSActive && isPoSBlock)
         return state.DoS(100, error("ConnectBlock() : PoS period not active"),
             REJECT_INVALID, "PoS-early");
 
-    if (isPoSActive && block.IsProofOfWork())
+    if (isPoSActive && !isPoSBlock)
         return state.DoS(100, error("ConnectBlock() : PoW period ended"),
             REJECT_INVALID, "PoW-ended");
 
@@ -1556,9 +1562,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     // Sapling
     SaplingMerkleTree sapling_tree;
     assert(view.GetSaplingAnchorAt(view.GetBestAnchor(), sapling_tree));
-
-    //
-    bool isV5UpgradeEnforced = consensus.NetworkUpgradeActive(pindex->nHeight, Consensus::UPGRADE_V5_0);
 
     std::vector<PrecomputedTransactionData> precomTxData;
     precomTxData.reserve(block.vtx.size()); // Required so that pointers to individual precomTxData don't get invalidated
@@ -1692,7 +1695,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     view.PushAnchor(sapling_tree);
 
     // Verify header correctness
-    if (consensus.NetworkUpgradeActive(pindex->nHeight, Consensus::UPGRADE_V5_0)) {
+    if (isV5UpgradeEnforced) {
         // If Sapling is active, block.hashFinalSaplingRoot must be the
         // same as the root of the Sapling tree
         if (block.hashFinalSaplingRoot != sapling_tree.root()) {
@@ -1711,7 +1714,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     //PoW phase redistributed fees to miner. PoS stage destroys fees.
     CAmount nExpectedMint = GetBlockValue(pindex->nHeight);
-    if (block.IsProofOfWork())
+    if (!isPoSBlock)
         nExpectedMint += nFees;
 
     //Check that the block does not overmint
@@ -1731,8 +1734,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         }
     }
 
-    // For blocks v10+: Check that the coinbase pays the exact amount
-    if (isPoSActive && pindex->nVersion >= 10 && !IsCoinbaseValueValid(block.vtx[0], nBudgetAmt, state)) {
+    // After v6 enforcement: Check that the coinbase pays the exact amount
+    if (isPoSBlock && isV6UpgradeEnforced && !IsCoinbaseValueValid(block.vtx[0], nBudgetAmt, state)) {
         // pass the state returned by the function above
         return false;
     }
@@ -2800,10 +2803,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
     if (IsPoS) {
-        // Coinbase output should be empty if proof-of-stake block (before block v10)
-        if (block.nVersion < 10 && (block.vtx[0]->vout.size() != 1 || !block.vtx[0]->vout[0].IsEmpty()))
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-pos", false, "coinbase output not empty for proof-of-stake block");
-
         // Second transaction must be coinstake, the rest must not be
         if (block.vtx.empty() || !block.vtx[1]->IsCoinStake())
             return state.DoS(100, false, REJECT_INVALID, "bad-cs-missing", false, "second tx is not coinstake");
@@ -2993,8 +2992,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
         (block.nVersion < 5 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_BIP65)) ||
         (block.nVersion < 6 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V3_4)) ||
         (block.nVersion < 7 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V4_0)) ||
-        (block.nVersion < 8 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0)) ||
-        (block.nVersion < 10 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0)))
+        (block.nVersion < 8 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0)))
     {
         std::string stringErr = strprintf("rejected block version %d at height %d", block.nVersion, nHeight);
         return state.Invalid(false, REJECT_OBSOLETE, "bad-version", stringErr);
