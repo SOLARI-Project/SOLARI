@@ -57,8 +57,8 @@ VIAddVersionKey ProductVersion "@PACKAGE_VERSION@"
 VIAddVersionKey CompanyName "${COMPANY}"
 VIAddVersionKey CompanyWebsite "${URL}"
 VIAddVersionKey FileVersion "@PACKAGE_VERSION@"
-VIAddVersionKey FileDescription ""
-VIAddVersionKey LegalCopyright ""
+VIAddVersionKey FileDescription "Installer for @PACKAGE_NAME@"
+VIAddVersionKey LegalCopyright "Copyright (C) 2015-@COPYRIGHT_YEAR@ The @PACKAGE_NAME@ developers"
 InstallDirRegKey HKCU "${REGKEY}" Path
 ShowUninstDetails show
 
