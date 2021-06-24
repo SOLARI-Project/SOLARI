@@ -316,6 +316,7 @@ def initialize_datadir(dirname, n):
         f.write("listenonion=0\n")
         f.write("spendzeroconfchange=1\n")
         f.write("printtoconsole=0\n")
+        f.write("natpmp=0\n")
     return datadir
 
 def get_datadir_path(dirname, n):

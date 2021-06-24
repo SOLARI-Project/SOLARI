@@ -79,7 +79,7 @@ jobs:
 
           - name: macOS
             os: macos-10.15
-            packages: python3 autoconf automake berkeley-db4 libtool boost miniupnpc pkg-config qt5 zmq libevent qrencode gmp libsodium rust
+            packages: python3 autoconf automake berkeley-db4 libtool boost miniupnpc libnatpmp pkg-config qt5 zmq libevent qrencode gmp libsodium rust
             cc: $(brew --prefix llvm)/bin/clang
             cxx: $(brew --prefix llvm)/bin/clang++
 
@@ -165,7 +165,7 @@ jobs:
             os: ubuntu-18.04
             host: x86_64-unknown-linux-gnu
             apt_get: python3-zmq qtbase5-dev qttools5-dev-tools libqt5svg5-dev libqt5charts5-dev libqrencode-dev libdbus-1-dev libharfbuzz-dev
-            dep_opts: NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1
+            dep_opts: NO_QT=1 NO_UPNP=1 NO_NATPMP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1
 
           - name: macOS 10.12
             os: ubuntu-18.04
@@ -303,7 +303,7 @@ jobs:
           - name: x86_64 Linux  [GOAL:install]  [bionic]  [no depends only system libs]
             os: ubuntu-18.04
             host: x86_64-unknown-linux-gnu
-            apt_get: python3-zmq qtbase5-dev qttools5-dev-tools libqt5svg5-dev libqt5charts5-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libdb5.3++-dev libminiupnpc-dev libzmq3-dev libqrencode-dev libgmp-dev libsodium-dev cargo
+            apt_get: python3-zmq qtbase5-dev qttools5-dev-tools libqt5svg5-dev libqt5charts5-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libdb5.3++-dev libminiupnpc-dev libnatpmp-dev libzmq3-dev libqrencode-dev libgmp-dev libsodium-dev cargo
             unit_tests: true
             no_depends: 1
             goal: install

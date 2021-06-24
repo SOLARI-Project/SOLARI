@@ -15,6 +15,7 @@ These are the dependencies currently used by PIVX Core. You can find instruction
 | GCC |  | [4.8+](https://gcc.gnu.org/) (C++11 support) |  |  |  |
 | HarfBuzz-NG |  |  |  |  |  |
 | libevent | [2.1.8-stable](https://github.com/libevent/libevent/releases) | 2.0.22 | No |  |  |
+| libnatpmp | [20150609](https://miniupnp.tuxfamily.org/files) |  | No |  |  |
 | libjpeg |  |  |  |  | [Yes](https://github.com/pivx-project/pivx/blob/master/depends/packages/qt.mk#L65) |
 | libpng |  |  |  |  | [Yes](https://github.com/pivx-project/pivx/blob/master/depends/packages/qt.mk#L64) |
 | librsvg | |  |  |  |  |
@@ -36,7 +37,8 @@ Controlling dependencies
 Some dependencies are not needed in all configurations. The following are some factors that affect the dependency list.
 
 #### Options passed to `./configure`
-* MiniUPnPc is not needed with  `--with-miniupnpc=no`.
+* MiniUPnPc is not needed with `--without-miniupnpc`.
+* libnatpmp is not needed with `--without-natpmp`.
 * Berkeley DB is not needed with `--disable-wallet`.
 * Qt is not needed with `--without-gui`.
 * If the qrencode dependency is absent, QR support won't be added. To force an error when that happens, pass `--with-qrencode`.

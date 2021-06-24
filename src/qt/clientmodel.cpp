@@ -15,6 +15,7 @@
 #include "checkpoints.h"
 #include "clientversion.h"
 #include "interfaces/handler.h"
+#include "mapport.h"
 #include "masternodeman.h"
 #include "net.h"
 #include "netbase.h"
@@ -345,6 +346,10 @@ void ClientModel::unsubscribeFromCoreSignals()
     m_handler_notify_alert_changed->disconnect();
     m_handler_banned_list_changed->disconnect();
     m_handler_notify_block_tip->disconnect();
+}
+
+void ClientModel::mapPort(bool use_upnp, bool use_natpmp) {
+    StartMapPort(use_upnp, use_natpmp);
 }
 
 bool ClientModel::getTorInfo(std::string& ip_port) const

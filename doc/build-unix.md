@@ -41,6 +41,7 @@ Optional dependencies:
  Library     | Purpose          | Description
  ------------|------------------|----------------------
  miniupnpc   | UPnP Support     | Firewall-jumping support
+ libnatpmp   | NAT-PMP Support  | Firewall-jumping support
  libdb4.8    | Berkeley DB      | Wallet storage (only needed when wallet enabled)
  qt          | GUI              | GUI toolkit (only needed when GUI enabled)
  univalue    | Utility          | JSON parsing and encoding (bundled version will be used unless --with-system-univalue passed to configure)
@@ -93,9 +94,9 @@ Otherwise, you can build from self-compiled `depends` (see above).
 To build PIVX Core without wallet, see [*Disable-wallet mode*](/doc/build-unix.md#disable-wallet-mode)
 
 
-Optional (see --with-miniupnpc and --enable-upnp-default):
+Optional port mapping libraries (see: `--with-miniupnpc`, and `--enable-upnp-default`, `--with-natpmp`, `--enable-natpmp-default`):
 
-    sudo apt-get install libminiupnpc-dev
+    sudo apt install libminiupnpc-dev libnatpmp-dev
 
 ZMQ dependencies (provides ZMQ API):
 
@@ -127,7 +128,7 @@ Build requirements:
 
 Optional:
 
-    sudo dnf install miniupnpc-devel zeromq-devel
+    sudo dnf install miniupnpc-devel libnatpmp-devel zeromq-devel
 
 To build with Qt 5 you need the following:
 
@@ -144,11 +145,22 @@ miniupnpc
 
 [miniupnpc](http://miniupnp.free.fr/) may be used for UPnP port mapping.  It can be downloaded from [here](
 http://miniupnp.tuxfamily.org/files/).  UPnP support is compiled in and
-turned off by default.  See the configure options for upnp behavior desired:
+turned off by default.  See the configure options for UPnp behavior desired:
 
-	--without-miniupnpc      No UPnP support miniupnp not required
+	--without-miniupnpc      No UPnP support, miniupnp not required
 	--disable-upnp-default   (the default) UPnP support turned off by default at runtime
 	--enable-upnp-default    UPnP support turned on by default at runtime
+
+libnatpmp
+---------
+
+[libnatpmp](https://miniupnp.tuxfamily.org/libnatpmp.html) may be used for NAT-PMP port mapping. It can be downloaded
+from [here](https://miniupnp.tuxfamily.org/files/). NAT-PMP support is compiled in and
+turned off by default. See the configure options for NAT-PMP behavior desired:
+
+	--without-natpmp          No NAT-PMP support, libnatpmp not required
+	--disable-natpmp-default  (the default) NAT-PMP support turned off by default at runtime
+	--enable-natpmp-default   NAT-PMP support turned on by default at runtime
 
 To build:
 

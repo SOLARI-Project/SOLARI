@@ -32,7 +32,12 @@ SettingsWalletOptionsWidget::SettingsWalletOptionsWidget(PIVXGUI* _window, QWidg
     ui->spinBoxStakeSplitThreshold->setAttribute(Qt::WA_MacShowFocusRect, 0);
     setShadow(ui->spinBoxStakeSplitThreshold);
 
-    // Radio buttons
+#ifndef USE_UPNP
+    ui->mapPortUpnp->setVisible(false);
+#endif
+#ifndef USE_NATPMP
+    ui->mapPortNatpmp->setVisible(false);
+#endif
 
     // Title
     ui->labelTitleNetwork->setText(tr("Network"));
@@ -62,6 +67,7 @@ void SettingsWalletOptionsWidget::onResetClicked()
     QSettings settings;
     walletModel->resetWalletOptions(settings);
     clientModel->getOptionsModel()->setNetworkDefaultOptions(settings, true);
+    saveMapPortOptions();
     inform(tr("Options reset succeed"));
 }
 
@@ -70,7 +76,8 @@ void SettingsWalletOptionsWidget::setMapper(QDataWidgetMapper *mapper)
     mapper->addMapping(ui->radioButtonSpend, OptionsModel::SpendZeroConfChange);
 
     // Network
-    mapper->addMapping(ui->checkBoxMap, OptionsModel::MapPortUPnP);
+    mapper->addMapping(ui->mapPortUpnp, OptionsModel::MapPortUPnP);
+    mapper->addMapping(ui->mapPortNatpmp, OptionsModel::MapPortNatpmp);
     mapper->addMapping(ui->checkBoxAllow, OptionsModel::Listen);
     mapper->addMapping(ui->checkBoxConnect, OptionsModel::ProxyUse);
     mapper->addMapping(ui->lineEditProxy, OptionsModel::ProxyIP);
@@ -118,6 +125,11 @@ bool SettingsWalletOptionsWidget::saveWalletOnlyOptions()
 void SettingsWalletOptionsWidget::discardWalletOnlyOptions()
 {
     reloadWalletOptions();
+}
+
+void SettingsWalletOptionsWidget::saveMapPortOptions()
+{
+    clientModel->mapPort(ui->mapPortUpnp->isChecked(), ui->mapPortNatpmp->isChecked());
 }
 
 SettingsWalletOptionsWidget::~SettingsWalletOptionsWidget(){
