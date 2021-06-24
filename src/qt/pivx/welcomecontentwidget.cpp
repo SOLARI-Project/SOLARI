@@ -2,6 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#if defined(HAVE_CONFIG_H)
+#include "config/pivx-config.h"
+#endif
+
 #include "qt/pivx/welcomecontentwidget.h"
 #include "qt/pivx/forms/ui_welcomecontentwidget.h"
 
@@ -104,6 +108,7 @@ WelcomeContentWidget::WelcomeContentWidget(QWidget *parent) :
     // Frame 2
     ui->page_2->setProperty("cssClass", "container-welcome-step2");
     ui->labelTitle2->setProperty("cssClass", "text-title-welcome");
+    ui->labelTitle2->setText(ui->labelTitle2->text().arg(PACKAGE_NAME));
     ui->labelMessage2->setProperty("cssClass", "text-main-white");
 
     // Frame 3

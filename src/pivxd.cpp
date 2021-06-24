@@ -5,6 +5,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
+#if defined(HAVE_CONFIG_H)
+#include "config/pivx-config.h"
+#endif
+
 #include "chainparams.h"
 #include "clientversion.h"
 #include "fs.h"
@@ -57,13 +61,13 @@ bool AppInit(int argc, char* argv[])
 
     // Process help and version before taking care about datadir
     if (gArgs.IsArgSet("-?") || gArgs.IsArgSet("-h") || gArgs.IsArgSet("-help") || gArgs.IsArgSet("-version")) {
-        std::string strUsage = _("Pivx Core Daemon") + " " + _("version") + " " + FormatFullVersion() + "\n";
+        std::string strUsage = strprintf(_("%s Daemon"), PACKAGE_NAME) + " " + _("version") + " " + FormatFullVersion() + "\n";
 
         if (gArgs.IsArgSet("-version")) {
             strUsage += LicenseInfo();
         } else {
             strUsage += "\n" + _("Usage:") + "\n" +
-                        "  pivxd [options]                     " + _("Start Pivx Core Daemon") + "\n";
+                        "  pivxd [options]                     " + strprintf(_("Start %s Daemon"), PACKAGE_NAME) + "\n";
 
             strUsage += "\n" + HelpMessage(HMM_BITCOIND);
         }
