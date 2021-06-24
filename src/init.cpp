@@ -1190,6 +1190,9 @@ static bool LockDataDirectory(bool probeOnly)
 {
     // Make sure only a single PIVX process is using the data directory.
     fs::path datadir = GetDataDir();
+    if (!DirIsWritable(datadir)) {
+        return UIError(strprintf(_("Cannot write to data directory '%s'; check permissions."), datadir.string()));
+    }
     if (!LockDirectory(datadir, ".lock", probeOnly)) {
         return UIError(strprintf(_("Cannot obtain a lock on data directory %s. %s is probably already running."), datadir.string(), _(PACKAGE_NAME)));
     }
