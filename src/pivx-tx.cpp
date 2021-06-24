@@ -3,6 +3,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#if defined(HAVE_CONFIG_H)
+#include "config/pivx-config.h"
+#endif
+
 #include "clientversion.h"
 #include "coins.h"
 #include "core_io.h"
@@ -43,7 +47,7 @@ static bool AppInitRawTx(int argc, char* argv[])
 
     if (argc < 2 || gArgs.IsArgSet("-?") || gArgs.IsArgSet("-h") || gArgs.IsArgSet("-help")) {
         // First part of help message is specific to this utility
-        std::string strUsage = _("Pivx Core pivx-tx utility version") + " " + FormatFullVersion() + "\n\n" +
+        std::string strUsage = strprintf(_("%s pivx-tx utility version"), PACKAGE_NAME) + " " + FormatFullVersion() + "\n\n" +
                                _("Usage:") + "\n" +
                                "  pivx-tx [options] <hex-tx> [commands]  " + _("Update hex-encoded pivx transaction") + "\n" +
                                "  pivx-tx [options] -create [commands]   " + _("Create hex-encoded pivx transaction") + "\n" +

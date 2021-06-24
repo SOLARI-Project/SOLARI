@@ -5,6 +5,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#if defined(HAVE_CONFIG_H)
+#include "config/pivx-config.h"
+#endif
+
 #include "chainparamsbase.h"
 #include "clientversion.h"
 #include "fs.h"
@@ -73,11 +77,11 @@ static bool AppInitRPC(int argc, char* argv[])
     //
     gArgs.ParseParameters(argc, argv);
     if (argc < 2 || gArgs.IsArgSet("-?") || gArgs.IsArgSet("-h") || gArgs.IsArgSet("-help") || gArgs.IsArgSet("-version")) {
-        std::string strUsage = _("PIVX Core RPC client version") + " " + FormatFullVersion() + "\n";
+        std::string strUsage = strprintf(_("%s RPC client version"), PACKAGE_NAME) + " " + FormatFullVersion() + "\n";
         if (!gArgs.IsArgSet("-version")) {
             strUsage += "\n" + _("Usage:") + "\n" +
-                        "  pivx-cli [options] <command> [params]  " + _("Send command to PIVX Core") + "\n" +
-                        "  pivx-cli [options] -named <command> [name=value] ... " + _("Send command to PIVX Core (with named arguments)") + "\n" +
+                        "  pivx-cli [options] <command> [params]  " + strprintf(_("Send command to %s"), PACKAGE_NAME) + "\n" +
+                        "  pivx-cli [options] -named <command> [name=value] ... " + strprintf(_("Send command to %s (with named arguments)"), PACKAGE_NAME) + "\n" +
                         "  pivx-cli [options] help                " + _("List commands") + "\n" +
                         "  pivx-cli [options] help <command>      " + _("Get help for a command") + "\n";
 
