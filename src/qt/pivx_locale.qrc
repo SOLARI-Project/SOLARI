@@ -12,7 +12,6 @@
         <file alias="nl">locale/pivx_nl.qm</file>
         <file alias="pl">locale/pivx_pl.qm</file>
         <file alias="ru">locale/pivx_ru.qm</file>
-        <file alias="tr">locale/pivx_tr.qm</file>
         <file alias="zh_CN">locale/pivx_zh_CN.qm</file>
     </qresource>
 </RCC>
