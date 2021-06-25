@@ -27,9 +27,10 @@ addnode connect to onion
 addnode connect to generic DNS name
 """
 
-import socket
 import os
+import socket
 
+from test_framework.netutil import test_ipv6_local
 from test_framework.socks5 import Socks5Configuration, Socks5Command, Socks5Server, AddressType
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import (
@@ -37,7 +38,7 @@ from test_framework.util import (
     PORT_RANGE,
     assert_equal,
 )
-from test_framework.netutil import test_ipv6_local
+
 
 RANGE_BEGIN = PORT_MIN + 2 * PORT_RANGE  # Start after p2p and rpc ports
 

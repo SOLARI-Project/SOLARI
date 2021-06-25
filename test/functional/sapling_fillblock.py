@@ -3,8 +3,9 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://www.opensource.org/licenses/mit-license.php .
 
-from test_framework.test_framework import PivxTestFramework
+import time
 
+from test_framework.test_framework import PivxTestFramework
 from test_framework.util import (
     assert_greater_than,
     assert_greater_than_or_equal,
@@ -13,7 +14,6 @@ from test_framework.util import (
     satoshi_round,
 )
 
-import time
 
 def timed(f):
   start = time.time()

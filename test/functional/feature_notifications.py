@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the -alertnotify, -blocknotify and -walletnotify options."""
+
 import os
 
 from test_framework.test_framework import PivxTestFramework
@@ -11,6 +12,7 @@ from test_framework.util import (
     wait_until,
     connect_nodes,
 )
+
 
 class NotificationsTest(PivxTestFramework):
     def set_test_params(self):

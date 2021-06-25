@@ -14,6 +14,7 @@ from test_framework.util import (
     assert_greater_than_or_equal,
 )
 
+
 class WalletEncryptionTest(PivxTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True

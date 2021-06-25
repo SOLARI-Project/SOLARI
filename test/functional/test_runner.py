@@ -18,6 +18,7 @@ import argparse
 from collections import deque
 import configparser
 import datetime
+import logging
 import os
 import time
 import shutil
@@ -26,7 +27,7 @@ import sys
 import subprocess
 import tempfile
 import re
-import logging
+
 
 # Formatting. Default colors to empty strings.
 BOLD, BLUE, RED, GREY = ("", ""), ("", ""), ("", ""), ("", "")
