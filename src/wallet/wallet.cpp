@@ -199,7 +199,7 @@ CallResult<CTxDestination> CWallet::getNewAddress(const std::string& addressLabe
     // Get a key
     if (!GetKeyFromPool(newKey, type)) {
         // inform the user to top-up the keypool or unlock the wallet
-        return CallResult<CTxDestination>(false, std::string(
+        return CallResult<CTxDestination>(std::string(
                         _("Keypool ran out, please call keypoolrefill first, or unlock the wallet.")));
     }
     CKeyID keyID = newKey.GetID();
@@ -207,7 +207,7 @@ CallResult<CTxDestination> CWallet::getNewAddress(const std::string& addressLabe
     if (!SetAddressBook(keyID, addressLabel, purpose))
         throw std::runtime_error("CWallet::getNewAddress() : SetAddressBook failed");
 
-    return CallResult<CTxDestination>(true, CTxDestination(keyID));
+    return CallResult<CTxDestination>(CTxDestination(keyID));
 }
 
 int64_t CWallet::GetKeyCreationTime(const CWDestination& dest)
