@@ -69,6 +69,7 @@ BASE_SCRIPTS= [
     'mining_pos_coldStaking.py',                # ~ 220 sec
     'wallet_import_rescan.py',                  # ~ 204 sec
     'p2p_invalid_block.py',                     # ~ 213 sec
+    'feature_reindex.py',                       # ~ 205 sec
     'feature_logging.py',                       # ~ 195 sec
     'wallet_multiwallet.py',                    # ~ 190 sec
     'wallet_abandonconflict.py',                # ~ 188 sec
@@ -88,7 +89,6 @@ BASE_SCRIPTS= [
     # vv Tests less than 2m vv
     'wallet_upgrade.py',                        # ~ 119 sec
     'p2p_disconnect_ban.py',                    # ~ 118 sec
-    'feature_reindex.py',                       # ~ 110 sec
     'interface_http.py',                        # ~ 105 sec
     'feature_blockhashcache.py',                # ~ 100 sec
     'p2p_invalid_tx.py',                        # ~ 98 sec

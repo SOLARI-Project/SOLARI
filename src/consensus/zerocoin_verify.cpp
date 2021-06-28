@@ -7,7 +7,6 @@
 #include "chainparams.h"
 #include "consensus/consensus.h"
 #include "guiinterface.h"        // for ui_interface
-#include "init.h"                // for ShutdownRequested()
 #include "invalid.h"
 #include "script/interpreter.h"
 #include "spork.h"               // for sporkManager

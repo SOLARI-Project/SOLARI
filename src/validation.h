@@ -77,7 +77,8 @@ static const unsigned int MAX_ZEROCOIN_TX_SIZE = 150000;
 /** Maximum kilobytes for transactions to store for processing during reorg */
 static const unsigned int MAX_DISCONNECTED_TX_POOL_SIZE = 20000;
 /** Default for -checkblocks */
-static const signed int DEFAULT_CHECKBLOCKS = 10;
+static const signed int DEFAULT_CHECKBLOCKS = 6;
+static const unsigned int DEFAULT_CHECKLEVEL = 3;
 /** The maximum size of a blk?????.dat file (since 0.8) */
 static const unsigned int MAX_BLOCKFILE_SIZE = 0x8000000; // 128 MiB
 /** The pre-allocation chunk size for blk?????.dat files (since 0.8) */
@@ -147,7 +148,6 @@ extern bool fCheckBlockIndex;
 extern size_t nCoinCacheUsage;
 extern CFeeRate minRelayTxFee;
 extern int64_t nMaxTipAge;
-extern bool fVerifyingBlocks;
 
 extern bool fLargeWorkForkFound;
 extern bool fLargeWorkInvalidChainFound;
@@ -167,11 +167,11 @@ extern CBlockIndex* pindexBestHeader;
  * @param[out]  state      This may be set to an Error state if any error occurred processing it, including during validation/connection/etc of otherwise unrelated blocks during reorganisation; or it may be set to an Invalid state if pblock is itself invalid (but this is not guaranteed even when the block is checked). If you want to *possibly* get feedback on whether pblock is valid, you must also install a CValidationInterface - this will have its BlockChecked method called whenever *any* block completes validation.
  * @param[in]   pfrom      The node which we are receiving the block from; it is added to mapBlockSource and may be penalised if the block is invalid.
  * @param[in]   pblock     The block we want to process.
- * @param[out]  dbp        If pblock is stored to disk (or already there), this will be set to its location.
+ * @param[out]  dbp        The already known disk position of pblock, or nullptr if not yet stored.
  * @param[out]  fAccepted  Whether the block is accepted or not
  * @return True if state.IsValid()
  */
-bool ProcessNewBlock(CValidationState& state, const std::shared_ptr<const CBlock> pblock, FlatFilePos* dbp, bool* fAccepted = nullptr);
+bool ProcessNewBlock(CValidationState& state, const std::shared_ptr<const CBlock> pblock, const FlatFilePos* dbp, bool* fAccepted = nullptr);
 
 /** Open a block file (blk?????.dat) */
 FILE* OpenBlockFile(const FlatFilePos& pos, bool fReadOnly = false);
@@ -336,8 +336,6 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
 /** Check a block is completely valid from start to finish (only works on top of our current best block, with cs_main held) */
 bool TestBlockValidity(CValidationState& state, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true, bool fCheckBlockSig = true);
 
-/** Store block on disk. If dbp is provided, the file is known to already reside on disk */
-bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** pindex, FlatFilePos* dbp = NULL);
 bool AcceptBlockHeader(const CBlock& block, CValidationState& state, CBlockIndex** ppindex = nullptr, CBlockIndex* pindexPrev = nullptr);
 
 

@@ -443,6 +443,8 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-blocksdir=<dir>", _("Specify directory to hold blocks subdirectory for *.dat files (default: <datadir>)"));
     strUsage += HelpMessageOpt("-blocknotify=<cmd>", _("Execute command when the best block changes (%s in cmd is replaced by block hash)"));
     strUsage += HelpMessageOpt("-checkblocks=<n>", strprintf(_("How many blocks to check at startup (default: %u, 0 = all)"), DEFAULT_CHECKBLOCKS));
+    strUsage += HelpMessageOpt("-checklevel=<n>", strprintf("How thorough the block verification of -checkblocks is (0-4, default: %u)", DEFAULT_CHECKLEVEL));
+
     strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), PIVX_CONF_FILENAME));
     if (mode == HMM_BITCOIND) {
 #if !defined(WIN32)
@@ -467,6 +469,7 @@ std::string HelpMessage(HelpMessageMode mode)
 #ifndef WIN32
     strUsage += HelpMessageOpt("-pid=<file>", strprintf(_("Specify pid file (default: %s)"), PIVX_PID_FILENAME));
 #endif
+    strUsage += HelpMessageOpt("-reindex-chainstate", _("Rebuild chain state from the currently indexed blocks"));
     strUsage += HelpMessageOpt("-reindex", _("Rebuild block chain index from current blk000??.dat files") + " " + _("on startup"));
     strUsage += HelpMessageOpt("-resync", _("Delete blockchain folders and resync from scratch") + " " + _("on startup"));
 #if !defined(WIN32)
@@ -690,11 +693,11 @@ struct CImportingNow {
 void ThreadImport(const std::vector<fs::path>& vImportFiles)
 {
     util::ThreadRename("pivx-loadblk");
+    CImportingNow imp;
     ScheduleBatchPriority();
 
     // -reindex
     if (fReindex) {
-        CImportingNow imp;
         int nFile = 0;
         while (true) {
             FlatFilePos pos(nFile, 0);
@@ -721,7 +724,6 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
     if (fs::exists(pathBootstrap)) {
         FILE* file = fsbridge::fopen(pathBootstrap, "rb");
         if (file) {
-            CImportingNow imp;
             fs::path pathBootstrapOld = GetDataDir() / "bootstrap.dat.old";
             LogPrintf("Importing bootstrap.dat...\n");
             LoadExternalBlockFile(file);
@@ -735,7 +737,6 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
     for (const fs::path& path : vImportFiles) {
         FILE* file = fsbridge::fopen(path, "rb");
         if (file) {
-            CImportingNow imp;
             LogPrintf("Importing blocks file %s...\n", path.string());
             LoadExternalBlockFile(file);
         } else {
@@ -745,6 +746,13 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
 
     if (gArgs.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
         LogPrintf("Stopping after block import\n");
+        StartShutdown();
+    }
+
+    // scan for better chains in the block chain database, that are not yet connected in the active best chain
+    CValidationState state;
+    if (!ActivateBestChain(state)) {
+        LogPrintf("Failed to connect best block");
         StartShutdown();
     }
 
@@ -1506,16 +1514,17 @@ bool AppInitMain()
     // ********************************************************* Step 7: load block chain
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
+    bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
 
     // cache size calculations
     int64_t nTotalCache = (gArgs.GetArg("-dbcache", nDefaultDbCache) << 20);
     nTotalCache = std::max(nTotalCache, nMinDbCache << 20); // total cache cannot be less than nMinDbCache
     nTotalCache = std::min(nTotalCache, nMaxDbCache << 20); // total cache cannot be greater than nMaxDbcache
     int64_t nBlockTreeDBCache = nTotalCache / 8;
-    if (nBlockTreeDBCache > (1 << 21) && !gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX))
-        nBlockTreeDBCache = (1 << 21); // block tree db cache shouldn't be larger than 2 MiB
+    nBlockTreeDBCache = std::min(nBlockTreeDBCache, (gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX) ? nMaxBlockDBAndTxIndexCache : nMaxBlockDBCache) << 20);
     nTotalCache -= nBlockTreeDBCache;
     int64_t nCoinDBCache = std::min(nTotalCache / 2, (nTotalCache / 4) + (1 << 23)); // use 25%-50% of the remainder for disk cache
+    nCoinDBCache = std::min(nCoinDBCache, nMaxCoinsDBCache << 20); // cap total coins db cache
     nTotalCache -= nCoinDBCache;
     nCoinCacheUsage = nTotalCache; // the rest goes to in-memory cache
     int64_t nEvoDbCache = 1024 * 1024 * 16; // TODO
@@ -1553,9 +1562,9 @@ bool AppInitMain()
                 evoDb.reset(new CEvoDB(nEvoDbCache, false, fReindex));
                 deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
 
-                pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReindex);
+                pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReset);
 
-                if (fReindex) {
+                if (fReset) {
                     pblocktree->WriteReindexing(true);
                 }
 
@@ -1569,6 +1578,8 @@ bool AppInitMain()
                 // LoadBlockIndex will load fTxIndex from the db, or set it if
                 // we're reindexing. It will also load fHavePruned if we've
                 // ever removed a block file from disk.
+                // Note that it also sets fReindex based on the disk flag!
+                // From here on out fReindex and fReset mean something different!
                 uiInterface.InitMessage(_("Loading block index..."));
                 std::string strBlockIndexError;
                 if (!LoadBlockIndex(strBlockIndexError)) {
@@ -1585,7 +1596,7 @@ bool AppInitMain()
 
                 // Check for changed -txindex state
                 if (fTxIndex != gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
-                    strLoadError = strprintf(_("You need to rebuild the database using %s to change %s"), "-reindex", "-txindex");
+                    strLoadError = strprintf(_("You need to rebuild the database using %s to change %s"), "-reindex-chainstate", "-txindex");
                     break;
                 }
 
@@ -1600,11 +1611,11 @@ bool AppInitMain()
                 // At this point we're either in reindex or we've loaded a useful
                 // block tree into mapBlockIndex!
 
-                pcoinsdbview = new CCoinsViewDB(nCoinDBCache, false, fReindex);
+                pcoinsdbview = new CCoinsViewDB(nCoinDBCache, false, fReset || fReindexChainState);
                 pcoinscatcher = new CCoinsViewErrorCatcher(pcoinsdbview);
 
                 // If necessary, upgrade from older database format.
-                // This is a no-op if we cleared the coinsviewdb with -reindex (or -reindex-chainstate !TODO)
+                // This is a no-op if we cleared the coinsviewdb with -reindex or -reindex-chainstate
                 uiInterface.InitMessage(_("Upgrading coins database if needed..."));
                 // If necessary, upgrade from older database format.
                 if (!pcoinsdbview->Upgrade()) {
@@ -1612,7 +1623,7 @@ bool AppInitMain()
                     break;
                 }
 
-                // ReplayBlocks is a no-op if we cleared the coinsviewdb with -reindex (or -reindex-chainstate !TODO)
+                // ReplayBlocks is a no-op if we cleared the coinsviewdb with -reindex or -reindex-chainstate
                 if (!ReplayBlocks(chainparams, pcoinsdbview)) {
                     strLoadError = strprintf(_("Unable to replay blocks. You will need to rebuild the database using %s."), "-reindex");
                     break;
@@ -1621,15 +1632,14 @@ bool AppInitMain()
                 // The on-disk coinsdb is now in a good state, create the cache
                 pcoinsTip = new CCoinsViewCache(pcoinscatcher);
 
-                // !TODO: after enabling reindex-chainstate
-                // if (!fReindex && !fReindexChainState) {
-                if (!fReindex) {
+                bool is_coinsview_empty = fReset || fReindexChainState || pcoinsTip->GetBestBlock().IsNull();
+                if (!is_coinsview_empty) {
                     // LoadChainTip sets chainActive based on pcoinsTip's best block
                     if (!LoadChainTip(chainparams)) {
                         strLoadError = _("Error initializing block database");
                         break;
                     }
-                    assert(chainActive.Tip() != NULL);
+                    assert(chainActive.Tip() != nullptr);
                 }
 
                 if (Params().NetworkIDString() == CBaseChainParams::MAIN) {
@@ -1656,14 +1666,8 @@ bool AppInitMain()
                     }
                 }
 
-                // !TODO: after enabling reindex-chainstate
-                // if (!fReindex && !fReindexChainState) {
-                if (!fReindex) {
+                if (!is_coinsview_empty) {
                     uiInterface.InitMessage(_("Verifying blocks..."));
-
-                    // Flag sent to validation code to let it know it can skip certain checks
-                    fVerifyingBlocks = true;
-
                     {
                         LOCK(cs_main);
                         CBlockIndex *tip = chainActive.Tip();
@@ -1676,21 +1680,18 @@ bool AppInitMain()
                         }
                     }
 
-                    // Zerocoin must check at level 4
-                    if (!CVerifyDB().VerifyDB(pcoinsdbview, 4, gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS))) {
+                    if (!CVerifyDB().VerifyDB(pcoinsdbview, gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),
+                            gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS))) {
                         strLoadError = _("Corrupted block database detected");
-                        fVerifyingBlocks = false;
                         break;
                     }
                 }
             } catch (const std::exception& e) {
                 LogPrintf("%s\n", e.what());
                 strLoadError = _("Error opening block database");
-                fVerifyingBlocks = false;
                 break;
             }
 
-            fVerifyingBlocks = false;
             fLoaded = true;
             LogPrintf(" block index %15dms\n", GetTimeMillis() - load_block_index_start_time);
         } while (false);
@@ -1758,13 +1759,6 @@ bool AppInitMain()
     if (gArgs.IsArgSet("-blocknotify"))
         uiInterface.NotifyBlockTip.connect(BlockNotifyCallback);
 
-    // scan for better chains in the block chain database, that are not yet connected in the active best chain
-    CValidationState state;
-    if (!ActivateBestChain(state)) {
-        strErrors << "Failed to connect best block";
-        StartShutdown();
-        return false;
-    }
     // update g_best_block if needed
     {
         LOCK(g_best_block_mutex);
@@ -1792,9 +1786,13 @@ bool AppInitMain()
         uiInterface.NotifyBlockTip.disconnect(BlockNotifyGenesisWait);
     }
 
-    uiInterface.InitMessage(_("Calculating money supply..."));
     int nChainHeight = WITH_LOCK(cs_main, return chainActive.Height(); );
-    MoneySupply.Update(pcoinsTip->GetTotalAmount(), nChainHeight);
+
+    // Update money supply
+    if (!fReindex && !fReindexChainState) {
+        uiInterface.InitMessage(_("Calculating money supply..."));
+        MoneySupply.Update(pcoinsTip->GetTotalAmount(), nChainHeight);
+    }
 
 
     // ********************************************************* Step 10: setup layer 2 data
