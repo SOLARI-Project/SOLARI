@@ -8,15 +8,12 @@ from io import BytesIO
 from time import sleep
 
 from test_framework.messages import CTransaction, CTxIn, CTxOut, COIN, COutPoint
-from test_framework.mininode import network_thread_start
-from test_framework.pivx_node import PivxTestNode
 from test_framework.script import CScript, OP_CHECKSIG
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
     assert_raises_rpc_error,
-    p2p_port,
     bytes_to_hex_str,
     set_node_times,
 )
@@ -34,29 +31,7 @@ class PIVX_ColdStakingTest(PivxTestFramework):
         self.num_nodes = 3
         self.extra_args = [['-nuparams=v5_shield:201']] * self.num_nodes
         self.extra_args[0].append('-sporkkey=932HEevBSujW2ud7RfB1YF91AFygbBRQj3de3LyaCRqNzKKgWXi')
-
-    def setup_chain(self):
-        # Start with PoW cache: 200 blocks
-        self.log.info("Initializing test directory " + self.options.tmpdir)
-        self._initialize_chain()
         self.enable_mocktime()
-
-    def init_test(self):
-        title = "*** Starting %s ***" % self.__class__.__name__
-        underline = "-" * len(title)
-        self.log.info("\n\n%s\n%s\n%s\n", title, underline, self.description)
-        self.DEFAULT_FEE = 0.05
-        # Setup the p2p connections and start up the network thread.
-        self.test_nodes = []
-        for i in range(self.num_nodes):
-            self.test_nodes.append(PivxTestNode())
-            self.test_nodes[i].peer_connect('127.0.0.1', p2p_port(i))
-
-        network_thread_start()  # Start up network handling in another thread
-
-        # Let the test nodes get in sync
-        for i in range(self.num_nodes):
-            self.test_nodes[i].wait_for_verack()
 
     def setColdStakingEnforcement(self, fEnable=True):
         sporkName = "SPORK_19_COLDSTAKING_MAINTENANCE"
@@ -77,11 +52,12 @@ class PIVX_ColdStakingTest(PivxTestFramework):
         # verify from node[1]
         return not self.is_spork_active(1, "SPORK_19_COLDSTAKING_MAINTENANCE")
 
-
-
     def run_test(self):
         self.description = "Performs tests on the Cold Staking P2CS implementation"
-        self.init_test()
+        title = "*** Starting %s ***" % self.__class__.__name__
+        underline = "-" * len(title)
+        self.log.info("\n\n%s\n%s\n%s\n", title, underline, self.description)
+        self.DEFAULT_FEE = 0.05
         NUM_OF_INPUTS = 20
         INPUT_VALUE = 249
 

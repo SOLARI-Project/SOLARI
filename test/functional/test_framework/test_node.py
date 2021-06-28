@@ -24,6 +24,7 @@ from .util import (
     wait_until,
     p2p_port,
 )
+from .messages import MY_SUBVERSION
 
 # For Python 3.4 compatibility
 JSONDecodeError = getattr(json, "JSONDecodeError", ValueError)
@@ -233,7 +234,7 @@ class TestNode():
         self.encryptwallet(passphrase)
         self.wait_until_stopped()
 
-    def add_p2p_connection(self, p2p_conn, *args, **kwargs):
+    def add_p2p_connection(self, p2p_conn, *args, wait_for_verack=True, **kwargs):
         """Add a p2p connection to the node.
 
         This method adds the p2p connection to the self.p2ps list and also
@@ -243,8 +244,27 @@ class TestNode():
         if 'dstaddr' not in kwargs:
             kwargs['dstaddr'] = '127.0.0.1'
 
-        p2p_conn.peer_connect(*args, **kwargs)
+        p2p_conn.peer_connect(*args, **kwargs)()
         self.p2ps.append(p2p_conn)
+        p2p_conn.wait_until(lambda: p2p_conn.is_connected, check_connected=False)
+        if wait_for_verack:
+            # Wait for the node to send us the version and verack
+            p2p_conn.wait_for_verack()
+            # At this point we have sent our version message and received the version and verack, however the full node
+            # has not yet received the verack from us (in reply to their version). So, the connection is not yet fully
+            # established (fSuccessfullyConnected).
+            #
+            # This shouldn't lead to any issues when sending messages, since the verack will be in-flight before the
+            # message we send. However, it might lead to races where we are expecting to receive a message. E.g. a
+            # transaction that will be added to the mempool as soon as we return here.
+            #
+            # So syncing here is redundant when we only want to send a message, but the cost is low (a few milliseconds)
+            # in comparison to the upside of making tests less fragile and unexpected intermittent errors less likely.
+            p2p_conn.sync_with_ping()
+            # Consistency check that the PIVX Core has received our user agent string. This checks the
+            # node's newest peer. It could be racy if another PIVX Core node has connected since we opened
+            # our connection, but we don't expect that to happen.
+            assert_equal(self.getpeerinfo()[-1]['subver'], MY_SUBVERSION)
 
         return p2p_conn
 
@@ -297,10 +317,10 @@ class TestNodeCLI():
     def batch(self, requests):
         results = []
         for request in requests:
-           try:
-               results.append(dict(result=request()))
-           except JSONRPCException as e:
-               results.append(dict(error=e))
+            try:
+                results.append(dict(result=request()))
+            except JSONRPCException as e:
+                results.append(dict(error=e))
         return results
 
     def send_cli(self, command=None, *args, **kwargs):

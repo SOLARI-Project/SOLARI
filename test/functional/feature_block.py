@@ -21,7 +21,7 @@ from test_framework.messages import (
     uint256_from_compact,
     uint256_from_str,
 )
-from test_framework.mininode import P2PDataStore, network_thread_start, network_thread_join
+from test_framework.mininode import P2PDataStore
 from test_framework.script import (
     CScript,
     MAX_SCRIPT_ELEMENT_SIZE,
@@ -84,7 +84,6 @@ class FullBlockTest(PivxTestFramework):
         node = self.nodes[0]  # convenience reference to the node
         # reconnect_p2p() expects the network thread to be running
         self.log.info("Starting network thread...")
-        network_thread_start()
         self.reconnect_p2p()
 
         self.block_heights = {}
@@ -1207,10 +1206,8 @@ class FullBlockTest(PivxTestFramework):
         The node gets disconnected several times in this test. This helper
         method reconnects the p2p and restarts the network thread."""
 
-        network_thread_join()
         self.nodes[0].disconnect_p2ps()
         self.nodes[0].add_p2p_connection(P2PDataStore())
-        network_thread_start()
         self.nodes[0].p2p.wait_for_verack()
 
     def send_blocks(self, blocks, success=True, reject_reason=None, reconnect=False, timeout=60):

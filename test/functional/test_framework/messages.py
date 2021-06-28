@@ -28,7 +28,7 @@ from test_framework.util import hex_str_to_bytes, bytes_to_hex_str
 
 MIN_VERSION_SUPPORTED = 60001
 MY_VERSION = 70922
-MY_SUBVERSION = b"/python-mininode-tester:0.0.3/"
+MY_SUBVERSION = "/python-mininode-tester:0.0.3/"
 MY_RELAY = 1 # from version 70001 onwards, fRelay should be appended to version messages (BIP37)
 
 MAX_INV_SZ = 50000
@@ -927,7 +927,7 @@ class msg_version():
             self.addrFrom = CAddress()
             self.addrFrom.deserialize(f)
             self.nNonce = struct.unpack("<Q", f.read(8))[0]
-            self.strSubVer = deser_string(f)
+            self.strSubVer = deser_string(f).decode('utf-8')
         else:
             self.addrFrom = None
             self.nNonce = None
@@ -956,7 +956,7 @@ class msg_version():
         r += self.addrTo.serialize()
         r += self.addrFrom.serialize()
         r += struct.pack("<Q", self.nNonce)
-        r += ser_string(self.strSubVer)
+        r += ser_string(self.strSubVer.encode('utf-8'))
         r += struct.pack("<i", self.nStartingHeight)
         r += struct.pack("<b", self.nRelay)
         return r

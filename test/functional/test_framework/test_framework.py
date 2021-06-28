@@ -38,6 +38,7 @@ from .script import (
     OP_CHECKSIG,
 )
 from .test_node import TestNode
+from .mininode import NetworkThread
 from .util import (
     MAX_NODES,
     PortSeed,
@@ -95,6 +96,7 @@ class PivxTestFramework():
         """Sets test framework defaults. Do not override this method. Instead, override the set_test_params() method"""
         self.setup_clean_chain = False
         self.nodes = []
+        self.network_thread = None
         self.mocktime = 0
         self.rpc_timewait = 600  # Wait for up to 600 seconds for the RPC server to respond
         self.supports_cli = False
@@ -154,6 +156,10 @@ class PivxTestFramework():
             self.options.tmpdir = tempfile.mkdtemp(prefix=TMPDIR_PREFIX)
         self._start_logging()
 
+        self.log.debug('Setting up network thread')
+        self.network_thread = NetworkThread()
+        self.network_thread.start()
+
         success = TestStatus.FAILED
 
         try:
@@ -182,6 +188,8 @@ class PivxTestFramework():
             print("Testcase failed. Attaching python debugger. Enter ? for help")
             pdb.set_trace()
 
+        self.log.debug('Closing down network thread')
+        self.network_thread.close()
         if not self.options.noshutdown:
             self.log.info("Stopping nodes")
             if self.nodes:

@@ -13,11 +13,12 @@ from test_framework.messages import (
     CTxIn,
     CTxOut,
 )
-from test_framework.mininode import network_thread_start, P2PDataStore, network_thread_join
+from test_framework.mininode import P2PDataStore
 from test_framework.script import (
     CScript,
     OP_NOTIF,
     OP_TRUE,
+    OP_DROP
 )
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import (
@@ -37,7 +38,6 @@ class InvalidTxRequestTest(PivxTestFramework):
         Helper to connect and wait for version handshake."""
         for _ in range(num_connections):
             self.nodes[0].add_p2p_connection(P2PDataStore())
-        network_thread_start()
         self.nodes[0].p2p.wait_for_verack()
 
     def reconnect_p2p(self, **kwargs):
@@ -46,18 +46,13 @@ class InvalidTxRequestTest(PivxTestFramework):
         The node gets disconnected several times in this test. This helper
         method reconnects the p2p and restarts the network thread."""
         self.nodes[0].disconnect_p2ps()
-        network_thread_join()
         self.bootstrap_p2p(**kwargs)
 
-    def new_spend_tx(self, prev_hash, prev_n, values):
-        """Create a CTransaction spending COutPoint(prev_hash, prev_n)
-
-        each amount specified in the 'values' list is sent to an
-        anyone-can-spend script"""
+    def new_spend_tx(self, prev_hash, prev_n, tx_outs):
+        """Create a CTransaction spending COutPoint(prev_hash, prev_n) to the CTxOut-list tx_outs."""
         tx = CTransaction()
         tx.vin.append(CTxIn(outpoint=COutPoint(prev_hash, prev_n)))
-        for value in values:
-            tx.vout.append(CTxOut(nValue=value, scriptPubKey=CScript([OP_TRUE])))
+        tx.vout = tx_outs
         tx.calc_sha256()
         return tx
 
@@ -95,21 +90,22 @@ class InvalidTxRequestTest(PivxTestFramework):
         self.reconnect_p2p(num_connections=2)
 
         self.log.info('Test orphan transaction handling ... ')
+        SCRIPT_PUB_KEY_OP_TRUE = CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])
         # Create a root transaction that we withhold until all dependend transactions
         # are sent out and in the orphan cache
-        tx_withhold = self.new_spend_tx(block1.vtx[0].sha256, 0, [50 * COIN - 12000])
+        tx_withhold = self.new_spend_tx(block1.vtx[0].sha256, 0, [CTxOut(nValue=50 * COIN - 12000, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE)])
 
         # Our first orphan tx with 3 outputs to create further orphan txs
-        tx_orphan_1 = self.new_spend_tx(tx_withhold.sha256, 0, [10 * COIN] * 3)
+        tx_orphan_1 = self.new_spend_tx(tx_withhold.sha256, 0, [CTxOut(nValue=10 * COIN, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE)] * 3)
 
         # A valid transaction with low fee
-        tx_orphan_2_no_fee = self.new_spend_tx(tx_orphan_1.sha256, 0, [10 * COIN])
+        tx_orphan_2_no_fee = self.new_spend_tx(tx_orphan_1.sha256, 0, [CTxOut(nValue=10 * COIN, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE)])
 
         # A valid transaction with sufficient fee
-        tx_orphan_2_valid = self.new_spend_tx(tx_orphan_1.sha256, 1, [10 * COIN - 12000])
+        tx_orphan_2_valid = self.new_spend_tx(tx_orphan_1.sha256, 1, [CTxOut(nValue=10 * COIN - 12000, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE)])
 
         # An invalid transaction with negative fee
-        tx_orphan_2_invalid = self.new_spend_tx(tx_orphan_1.sha256, 2, [11 * COIN])
+        tx_orphan_2_invalid = self.new_spend_tx(tx_orphan_1.sha256, 2, [CTxOut(nValue=11 * COIN, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE)])
 
         self.log.info('Send the orphans ... ')
         # Send valid orphan txs from p2ps[0]
@@ -140,6 +136,22 @@ class InvalidTxRequestTest(PivxTestFramework):
         # 'tx_orphan_2_invalid' transaction from the orphans pool.
         #wait_until(lambda: 1 == len(node.getpeerinfo()), timeout=12)  # p2ps[1] is no longer connected
         assert_equal(expected_mempool, set(node.getrawmempool()))
+
+        self.log.info('Test orphan pool overflow')
+        orphan_tx_pool = [CTransaction() for _ in range(101)]
+        for i in range(len(orphan_tx_pool)):
+            orphan_tx_pool[i].vin.append(CTxIn(outpoint=COutPoint(i, 333)))
+            orphan_tx_pool[i].vout.append(CTxOut(nValue=11 * COIN, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
+
+        with node.assert_debug_log(['mapOrphan overflow, removed 1 tx']):
+            node.p2p.send_txs_and_test(orphan_tx_pool, node, success=False)
+
+        rejected_parent = CTransaction()
+        rejected_parent.vin.append(CTxIn(outpoint=COutPoint(tx_orphan_2_invalid.sha256, 0)))
+        rejected_parent.vout.append(CTxOut(nValue=11 * COIN, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
+        rejected_parent.rehash()
+        with node.assert_debug_log(['not keeping orphan with rejected parents {}'.format(rejected_parent.hash)]):
+            node.p2p.send_txs_and_test([rejected_parent], node, success=False)
 
 
 if __name__ == '__main__':

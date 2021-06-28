@@ -47,9 +47,8 @@ class FeeFilterTest(PivxTestFramework):
         node1.generate(1)
         self.sync_blocks()
 
-        # Setup the p2p connections and start up the network thread.
-        self.nodes[0].add_p2p_connection(TestNode())
-        network_thread_start()
+        # Setup the p2p connections
+        self.nodes[0].add_p2p_connection(TestP2PConn())
         self.nodes[0].p2p.wait_for_verack()
 
         # Test that invs are received for all txs at feerate of 20 sat/byte
