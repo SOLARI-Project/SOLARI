@@ -1772,12 +1772,20 @@ bool AppInitMain()
         uiInterface.NotifyBlockTip.disconnect(BlockNotifyGenesisWait);
     }
 
-    int nChainHeight = WITH_LOCK(cs_main, return chainActive.Height(); );
+    int chain_active_height;
+
+    //// debug print
+    {
+        LOCK(cs_main);
+        chain_active_height = chainActive.Height();
+        LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
+    }
+    LogPrintf("chainActive.Height() = %d\n", chain_active_height);
 
     // Update money supply
     if (!fReindex && !fReindexChainState) {
         uiInterface.InitMessage(_("Calculating money supply..."));
-        MoneySupply.Update(pcoinsTip->GetTotalAmount(), nChainHeight);
+        MoneySupply.Update(pcoinsTip->GetTotalAmount(), chain_active_height);
     }
 
 
@@ -1785,7 +1793,7 @@ bool AppInitMain()
 
     uiInterface.InitMessage(_("Loading masternode cache..."));
 
-    mnodeman.SetBestHeight(nChainHeight);
+    mnodeman.SetBestHeight(chain_active_height);
     LoadBlockHashesCache(mnodeman);
     CMasternodeDB mndb;
     CMasternodeDB::ReadResult readResult = mndb.Read(mnodeman);
@@ -1798,8 +1806,8 @@ bool AppInitMain()
     uiInterface.InitMessage(_("Loading budget cache..."));
 
     CBudgetDB budgetdb;
-    const bool fDryRun = (nChainHeight <= 0);
-    if (!fDryRun) g_budgetman.SetBestHeight(nChainHeight);
+    const bool fDryRun = (chain_active_height <= 0);
+    if (!fDryRun) g_budgetman.SetBestHeight(chain_active_height);
     CBudgetDB::ReadResult readResult2 = budgetdb.Read(g_budgetman, fDryRun);
 
     if (readResult2 == CBudgetDB::FileError)
@@ -1910,10 +1918,6 @@ bool AppInitMain()
     if (!strErrors.str().empty())
         return UIError(strErrors.str());
 
-    //// debug print
-    LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
-    LogPrintf("chainActive.Height() = %d\n", chainActive.Height());
-
 #ifdef ENABLE_WALLET
     {
         int idx = 0;
@@ -1942,7 +1946,7 @@ bool AppInitMain()
     connOptions.nMaxConnections = nMaxConnections;
     connOptions.nMaxOutbound = std::min(MAX_OUTBOUND_CONNECTIONS, connOptions.nMaxConnections);
     connOptions.nMaxFeeler = 1;
-    connOptions.nBestHeight = chainActive.Height();
+    connOptions.nBestHeight = chain_active_height;
     connOptions.uiInterface = &uiInterface;
     connOptions.m_msgproc = peerLogic.get();
     connOptions.nSendBufferMaxSize = 1000*gArgs.GetArg("-maxsendbuffer", DEFAULT_MAXSENDBUFFER);
