@@ -559,8 +559,8 @@ UniValue dumpwallet(const JSONRPCRequest& request)
 
     // sort time/key pairs
     std::vector<std::pair<int64_t, CKeyID> > vKeyBirth;
-    for (std::map<CKeyID, int64_t>::const_iterator it = mapKeyBirth.begin(); it != mapKeyBirth.end(); it++) {
-        vKeyBirth.emplace_back(it->second, it->first);
+    for (const auto& entry : mapKeyBirth) {
+        vKeyBirth.emplace_back(entry.second, entry.first);
     }
     mapKeyBirth.clear();
     std::sort(vKeyBirth.begin(), vKeyBirth.end());

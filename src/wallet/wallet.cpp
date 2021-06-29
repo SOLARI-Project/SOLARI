@@ -893,13 +893,12 @@ int64_t CWallet::IncOrderPosNext(CWalletDB* pwalletdb)
     return nRet;
 }
 
-bool CWallet::IsKeyUsed(const CPubKey& vchPubKey) {
+bool CWallet::IsKeyUsed(const CPubKey& vchPubKey) const
+{
     if (vchPubKey.IsValid()) {
-        CScript scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
-        for (std::map<uint256, CWalletTx>::iterator it = mapWallet.begin();
-             it != mapWallet.end() && vchPubKey.IsValid();
-             ++it) {
-            const CWalletTx& wtx = (*it).second;
+        const CScript& scriptPubKey = GetScriptForDestination(vchPubKey.GetID());
+        for (const auto& entry : mapWallet) {
+            const CWalletTx& wtx = entry.second;
             for (const CTxOut& txout : wtx.tx->vout)
                 if (txout.scriptPubKey == scriptPubKey)
                     return true;
@@ -2547,9 +2546,9 @@ bool CWallet::AvailableCoins(std::vector<COutput>* pCoins,      // --> populates
     {
         LOCK(cs_wallet);
         CAmount nTotal = 0;
-        for (std::map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
-            const uint256& wtxid = it->first;
-            const CWalletTx* pcoin = &(*it).second;
+        for (const auto& entry : mapWallet) {
+            const uint256& wtxid = entry.first;
+            const CWalletTx* pcoin = &entry.second;
 
             // Check if the tx is selectable
             int nDepth = 0;
@@ -3871,9 +3870,9 @@ void CWallet::GetKeyBirthTimes(std::map<CKeyID, int64_t>& mapKeyBirth) const
     mapKeyBirth.clear();
 
     // get birth times for keys with metadata
-    for (std::map<CKeyID, CKeyMetadata>::const_iterator it = mapKeyMetadata.begin(); it != mapKeyMetadata.end(); it++)
-        if (it->second.nCreateTime)
-            mapKeyBirth[it->first] = it->second.nCreateTime;
+    for (const auto& entry : mapKeyMetadata) {
+        if (entry.second.nCreateTime) mapKeyBirth[entry.first] = entry.second.nCreateTime;
+    }
 
     // map in which we'll infer heights of other keys
     CBlockIndex* pindexMax = chainActive[std::max(0, chainActive.Height() - 144)]; // the tip can be reorganised; use a 144-block safety margin
@@ -3969,10 +3968,10 @@ void CWallet::AutoCombineDust(CConnman* connman)
             AvailableCoinsByAddress(true, nAutoCombineThreshold, false);
 
     //coins are sectioned by address. This combination code only wants to combine inputs that belong to the same address
-    for (std::map<CTxDestination, std::vector<COutput> >::iterator it = mapCoinsByAddress.begin(); it != mapCoinsByAddress.end(); it++) {
+    for (const auto& entry : mapCoinsByAddress) {
         std::vector<COutput> vCoins, vRewardCoins;
         bool maxSize = false;
-        vCoins = it->second;
+        vCoins = entry.second;
 
         // We don't want the tx to be refused for being too large
         // we use 50 bytes as a base tx size (2 output: 2*34 + overhead: 10 -> 90 to be certain)
@@ -4011,7 +4010,7 @@ void CWallet::AutoCombineDust(CConnman* connman)
             continue;
 
         std::vector<CRecipient> vecSend;
-        CScript scriptPubKey = GetScriptForDestination(it->first);
+        const CScript& scriptPubKey = GetScriptForDestination(entry.first);
         vecSend.emplace_back(scriptPubKey, nTotalRewardsValue, false);
 
         //Send change to same address

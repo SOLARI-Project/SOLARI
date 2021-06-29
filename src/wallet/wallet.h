@@ -645,7 +645,7 @@ private:
     /* Used by TransactionAddedToMemorypool/BlockConnected/Disconnected */
     void SyncTransaction(const CTransactionRef& tx, const CWalletTx::Confirmation& confirm);
 
-    bool IsKeyUsed(const CPubKey& vchPubKey);
+    bool IsKeyUsed(const CPubKey& vchPubKey) const;
 
     struct OutputAvailabilityResult
     {
