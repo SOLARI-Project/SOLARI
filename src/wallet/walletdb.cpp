@@ -21,7 +21,6 @@
 #include "wallet/walletutil.h"
 
 #include <atomic>
-#include <string>
 
 #include <boost/thread.hpp>
 

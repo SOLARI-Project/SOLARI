@@ -9,7 +9,6 @@
 #include "policy/fees.h"
 #include "invalid.h"
 #include "logging.h"
-#include "memusage.h"
 #include "random.h"
 
 #include <assert.h>

@@ -11,7 +11,6 @@
 #include "validation.h"
 
 #include "addrman.h"
-#include "amount.h"
 #include "blocksignature.h"
 #include "util/blockstatecatcher.h"
 #include "budget/budgetmanager.h"
@@ -25,7 +24,6 @@
 #include "consensus/zerocoin_verify.h"
 #include "evo/specialtx.h"
 #include "flatfile.h"
-#include "fs.h"
 #include "guiinterface.h"
 #include "init.h"
 #include "invalid.h"
@@ -43,7 +41,6 @@
 #include "sporkdb.h"
 #include "evo/evodb.h"
 #include "txdb.h"
-#include "txmempool.h"
 #include "undo.h"
 #include "util/system.h"
 #include "utilmoneystr.h"

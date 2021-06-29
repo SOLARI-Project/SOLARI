@@ -20,7 +20,6 @@
 #include "script/sigcache.h"
 #include "sporkdb.h"
 #include "txmempool.h"
-#include "txdb.h"
 #include "util/memory.h"
 #include "validation.h"
 

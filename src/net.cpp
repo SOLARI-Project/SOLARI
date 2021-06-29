@@ -11,17 +11,14 @@
 
 #include "net.h"
 
-#include "addrman.h"
 #include "chainparams.h"
 #include "clientversion.h"
 #include "crypto/common.h"
 #include "crypto/sha256.h"
 #include "guiinterface.h"
-#include "hash.h"
 #include "netbase.h"
 #include "netmessagemaker.h"
 #include "primitives/transaction.h"
-#include "random.h"
 #include "scheduler.h"
 #include "util/memory.h"
 #include "validation.h"
