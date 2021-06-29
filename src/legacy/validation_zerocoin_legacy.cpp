@@ -8,7 +8,7 @@
 #include "zpivchain.h"
 #include "zpiv/zpivmodule.h"
 
-bool DisconnectZerocoinTx(const CTransaction& tx, CZerocoinDB* zerocoinDB)
+bool DisconnectZerocoinTx(const CTransaction& tx)
 {
     /** UNDO ZEROCOIN DATABASING
          * note we only undo zerocoin databasing in the following statement, value to and from PIVX
