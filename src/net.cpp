@@ -23,6 +23,7 @@
 #include "primitives/transaction.h"
 #include "random.h"
 #include "scheduler.h"
+#include "util/memory.h"
 #include "validation.h"
 
 #ifdef WIN32
@@ -1985,7 +1986,7 @@ bool CConnman::Start(CScheduler& scheduler, std::string& strNodeError, Options c
 
     if (semOutbound == nullptr) {
         // initialize semaphore
-        semOutbound = std::unique_ptr<CSemaphore>(new CSemaphore(std::min((nMaxOutbound + nMaxFeeler), nMaxConnections)));
+        semOutbound = MakeUnique<CSemaphore>(std::min((nMaxOutbound + nMaxFeeler), nMaxConnections));
     }
 
     if (pnodeLocalHost == nullptr) {
@@ -2332,7 +2333,7 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     nNextLocalAddrSend = 0;
     nNextAddrSend = 0;
     fRelayTxes = false;
-    pfilter = std::unique_ptr<CBloomFilter>(new CBloomFilter());
+    pfilter = MakeUnique<CBloomFilter>();
     timeLastMempoolReq = 0;
     nPingNonceSent = 0;
     nPingUsecStart = 0;

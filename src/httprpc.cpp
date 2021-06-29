@@ -7,15 +7,16 @@
 
 #include "chainparams.h"
 #include "crypto/hmac_sha256.h"
+#include "guiinterface.h"
 #include "httpserver.h"
 #include "key_io.h"
 #include "rpc/protocol.h"
 #include "rpc/server.h"
 #include "random.h"
 #include "sync.h"
+#include "util/memory.h"
 #include "util/system.h"
 #include "utilstrencodings.h"
-#include "guiinterface.h"
 
 #include <boost/algorithm/string.hpp> // boost::trim
 
@@ -233,7 +234,7 @@ bool StartHTTPRPC()
     RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC);
 #endif
     assert(EventBase());
-    httpRPCTimerInterface = std::unique_ptr<HTTPRPCTimerInterface>(new HTTPRPCTimerInterface(EventBase()));
+    httpRPCTimerInterface = MakeUnique<HTTPRPCTimerInterface>(EventBase());
     RPCSetTimerInterface(httpRPCTimerInterface.get());
     return true;
 }
