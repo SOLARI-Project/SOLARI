@@ -51,22 +51,18 @@ Build PIVX Core
         git clone https://github.com/pivx-project/pivx
         cd pivx
 
-2.  Make the Homebrew OpenSSL headers visible to the configure script  (do ```brew info openssl``` to find out why this is necessary, or if you use Homebrew with installation folders different from the default).
-
-        export LDFLAGS+=-L/usr/local/opt/openssl/lib
-        export CPPFLAGS+=-I/usr/local/opt/openssl/include
-
-3.  Build PIVX Core:
+2.  Build PIVX Core:
 
         ./autogen.sh
         ./configure
         make
 
-4.  It is recommended to build and run the unit tests:
+3.  It is recommended to build and run the unit tests:
 
+        ./params/install-params.sh
         make check
 
-5.  You can also create a .dmg that contains the .app bundle (optional):
+4.  You can also create a .dmg that contains the .app bundle (optional):
 
         make deploy
 
