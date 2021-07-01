@@ -9,9 +9,9 @@
 #include "guiutil.h"
 #include "walletmodel.h"
 
-#include "base58.h"
 #include "bip38.h"
 #include "init.h"
+#include "key_io.h"
 #include "wallet/wallet.h"
 #include "askpassphrasedialog.h"
 

@@ -6,9 +6,9 @@
 #ifndef SPORK_H
 #define SPORK_H
 
-#include "base58.h"
 #include "hash.h"
 #include "key.h"
+#include "key_io.h"
 #include "messagesigner.h"
 #include "net.h"
 #include "sporkid.h"

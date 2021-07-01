@@ -7,6 +7,7 @@
 
 #include "activemasternode.h"
 #include "clientmodel.h"
+#include "key_io.h"
 #include "optionsmodel.h"
 #include "pairresult.h"
 #include "qt/pivx/mnmodel.h"
@@ -212,7 +213,7 @@ bool MasterNodeWizardDialog::createMN()
     // create the mn key
     CKey secret;
     secret.MakeNewKey(false);
-    std::string mnKeyString = EncodeSecret(secret);
+    std::string mnKeyString = KeyIO::EncodeSecret(secret);
 
     // Look for a valid collateral utxo
     COutPoint collateralOut;

@@ -9,9 +9,9 @@
 #include "test/librust/utiltest.h"
 
 #include "rpc/server.h"
-#include "rpc/client.h"
 
 #include "core_io.h"
+#include "key_io.h"
 #include "consensus/merkle.h"
 #include "wallet/wallet.h"
 

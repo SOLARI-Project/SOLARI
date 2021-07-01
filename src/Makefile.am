@@ -147,6 +147,7 @@ BITCOIN_CORE_H = \
   activemasternode.h \
   addrdb.h \
   addrman.h \
+  attributes.h \
   arith_uint256.h \
   amount.h \
   base58.h \
@@ -286,10 +287,12 @@ BITCOIN_CORE_H = \
   util/memory.h \
   util/system.h \
   util/macros.h \
+  util/string.h \
   util/threadnames.h \
   utilstrencodings.h \
   utilmoneystr.h \
   utiltime.h \
+  util/vector.h \
   validation.h \
   validationinterface.h \
   version.h \
@@ -394,7 +397,6 @@ libbitcoin_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
   addressbook.cpp \
   crypter.cpp \
-  key_io.cpp \
   legacy/stakemodifier.cpp \
   kernel.cpp \
   wallet/db.cpp \
@@ -496,6 +498,7 @@ libbitcoin_common_a_SOURCES = \
   coins.cpp \
   compressor.cpp \
   consensus/merkle.cpp \
+  key_io.cpp \
   primitives/block.cpp \
   primitives/transaction.cpp \
   zpiv/zerocoin.cpp \
@@ -557,6 +560,7 @@ libbitcoin_util_a_SOURCES = \
   utilmoneystr.cpp \
   util/threadnames.cpp \
   utilstrencodings.cpp \
+  util/string.cpp \
   utiltime.cpp \
   $(BITCOIN_CORE_H) \
   $(LIBSAPLING_H)

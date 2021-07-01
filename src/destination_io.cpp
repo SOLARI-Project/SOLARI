@@ -3,7 +3,7 @@
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include "destination_io.h"
-#include "base58.h"
+#include "key_io.h"
 #include "sapling/key_io_sapling.h"
 
 namespace Standard {

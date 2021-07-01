@@ -7,7 +7,6 @@
 
 #include <sodium.h>
 
-#include "base58.h"
 #include "chainparams.h"
 #include "key_io.h"
 #include "validation.h"

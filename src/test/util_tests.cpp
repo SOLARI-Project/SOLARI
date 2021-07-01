@@ -9,8 +9,10 @@
 #include "primitives/transaction.h"
 #include "sync.h"
 #include "utilstrencodings.h"
+#include "util/string.h"
 #include "utilmoneystr.h"
 #include "test/test_pivx.h"
+#include "util/vector.h"
 
 #include <stdint.h>
 #include <vector>
@@ -84,6 +86,19 @@ BOOST_AUTO_TEST_CASE(util_HexStr)
         "04 67 8a fd b0");
 }
 
+BOOST_AUTO_TEST_CASE(util_Join)
+{
+    // Normal version
+    BOOST_CHECK_EQUAL(Join({}, ", "), "");
+    BOOST_CHECK_EQUAL(Join({"foo"}, ", "), "foo");
+    BOOST_CHECK_EQUAL(Join({"foo", "bar"}, ", "), "foo, bar");
+
+    // Version with unary operator
+    const auto op_upper = [](const std::string& s) { return ToUpper(s); };
+    BOOST_CHECK_EQUAL(Join<std::string>({}, ", ", op_upper), "");
+    BOOST_CHECK_EQUAL(Join<std::string>({"foo"}, ", ", op_upper), "FOO");
+    BOOST_CHECK_EQUAL(Join<std::string>({"foo", "bar"}, ", ", op_upper), "FOO, BAR");
+}
 
 BOOST_AUTO_TEST_CASE(util_FormatISO8601DateTime)
 {
@@ -946,6 +961,111 @@ BOOST_AUTO_TEST_CASE(test_Capitalize)
     BOOST_CHECK_EQUAL(Capitalize(""), "");
     BOOST_CHECK_EQUAL(Capitalize("pivx"), "Pivx");
     BOOST_CHECK_EQUAL(Capitalize("\x00\xfe\xff"), "\x00\xfe\xff");
+}
+
+namespace {
+
+    struct Tracker
+    {
+        //! Points to the original object (possibly itself) we moved/copied from
+        const Tracker* origin;
+        //! How many copies where involved between the original object and this one (moves are not counted)
+        int copies;
+
+        Tracker() noexcept : origin(this), copies(0) {}
+        Tracker(const Tracker& t) noexcept : origin(t.origin), copies(t.copies + 1) {}
+        Tracker(Tracker&& t) noexcept : origin(t.origin), copies(t.copies) {}
+        Tracker& operator=(const Tracker& t) noexcept
+        {
+            origin = t.origin;
+            copies = t.copies + 1;
+            return *this;
+        }
+        Tracker& operator=(Tracker&& t) noexcept
+        {
+            origin = t.origin;
+            copies = t.copies;
+            return *this;
+        }
+    };
+
+}
+
+BOOST_AUTO_TEST_CASE(test_tracked_vector)
+{
+    Tracker t1;
+    Tracker t2;
+    Tracker t3;
+
+    BOOST_CHECK(t1.origin == &t1);
+    BOOST_CHECK(t2.origin == &t2);
+    BOOST_CHECK(t3.origin == &t3);
+
+    auto v1 = Vector(t1);
+    BOOST_CHECK_EQUAL(v1.size(), 1);
+    BOOST_CHECK(v1[0].origin == &t1);
+    BOOST_CHECK_EQUAL(v1[0].copies, 1);
+
+    auto v2 = Vector(std::move(t2));
+    BOOST_CHECK_EQUAL(v2.size(), 1);
+    BOOST_CHECK(v2[0].origin == &t2);
+    BOOST_CHECK_EQUAL(v2[0].copies, 0);
+
+    auto v3 = Vector(t1, std::move(t2));
+    BOOST_CHECK_EQUAL(v3.size(), 2);
+    BOOST_CHECK(v3[0].origin == &t1);
+    BOOST_CHECK(v3[1].origin == &t2);
+    BOOST_CHECK_EQUAL(v3[0].copies, 1);
+    BOOST_CHECK_EQUAL(v3[1].copies, 0);
+
+    auto v4 = Vector(std::move(v3[0]), v3[1], std::move(t3));
+    BOOST_CHECK_EQUAL(v4.size(), 3);
+    BOOST_CHECK(v4[0].origin == &t1);
+    BOOST_CHECK(v4[1].origin == &t2);
+    BOOST_CHECK(v4[2].origin == &t3);
+    BOOST_CHECK_EQUAL(v4[0].copies, 1);
+    BOOST_CHECK_EQUAL(v4[1].copies, 1);
+    BOOST_CHECK_EQUAL(v4[2].copies, 0);
+
+    auto v5 = Cat(v1, v4);
+    BOOST_CHECK_EQUAL(v5.size(), 4);
+    BOOST_CHECK(v5[0].origin == &t1);
+    BOOST_CHECK(v5[1].origin == &t1);
+    BOOST_CHECK(v5[2].origin == &t2);
+    BOOST_CHECK(v5[3].origin == &t3);
+    BOOST_CHECK_EQUAL(v5[0].copies, 2);
+    BOOST_CHECK_EQUAL(v5[1].copies, 2);
+    BOOST_CHECK_EQUAL(v5[2].copies, 2);
+    BOOST_CHECK_EQUAL(v5[3].copies, 1);
+
+    auto v6 = Cat(std::move(v1), v3);
+    BOOST_CHECK_EQUAL(v6.size(), 3);
+    BOOST_CHECK(v6[0].origin == &t1);
+    BOOST_CHECK(v6[1].origin == &t1);
+    BOOST_CHECK(v6[2].origin == &t2);
+    BOOST_CHECK_EQUAL(v6[0].copies, 1);
+    BOOST_CHECK_EQUAL(v6[1].copies, 2);
+    BOOST_CHECK_EQUAL(v6[2].copies, 1);
+
+    auto v7 = Cat(v2, std::move(v4));
+    BOOST_CHECK_EQUAL(v7.size(), 4);
+    BOOST_CHECK(v7[0].origin == &t2);
+    BOOST_CHECK(v7[1].origin == &t1);
+    BOOST_CHECK(v7[2].origin == &t2);
+    BOOST_CHECK(v7[3].origin == &t3);
+    BOOST_CHECK_EQUAL(v7[0].copies, 1);
+    BOOST_CHECK_EQUAL(v7[1].copies, 1);
+    BOOST_CHECK_EQUAL(v7[2].copies, 1);
+    BOOST_CHECK_EQUAL(v7[3].copies, 0);
+
+    auto v8 = Cat(std::move(v2), std::move(v3));
+    BOOST_CHECK_EQUAL(v8.size(), 3);
+    BOOST_CHECK(v8[0].origin == &t2);
+    BOOST_CHECK(v8[1].origin == &t1);
+    BOOST_CHECK(v8[2].origin == &t2);
+    BOOST_CHECK_EQUAL(v8[0].copies, 0);
+    BOOST_CHECK_EQUAL(v8[1].copies, 1);
+    BOOST_CHECK_EQUAL(v8[2].copies, 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -7,9 +7,9 @@
 #define MASTERNODEMAN_H
 
 #include "activemasternode.h"
-#include "base58.h"
 #include "cyclingvector.h"
 #include "key.h"
+#include "key_io.h"
 #include "masternode.h"
 #include "net.h"
 #include "sync.h"

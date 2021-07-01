@@ -116,7 +116,7 @@ UniValue importprivkey(const JSONRPCRequest& request)
 
     const bool fStakingAddress = (request.params.size() > 3 ? request.params[3].get_bool() : false);
 
-    CKey key = DecodeSecret(strSecret);
+    CKey key = KeyIO::DecodeSecret(strSecret);
     if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
 
     CPubKey pubkey = key.GetPubKey();
@@ -402,7 +402,7 @@ UniValue importwallet(const JSONRPCRequest& request)
                 }
             }
 
-            CKey key = DecodeSecret(vstr[0]);
+            CKey key = KeyIO::DecodeSecret(vstr[0]);
             if (!key.IsValid())
                 continue;
             CPubKey pubkey = key.GetPubKey();
@@ -490,7 +490,7 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
     CKey vchSecret;
     if (!pwallet->GetKey(*keyID, vchSecret))
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key for address " + strAddress + " is not known");
-    return EncodeSecret(vchSecret);
+    return KeyIO::EncodeSecret(vchSecret);
 }
 
 UniValue dumpwallet(const JSONRPCRequest& request)
@@ -761,7 +761,7 @@ static UniValue processImport(CWallet* const pwallet, const UniValue& data, cons
             if (keys.size()) {
                 for (size_t i = 0; i < keys.size(); i++) {
                     const std::string& privkey = keys[i].get_str();
-                    CKey key = DecodeSecret(privkey);
+                    CKey key = KeyIO::DecodeSecret(privkey);
 
                     if (!key.IsValid()) {
                         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
@@ -858,7 +858,7 @@ static UniValue processImport(CWallet* const pwallet, const UniValue& data, cons
             // Import private keys.
             if (keys.size()) {
                 const std::string& strPrivkey = keys[0].get_str();
-                CKey key = DecodeSecret(strPrivkey);
+                CKey key = KeyIO::DecodeSecret(strPrivkey);
 
                 if (!key.IsValid()) {
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");

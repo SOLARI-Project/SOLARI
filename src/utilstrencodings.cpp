@@ -5,6 +5,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "utilstrencodings.h"
+#include "util/string.h"
 
 #include "tinyformat.h"
 
@@ -266,7 +267,7 @@ static bool ParsePrechecks(const std::string& str)
         return false;
     if (str.size() >= 1 && (isspace(str[0]) || isspace(str[str.size()-1]))) // No padding allowed
         return false;
-    if (str.size() != strlen(str.c_str())) // No embedded NUL characters allowed
+    if (!ValidAsCString(str)) // No embedded NUL characters allowed
         return false;
     return true;
 }
@@ -504,6 +505,20 @@ bool ParseFixedPoint(const std::string &val, int decimals, int64_t *amount_out)
 void Downcase(std::string& str)
 {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){return ToLower(c);});
+}
+
+std::string ToLower(const std::string& str)
+{
+    std::string r;
+    for (auto ch : str) r += ToLower((unsigned char)ch);
+    return r;
+}
+
+std::string ToUpper(const std::string& str)
+{
+    std::string r;
+    for (auto ch : str) r += ToUpper((unsigned char)ch);
+    return r;
 }
 
 std::string Capitalize(std::string str)

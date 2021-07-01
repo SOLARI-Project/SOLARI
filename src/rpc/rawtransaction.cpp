@@ -5,12 +5,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "base58.h"
 #include "core_io.h"
 #include "evo/specialtx.h"
 #include "evo/providertx.h"
 #include "init.h"
 #include "keystore.h"
+#include "key_io.h"
 #include "validationinterface.h"
 #include "net.h"
 #include "policy/policy.h"
@@ -612,7 +612,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
         UniValue keys = request.params[2].get_array();
         for (unsigned int idx = 0; idx < keys.size(); idx++) {
             UniValue k = keys[idx];
-            CKey key = DecodeSecret(k.get_str());
+            CKey key = KeyIO::DecodeSecret(k.get_str());
             if (!key.IsValid())
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key");
             tempKeystore.AddKey(key);

@@ -9,11 +9,11 @@
 
 #include "addressbook.h"
 #include "amount.h"
-#include "base58.h"
 #include "coincontrol.h"
 #include "core_io.h"
 #include "destination_io.h"
 #include "httpserver.h"
+#include "key_io.h"
 #include "key_io.h"
 #include "masternode-sync.h"
 #include "net.h"
