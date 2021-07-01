@@ -50,6 +50,7 @@ private:
  * and wallet (if enabled) setup.
  */
 class CConnman;
+class PeerLogicValidation;
 class EvoNotificationInterface;
 struct TestingSetup: public BasicTestingSetup
 {
@@ -58,6 +59,7 @@ struct TestingSetup: public BasicTestingSetup
     CConnman* connman;
     EvoNotificationInterface* pEvoNotificationInterface;
     CScheduler scheduler;
+    std::unique_ptr<PeerLogicValidation> peerLogic;
 
     TestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~TestingSetup();
