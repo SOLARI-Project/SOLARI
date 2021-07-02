@@ -9,7 +9,6 @@
 
 #include "clientversion.h"
 #include "fs.h"
-#include "util/memory.h"
 #include "serialize.h"
 #include "streams.h"
 #include "sync.h"

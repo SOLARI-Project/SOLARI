@@ -14,7 +14,6 @@
 #include "rpc/server.h"
 #include "random.h"
 #include "sync.h"
-#include "util/memory.h"
 #include "util/system.h"
 #include "utilstrencodings.h"
 

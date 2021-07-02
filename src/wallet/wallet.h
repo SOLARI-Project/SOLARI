@@ -25,7 +25,6 @@
 #include "sapling/address.h"
 #include "guiinterface.h"
 #include "util/system.h"
-#include "util/memory.h"
 #include "utilstrencodings.h"
 #include "validationinterface.h"
 #include "script/ismine.h"

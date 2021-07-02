@@ -20,7 +20,6 @@
 #include "netmessagemaker.h"
 #include "primitives/transaction.h"
 #include "scheduler.h"
-#include "util/memory.h"
 #include "validation.h"
 
 #ifdef WIN32

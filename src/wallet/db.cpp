@@ -10,7 +10,6 @@
 #include "guiinterfaceutil.h"
 #include "hash.h"
 #include "protocol.h"
-#include "util/memory.h"
 #include "util/system.h"
 #include "utilstrencodings.h"
 #include "wallet/walletutil.h"

@@ -20,7 +20,6 @@
 #include "script/sigcache.h"
 #include "sporkdb.h"
 #include "txmempool.h"
-#include "util/memory.h"
 #include "validation.h"
 
 #include <boost/test/unit_test.hpp>

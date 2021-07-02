@@ -8,7 +8,6 @@
 
 #include "chainparams.h"
 #include "pubkey.h"
-#include "util/memory.h"
 
 
 static bool read_stdin(std::vector<uint8_t>& data)

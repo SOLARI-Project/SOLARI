@@ -5,8 +5,6 @@
 
 #include <interfaces/handler.h>
 
-#include <util/memory.h>
-
 #include <boost/signals2/connection.hpp>
 #include <utility>
 

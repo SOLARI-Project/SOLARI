@@ -9,7 +9,6 @@
 #include "netbase.h"
 #include "serialize.h"
 #include "streams.h"
-#include "util/memory.h"
 
 #include "test/test_pivx.h"
 
