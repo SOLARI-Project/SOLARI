@@ -25,7 +25,7 @@ static bool read_stdin(std::vector<uint8_t>& data)
 
 static void initialize()
 {
-    const static auto verify_handle = MakeUnique<ECCVerifyHandle>();
+    const static auto verify_handle = std::make_unique<ECCVerifyHandle>();
     SelectParams(CBaseChainParams::MAIN);
 }
 

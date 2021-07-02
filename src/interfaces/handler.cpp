@@ -27,7 +27,7 @@ public:
 
 std::unique_ptr<Handler> MakeHandler(boost::signals2::connection connection)
 {
-    return MakeUnique<HandlerImpl>(std::move(connection));
+    return std::make_unique<HandlerImpl>(std::move(connection));
 }
 
 } // namespace interfaces

@@ -583,8 +583,8 @@ private:
     bool fDecryptionThoroughlyChecked{false};
 
     //! Key manager //
-    std::unique_ptr<ScriptPubKeyMan> m_spk_man = MakeUnique<ScriptPubKeyMan>(this);
-    std::unique_ptr<SaplingScriptPubKeyMan> m_sspk_man = MakeUnique<SaplingScriptPubKeyMan>(this);
+    std::unique_ptr<ScriptPubKeyMan> m_spk_man = std::make_unique<ScriptPubKeyMan>(this);
+    std::unique_ptr<SaplingScriptPubKeyMan> m_sspk_man = std::make_unique<SaplingScriptPubKeyMan>(this);
 
     //! the current wallet version: clients below this version are not able to load the wallet
     int nWalletVersion;
