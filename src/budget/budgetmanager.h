@@ -166,30 +166,23 @@ public:
     // Remove proposal/budget by FeeTx (called when a block is disconnected)
     void RemoveByFeeTxId(const uint256& feeTxId);
 
-    ADD_SERIALIZE_METHODS;
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CBudgetManager, obj)
     {
         {
-            LOCK(cs_proposals);
-            READWRITE(mapProposals);
-            READWRITE(mapFeeTxToProposal);
+            LOCK(obj.cs_proposals);
+            READWRITE(obj.mapProposals, obj.mapFeeTxToProposal);
         }
         {
-            LOCK(cs_votes);
-            READWRITE(mapSeenProposalVotes);
-            READWRITE(mapOrphanProposalVotes);
+            LOCK(obj.cs_votes);
+            READWRITE(obj.mapSeenProposalVotes, obj.mapOrphanProposalVotes);
         }
         {
-            LOCK(cs_budgets);
-            READWRITE(mapFinalizedBudgets);
-            READWRITE(mapFeeTxToBudget);
-            READWRITE(mapUnconfirmedFeeTx);
+            LOCK(obj.cs_budgets);
+            READWRITE(obj.mapFinalizedBudgets, obj.mapFeeTxToBudget, obj.mapUnconfirmedFeeTx);
         }
         {
-            LOCK(cs_finalizedvotes);
-            READWRITE(mapSeenFinalizedBudgetVotes);
-            READWRITE(mapOrphanFinalizedBudgetVotes);
+            LOCK(obj.cs_finalizedvotes);
+            READWRITE(obj.mapSeenFinalizedBudgetVotes, obj.mapOrphanFinalizedBudgetVotes);
         }
     }
 };

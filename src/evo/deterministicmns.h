@@ -57,30 +57,24 @@ public:
         scriptOperatorPayout = pl.scriptOperatorPayout;
     }
     template <typename Stream>
-    CDeterministicMNState(deserialize_type, Stream& s)
-    {
-        s >> *this;
-    }
+    CDeterministicMNState(deserialize_type, Stream& s) { s >> *this; }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CDeterministicMNState, obj)
     {
-        READWRITE(nRegisteredHeight);
-        READWRITE(nLastPaidHeight);
-        READWRITE(nPoSePenalty);
-        READWRITE(nPoSeRevivedHeight);
-        READWRITE(nPoSeBanHeight);
-        READWRITE(nRevocationReason);
-        READWRITE(confirmedHash);
-        READWRITE(confirmedHashWithProRegTxHash);
-        READWRITE(keyIDOwner);
-        READWRITE(keyIDOperator);
-        READWRITE(keyIDVoting);
-        READWRITE(addr);
-        READWRITE(scriptPayout);
-        READWRITE(scriptOperatorPayout);
+        READWRITE(obj.nRegisteredHeight);
+        READWRITE(obj.nLastPaidHeight);
+        READWRITE(obj.nPoSePenalty);
+        READWRITE(obj.nPoSeRevivedHeight);
+        READWRITE(obj.nPoSeBanHeight);
+        READWRITE(obj.nRevocationReason);
+        READWRITE(obj.confirmedHash);
+        READWRITE(obj.confirmedHashWithProRegTxHash);
+        READWRITE(obj.keyIDOwner);
+        READWRITE(obj.keyIDOperator);
+        READWRITE(obj.keyIDVoting);
+        READWRITE(obj.addr);
+        READWRITE(obj.scriptPayout);
+        READWRITE(obj.scriptOperatorPayout);
     }
 
     void UpdateConfirmedHash(const uint256& _proTxHash, const uint256& _confirmedHash)
@@ -149,13 +143,10 @@ public:
 #undef DMN_STATE_DIFF_LINE
     }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CDeterministicMNStateDiff, obj)
     {
-        READWRITE(VARINT(fields));
-#define DMN_STATE_DIFF_LINE(f) if (fields & Field_##f) READWRITE(state.f);
+        READWRITE(VARINT(obj.fields));
+#define DMN_STATE_DIFF_LINE(f) if (obj.fields & Field_##f) READWRITE(obj.state.f);
         DMN_STATE_DIFF_ALL_FIELDS
 #undef DMN_STATE_DIFF_LINE
     }
@@ -199,21 +190,14 @@ public:
     CDeterministicMNStateCPtr pdmnState;
 
 public:
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CDeterministicMN, obj)
     {
-        READWRITE(proTxHash);
-        READWRITE(VARINT(internalId));
-        READWRITE(collateralOutpoint);
-        READWRITE(nOperatorReward);
-        READWRITE(pdmnState);
+        READWRITE(obj.proTxHash);
+        READWRITE(VARINT(obj.internalId));
+        READWRITE(obj.collateralOutpoint);
+        READWRITE(obj.nOperatorReward);
+        READWRITE(obj.pdmnState);
     }
-
-    template<typename Stream>
-    void Serialize(Stream& s) const { NCONST_PTR(this)->SerializationOp(s, CSerActionSerialize()); }
-
-    template<typename Stream>
-    void Unserialize(Stream& s) { SerializationOp(s, CSerActionUnserialize()); }
 
     uint64_t GetInternalId() const;
 
@@ -286,18 +270,12 @@ public:
     {
     }
 
-    template <typename Stream, typename Operation>
-    inline void SerializationOpBase(Stream& s, Operation ser_action)
-    {
-        READWRITE(blockHash);
-        READWRITE(nHeight);
-        READWRITE(nTotalRegisteredCount);
-    }
-
     template<typename Stream>
     void Serialize(Stream& s) const
     {
-        NCONST_PTR(this)->SerializationOpBase(s, CSerActionSerialize());
+        s << blockHash;
+        s << nHeight;
+        s << nTotalRegisteredCount;
         // Serialize the map as a vector
         WriteCompactSize(s, mnMap.size());
         for (const auto& p : mnMap) {
@@ -311,8 +289,9 @@ public:
         mnUniquePropertyMap = MnUniquePropertyMap();
         mnInternalIdMap = MnInternalIdMap();
 
-        SerializationOpBase(s, CSerActionUnserialize());
-
+        s >> blockHash;
+        s >> nHeight;
+        s >> nTotalRegisteredCount;
         size_t cnt = ReadCompactSize(s);
         for (size_t i = 0; i < cnt; i++) {
             AddMN(std::make_shared<CDeterministicMN>(deserialize, s), false);

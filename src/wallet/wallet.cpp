@@ -2955,7 +2955,7 @@ bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, bool ov
     coinControl.nFeeRate = specificFeeRate;
 
     const int nExtraSize = tx.isSaplingVersion() ?
-            (int)(GetSerializeSizeNetwork(tx.sapData) + GetSerializeSizeNetwork(tx.extraPayload)) : 0;
+            (int)(GetSerializeSize(tx.sapData) + GetSerializeSize(tx.extraPayload)) : 0;
 
     for (const CTxIn& txin : tx.vin) {
         coinControl.Select(txin.prevout);
@@ -3174,7 +3174,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
                 }
 
                 // account for additional payloads in fee calculation
-                const unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION) + nExtraSize;
+                const unsigned int nBytes = ::GetSerializeSize(txNew, PROTOCOL_VERSION) + nExtraSize;
                 CAmount nFeeNeeded = std::max(nFeePay, GetMinimumFee(nBytes, nTxConfirmTarget, mempool));
 
                 // Remove scriptSigs to eliminate the fee calculation dummy signatures
@@ -3234,7 +3234,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
         }
 
         // Limit size
-        if (::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION) >= MAX_STANDARD_TX_SIZE) {
+        if (::GetSerializeSize(txNew, PROTOCOL_VERSION) >= MAX_STANDARD_TX_SIZE) {
             strFailReason = _("Transaction too large");
             return false;
         }
@@ -3342,7 +3342,7 @@ bool CWallet::CreateCoinStake(
         txNew.vin.emplace_back(stakeInput.GetTxIn());
 
         // Limit size
-        unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
+        unsigned int nBytes = ::GetSerializeSize(txNew, PROTOCOL_VERSION);
         if (nBytes >= DEFAULT_BLOCK_MAX_SIZE / 5)
             return error("%s : exceeded coinstake size limit", __func__);
 

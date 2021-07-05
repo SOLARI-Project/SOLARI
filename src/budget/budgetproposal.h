@@ -106,19 +106,17 @@ public:
     }
 
     // Serialization for local DB
-    ADD_SERIALIZE_METHODS;
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CBudgetProposal, obj)
     {
-        READWRITE(LIMITED_STRING(strProposalName, 20));
-        READWRITE(LIMITED_STRING(strURL, 64));
-        READWRITE(nBlockStart);
-        READWRITE(nBlockEnd);
-        READWRITE(nAmount);
-        READWRITE(address);
-        READWRITE(nFeeTXHash);
-        READWRITE(nTime);
-        READWRITE(mapVotes);
+        READWRITE(LIMITED_STRING(obj.strProposalName, 20));
+        READWRITE(LIMITED_STRING(obj.strURL, 64));
+        READWRITE(obj.nBlockStart);
+        READWRITE(obj.nBlockEnd);
+        READWRITE(obj.nAmount);
+        READWRITE(obj.address);
+        READWRITE(obj.nFeeTXHash);
+        READWRITE(obj.nTime);
+        READWRITE(obj.mapVotes);
     }
 
     // Serialization for network messages.

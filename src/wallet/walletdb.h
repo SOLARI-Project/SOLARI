@@ -80,16 +80,11 @@ public:
         nCreateTime = nCreateTime_;
     }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CKeyMetadata, obj)
     {
-        READWRITE(nVersion);
-        READWRITE(nCreateTime);
-        if (HasKeyOrigin()) {
-            READWRITE(hd_seed_id);
-            READWRITE(key_origin);
+        READWRITE(obj.nVersion, obj.nCreateTime);
+        if (obj.HasKeyOrigin()) {
+            READWRITE(obj.hd_seed_id, obj.key_origin);
         }
     }
 

@@ -791,7 +791,7 @@ bool WriteBlockToDisk(const CBlock& block, FlatFilePos& pos)
         return error("WriteBlockToDisk : OpenBlockFile failed");
 
     // Write index header
-    unsigned int nSize = GetSerializeSize(fileout, block);
+    unsigned int nSize = GetSerializeSize(block, fileout.GetVersion());
     fileout << Params().MessageStart() << nSize;
 
     // Write block
@@ -1228,7 +1228,7 @@ bool UndoWriteToDisk(const CBlockUndo& blockundo, FlatFilePos& pos, const uint25
         return error("%s : OpenUndoFile failed", __func__);
 
     // Write index header
-    unsigned int nSize = GetSerializeSize(fileout, blockundo);
+    unsigned int nSize = GetSerializeSize(blockundo, fileout.GetVersion());
     fileout << Params().MessageStart() << nSize;
 
     // Write undo data
@@ -1679,7 +1679,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         }
 
         vPos.emplace_back(tx.GetHash(), pos);
-        pos.nTxOffset += ::GetSerializeSize(tx, SER_DISK, CLIENT_VERSION);
+        pos.nTxOffset += ::GetSerializeSize(tx, CLIENT_VERSION);
     }
 
     // Push new tree anchor
@@ -1752,7 +1752,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     if (pindex->GetUndoPos().IsNull() || !pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
         if (pindex->GetUndoPos().IsNull()) {
             FlatFilePos diskPosBlock;
-            if (!FindUndoPos(state, pindex->nFile, diskPosBlock, ::GetSerializeSize(blockundo, SER_DISK, CLIENT_VERSION) + 40))
+            if (!FindUndoPos(state, pindex->nFile, diskPosBlock, ::GetSerializeSize(blockundo, CLIENT_VERSION) + 40))
                 return error("ConnectBlock() : FindUndoPos failed");
             if (!UndoWriteToDisk(blockundo, diskPosBlock, pindex->pprev->GetBlockHash()))
                 return AbortNode(state, "Failed to write undo data");
@@ -2778,7 +2778,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     // Size limits
     unsigned int nMaxBlockSize = MAX_BLOCK_SIZE_CURRENT;
-    const unsigned int nBlockSize = ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION);
+    const unsigned int nBlockSize = ::GetSerializeSize(block, PROTOCOL_VERSION);
     if (block.vtx.empty() || block.vtx.size() > nMaxBlockSize || nBlockSize > nMaxBlockSize)
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-length", false, "size limits failed");
 
@@ -3345,7 +3345,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
 
     // Write block to history file
     try {
-        unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
+        unsigned int nBlockSize = ::GetSerializeSize(block, CLIENT_VERSION);
         FlatFilePos blockPos;
         if (dbp != nullptr)
             blockPos = *dbp;
@@ -3401,7 +3401,7 @@ bool ProcessNewBlock(CValidationState& state, const std::shared_ptr<const CBlock
     }
 
     LogPrintf("%s : ACCEPTED Block %ld in %ld milliseconds with size=%d\n", __func__, newHeight, GetTimeMillis() - nStartTime,
-              GetSerializeSize(*pblock, SER_DISK, CLIENT_VERSION));
+              GetSerializeSize(*pblock, CLIENT_VERSION));
 
     return true;
 }
@@ -3890,7 +3890,7 @@ bool LoadGenesisBlock()
     try {
         CBlock& block = const_cast<CBlock&>(Params().GenesisBlock());
         // Start new block file
-        unsigned int nBlockSize = ::GetSerializeSize(block, SER_DISK, CLIENT_VERSION);
+        unsigned int nBlockSize = ::GetSerializeSize(block, CLIENT_VERSION);
         FlatFilePos blockPos;
         CValidationState state;
         if (!FindBlockPos(state, blockPos, nBlockSize + 8, 0, block.GetBlockTime()))

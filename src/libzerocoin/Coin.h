@@ -75,13 +75,7 @@ public:
      */
     bool validate() const;
 
-    ADD_SERIALIZE_METHODS;
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(value);
-        READWRITE(denomination);
-    }
+    SERIALIZE_METHODS(PublicCoin, obj) { READWRITE(obj.value, obj.denomination); }
 
 private:
     const ZerocoinParams* params;

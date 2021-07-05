@@ -141,29 +141,37 @@ public:
     bool IsExternal() const { return type == HDChain::ChangeType::EXTERNAL; }
     bool IsStaking() const { return type == HDChain::ChangeType::STAKING; }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    template<typename Stream>
+    void Serialize(Stream& s) const
     {
         int nVersion = s.GetVersion();
-        if (!(s.GetType() & SER_GETHASH))
-            READWRITE(nVersion);
-        READWRITE(nTime);
-        READWRITE(vchPubKey);
-        if (ser_action.ForRead()) {
-            try {
-                READWRITE(FLATDATA(type));
-                READWRITE(m_pre_split);
-            } catch (std::ios_base::failure&) {
-                /* Set as external address if we can't read the type boolean
-                   (this will be the case for any wallet before the HD chain) */
-                type = HDChain::ChangeType::EXTERNAL;
-                m_pre_split = true;
-            }
-        } else {
-            READWRITE(FLATDATA(type));
-            READWRITE(m_pre_split);
+        if (!(s.GetType() & SER_GETHASH)) {
+            s << nVersion;
+        }
+        s << nTime << vchPubKey << Span<unsigned char>((unsigned char*)&type, 1) << m_pre_split;
+    }
+
+    template<typename Stream>
+    void Unserialize(Stream& s)
+    {
+        int nVersion = s.GetVersion();
+        if (!(s.GetType() & SER_GETHASH)) {
+            s >> nVersion;
+        }
+        s >> nTime >> vchPubKey;
+        try {
+            s >> Span<unsigned char>((unsigned char*)&type, 1);
+        } catch (std::ios_base::failure&) {
+            /* flag as external address if we can't read the internal boolean
+               (this will be the case for any wallet before the HD chain split version) */
+            type = HDChain::ChangeType::EXTERNAL;
+        }
+        try {
+            s >> m_pre_split;
+        } catch (std::ios_base::failure&) {
+            /* flag as pre-split address if we can't read the m_pre_split boolean
+               (this will be the case for any wallet prior to the HD chain upgrade) */
+            m_pre_split = true;
         }
     }
 };

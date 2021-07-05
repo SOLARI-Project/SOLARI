@@ -93,20 +93,17 @@ public:
     // TODO: Remove this from serialization
     int64_t nDsqCount;
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CMasternodeMan, obj)
     {
-        LOCK(cs);
-        READWRITE(mapMasternodes);
-        READWRITE(mAskedUsForMasternodeList);
-        READWRITE(mWeAskedForMasternodeList);
-        READWRITE(mWeAskedForMasternodeListEntry);
-        READWRITE(nDsqCount);
+        LOCK(obj.cs);
+        READWRITE(obj.mapMasternodes);
+        READWRITE(obj.mAskedUsForMasternodeList);
+        READWRITE(obj.mWeAskedForMasternodeList);
+        READWRITE(obj.mWeAskedForMasternodeListEntry);
+        READWRITE(obj.nDsqCount);
 
-        READWRITE(mapSeenMasternodeBroadcast);
-        READWRITE(mapSeenMasternodePing);
+        READWRITE(obj.mapSeenMasternodeBroadcast);
+        READWRITE(obj.mapSeenMasternodePing);
     }
 
     CMasternodeMan();
