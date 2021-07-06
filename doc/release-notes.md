@@ -103,6 +103,8 @@ This new option is useful when the blocks on disk are assumed to be fine, but th
 GUI changes
 -----------
 
+- The launch-on-startup option is no longer available on macOS
+
 ### Settings
 
 A new checkbox has been added to the wallet settings UI to enable or disable automatic port mapping with NAT-PMP.
