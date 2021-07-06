@@ -4102,7 +4102,7 @@ void CWallet::LockIfMyCollateral(const CTransactionRef& ptx)
     }
 }
 
-CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
+CWallet* CWallet::CreateWalletFromFile(const std::string& walletFile)
 {
     // needed to restore wallet transaction meta data after -zapwallettxes
     std::vector<CWalletTx> vWtx;

@@ -44,7 +44,6 @@ std::string GetWalletHelpString(bool showDebug)
         strUsage += HelpMessageGroup(_("Wallet debugging/testing options:"));
         strUsage += HelpMessageOpt("-dblogsize=<n>", strprintf(_("Flush database activity from memory pool to disk log every <n> megabytes (default: %u)"), DEFAULT_WALLET_DBLOGSIZE));
         strUsage += HelpMessageOpt("-flushwallet", strprintf(_("Run a thread to flush wallet periodically (default: %u)"), DEFAULT_FLUSHWALLET));
-        strUsage += HelpMessageOpt("-printcoinstake", _("Display verbose coin stake messages in the debug.log file."));
         strUsage += HelpMessageOpt("-privdb", strprintf(_("Sets the DB_PRIVATE flag in the wallet db environment (default: %u)"), DEFAULT_WALLET_PRIVDB));
     }
 
@@ -210,9 +209,15 @@ bool InitLoadWallet()
     }
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
-        // automatic backups
+        // create/load wallet
+        CWallet * const pwallet = CWallet::CreateWalletFromFile(walletFile);
+        if (!pwallet) {
+            return false;
+        }
+
+        // automatic backup
         std::string strWarning, strError;
-        if(!AutoBackupWallet(walletFile, strWarning, strError)) {
+        if (!AutoBackupWallet(*pwallet, strWarning, strError)) {
             if (!strWarning.empty()) {
                 UIWarning(strprintf("%s: %s", walletFile, strWarning));
             }
@@ -221,10 +226,7 @@ bool InitLoadWallet()
             }
         }
 
-        CWallet * const pwallet = CWallet::CreateWalletFromFile(walletFile);
-        if (!pwallet) {
-            return false;
-        }
+        // add to wallets in use
         vpwallets.emplace_back(pwallet);
     }
 
