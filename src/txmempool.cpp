@@ -646,7 +646,7 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
                     continue;
                 const Coin &coin = pcoins->AccessCoin(txin.prevout);
                 if (nCheckFrequency != 0) assert(!coin.IsSpent());
-                if (coin.IsSpent() || ((coin.IsCoinBase() || coin.IsCoinStake()) && ((signed long)nMemPoolHeight) - coin.nHeight < Params().GetConsensus().nCoinbaseMaturity)) {
+                if (coin.IsSpent() || ((coin.IsCoinBase() || coin.IsCoinStake()) && ((signed long)nMemPoolHeight) - coin.nHeight < (signed long)Params().GetConsensus().nCoinbaseMaturity)) {
                     txToRemove.insert(it);
                     break;
                 }
@@ -982,7 +982,7 @@ void CTxMemPool::check(const CCoinsViewCache* pcoins) const
             assert(setChildrenCheck == GetMemPoolChildren(it));
             // Also check to make sure size is greater than sum with immediate children.
             // just a sanity check, not definitive that this calc is correct...
-            assert(it->GetSizeWithDescendants() >= childSizes + it->GetTxSize());
+            assert(it->GetSizeWithDescendants() >= (uint64_t)(childSizes + it->GetTxSize()));
         }
 
         if (fDependsWait)
