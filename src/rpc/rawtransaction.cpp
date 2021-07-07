@@ -57,6 +57,16 @@ static void PayloadToJSON(const CTransaction& tx, UniValue& entry)
             PayloadToJSON(tx, pl, entry);
             break;
         }
+        case CTransaction::TxType::PROUPREG: {
+            ProUpRegPL pl;
+            PayloadToJSON(tx, pl, entry);
+            break;
+        }
+        case CTransaction::TxType::PROUPREV: {
+            ProUpRevPL pl;
+            PayloadToJSON(tx, pl, entry);
+            break;
+        }
     }
 }
 

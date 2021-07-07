@@ -55,7 +55,7 @@ void CDeterministicMNState::ToJson(UniValue& obj) const
     obj.pushKV("PoSeBanHeight", nPoSeBanHeight);
     obj.pushKV("revocationReason", nRevocationReason);
     obj.pushKV("ownerAddress", EncodeDestination(keyIDOwner));
-    obj.pushKV("operatorAddress", EncodeDestination(keyIDOperator));
+    obj.pushKV("operatorAddress", keyIDOperator == CKeyID() ? "" : EncodeDestination(keyIDOperator));
     obj.pushKV("votingAddress", EncodeDestination(keyIDVoting));
 
     CTxDestination dest1;
@@ -746,6 +746,58 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, const C
             }
 
             newList.UpdateMN(pl.proTxHash, newState);
+            if (debugLogs) {
+                LogPrintf("CDeterministicMNManager::%s -- MN %s updated at height %d: %s\n",
+                    __func__, pl.proTxHash.ToString(), nHeight, pl.ToString());
+            }
+
+        } else if (tx.nType == CTransaction::TxType::PROUPREG) {
+            ProUpRegPL pl;
+            if (!GetTxPayload(tx, pl)) {
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-payload");
+            }
+
+            CDeterministicMNCPtr dmn = newList.GetMN(pl.proTxHash);
+            if (!dmn) {
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-hash");
+            }
+            if (newList.HasUniqueProperty(pl.keyIDOperator) && newList.GetUniquePropertyMN(pl.keyIDOperator)->proTxHash != pl.proTxHash) {
+                return _state.DoS(100, false, REJECT_DUPLICATE, "bad-protx-dup-operator-key");
+            }
+            auto newState = std::make_shared<CDeterministicMNState>(*dmn->pdmnState);
+            if (newState->keyIDOperator != pl.keyIDOperator) {
+                // reset all operator related fields and put MN into PoSe-banned state in case the operator key changes
+                newState->ResetOperatorFields();
+                newState->BanIfNotBanned(nHeight);
+            }
+            newState->keyIDOperator = pl.keyIDOperator;
+            newState->keyIDVoting = pl.keyIDVoting;
+            newState->scriptPayout = pl.scriptPayout;
+
+            newList.UpdateMN(pl.proTxHash, newState);
+
+            if (debugLogs) {
+                LogPrintf("CDeterministicMNManager::%s -- MN %s updated at height %d: %s\n",
+                    __func__, pl.proTxHash.ToString(), nHeight, pl.ToString());
+            }
+
+        } else if (tx.nType == CTransaction::TxType::PROUPREV) {
+            ProUpRevPL pl;
+            if (!GetTxPayload(tx, pl)) {
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-payload");
+            }
+
+            CDeterministicMNCPtr dmn = newList.GetMN(pl.proTxHash);
+            if (!dmn) {
+                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-hash");
+            }
+            auto newState = std::make_shared<CDeterministicMNState>(*dmn->pdmnState);
+            newState->ResetOperatorFields();
+            newState->BanIfNotBanned(nHeight);
+            newState->nRevocationReason = pl.nReason;
+
+            newList.UpdateMN(pl.proTxHash, newState);
+
             if (debugLogs) {
                 LogPrintf("CDeterministicMNManager::%s -- MN %s updated at height %d: %s\n",
                     __func__, pl.proTxHash.ToString(), nHeight, pl.ToString());

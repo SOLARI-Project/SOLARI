@@ -1323,11 +1323,27 @@ class PivxTestFramework():
         self.nodes[idx].syncwithvalidationinterfacequeue()
         mnlist = self.nodes[idx].listmasternodes()
         if len(mnlist) != len(mns):
-            raise Exception("Invalid mn list on node %d:\n%s\nExpected:%s" % (idx, str(mnlist), str(mns)))
-        protxs = [x["proTxHash"] for x in mnlist]
+            mnlist_l = [[x['proTxHash'], x['dmnstate']['service']] for x in mnlist]
+            mns_l = [[x.proTx, x.ipport] for x in mns]
+            strErr = ""
+            for x in [x for x in mnlist_l if x not in mns_l]:
+                strErr += "Mn %s is not expected\n" % str(x)
+            for x in [x for x in mns_l if x not in mnlist_l]:
+                strErr += "Expect Mn %s not found\n" % str(x)
+            raise Exception("Invalid mn list on node %d:\n%s" % (idx, strErr))
+        protxs = {x["proTxHash"]: x for x in mnlist}
         for mn in mns:
             if mn.proTx not in protxs:
                 raise Exception("ProTx for mn %d (%s) not found in the list of node %d" % (mn.idx, mn.proTx, idx))
+            mn2 = protxs[mn.proTx]
+            collateral = mn.collateral.to_json()
+            assert_equal(mn.owner, mn2["dmnstate"]["ownerAddress"])
+            assert_equal(mn.operator, mn2["dmnstate"]["operatorAddress"])
+            assert_equal(mn.voting, mn2["dmnstate"]["votingAddress"])
+            assert_equal(mn.ipport, mn2["dmnstate"]["service"])
+            assert_equal(mn.payee, mn2["dmnstate"]["payoutAddress"])
+            assert_equal(collateral["txid"], mn2["collateralHash"])
+            assert_equal(collateral["vout"], mn2["collateralIndex"])
 
     def check_proreg_payload(self, dmn, json_tx):
         assert "payload" in json_tx

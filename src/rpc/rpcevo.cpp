@@ -46,6 +46,7 @@ enum ProRegParam {
     proTxHash,
     payoutAddress_register,
     payoutAddress_update,
+    revocationReason,
     votingAddress_register,
     votingAddress_update,
 };
@@ -113,6 +114,10 @@ static const std::map<ProRegParam, std::string> mapParamHelp = {
         },
         {proTxHash,
             "%d. \"proTxHash\"              (string, required) The hash of the initial ProRegTx.\n"
+        },
+        {revocationReason,
+            "%d. reason                     (numeric, optional) The reason for masternode service revocation. Default: 0.\n"
+            "                                 0=not_specified, 1=service_termination, 2=compromised_keys, 3=keys_change.\n"
         },
         {votingAddress_register,
             "%d. \"votingAddress\"          (string, required) The voting key address. The private key does not have to be known by your wallet.\n"
@@ -407,7 +412,7 @@ static UniValue ProTxRegister(const JSONRPCRequest& request, bool fSignAndSend)
                 (fSignAndSend ? (
                         "\"txid\"                 (string) The transaction id.\n"
                         "\nExamples:\n"
-                        + HelpExampleCli("protx_register", "...!TODO...")
+                        + HelpExampleCli("protx_register", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" 0 \"168.192.1.100:51472\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\"")
                         ) : (
                         "{                        (json object)\n"
                         "  \"tx\" :                 (string) The serialized ProTx in hex format.\n"
@@ -415,7 +420,7 @@ static UniValue ProTxRegister(const JSONRPCRequest& request, bool fSignAndSend)
                         "  \"signMessage\" :        (string) The string message that needs to be signed with the collateral key\n"
                         "}\n"
                         "\nExamples:\n"
-                        + HelpExampleCli("protx_register_prepare", "...!TODO...")
+                        + HelpExampleCli("protx_register_prepare", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" 0 \"168.192.1.100:51472\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\"")
                         )
                 )
         );
@@ -568,7 +573,7 @@ UniValue protx_register_fund(const JSONRPCRequest& request)
                 "\nResult:\n"
                 "\"txid\"                        (string) The transaction id.\n"
                 "\nExamples:\n"
-                + HelpExampleCli("protx_register_fund", "...!TODO...")
+                + HelpExampleCli("protx_register_fund", "\"DKHHBsuU9zfxxxVaqqqQqK4MxZg6vzpf8\" \"168.192.1.100:51472\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\"")
         );
     }
     CheckEvoUpgradeEnforcement();
@@ -703,9 +708,10 @@ UniValue protx_list(const JSONRPCRequest& request)
                 "                                 at the height specified.\n"
                 "4. \"height\"                 (numeric, optional) If height is not specified, it defaults to the current chain-tip.\n"
                 "\nResult:\n"
-                "\"...!TODO..."
+                "[...]                         (list) List of protx txids or, if detailed=true, list of json objects.\n"
                 "\nExamples:\n"
-                + HelpExampleCli("protx_list", "...!TODO...")
+                + HelpExampleCli("protx_list", "")
+                + HelpExampleCli("protx_list", "true false false 200000")
         );
     }
 
@@ -774,7 +780,7 @@ UniValue protx_update_service(const JSONRPCRequest& request)
                 "\nResult:\n"
                 "\"txid\"                        (string) The transaction id.\n"
                 "\nExamples:\n"
-                + HelpExampleCli("protx_update_service", "...!TODO...")
+                + HelpExampleCli("protx_update_service", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"168.192.1.100:51472\"")
         );
     }
     CheckEvoUpgradeEnforcement();
@@ -827,6 +833,147 @@ UniValue protx_update_service(const JSONRPCRequest& request)
 
     return SignAndSendSpecialTx(pwallet, tx, pl);
 }
+
+UniValue protx_update_registrar(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 4 || request.params.size() > 5) {
+        throw std::runtime_error(
+                "protx update_registrar \"proTxHash\" \"operatorAddress\" \"votingAddress\" \"payoutAddress\" (\"ownerKey\")\n"
+                "\nCreates and sends a ProUpRegTx to the network. This will update the operator key, voting key and payout\n"
+                "address of the masternode specified by \"proTxHash\".\n"
+                "The owner key of this masternode must be known to your wallet.\n"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                "\nArguments:\n"
+                + GetHelpString(1, proTxHash)
+                + GetHelpString(2, operatorAddress_update)
+                + GetHelpString(3, votingAddress_update)
+                + GetHelpString(4, payoutAddress_update)
+                + GetHelpString(5, ownerKey) +
+                "\nResult:\n"
+                "\"txid\"                        (string) The transaction id.\n"
+                "\nExamples:\n"
+                + HelpExampleCli("protx_update_registrar", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\" \"DMJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\"")
+        );
+    }
+    CheckEvoUpgradeEnforcement();
+
+    if (!deterministicMNManager->LegacyMNObsolete()) {
+        throw JSONRPCError(RPC_MISC_ERROR, "Legacy masternode system still active. ProUpReg transactions are not accepted yet.");
+    }
+
+    EnsureWalletIsUnlocked(pwallet);
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    ProUpRegPL pl;
+    pl.nVersion = ProUpServPL::CURRENT_VERSION;
+    pl.proTxHash = ParseHashV(request.params[0], "proTxHash");
+
+    auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(pl.proTxHash);
+    if (!dmn) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("masternode with hash %s not found", pl.proTxHash.ToString()));
+    }
+    const std::string& strOperatorAddress = request.params[1].get_str();
+    pl.keyIDOperator = strOperatorAddress.empty() ? dmn->pdmnState->keyIDOperator
+                                                  : ParsePubKeyIDFromAddress(strOperatorAddress);
+
+    const std::string& strVotingAddress = request.params[2].get_str();
+    pl.keyIDVoting = strVotingAddress.empty() ? dmn->pdmnState->keyIDVoting
+                                              : ParsePubKeyIDFromAddress(strVotingAddress);
+
+    const std::string& strPayee = request.params[3].get_str();
+    pl.scriptPayout = strPayee.empty() ? pl.scriptPayout = dmn->pdmnState->scriptPayout
+                                       : GetScriptForDestination(CTxDestination(ParsePubKeyIDFromAddress(strPayee)));
+
+    const std::string& strOwnKey = request.params.size() > 4 ? request.params[4].get_str() : "";
+    const CKey& ownerKey = strOwnKey.empty() ? GetKeyFromWallet(pwallet, dmn->pdmnState->keyIDOwner)
+                                             : ParsePrivKey(pwallet, strOwnKey, false);
+
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
+    tx.nType = CTransaction::TxType::PROUPREG;
+
+    // make sure fee calculation works
+    pl.vchSig.resize(CPubKey::COMPACT_SIGNATURE_SIZE);
+    FundSpecialTx(pwallet, tx, pl);
+    SignSpecialTxPayloadByHash(tx, pl, ownerKey);
+
+    return SignAndSendSpecialTx(pwallet, tx, pl);
+}
+
+UniValue protx_revoke(const JSONRPCRequest& request)
+{
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3) {
+        throw std::runtime_error(
+                "protx_update_revoke \"proTxHash\" (\"operatorKey\" reason)\n"
+                "\nCreates and sends a ProUpRevTx to the network. This will revoke the operator key of the masternode and\n"
+                "put it into the PoSe-banned state. It will also set the service field of the masternode\n"
+                "to zero. Use this in case your operator key got compromised or you want to stop providing your service\n"
+                "to the masternode owner.\n"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                "\nArguments:\n"
+                + GetHelpString(1, proTxHash)
+                + GetHelpString(2, operatorKey)
+                + GetHelpString(3, revocationReason) +
+                "\nResult:\n"
+                "\"txid\"                        (string) The transaction id.\n"
+                "\nExamples:\n"
+                + HelpExampleCli("protx_revoke", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\"")
+                + HelpExampleCli("protx_revoke", "\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\" \"\" 2")
+        );
+    }
+    CheckEvoUpgradeEnforcement();
+
+    EnsureWalletIsUnlocked(pwallet);
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    ProUpRevPL pl;
+    pl.nVersion = ProUpServPL::CURRENT_VERSION;
+    pl.proTxHash = ParseHashV(request.params[0], "proTxHash");
+
+    auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(pl.proTxHash);
+    if (!dmn) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("masternode with hash %s not found", pl.proTxHash.ToString()));
+    }
+
+    const std::string& strOpKey = request.params.size() > 1 ? request.params[1].get_str() : "";
+    const CKey& operatorKey = strOpKey.empty() ? GetKeyFromWallet(pwallet, dmn->pdmnState->keyIDOperator)
+                                               : ParsePrivKey(pwallet, strOpKey, false);
+
+    pl.nReason = ProUpRevPL::RevocationReason::REASON_NOT_SPECIFIED;
+    if (request.params.size() > 2) {
+        int nReason = request.params[2].get_int();
+        if (nReason < 0 || nReason > ProUpRevPL::RevocationReason::REASON_LAST) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid reason %d, must be between 0 and %d",
+                                                                nReason, ProUpRevPL::RevocationReason::REASON_LAST));
+        }
+        pl.nReason = (uint16_t)nReason;
+    }
+
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
+    tx.nType = CTransaction::TxType::PROUPREV;
+
+    // make sure fee calculation works
+    pl.vchSig.resize(CPubKey::COMPACT_SIGNATURE_SIZE);
+    FundSpecialTx(pwallet, tx, pl);
+    SignSpecialTxPayloadByHash(tx, pl, operatorKey);
+
+    return SignAndSendSpecialTx(pwallet, tx, pl);
+}
 #endif
 
 static const CRPCCommand commands[] =
@@ -838,6 +985,8 @@ static const CRPCCommand commands[] =
     { "evo",         "protx_register_fund",            &protx_register_fund,    true,  {"collateralAddress","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
     { "evo",         "protx_register_prepare",         &protx_register_prepare, true,  {"collateralHash","collateralIndex","ipAndPort","ownerAddress","operatorAddress","votingAddress","payoutAddress","operatorReward","operatorPayoutAddress"} },
     { "evo",         "protx_register_submit",          &protx_register_submit,  true,  {"tx","sig"}  },
+    { "evo",         "protx_revoke",                   &protx_revoke,           true,  {"proTxHash","operatorKey","reason"}  },
+    { "evo",         "protx_update_registrar",         &protx_update_registrar, true,  {"proTxHash","operatorAddress","votingAddress","payoutAddress","ownerKey"}  },
     { "evo",         "protx_update_service",           &protx_update_service,   true,  {"proTxHash","ipAndPort","operatorPayoutAddress","operatorKey"}  },
 #endif  //ENABLE_WALLET
 };

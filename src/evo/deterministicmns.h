@@ -30,7 +30,7 @@ public:
     int nPoSePenalty{0};
     int nPoSeRevivedHeight{-1};
     int nPoSeBanHeight{-1};
-    uint16_t nRevocationReason{0};
+    uint16_t nRevocationReason{ProUpRevPL::REASON_NOT_SPECIFIED};
 
     // the block hash X blocks after registration, used in quorum calculations
     uint256 confirmedHash;
@@ -77,6 +77,19 @@ public:
         READWRITE(obj.scriptOperatorPayout);
     }
 
+    void ResetOperatorFields()
+    {
+        keyIDOperator = CKeyID();
+        addr = CService();
+        scriptOperatorPayout = CScript();
+        nRevocationReason = ProUpRevPL::REASON_NOT_SPECIFIED;
+    }
+    void BanIfNotBanned(int height)
+    {
+        if (nPoSeBanHeight == -1) {
+            nPoSeBanHeight = height;
+        }
+    }
     void UpdateConfirmedHash(const uint256& _proTxHash, const uint256& _confirmedHash)
     {
         confirmedHash = _confirmedHash;

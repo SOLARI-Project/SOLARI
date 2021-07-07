@@ -66,6 +66,8 @@ public:
     void ToJson(UniValue& obj) const;
 };
 
+// Provider-Update-Service tx payload
+
 class ProUpServPL
 {
 public:
@@ -93,8 +95,76 @@ public:
     void ToJson(UniValue& obj) const;
 };
 
+// Provider-Update-Registrar tx payload
+class ProUpRegPL
+{
+public:
+    static const uint16_t CURRENT_VERSION = 1;
+
+public:
+    uint16_t nVersion{CURRENT_VERSION}; // message version
+    uint256 proTxHash;
+    uint16_t nMode{0}; // only 0 supported for now
+    CKeyID keyIDOperator;
+    CKeyID keyIDVoting;
+    CScript scriptPayout;
+    uint256 inputsHash; // replay protection
+    std::vector<unsigned char> vchSig;
+
+public:
+    SERIALIZE_METHODS(ProUpRegPL, obj)
+    {
+        READWRITE(obj.nVersion, obj.proTxHash, obj.nMode, obj.keyIDOperator, obj.keyIDVoting, obj.scriptPayout, obj.inputsHash);
+        if (!(s.GetType() & SER_GETHASH)) {
+            READWRITE(obj.vchSig);
+        }
+    }
+
+public:
+    std::string ToString() const;
+    void ToJson(UniValue& obj) const;
+};
+
+// Provider-Update-Revoke tx payload
+class ProUpRevPL
+{
+public:
+    static const uint16_t CURRENT_VERSION = 1;
+
+    // these are just informational and do not have any effect on the revocation
+    enum RevocationReason {
+        REASON_NOT_SPECIFIED = 0,
+        REASON_TERMINATION_OF_SERVICE = 1,
+        REASON_COMPROMISED_KEYS = 2,
+        REASON_CHANGE_OF_KEYS = 3,
+        REASON_LAST = REASON_CHANGE_OF_KEYS
+    };
+
+public:
+    uint16_t nVersion{CURRENT_VERSION}; // message version
+    uint256 proTxHash;
+    uint16_t nReason{REASON_NOT_SPECIFIED};
+    uint256 inputsHash; // replay protection
+    std::vector<unsigned char> vchSig;
+
+public:
+    SERIALIZE_METHODS(ProUpRevPL, obj)
+    {
+        READWRITE(obj.nVersion, obj.proTxHash, obj.nReason, obj.inputsHash);
+        if (!(s.GetType() & SER_GETHASH)) {
+            READWRITE(obj.vchSig);
+        }
+    }
+
+public:
+    std::string ToString() const;
+    void ToJson(UniValue& obj) const;
+};
+
 bool CheckProRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
 bool CheckProUpServTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
+bool CheckProUpRegTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
+bool CheckProUpRevTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
 
 // If tx is a ProRegTx, return the collateral outpoint in outRet.
 bool GetProRegCollateral(const CTransactionRef& tx, COutPoint& outRet);

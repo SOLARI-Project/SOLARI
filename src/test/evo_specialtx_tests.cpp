@@ -58,6 +58,28 @@ static ProUpServPL GetRandomProUpServPayload()
     return pl;
 }
 
+static ProUpRegPL GetRandomProUpRegPayload()
+{
+    ProUpRegPL pl;
+    pl.proTxHash = GetRandHash();
+    pl.keyIDOperator = GetRandomKeyID();
+    pl.keyIDVoting = GetRandomKeyID();
+    pl.scriptPayout = GetRandomScript();
+    pl.inputsHash = GetRandHash();
+    pl.vchSig = InsecureRandBytes(63);
+    return pl;
+}
+
+static ProUpRevPL GetRandomProUpRevPayload()
+{
+    ProUpRevPL pl;
+    pl.proTxHash = GetRandHash();
+    pl.nReason = InsecureRand16();
+    pl.inputsHash = GetRandHash();
+    pl.vchSig = InsecureRandBytes(63);
+    return pl;
+}
+
 BOOST_AUTO_TEST_CASE(protx_validation_test)
 {
     CMutableTransaction mtx;
@@ -142,6 +164,36 @@ BOOST_AUTO_TEST_CASE(proupserv_setpayload_test)
     BOOST_CHECK(pl.proTxHash == pl2.proTxHash);
     BOOST_CHECK(pl.addr  == pl2.addr);
     BOOST_CHECK(pl.scriptOperatorPayout == pl2.scriptOperatorPayout);
+    BOOST_CHECK(pl.inputsHash == pl2.inputsHash);
+    BOOST_CHECK(pl.vchSig == pl2.vchSig);
+}
+
+BOOST_AUTO_TEST_CASE(proupreg_setpayload_test)
+{
+    const ProUpRegPL& pl = GetRandomProUpRegPayload();
+
+    CMutableTransaction mtx;
+    SetTxPayload(mtx, pl);
+    ProUpRegPL pl2;
+    BOOST_CHECK(GetTxPayload(mtx, pl2));
+    BOOST_CHECK(pl.proTxHash == pl2.proTxHash);
+    BOOST_CHECK(pl.keyIDOperator == pl2.keyIDOperator);
+    BOOST_CHECK(pl.keyIDVoting == pl2.keyIDVoting);
+    BOOST_CHECK(pl.scriptPayout == pl2.scriptPayout);
+    BOOST_CHECK(pl.inputsHash == pl2.inputsHash);
+    BOOST_CHECK(pl.vchSig == pl2.vchSig);
+}
+
+BOOST_AUTO_TEST_CASE(prouprev_setpayload_test)
+{
+    const ProUpRevPL& pl = GetRandomProUpRevPayload();
+
+    CMutableTransaction mtx;
+    SetTxPayload(mtx, pl);
+    ProUpRevPL pl2;
+    BOOST_CHECK(GetTxPayload(mtx, pl2));
+    BOOST_CHECK(pl.proTxHash == pl2.proTxHash);
+    BOOST_CHECK(pl.nReason == pl2.nReason);
     BOOST_CHECK(pl.inputsHash == pl2.inputsHash);
     BOOST_CHECK(pl.vchSig == pl2.vchSig);
 }
