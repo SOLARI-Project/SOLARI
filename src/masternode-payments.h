@@ -258,6 +258,7 @@ public:
         return true;
     }
 
+    bool ProcessMNWinner(CMasternodePaymentWinner& winner, CNode* pfrom);
     void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     std::string GetRequiredPaymentsString(int nBlockHeight);
     void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const CBlockIndex* pindexPrev, bool fProofOfStake) const;

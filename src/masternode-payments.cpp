@@ -441,70 +441,80 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
 
         if (pfrom->nVersion < ActiveProtocol()) return;
 
-        int nHeight = mnodeman.GetBestHeight();
+        ProcessMNWinner(winner, pfrom);
+    }
+}
 
-        if (masternodePayments.mapMasternodePayeeVotes.count(winner.GetHash())) {
-            LogPrint(BCLog::MASTERNODE, "mnw - Already seen - %s bestHeight %d\n", winner.GetHash().ToString().c_str(), nHeight);
-            masternodeSync.AddedMasternodeWinner(winner.GetHash());
-            return;
-        }
+bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNode* pfrom)
+{
+    int nHeight = mnodeman.GetBestHeight();
 
-        int nFirstBlock = nHeight - (mnodeman.CountEnabled() * 1.25);
-        if (winner.nBlockHeight < nFirstBlock || winner.nBlockHeight > nHeight + 20) {
-            LogPrint(BCLog::MASTERNODE, "mnw - winner out of range - FirstBlock %d Height %d bestHeight %d\n", nFirstBlock, winner.nBlockHeight, nHeight);
-            return;
-        }
+    if (masternodePayments.mapMasternodePayeeVotes.count(winner.GetHash())) {
+        LogPrint(BCLog::MASTERNODE, "mnw - Already seen - %s bestHeight %d\n", winner.GetHash().ToString().c_str(), nHeight);
+        masternodeSync.AddedMasternodeWinner(winner.GetHash());
+        return false;
+    }
 
-        // reject old signature version
-        if (winner.nMessVersion != MessageVersion::MESS_VER_HASH) {
-            LogPrint(BCLog::MASTERNODE, "mnw - rejecting old message version %d\n", winner.nMessVersion);
-            return;
-        }
+    int nFirstBlock = nHeight - (mnodeman.CountEnabled() * 1.25);
+    if (winner.nBlockHeight < nFirstBlock || winner.nBlockHeight > nHeight + 20) {
+        LogPrint(BCLog::MASTERNODE, "mnw - winner out of range - FirstBlock %d Height %d bestHeight %d\n", nFirstBlock, winner.nBlockHeight, nHeight);
+        return false;
+    }
+
+    // reject old signature version
+    if (winner.nMessVersion != MessageVersion::MESS_VER_HASH) {
+        LogPrint(BCLog::MASTERNODE, "mnw - rejecting old message version %d\n", winner.nMessVersion);
+        return false;
+    }
 
         std::string strError = "";
         if (!winner.IsValid(pfrom, strError, nHeight)) {
             // if(strError != "") LogPrint(BCLog::MASTERNODE,"mnw - invalid message - %s\n", strError);
-            return;
+            return false;
         }
 
-        if (!masternodePayments.CanVote(winner.vinMasternode.prevout, winner.nBlockHeight)) {
-            //  LogPrint(BCLog::MASTERNODE,"mnw - masternode already voted - %s\n", winner.vinMasternode.prevout.ToStringShort());
-            return;
-        }
+    if (!masternodePayments.CanVote(winner.vinMasternode.prevout, winner.nBlockHeight)) {
+        //  LogPrint(BCLog::MASTERNODE,"mnw - masternode already voted - %s\n", winner.vinMasternode.prevout.ToStringShort());
+        return false;
+    }
 
-        // See if this winner was signed with a dmn or a legacy masternode
-        bool is_valid_sig = false;
-        auto mnList = deterministicMNManager->GetListAtChainTip();
-        auto dmn = mnList.GetMNByCollateral(winner.vinMasternode.prevout);
-        if (dmn) {
-            // DMN: Check BLS signature
-            is_valid_sig = winner.CheckSignature(dmn->pdmnState->pubKeyOperator.Get());
-        } else {
-            // Legacy masternode
-            const CMasternode* pmn = mnodeman.Find(winner.vinMasternode.prevout);
-            if (pmn == nullptr) {
-                // it could be a non-synced masternode. ask for the mnb
-                LogPrint(BCLog::MASTERNODE, "mnw - unknown masternode %s\n", winner.vinMasternode.prevout.hash.ToString());
-                mnodeman.AskForMN(pfrom, winner.vinMasternode);
-                return;
-            }
-            is_valid_sig = winner.CheckSignature(pmn->pubKeyMasternode.GetID());
+    // See if this winner was signed with a dmn or a legacy masternode
+    bool is_valid_sig = false;
+    auto mnList = deterministicMNManager->GetListAtChainTip();
+    auto dmn = mnList.GetMNByCollateral(winner.vinMasternode.prevout);
+    if (dmn) {
+        // DMN: Check BLS signature
+        is_valid_sig = winner.CheckSignature(dmn->pdmnState->pubKeyOperator.Get());
+    } else {
+        // Legacy masternode
+        const CMasternode* pmn = mnodeman.Find(winner.vinMasternode.prevout);
+        if (pmn == nullptr) {
+            // it could be a non-synced masternode. ask for the mnb
+            LogPrint(BCLog::MASTERNODE, "mnw - unknown masternode %s\n", winner.vinMasternode.prevout.hash.ToString());
+            if (pfrom) mnodeman.AskForMN(pfrom, winner.vinMasternode);
+            return false;
         }
+        is_valid_sig = winner.CheckSignature(pmn->pubKeyMasternode.GetID());
+    }
 
-        if (!is_valid_sig) {
-            LogPrint(BCLog::MASTERNODE, "%s : mnw - invalid signature\n", __func__);
+    if (!is_valid_sig) {
+        LogPrint(BCLog::MASTERNODE, "%s : mnw - invalid signature\n", __func__);
+        if (pfrom) {
             LOCK(cs_main);
             Misbehaving(pfrom->GetId(), 20);
-            return;
         }
-
-        if (!masternodePayments.AddWinningMasternode(winner)) {
-            return;
-        }
-
-        winner.Relay();
-        masternodeSync.AddedMasternodeWinner(winner.GetHash());
+        return false;
     }
+
+    if (!masternodePayments.AddWinningMasternode(winner)) {
+        return false;
+    }
+
+    winner.Relay();
+    masternodeSync.AddedMasternodeWinner(winner.GetHash());
+
+    // valid
+    return true;
 }
 
 bool CMasternodePayments::GetBlockPayee(int nBlockHeight, CScript& payee) const
