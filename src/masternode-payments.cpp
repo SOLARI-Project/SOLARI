@@ -161,24 +161,24 @@ std::string CMasternodePaymentWinner::GetStrMessage() const
     return vinMasternode.prevout.ToStringShort() + std::to_string(nBlockHeight) + HexStr(payee);
 }
 
-bool CMasternodePaymentWinner::IsValid(CNode* pnode, std::string& strError, int chainHeight)
+bool CMasternodePaymentWinner::IsValid(CNode* pnode, CValidationState& state, int chainHeight)
 {
     int n = mnodeman.GetMasternodeRank(vinMasternode, nBlockHeight - 100);
     if (n < 1 || n > MNPAYMENTS_SIGNATURES_TOTAL) {
         //It's common to have masternodes mistakenly think they are in the top 10
         // We don't want to print all of these messages, or punish them unless they're way off
+        std::string strError = strprintf("Masternode not in the top %d (%d)", MNPAYMENTS_SIGNATURES_TOTAL, n);
         if (n > MNPAYMENTS_SIGNATURES_TOTAL * 2) {
-            strError = strprintf("Masternode not in the top %d (%d)", MNPAYMENTS_SIGNATURES_TOTAL * 2, n);
             LogPrint(BCLog::MASTERNODE,"CMasternodePaymentWinner::IsValid - %s\n", strError);
             //if (masternodeSync.IsSynced()) Misbehaving(pnode->GetId(), 20);
         }
-        return false;
+        return state.Error(strError);
     }
 
     // Must be a P2PKH
     if (!payee.IsPayToPublicKeyHash()) {
         LogPrint(BCLog::MASTERNODE, "%s - payee must be a P2PKH\n", __func__);
-        return false;
+        return state.Error("payee must be a P2PKH");
     }
 
     return true;
@@ -467,10 +467,9 @@ bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNod
         return state.Error("mnw old message version");
     }
 
-    std::string strError = "";
-    if (!winner.IsValid(pfrom, strError, nHeight)) {
-        // if(strError != "") LogPrint(BCLog::MASTERNODE,"mnw - invalid message - %s\n", strError);
-        return state.Error(strError);
+    if (!winner.IsValid(pfrom, state, nHeight)) {
+        // error cause set internally
+        return false;
     }
 
     if (!masternodePayments.CanVote(winner.vinMasternode.prevout, winner.nBlockHeight)) {
@@ -502,7 +501,7 @@ bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNod
             LOCK(cs_main);
             Misbehaving(pfrom->GetId(), 20);
         }
-        return state.Error("Invalid voter or voter mnwinner signature");
+        return state.Error("invalid voter mnwinner signature");
     }
 
     if (!masternodePayments.AddWinningMasternode(winner)) {
