@@ -440,12 +440,12 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
         vRecv >> winner;
 
         if (pfrom->nVersion < ActiveProtocol()) return;
-
-        ProcessMNWinner(winner, pfrom);
+        CValidationState state;
+        ProcessMNWinner(winner, pfrom, state);
     }
 }
 
-bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNode* pfrom)
+bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNode* pfrom, CValidationState& state)
 {
     int nHeight = mnodeman.GetBestHeight();
 
@@ -458,24 +458,23 @@ bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNod
     int nFirstBlock = nHeight - (mnodeman.CountEnabled() * 1.25);
     if (winner.nBlockHeight < nFirstBlock || winner.nBlockHeight > nHeight + 20) {
         LogPrint(BCLog::MASTERNODE, "mnw - winner out of range - FirstBlock %d Height %d bestHeight %d\n", nFirstBlock, winner.nBlockHeight, nHeight);
-        return false;
+        return state.Error("block height out of range");
     }
 
     // reject old signature version
     if (winner.nMessVersion != MessageVersion::MESS_VER_HASH) {
         LogPrint(BCLog::MASTERNODE, "mnw - rejecting old message version %d\n", winner.nMessVersion);
-        return false;
+        return state.Error("mnw old message version");
     }
 
-        std::string strError = "";
-        if (!winner.IsValid(pfrom, strError, nHeight)) {
-            // if(strError != "") LogPrint(BCLog::MASTERNODE,"mnw - invalid message - %s\n", strError);
-            return false;
-        }
+    std::string strError = "";
+    if (!winner.IsValid(pfrom, strError, nHeight)) {
+        // if(strError != "") LogPrint(BCLog::MASTERNODE,"mnw - invalid message - %s\n", strError);
+        return state.Error(strError);
+    }
 
     if (!masternodePayments.CanVote(winner.vinMasternode.prevout, winner.nBlockHeight)) {
-        //  LogPrint(BCLog::MASTERNODE,"mnw - masternode already voted - %s\n", winner.vinMasternode.prevout.ToStringShort());
-        return false;
+        return state.Error("MN already voted");
     }
 
     // See if this winner was signed with a dmn or a legacy masternode
@@ -492,7 +491,7 @@ bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNod
             // it could be a non-synced masternode. ask for the mnb
             LogPrint(BCLog::MASTERNODE, "mnw - unknown masternode %s\n", winner.vinMasternode.prevout.hash.ToString());
             if (pfrom) mnodeman.AskForMN(pfrom, winner.vinMasternode);
-            return false;
+            return state.Error("Invalid voter or voter mnwinner signature");
         }
         is_valid_sig = winner.CheckSignature(pmn->pubKeyMasternode.GetID());
     }
@@ -503,11 +502,11 @@ bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNod
             LOCK(cs_main);
             Misbehaving(pfrom->GetId(), 20);
         }
-        return false;
+        return state.Error("Invalid voter or voter mnwinner signature");
     }
 
     if (!masternodePayments.AddWinningMasternode(winner)) {
-        return false;
+        return state.Error("Failed to add mnwinner"); // move state inside AddWinningMasternode
     }
 
     winner.Relay();
