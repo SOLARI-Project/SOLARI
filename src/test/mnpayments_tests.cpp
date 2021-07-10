@@ -4,19 +4,22 @@
 
 #include "test/test_pivx.h"
 
+#include "blockassembler.h"
+#include "consensus/merkle.h"
 #include "masternode-payments.h"
 #include "masternode-sync.h"
 #include "masternodeman.h"
 #include "spork.h"
 #include "primitives/transaction.h"
 #include "utilmoneystr.h"
+#include "util/blockstatecatcher.h"
 #include "validation.h"
 
 #include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(mnpayments_tests)
 
-void enableMnSyncAndSuperblocksPayment()
+void enableMnSyncAndMNPayments()
 {
     // force mnsync complete
     masternodeSync.RequestedMasternodeAssets = MASTERNODE_SYNC_FINISHED;
@@ -27,9 +30,9 @@ void enableMnSyncAndSuperblocksPayment()
     sporkManager.AddOrUpdateSporkMessage(spork);
     BOOST_CHECK(sporkManager.IsSporkActive(SPORK_13_ENABLE_SUPERBLOCKS));
 
-    spork = CSporkMessage(SPORK_9_MASTERNODE_BUDGET_ENFORCEMENT, nTime + 1, nTime);
+    spork = CSporkMessage(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT, nTime + 1, nTime);
     sporkManager.AddOrUpdateSporkMessage(spork);
-    BOOST_CHECK(sporkManager.IsSporkActive(SPORK_9_MASTERNODE_BUDGET_ENFORCEMENT));
+    BOOST_CHECK(sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT));
 }
 
 static bool CreateMNWinnerPayment(const CTxIn& mnVinVoter, int paymentBlockHeight, const CScript& payeeScript,
@@ -116,7 +119,7 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
 {
     CreateAndProcessBlock({}, coinbaseKey);
     CBlock tipBlock = CreateAndProcessBlock({}, coinbaseKey);
-    enableMnSyncAndSuperblocksPayment();
+    enableMnSyncAndMNPayments();
     int nextBlockHeight = 103;
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_3, nextBlockHeight - 1);
 
@@ -146,7 +149,7 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
     CValidationState state2;
     BOOST_CHECK(!CreateMNWinnerPayment(mnVinVoter, paymentBlockHeight, payeeScript,
                                        firstMN.data.mnPrivKey, firstMN.data.mnPubKey, state2));
-    BOOST_CHECK_MESSAGE(findStrError(state2, "voter mnwinner signature"), state2.GetRejectReason());
+    BOOST_CHECK_MESSAGE(findStrError(state2, "invalid voter mnwinner signature"), state2.GetRejectReason());
 
     // Voter MN2, fail because MN2 is not enabled
     pSecondMN->SetSpent();
@@ -183,7 +186,54 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
     nextBlockHeight++;
 
     // Now let's push two valid winner payments and make every MN in the top ten vote for them (having more votes in mnwinnerA than in mnwinnerB).
-    // todo: make a tests for the vote count, the most voted mnwinner should be paid..
+    mnRank = mnodeman.GetMasternodeRanks(nextBlockHeight - 100);
+    CScript firstRankedPayee = GetScriptForDestination(mnRank[0].second->pubKeyCollateralAddress.GetID());
+    CScript secondRankedPayee = GetScriptForDestination(mnRank[1].second->pubKeyCollateralAddress.GetID());
+
+    // Let's vote with the first 6 nodes for MN ranked 1
+    // And with the last 4 nodes for MN ranked 2
+    payeeScript = firstRankedPayee;
+    for (int i=0; i<10; i++) {
+        if (i > 5) {
+            payeeScript = secondRankedPayee;
+        }
+        auto voterMn = findMNData(mnList, mnRank[i].second);
+        CMasternode* pVoterMN = mnodeman.Find(voterMn.mn.vin.prevout);
+        mnVinVoter = CTxIn(pVoterMN->vin);
+        CValidationState stateInternal;
+        BOOST_CHECK(CreateMNWinnerPayment(mnVinVoter, nextBlockHeight, payeeScript,
+                                                             voterMn.data.mnPrivKey, voterMn.data.mnPubKey, stateInternal));
+        BOOST_CHECK_MESSAGE(stateInternal.IsValid(), stateInternal.GetRejectReason());
+    }
+
+    // Check the votes count for each mnwinner.
+    CMasternodeBlockPayees blockPayees = masternodePayments.mapMasternodeBlocks.at(nextBlockHeight);
+    BOOST_CHECK_MESSAGE(blockPayees.HasPayeeWithVotes(firstRankedPayee, 6), "first ranked payee with no enough votes");
+    BOOST_CHECK_MESSAGE(blockPayees.HasPayeeWithVotes(secondRankedPayee, 4), "second ranked payee with no enough votes");
+
+    // let's try to create a bad block paying to the second most voted MN.
+    CBlock badBlock = CreateBlock({}, coinbaseKey);
+    CMutableTransaction coinbase(*badBlock.vtx[0]);
+    coinbase.vout[coinbase.vout.size() - 1].scriptPubKey = secondRankedPayee;
+    badBlock.vtx[0] = MakeTransactionRef(coinbase);
+    badBlock.hashMerkleRoot = BlockMerkleRoot(badBlock);
+    {
+        auto pBadBlock = std::make_shared<CBlock>(badBlock);
+        SolveBlock(pBadBlock, nextBlockHeight);
+        BlockStateCatcher sc(pBadBlock->GetHash());
+        sc.registerEvent();
+        ProcessNewBlock(pBadBlock, nullptr);
+        BOOST_CHECK(sc.found && !sc.state.IsValid());
+        BOOST_CHECK_EQUAL(sc.state.GetRejectReason(), "bad-cb-payee");
+    }
+    BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash();) != badBlock.GetHash());
+
+
+    // And let's verify that the most voted one is the one being paid.
+    tipBlock = CreateAndProcessBlock({}, coinbaseKey);
+    BOOST_CHECK_MESSAGE(tipBlock.vtx[0]->vout.back().scriptPubKey == firstRankedPayee, "error: block not paying to first ranked MN");
+    nextBlockHeight++;
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
