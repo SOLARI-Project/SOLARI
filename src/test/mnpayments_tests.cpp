@@ -124,7 +124,7 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_3, nextBlockHeight - 1);
 
     // MN list.
-    std::vector<FakeMasternode> mnList = buildMNList(tipBlock.GetHash(), tipBlock.GetBlockTime(), 20);
+    std::vector<FakeMasternode> mnList = buildMNList(tipBlock.GetHash(), tipBlock.GetBlockTime(), 40);
     std::vector<std::pair<int64_t, MasternodeRef>> mnRank = mnodeman.GetMasternodeRanks(nextBlockHeight - 100);
 
     // Take the first MN
@@ -151,6 +151,14 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
                                        firstMN.data.mnPrivKey, firstMN.data.mnPubKey, state2));
     BOOST_CHECK_MESSAGE(findStrError(state2, "invalid voter mnwinner signature"), state2.GetRejectReason());
 
+    // Voter MN2, fail because mnwinner height is too far in the future.
+    mnVinVoter = CTxIn(pSecondMN->vin);
+    CValidationState state2_5;
+    BOOST_CHECK(!CreateMNWinnerPayment(mnVinVoter, paymentBlockHeight + 20, payeeScript,
+                                       secondMn.data.mnPrivKey, secondMn.data.mnPubKey, state2_5));
+    BOOST_CHECK_MESSAGE(findStrError(state2_5, "block height out of range"), state2_5.GetRejectReason());
+
+
     // Voter MN2, fail because MN2 is not enabled
     pSecondMN->SetSpent();
     BOOST_CHECK(!pSecondMN->IsEnabled());
@@ -161,9 +169,18 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
     // future: could add specific error cause.
     BOOST_CHECK_MESSAGE(findStrError(state3, "Masternode not in the top"), state3.GetRejectReason());
 
+    // Voter MN3, fail because the payeeScript is not a P2PKH
+    auto thirdMn = findMNData(mnList, mnRank[2].second);
+    CMasternode* pThirdMN = mnodeman.Find(thirdMn.mn.vin.prevout);
+    mnVinVoter = CTxIn(pThirdMN->vin);
+    CScript scriptDummy = CScript() << OP_TRUE;
+    CValidationState state4;
+    BOOST_CHECK(!CreateMNWinnerPayment(mnVinVoter, paymentBlockHeight, scriptDummy,
+                                       thirdMn.data.mnPrivKey, thirdMn.data.mnPubKey, state4));
+    BOOST_CHECK_MESSAGE(findStrError(state4, "payee must be a P2PKH"), state4.GetRejectReason());
+
     // Voter MN15 pays to MN3, fail because the voter is not in the top ten.
     auto voterPos15 = findMNData(mnList, mnRank[14].second);
-    auto thirdMn = findMNData(mnList, mnRank[2].second);
     CMasternode* p15dMN = mnodeman.Find(voterPos15.mn.vin.prevout);
     mnVinVoter = CTxIn(p15dMN->vin);
     payeeScript = thirdMn.data.mnPayeeScript;
@@ -173,7 +190,6 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
     BOOST_CHECK_MESSAGE(findStrError(state6, "Masternode not in the top"), state6.GetRejectReason());
 
     // Voter MN3, passes
-    CMasternode* pThirdMN = mnodeman.Find(thirdMn.mn.vin.prevout);
     mnVinVoter = CTxIn(pThirdMN->vin);
     CValidationState state7;
     BOOST_CHECK(CreateMNWinnerPayment(mnVinVoter, paymentBlockHeight, payeeScript,
@@ -234,6 +250,59 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
     BOOST_CHECK_MESSAGE(tipBlock.vtx[0]->vout.back().scriptPubKey == firstRankedPayee, "error: block not paying to first ranked MN");
     nextBlockHeight++;
 
+    //
+    // Generate 125 blocks paying to different MNs to load the payments cache.
+    for (int i = 0; i < 125; i++) {
+        mnRank = mnodeman.GetMasternodeRanks(nextBlockHeight - 100);
+        payeeScript = GetScriptForDestination(mnRank[0].second->pubKeyCollateralAddress.GetID());
+        for (int j=0; j<7; j++) { // votes
+            auto voterMn = findMNData(mnList, mnRank[j].second);
+            CMasternode* pVoterMN = mnodeman.Find(voterMn.mn.vin.prevout);
+            mnVinVoter = CTxIn(pVoterMN->vin);
+            CValidationState stateInternal;
+            BOOST_CHECK(CreateMNWinnerPayment(mnVinVoter, nextBlockHeight, payeeScript,
+                                              voterMn.data.mnPrivKey, voterMn.data.mnPubKey, stateInternal));
+            BOOST_CHECK_MESSAGE(stateInternal.IsValid(), stateInternal.GetRejectReason());
+        }
+        // Create block and check that is being paid properly.
+        tipBlock = CreateAndProcessBlock({}, coinbaseKey);
+        BOOST_CHECK_MESSAGE(tipBlock.vtx[0]->vout.back().scriptPubKey == payeeScript, "error: block not paying to proper MN");
+        nextBlockHeight++;
+    }
+    // Check chain height.
+    BOOST_CHECK_EQUAL(WITH_LOCK(cs_main, return chainActive.Height();), nextBlockHeight - 1);
+
+    // Let's now verify what happen if a previously paid MN goes offline but still have scheduled a payment in the future.
+    // The current system allows it (up to a certain point) as payments are scheduled ahead of time and a MN can go down in the
+    // [proposedWinnerHeightTime < currentHeight < currentHeight + 20] window.
+
+    // 1) Schedule payment and vote for it with the first 6 MNs.
+    mnRank = mnodeman.GetMasternodeRanks(nextBlockHeight - 100);
+    MasternodeRef mnToPay = mnRank[0].second;
+    payeeScript = GetScriptForDestination(mnToPay->pubKeyCollateralAddress.GetID());
+    for (int i=0; i<6; i++) {
+        auto voterMn = findMNData(mnList, mnRank[i].second);
+        CMasternode* pVoterMN = mnodeman.Find(voterMn.mn.vin.prevout);
+        mnVinVoter = CTxIn(pVoterMN->vin);
+        CValidationState stateInternal;
+        BOOST_CHECK(CreateMNWinnerPayment(mnVinVoter, nextBlockHeight, payeeScript,
+                                          voterMn.data.mnPrivKey, voterMn.data.mnPubKey, stateInternal));
+        BOOST_CHECK_MESSAGE(stateInternal.IsValid(), stateInternal.GetRejectReason());
+    }
+
+    // 2) Remove payee MN from the MN list and try to emit a vote from MN7 to the same payee.
+    // it should still be accepted because the MN was scheduled when it was online.
+    mnodeman.Remove(mnToPay->vin.prevout);
+    BOOST_CHECK_MESSAGE(!mnodeman.Find(mnToPay->vin.prevout), "error: removed MN is still available");
+
+    // Now emit the vote from MN7
+    auto voterMn = findMNData(mnList, mnRank[7].second);
+    CMasternode* pVoterMN = mnodeman.Find(voterMn.mn.vin.prevout);
+    mnVinVoter = CTxIn(pVoterMN->vin);
+    CValidationState stateInternal;
+    BOOST_CHECK(CreateMNWinnerPayment(mnVinVoter, nextBlockHeight, payeeScript,
+                                      voterMn.data.mnPrivKey, voterMn.data.mnPubKey, stateInternal));
+    BOOST_CHECK_MESSAGE(stateInternal.IsValid(), stateInternal.GetRejectReason());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

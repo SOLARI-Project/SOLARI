@@ -177,7 +177,6 @@ bool CMasternodePaymentWinner::IsValid(CNode* pnode, CValidationState& state, in
 
     // Must be a P2PKH
     if (!payee.IsPayToPublicKeyHash()) {
-        LogPrint(BCLog::MASTERNODE, "%s - payee must be a P2PKH\n", __func__);
         return state.Error("payee must be a P2PKH");
     }
 
