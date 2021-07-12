@@ -10,7 +10,6 @@
 #include "pow.h"
 #include "uint256.h"
 #include "util/system.h"
-#include "zpiv/zerocoin.h"
 #include "util/vector.h"
 
 #include <stdint.h>
@@ -345,12 +344,12 @@ CZerocoinDB::CZerocoinDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapp
 {
 }
 
-bool CZerocoinDB::WriteCoinSpendBatch(const std::vector<std::pair<libzerocoin::CoinSpend, uint256> >& spendInfo)
+bool CZerocoinDB::WriteCoinSpendBatch(const std::vector<std::pair<CBigNum, uint256> >& spendInfo)
 {
     CDBBatch batch;
     size_t count = 0;
-    for (std::vector<std::pair<libzerocoin::CoinSpend, uint256> >::const_iterator it=spendInfo.begin(); it != spendInfo.end(); it++) {
-        CBigNum bnSerial = it->first.getCoinSerialNumber();
+    for (std::vector<std::pair<CBigNum, uint256> >::const_iterator it=spendInfo.begin(); it != spendInfo.end(); it++) {
+        CBigNum bnSerial = it->first;
         CDataStream ss(SER_GETHASH, 0);
         ss << bnSerial;
         uint256 hash = Hash(ss.begin(), ss.end());

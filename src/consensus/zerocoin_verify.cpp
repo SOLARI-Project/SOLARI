@@ -194,9 +194,9 @@ bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& stat
     return true;
 }
 
-bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight, const uint256& hashBlock)
+bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight)
 {
-    if(!ContextualCheckZerocoinSpendNoSerialCheck(tx, spend, nHeight, hashBlock)){
+    if(!ContextualCheckZerocoinSpendNoSerialCheck(tx, spend, nHeight)){
         return false;
     }
 
@@ -209,7 +209,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
     return true;
 }
 
-bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight, const uint256& hashBlock)
+bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight)
 {
     const Consensus::Params& consensus = Params().GetConsensus();
     //Check to see if the zPIV is properly signed
@@ -250,3 +250,46 @@ bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const lib
     return true;
 }
 
+Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params& consensus,
+                                                        const CTransaction& tx, int chainHeight,
+                                                        CValidationState& state)
+{
+    for (const CTxIn& txIn : tx.vin) {
+        bool isPublicSpend = txIn.IsZerocoinPublicSpend();
+        bool isPrivZerocoinSpend = txIn.IsZerocoinSpend();
+        if (!isPrivZerocoinSpend && !isPublicSpend)
+            continue;
+
+        // Check enforcement
+        if (!CheckPublicCoinSpendEnforced(chainHeight, isPublicSpend)){
+            return nullopt;
+        }
+
+        if (isPublicSpend) {
+            libzerocoin::ZerocoinParams* params = consensus.Zerocoin_Params(false);
+            PublicCoinSpend publicSpend(params);
+            if (!ZPIVModule::ParseZerocoinPublicSpend(txIn, tx, state, publicSpend) ||
+                !CheckPublicCoinSpendVersion(publicSpend.getCoinVersion())){
+                return nullopt;
+            }
+            //queue for db write after the 'justcheck' section has concluded
+            if (!ContextualCheckZerocoinSpend(tx, &publicSpend, chainHeight)) {
+                state.DoS(100, error("%s: failed to add block %s with invalid public zc spend", __func__,
+                                     tx.GetHash().GetHex()), REJECT_INVALID);
+                return nullopt;
+            }
+            // return value
+            return Optional<CoinSpendValues>(CoinSpendValues(publicSpend.getCoinSerialNumber(), publicSpend.getDenomination() * COIN));
+        } else {
+            libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txIn);
+            //queue for db write after the 'justcheck' section has concluded
+            if (!ContextualCheckZerocoinSpend(tx, &spend, chainHeight)) {
+                state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
+                                     tx.GetHash().GetHex()), REJECT_INVALID);
+                return nullopt;
+            }
+            return Optional<CoinSpendValues>(CoinSpendValues(spend.getCoinSerialNumber(), spend.getDenomination() * COIN));
+        }
+    }
+    return nullopt;
+}
