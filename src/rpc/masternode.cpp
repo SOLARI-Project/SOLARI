@@ -233,7 +233,7 @@ UniValue listmasternodes(const JSONRPCRequest& request)
         LookupHost(strHost.c_str(), node, false);
         std::string strNetwork = GetNetworkName(node.GetNetwork());
 
-        obj.pushKV("rank", (strStatus == "ENABLED" ? pos : 0));
+        obj.pushKV("rank", (strStatus == "ENABLED" ? pos : -1));
         obj.pushKV("type", "legacy");
         obj.pushKV("network", strNetwork);
         obj.pushKV("txhash", strTxHash);
