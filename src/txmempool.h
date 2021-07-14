@@ -27,18 +27,6 @@
 
 class CAutoFile;
 
-inline double AllowFreeThreshold()
-{
-    return COIN * 1440 / 250;
-}
-
-inline bool AllowFree(double dPriority)
-{
-    // Large (in bytes) low-priority (new, small-coin) transactions
-    // need a fee.
-    return dPriority > AllowFreeThreshold();
-}
-
 
 /** Fake height value used in Coin to signify they are only in the memory pool (since 0.8) */
 static const uint32_t MEMPOOL_HEIGHT = 0x7FFFFFFF;
@@ -67,16 +55,12 @@ private:
     CTransactionRef tx;
     CAmount nFee;         //! Cached to avoid expensive parent-transaction lookups
     size_t nTxSize;       //! ... and avoid recomputing tx size
-    size_t nModSize;      //! ... and modified size for priority
     size_t nUsageSize;    //! ... and total memory usage
     CFeeRate feeRate;     //! ... and fee per kB
     bool hasZerocoins{false}; //! ... and checking if it contains zPIV (mints/spends)
     bool m_isShielded{false}; //! ... and checking if it contains shielded spends/outputs
     int64_t nTime;        //! Local time when entering the mempool
-    double entryPriority;     //! Priority when entering the mempool
     unsigned int entryHeight; //! Chain height when entering the mempool
-    bool hadNoDependencies; //! Not dependent on any other txs when it entered the mempool
-    CAmount inChainInputValue; //! Sum of all txin values that are already in blockchain
     bool spendsCoinbaseOrCoinstake; //! keep track of transactions that spend a coinbase or a coinstake
     unsigned int sigOpCount; //! Legacy sig ops plus P2SH sig op count
     int64_t feeDelta; //! Used for determining the priority of the transaction for mining in a block
@@ -98,24 +82,17 @@ private:
 
 public:
     CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
-            int64_t _nTime, double _entryPriority, unsigned int _entryHeight,
-            bool poolHasNoInputsOf, CAmount _inChainInputValue, bool _spendsCoinbaseOrCoinstake,
-            unsigned int nSigOps);
+            int64_t _nTime, unsigned int _entryHeight,
+            bool _spendsCoinbaseOrCoinstake, unsigned int nSigOps);
 
     const CTransaction& GetTx() const { return *this->tx; }
     std::shared_ptr<const CTransaction> GetSharedTx() const { return this->tx; }
-    /**
-     * Fast calculation of lower bound of current priority as update
-     * from entry priority. Only inputs that were originally in-chain will age.
-     */
-    double GetPriority(unsigned int currentHeight) const;
     const CAmount& GetFee() const { return nFee; }
     size_t GetTxSize() const { return nTxSize; }
     int64_t GetTime() const { return nTime; }
     unsigned int GetHeight() const { return entryHeight; }
     bool HasZerocoins() const { return hasZerocoins; }
     bool IsShielded() const { return m_isShielded; }
-    bool WasClearAtEntry() const { return hadNoDependencies; }
     unsigned int GetSigOpCount() const { return sigOpCount; }
     int64_t GetModifiedFee() const { return nFee + feeDelta; }
     size_t DynamicMemoryUsage() const { return nUsageSize; }
@@ -491,7 +468,9 @@ public:
      */
     mutable RecursiveMutex cs;
     indexed_transaction_set mapTx;
+
     typedef indexed_transaction_set::nth_index<0>::type::iterator txiter;
+
     struct CompareIteratorByHash {
         bool operator()(const txiter &a, const txiter &b) const {
             return a->GetTx().GetHash() < b->GetTx().GetHash();
@@ -501,6 +480,7 @@ public:
 
     const setEntries & GetMemPoolParents(txiter entry) const;
     const setEntries & GetMemPoolChildren(txiter entry) const;
+
 private:
     typedef std::map<txiter, setEntries, CompareIteratorByHash> cacheMap;
 
@@ -524,7 +504,7 @@ private:
 
 public:
     indirectmap<COutPoint, CTransactionRef> mapNextTx;
-    std::map<uint256, std::pair<double, CAmount> > mapDeltas;
+    std::map<uint256, CAmount> mapDeltas;
 
     /** Create a new CTxMemPool.
      *  minReasonableRelayFee should be a feerate which is, roughly, somewhere
@@ -550,15 +530,14 @@ public:
     // Note that addUnchecked is ONLY called from ATMP outside of tests
     // and any other callers may break wallet's in-mempool tracking (due to
     // lack of CValidationInterface::TransactionAddedToMempool callbacks).
-    bool addUnchecked(const uint256& hash, const CTxMemPoolEntry& entry, bool fCurrentEstimate = true);
-    bool addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry, setEntries &setAncestors, bool fCurrentEstimate = true);
+    bool addUnchecked(const uint256& hash, const CTxMemPoolEntry& entry, bool validFeeEstimate = true);
+    bool addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry, setEntries &setAncestors, bool validFeeEstimate = true);
 
     void removeRecursive(const CTransaction& tx, MemPoolRemovalReason reason = MemPoolRemovalReason::UNKNOWN);
     void removeForReorg(const CCoinsViewCache* pcoins, unsigned int nMemPoolHeight, int flags);
     void removeWithAnchor(const uint256& invalidRoot);
     void removeConflicts(const CTransaction& tx);
-    void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight,
-                        bool fCurrentEstimate = true);
+    void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight);
 
     void clear();
     void _clear();  // lock-free
@@ -575,8 +554,8 @@ public:
     bool HasNoInputsOf(const CTransaction& tx) const;
 
     /** Affect CreateNewBlock prioritisation of transactions */
-    void PrioritiseTransaction(const uint256 hash, const std::string strHash, double dPriorityDelta, const CAmount& nFeeDelta);
-    void ApplyDeltas(const uint256 hash, double& dPriorityDelta, CAmount& nFeeDelta) const;
+    void PrioritiseTransaction(const uint256& hash, const CAmount& nFeeDelta);
+    void ApplyDelta(const uint256& hash, CAmount& nFeeDelta) const;
     void ClearPrioritisation(const uint256 hash);
 
     bool nullifierExists(const uint256& nullifier) const;
@@ -612,6 +591,11 @@ public:
      *    look up parents from mapLinks. Must be true for entries not in the mempool
      */
     bool CalculateMemPoolAncestors(const CTxMemPoolEntry &entry, setEntries &setAncestors, uint64_t limitAncestorCount, uint64_t limitAncestorSize, uint64_t limitDescendantCount, uint64_t limitDescendantSize, std::string &errString, bool fSearchForParents = true) const;
+
+    /** Populate setDescendants with all in-mempool descendants of hash.
+     *  Assumes that setDescendants includes all in-mempool descendants of anything
+     *  already in it.  */
+    void CalculateDescendants(txiter it, setEntries &setDescendants);
 
     /** The minimum fee to get into the mempool, which may itself not be enough
      *  for larger-sized transactions.
@@ -676,15 +660,6 @@ public:
     /** Estimate fee rate needed to get into the next nBlocks */
     CFeeRate estimateFee(int nBlocks) const;
 
-    /** Estimate priority needed to get into the next nBlocks
-     *  If no answer can be given at nBlocks, return an estimate
-     *  at the lowest number of blocks where one can be given
-     */
-    double estimateSmartPriority(int nBlocks, int *answerFoundAtBlocks = NULL) const;
-
-    /** Estimate priority needed to get into the next nBlocks */
-    double estimatePriority(int nBlocks) const;
-
     /** Write/Read estimates to disk */
     bool WriteFeeEstimates(CAutoFile& fileout) const;
     bool ReadFeeEstimates(CAutoFile& filein);
@@ -718,10 +693,6 @@ private:
     void UpdateForRemoveFromMempool(const setEntries &entriesToRemove, bool updateDescendants);
     /** Sever link between specified transaction and direct children. */
     void UpdateChildrenForRemoval(txiter entry);
-    /** Populate setDescendants with all in-mempool descendants of hash.
-     *  Assumes that setDescendants includes all in-mempool descendants of anything
-     *  already in it.  */
-    void CalculateDescendants(txiter it, setEntries &setDescendants);
 
     /** Before calling removeUnchecked for a given transaction,
      *  UpdateForRemoveFromMempool must be called on the entire (dependent) set
@@ -757,19 +728,6 @@ public:
     bool GetCoin(const COutPoint& outpoint, Coin& coin) const;
     bool HaveCoin(const COutPoint& outpoint) const;
     bool GetNullifier(const uint256& nullifier) const;
-};
-
-// We want to sort transactions by coin age priority
-typedef std::pair<double, CTxMemPool::txiter> TxCoinAgePriority;
-
-struct TxCoinAgePriorityCompare
-{
-    bool operator()(const TxCoinAgePriority& a, const TxCoinAgePriority& b)
-    {
-        if (a.first == b.first)
-            return CompareTxMemPoolEntryByScore()(*(b.second), *(a.second)); //Reverse order to make sort less than
-        return a.first < b.first;
-    }
 };
 
 /**

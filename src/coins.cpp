@@ -364,33 +364,6 @@ bool CCoinsViewCache::HaveInputs(const CTransaction& tx) const
     return true;
 }
 
-double CCoinsViewCache::GetPriority(const CTransaction& tx, int nHeight, CAmount &inChainInputValue) const
-{
-    inChainInputValue = 0;
-    if (tx.IsCoinBase() || tx.IsCoinStake())
-        return 0.0;
-
-
-    // Shielded transfers do not reveal any information about the value or age of a note, so we
-    // cannot apply the priority algorithm used for transparent utxos.  Instead, we just
-    // use the maximum priority for all (partially or fully) shielded transactions.
-    // (Note that coinbase/coinstakes transactions cannot contain Sapling shielded Spends or Outputs.)
-    if (tx.IsShieldedTx()) {
-        return INF_PRIORITY;
-    }
-
-    double dResult = 0.0;
-    for (const CTxIn& txin : tx.vin) {
-        const Coin& coin = AccessCoin(txin.prevout);
-        if (coin.IsSpent()) continue;
-        if (coin.nHeight <= (unsigned)nHeight) {
-            dResult += coin.out.nValue * (nHeight - coin.nHeight);
-            inChainInputValue += coin.out.nValue;
-        }
-    }
-    return tx.ComputePriority(dResult);
-}
-
 int CCoinsViewCache::GetCoinDepthAtHeight(const COutPoint& output, int nHeight) const
 {
     const Coin& coin = AccessCoin(output);

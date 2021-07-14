@@ -795,6 +795,7 @@ void TryATMP(const CMutableTransaction& mtx, bool fOverrideFees)
 {
     const uint256& hashTx = mtx.GetHash();
     std::promise<void> promise;
+    bool fLimitFree = true;
 
     { // cs_main scope
         LOCK(cs_main);
@@ -808,7 +809,7 @@ void TryATMP(const CMutableTransaction& mtx, bool fOverrideFees)
         if (!fHaveMempool && !fHaveChain) {
             CValidationState state;
             bool fMissingInputs;
-            if (!AcceptToMemoryPool(mempool, state, MakeTransactionRef(std::move(mtx)), true, &fMissingInputs, false, !fOverrideFees)) {
+            if (!AcceptToMemoryPool(mempool, state, MakeTransactionRef(std::move(mtx)), fLimitFree, &fMissingInputs, false, !fOverrideFees)) {
                 if (state.IsInvalid()) {
                     throw JSONRPCError(RPC_TRANSACTION_REJECTED, strprintf("%s: %s", state.GetRejectReason(), state.GetDebugMessage()));
                 } else {

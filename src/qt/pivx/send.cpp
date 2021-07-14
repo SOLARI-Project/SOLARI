@@ -722,7 +722,7 @@ void SendWidget::onShieldCoinsClicked()
         nBytesInputs += 1;
         // nVersion, nType, nLockTime and vin/vout len sizes
         nBytesInputs += 10;
-        CAmount nPayFee = GetMinRelayFee(nBytesInputs, false) * DEFAULT_SHIELDEDTXFEE_K;
+        CAmount nPayFee = GetMinRelayFee(nBytesInputs) * DEFAULT_SHIELDEDTXFEE_K;
 
         // load recipient
         QList<SendCoinsRecipient> recipients;

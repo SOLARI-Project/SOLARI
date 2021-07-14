@@ -280,36 +280,26 @@ void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) {
         pcoinsTip->Uncache(removed);
 }
 
-CAmount GetMinRelayFee(const CTransaction& tx, const CTxMemPool& pool, unsigned int nBytes, bool fAllowFree)
+CAmount GetMinRelayFee(const CTransaction& tx, const CTxMemPool& pool, unsigned int nBytes)
 {
     if (tx.IsShieldedTx()) {
         return GetShieldedTxMinFee(tx);
     }
     uint256 hash = tx.GetHash();
-    double dPriorityDelta = 0;
     CAmount nFeeDelta = 0;
-    pool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
-    if (dPriorityDelta > 0 || nFeeDelta > 0)
+    pool.ApplyDelta(hash, nFeeDelta);
+    if (nFeeDelta > 0)
         return 0;
 
-    return GetMinRelayFee(nBytes, fAllowFree);
+    return GetMinRelayFee(nBytes);
 }
 
-CAmount GetMinRelayFee(unsigned int nBytes, bool fAllowFree)
+CAmount GetMinRelayFee(unsigned int nBytes)
 {
     CAmount nMinFee = ::minRelayTxFee.GetFee(nBytes);
-
-    if (fAllowFree) {
-        // There is a free transaction area in blocks created by most miners,
-        // * If we are relaying we allow transactions up to DEFAULT_BLOCK_PRIORITY_SIZE - 1000
-        //   to be considered to fall into this category. We don't want to encourage sending
-        //   multiple transactions instead of one big transaction to avoid fees.
-        if (nBytes < (DEFAULT_BLOCK_PRIORITY_SIZE - 1000))
-            nMinFee = 0;
-    }
-
-    if (!Params().GetConsensus().MoneyRange(nMinFee))
+    if (!Params().GetConsensus().MoneyRange(nMinFee)) {
         nMinFee = Params().GetConsensus().nMaxMoneyOut;
+    }
     return nMinFee;
 }
 
@@ -388,6 +378,18 @@ void UpdateMempoolForReorg(DisconnectedBlockTransactions &disconnectpool, bool f
     // Re-limit mempool size, in case we added any transactions
     LimitMempoolSize(mempool, gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000,
                               gArgs.GetArg("-mempoolexpiry", DEFAULT_MEMPOOL_EXPIRY) * 60 * 60);
+}
+
+static bool IsCurrentForFeeEstimation()
+{
+    AssertLockHeld(cs_main);
+    if (IsInitialBlockDownload())
+        return false;
+    if (chainActive.Tip()->GetBlockTime() < (GetTime() - MAX_FEE_ESTIMATION_TIP_AGE))
+        return false;
+    if (chainActive.Height() < pindexBestHeader->nHeight - 1)
+        return false;
+    return true;
 }
 
 bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const CTransactionRef& _tx, bool fLimitFree,
@@ -544,9 +546,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
         CAmount nValueOut = tx.GetValueOut();
         CAmount nFees = nValueIn - nValueOut;
-        CAmount inChainInputValue = 0;
         bool fSpendsCoinbaseOrCoinstake = false;
-        double dPriority = view.GetPriority(tx, chainHeight, inChainInputValue);
 
         // Keep track of transactions that spend a coinbase, which we re-scan
         // during reorgs to ensure COINBASE_MATURITY is still met.
@@ -558,58 +558,30 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
             }
         }
 
-        CTxMemPoolEntry entry(_tx, nFees, nAcceptTime, dPriority, chainHeight, pool.HasNoInputsOf(tx), inChainInputValue, fSpendsCoinbaseOrCoinstake, nSigOps);
+        CTxMemPoolEntry entry(_tx, nFees, nAcceptTime, chainHeight,
+                              fSpendsCoinbaseOrCoinstake, nSigOps);
         unsigned int nSize = entry.GetTxSize();
 
         // Don't accept it if it can't get into a block
         if (!ignoreFees) {
-            const CAmount txMinFee = GetMinRelayFee(tx, pool, nSize, false);
-            if (fLimitFree && nFees < txMinFee)
+            const CAmount txMinFee = GetMinRelayFee(tx, pool, nSize);
+            if (fLimitFree && nFees < txMinFee) {
                 return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient fee", false,
                     strprintf("%d < %d", nFees, txMinFee));
-
-            // Require that free transactions have sufficient priority to be mined in the next block.
-            if (gArgs.GetBoolArg("-relaypriority", DEFAULT_RELAYPRIORITY) && nFees < ::minRelayTxFee.GetFee(nSize) && !AllowFree(entry.GetPriority(chainHeight + 1))) {
-                return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient priority");
             }
 
-            // Continuously rate-limit free (really, very-low-fee) transactions
-            // This mitigates 'penny-flooding' -- sending thousands of free transactions just to
-            // be annoying or make others' transactions take longer to confirm.
+            // No transactions are allowed below minRelayTxFee except from disconnected blocks
             if (fLimitFree && nFees < ::minRelayTxFee.GetFee(nSize)) {
-                static RecursiveMutex csFreeLimiter;
-                static double dFreeCount;
-                static int64_t nLastTime;
-                int64_t nNow = GetTime();
-
-                LOCK(csFreeLimiter);
-
-                // Use an exponentially decaying ~10-minute window:
-                dFreeCount *= pow(1.0 - 1.0 / 600.0, (double)(nNow - nLastTime));
-                nLastTime = nNow;
-                // -limitfreerelay unit is thousand-bytes-per-minute
-                // At default rate it would take over a month to fill 1GB
-                if (dFreeCount >= gArgs.GetArg("-limitfreerelay", DEFAULT_LIMITFREERELAY) * 10 * 1000)
-                    return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "rate limited free transaction");
-                LogPrint(BCLog::MEMPOOL, "Rate limit dFreeCount: %g => %g\n", dFreeCount, dFreeCount + nSize);
-                dFreeCount += nSize;
+                return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min relay fee not met");
             }
         }
 
         if (fRejectAbsurdFee) {
             const CAmount nMaxFee = tx.IsShieldedTx() ? GetShieldedTxMinFee(tx) * 100 :
-                                                        GetMinRelayFee(nSize, false) * 10000;
+                                                        GetMinRelayFee(nSize) * 10000;
             if (nFees > nMaxFee)
                 return state.Invalid(false, REJECT_HIGHFEE, "absurdly-high-fee",
                                      strprintf("%d > %d", nFees, nMaxFee));
-        }
-
-        // As zero fee transactions are not going to be accepted in the near future (4.0) and the code will be fully refactored soon.
-        // This is just a quick inline towards that goal, the mempool by default will not accept them. Blocking
-        // any subsequent network relay.
-        if (!Params().IsRegTestNet() && nFees == 0) {
-            return error("%s : zero fees not accepted %s, %d > %d",
-                    __func__, hash.ToString(), nFees, ::minRelayTxFee.GetFee(nSize) * 10000);
         }
 
         // Calculate in-mempool ancestors, up to a limit.
@@ -659,8 +631,13 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         }
         // todo: pool.removeStaged for all conflicting entries
 
+        // This transaction should only count for fee estimation if
+        // the node is not behind and it is not dependent on any other
+        // transactions in the mempool
+        bool validForFeeEstimation = IsCurrentForFeeEstimation() && pool.HasNoInputsOf(tx);
+
         // Store transaction in memory
-        pool.addUnchecked(hash, entry, setAncestors, !IsInitialBlockDownload());
+        pool.addUnchecked(hash, entry, setAncestors, validForFeeEstimation);
 
         // trim mempool and check if tx was trimmed
         if (!fOverrideMempoolLimit) {
@@ -1105,7 +1082,7 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
 
         // If prev is coinbase, check that it's matured
         if (coin.IsCoinBase() || coin.IsCoinStake()) {
-            if ((signed long)nSpendHeight - coin.nHeight < consensus.nCoinbaseMaturity)
+            if ((signed long)nSpendHeight - coin.nHeight < (signed long)consensus.nCoinbaseMaturity)
                 return state.Invalid(false, REJECT_INVALID, "bad-txns-premature-spend-of-coinbase-coinstake",
                         strprintf("tried to spend coinbase/coinstake at depth %d", nSpendHeight - coin.nHeight));
         }
@@ -2109,7 +2086,7 @@ bool static ConnectTip(CValidationState& state, CBlockIndex* pindexNew, const st
     LogPrint(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs]\n", (nTime5 - nTime4) * 0.001, nTimeChainState * 0.000001);
 
     // Remove conflicting transactions from the mempool.
-    mempool.removeForBlock(blockConnecting.vtx, pindexNew->nHeight, !IsInitialBlockDownload());
+    mempool.removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
     disconnectpool.removeForBlock(blockConnecting.vtx);
     // Update chainActive & related variables.
     UpdateTip(pindexNew);
@@ -4172,7 +4149,6 @@ bool LoadMempool(CTxMemPool& pool)
         }
         uint64_t num;
         file >> num;
-        double prioritydummy = 0;
         while (num--) {
             CTransactionRef tx;
             int64_t nTime;
@@ -4183,7 +4159,7 @@ bool LoadMempool(CTxMemPool& pool)
 
             CAmount amountdelta = nFeeDelta;
             if (amountdelta) {
-                pool.PrioritiseTransaction(tx->GetHash(), tx->GetHash().ToString(), prioritydummy, amountdelta);
+                pool.PrioritiseTransaction(tx->GetHash(), amountdelta);
             }
             CValidationState state;
             if (nTime + nExpiryTimeout > nNow) {
@@ -4204,7 +4180,7 @@ bool LoadMempool(CTxMemPool& pool)
         file >> mapDeltas;
 
         for (const auto& i : mapDeltas) {
-            pool.PrioritiseTransaction(i.first, i.first.ToString(), prioritydummy, i.second);
+            pool.PrioritiseTransaction(i.first, i.second);
         }
     } catch (const std::exception& e) {
         LogPrintf("Failed to deserialize mempool data on disk: %s. Continuing anyway.\n", e.what());
@@ -4228,7 +4204,7 @@ bool DumpMempool(const CTxMemPool& pool)
     {
         LOCK(pool.cs);
         for (const auto &i : pool.mapDeltas) {
-            mapDeltas[i.first] = i.second.second;
+            mapDeltas[i.first] = i.second;
         }
         vinfo = pool.infoAll();
     }

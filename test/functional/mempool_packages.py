@@ -23,7 +23,7 @@ MAX_DESCENDANTS = 25
 class MempoolPackagesTest(PivxTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
-        self.extra_args = [["-maxorphantx=1000", "-relaypriority=0"], ["-maxorphantx=1000", "-relaypriority=0", "-limitancestorcount=5"]]
+        self.extra_args = [["-maxorphantx=1000"], ["-maxorphantx=1000", "-limitancestorcount=5"]]
 
     # Build a transaction that spends parent_txid:vout
     # Return amount sent
@@ -75,7 +75,7 @@ class MempoolPackagesTest(PivxTestFramework):
 
         # Check that descendant modified fees includes fee deltas from
         # prioritisetransaction
-        self.nodes[0].prioritisetransaction(chain[-1], 0, 1000)
+        self.nodes[0].prioritisetransaction(chain[-1], 1000)
         mempool = self.nodes[0].getrawmempool(True)
 
         descendant_fees = 0
@@ -96,7 +96,7 @@ class MempoolPackagesTest(PivxTestFramework):
         assert_equal(len(self.nodes[0].getrawmempool()), 0)
         # Prioritise a transaction that has been mined, then add it back to the
         # mempool by using invalidateblock.
-        self.nodes[0].prioritisetransaction(chain[-1], 0, 2000)
+        self.nodes[0].prioritisetransaction(chain[-1], 2000)
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
         # Keep node1's tip synced with node0
         self.nodes[1].invalidateblock(self.nodes[1].getbestblockhash())

@@ -65,8 +65,6 @@ static const CAmount nHighTransactionFeeWarning = 0.1 * COIN;
 static const CAmount DEFAULT_TRANSACTION_MAXFEE = 1 * COIN;
 //! -maxtxfee will warn if called with a higher fee than this amount (in satoshis)
 static const CAmount nHighTransactionMaxFeeWarning = 100 * nHighTransactionFeeWarning;
-//! Largest (in bytes) free transaction we're willing to create
-static const unsigned int MAX_FREE_TRANSACTION_CREATE_SIZE = 1000;
 //! -custombackupthreshold default
 static const int DEFAULT_CUSTOMBACKUPTHRESHOLD = 1;
 //! -minstakesplit default
@@ -564,7 +562,7 @@ public:
     bool IsCoinStake() const { return tx->IsCoinStake(); }
 
     /** Pass this transaction to the mempool. Fails if absolute fee exceeds absurd fee. */
-    bool AcceptToMemoryPool(CValidationState& state, bool fLimitFree = true, bool fRejectInsaneFee = true, bool ignoreFees = false);
+    bool AcceptToMemoryPool(CValidationState& state);
 };
 
 

@@ -100,6 +100,26 @@ It is now possible to only redo validation, without rebuilding the block index, 
 This new option is useful when the blocks on disk are assumed to be fine, but the chainstate is still corrupted. It is also useful for benchmarks.
 
 
+Mining/Staking transaction selection ("Child Pays For Parent")
+--------------------------------------------------------------
+
+The block-generation transaction selection algorithm now selects transactions based on their feerate inclusive of unconfirmed ancestor transactions.  This means that a low-fee transaction can become more likely to be selected if a high-fee transaction that spends its outputs is relayed.
+With this change, the `-blockminsize` command line option has been removed.
+
+
+Removal of Priority Estimation - Coin Age Priority
+--------------------------------------------------
+
+In previous versions of PIVX Core, a portion of each block could be reserved for transactions based on the age and value of UTXOs they spent. This concept (Coin Age Priority) is a policy choice by miners/stakers, and there are no consensus rules around the inclusion of Coin Age Priority transactions in blocks. 
+PIVX Core v6.0.0 removes all remaining support for Coin Age Priority (See [PR #2378](https://github.com/PIVX-Project/PIVX/pull/2378)). This has the following implications:
+
+- The concept of *free transactions* has been removed. High Coin Age Priority transactions would previously be allowed to be relayed even if they didn't attach a miner fee. This is no longer possible since there is no concept of Coin Age Priority. The `-limitfreerelay` and `-relaypriority` options which controlled relay of free transactions have therefore been removed.
+- The `-blockprioritysize` option has been removed.
+- The `prioritisetransaction` RPC no longer takes a `priority_delta` argument. The RPC is still used to change the apparent fee-rate of the transaction by using the `fee_delta` argument.
+- `-minrelaytxfee` can now be set to 0. If `minrelaytxfee` is set, then fees smaller than `minrelaytxfee` (per kB) are rejected from relaying, mining and transaction creation. This defaults to 10000 satoshi/kB.
+- The `-printpriority` option has been updated to only output the fee rate and hash of transactions included in a block by the mining code.
+
+
 GUI changes
 -----------
 
