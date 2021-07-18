@@ -3,7 +3,6 @@
 # Copyright (c) 2021 The PIVX Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://www.opensource.org/licenses/mit-license.php.
-
 """Test tx status in case of reorgs while wallet being shutdown.
 
 Wallet txn status rely on block connection/disconnection for its
@@ -24,6 +23,7 @@ from test_framework.util import (
         connect_nodes,
         disconnect_nodes,
 )
+
 
 class ReorgsRestoreTest(PivxTestFramework):
     def set_test_params(self):

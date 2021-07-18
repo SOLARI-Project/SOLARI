@@ -10,9 +10,11 @@
 - Verify that bitcoind AbortNode's.
 """
 
+import os
+
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import wait_until, get_datadir_path, connect_nodes
-import os
+
 
 class AbortNodeTest(PivxTestFramework):
 

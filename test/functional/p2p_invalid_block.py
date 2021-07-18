@@ -10,6 +10,7 @@ In this test we connect to one node over p2p, and test block requests:
 3) Invalid block with bad coinbase value should be rejected and not
 re-requested.
 """
+
 import copy
 
 from test_framework.blocktools import create_block, create_coinbase, create_transaction
@@ -21,6 +22,7 @@ from test_framework.script import (
 )
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import assert_equal
+
 
 class InvalidBlockRequestTest(PivxTestFramework):
     def set_test_params(self):

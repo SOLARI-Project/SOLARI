@@ -30,6 +30,7 @@ confirm 1/2/3/4 balances are same as before.
 Shutdown again, restore using importwallet,
 and confirm again balances are correct.
 """
+
 from decimal import Decimal
 import os
 from random import randint
@@ -41,6 +42,7 @@ from test_framework.util import (
     assert_raises_rpc_error,
     connect_nodes,
 )
+
 
 class WalletBackupTest(PivxTestFramework):
     def set_test_params(self):

@@ -11,8 +11,8 @@ the node should pretend that it does not have it to avoid fingerprinting.
 import time
 
 from test_framework.blocktools import (create_block, create_coinbase)
+from test_framework.messages import CInv
 from test_framework.mininode import (
-    CInv,
     P2PInterface,
     msg_headers,
     msg_block,
@@ -21,9 +21,8 @@ from test_framework.mininode import (
     wait_until,
 )
 from test_framework.test_framework import PivxTestFramework
-from test_framework.util import (
-    assert_equal,
-)
+from test_framework.util import assert_equal
+
 
 class P2PFingerprintTest(PivxTestFramework):
     def set_test_params(self):

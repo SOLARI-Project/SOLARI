@@ -2,15 +2,16 @@
 # Copyright (c) 2021 The PIVX developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://www.opensource.org/licenses/mit-license.php .
+""" Test getblockindexstats RPC results"""
+
+import random
 
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import (
     assert_equal,
 )
 
-import random
 
-# Test getblockindexstats RPC results
 class BlockIndexStatsTest(PivxTestFramework):
 
     def set_test_params(self):

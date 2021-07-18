@@ -4,6 +4,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test block processing."""
+
 import copy
 import struct
 import time
@@ -44,7 +45,7 @@ from test_framework.script import (
     hash160,
 )
 from test_framework.test_framework import PivxTestFramework
-from test_framework.util import assert_equal, bytes_to_hex_str
+from test_framework.util import assert_equal
 
 MAX_BLOCK_SIGOPS = MAX_BLOCK_BASE_SIZE // 50
 

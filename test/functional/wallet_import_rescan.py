@@ -19,6 +19,10 @@ importing nodes pick up the new transactions regardless of whether rescans
 happened previously.
 """
 
+import collections
+import enum
+import itertools
+
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import (
     assert_raises_rpc_error,
@@ -27,9 +31,6 @@ from test_framework.util import (
     set_node_times
 )
 
-import collections
-import enum
-import itertools
 
 Call = enum.Enum("Call", "single multi")
 Data = enum.Enum("Data", "address pub priv")
