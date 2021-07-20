@@ -4367,7 +4367,7 @@ bool CWalletTx::AcceptToMemoryPool(CValidationState& state)
 
 std::string CWallet::GetUniqueWalletBackupName() const
 {
-    return strprintf("%s%s", (!m_name.empty() ? m_name : "null"), FormatISO8601DateTimeForBackup(GetTime()));
+    return strprintf("%s%s", (!m_name.empty() ? SanitizeString(m_name, SAFE_CHARS_FILENAME) : "null"), FormatISO8601DateTimeForBackup(GetTime()));
 }
 
 CWallet::CWallet(std::string name, std::unique_ptr<CWalletDBWrapper> dbw) : m_name(std::move(name)), dbw(std::move(dbw))
