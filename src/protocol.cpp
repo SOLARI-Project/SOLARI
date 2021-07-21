@@ -80,7 +80,7 @@ const static std::string allNetMessageTypes[] = {
     "filtered block", // Should never occur
     "ix",   // deprecated
     "txlvote", // deprecated
-    NetMsgType::SPORK,
+    NetMsgType::SPORK,           // --- tiertwoNetMessageTypes start here ---
     NetMsgType::MNWINNER,
     "mnodescanerr",
     NetMsgType::BUDGETVOTE,
@@ -98,6 +98,7 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::SYNCSTATUSCOUNT
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes + ARRAYLEN(allNetMessageTypes));
+const static std::vector<std::string> tiertwoNetMessageTypesVec(std::find(allNetMessageTypesVec.begin(), allNetMessageTypesVec.end(), NetMsgType::SPORK), allNetMessageTypesVec.end());
 
 CMessageHeader::CMessageHeader(const MessageStartChars& pchMessageStartIn)
 {
@@ -225,4 +226,9 @@ std::string CInv::ToString() const
 const std::vector<std::string>& getAllNetMessageTypes()
 {
     return allNetMessageTypesVec;
+}
+
+const std::vector<std::string>& getTierTwoNetMessageTypes()
+{
+    return tiertwoNetMessageTypesVec;
 }

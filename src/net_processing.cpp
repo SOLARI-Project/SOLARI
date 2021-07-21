@@ -130,7 +130,7 @@ public:
 
         // Compute the number of the received blocks
         size_t nBlocks = 0;
-        for(auto point : points) {
+        for (auto point : points) {
             nBlocks += point.second;
         }
 
@@ -141,7 +141,7 @@ public:
         bool banNode = (nAvgValue >= 1.5 * maxAvg && size >= maxAvg) ||
                        (nAvgValue >= maxAvg && nBlocks >= maxSize) ||
                        (nBlocks >= maxSize * 3);
-        if(banNode) {
+        if (banNode) {
             // Clear the points and ban the node
             points.clear();
             return state.DoS(100, error("block-spam ban node for sending spam"));
@@ -1874,29 +1874,23 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         pfrom->fRelayTxes = true;
     }
 
-    // Tier two msg type search
-    bool found = false;
-    const std::vector<std::string>& allMessages = getAllNetMessageTypes();
-    for (const std::string& msg : allMessages) {
-        if (msg == strCommand) {
-            found = true;
-            break;
+    else {
+        // Tier two msg type search
+        const std::vector<std::string>& allMessages = getTierTwoNetMessageTypes();
+        if (std::find(allMessages.begin(), allMessages.end(), strCommand) != allMessages.end()) {
+            // Check if the dispatcher can process this message first. If not, try going with the old flow.
+            if (!masternodeSync.MessageDispatcher(pfrom, strCommand, vRecv)) {
+                // Probably one the extensions
+                mnodeman.ProcessMessage(pfrom, strCommand, vRecv);
+                g_budgetman.ProcessMessage(pfrom, strCommand, vRecv);
+                masternodePayments.ProcessMessageMasternodePayments(pfrom, strCommand, vRecv);
+                sporkManager.ProcessSpork(pfrom, strCommand, vRecv);
+                masternodeSync.ProcessMessage(pfrom, strCommand, vRecv);
+            }
+        } else {
+            // Ignore unknown commands for extensibility
+            LogPrint(BCLog::NET, "Unknown command \"%s\" from peer=%d\n", SanitizeString(strCommand), pfrom->id);
         }
-    }
-
-    if (found) {
-        // Check if the dispatcher can process this message first. If not, try going with the old flow.
-        if (!masternodeSync.MessageDispatcher(pfrom, strCommand, vRecv)) {
-            //probably one the extensions
-            mnodeman.ProcessMessage(pfrom, strCommand, vRecv);
-            g_budgetman.ProcessMessage(pfrom, strCommand, vRecv);
-            masternodePayments.ProcessMessageMasternodePayments(pfrom, strCommand, vRecv);
-            sporkManager.ProcessSpork(pfrom, strCommand, vRecv);
-            masternodeSync.ProcessMessage(pfrom, strCommand, vRecv);
-        }
-    } else {
-        // Ignore unknown commands for extensibility
-        LogPrint(BCLog::NET, "Unknown command \"%s\" from peer=%d\n", SanitizeString(strCommand), pfrom->id);
     }
 
     return true;

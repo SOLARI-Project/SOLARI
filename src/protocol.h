@@ -267,6 +267,9 @@ extern const char* SYNCSTATUSCOUNT;
 /* Get a vector of all valid message types (see above) */
 const std::vector<std::string>& getAllNetMessageTypes();
 
+/* Get a vector of all tier two valid message types (see above) */
+const std::vector<std::string>& getTierTwoNetMessageTypes();
+
 /** nServices flags */
 enum ServiceFlags : uint64_t {
     // Nothing
@@ -363,13 +366,14 @@ public:
     friend bool operator<(const CInv& a, const CInv& b);
 
     bool IsMasterNodeType() const;
-    std::string GetCommand() const;
     std::string ToString() const;
 
     // TODO: make private (improve encapsulation)
-public:
     int type;
     uint256 hash;
+
+private:
+    std::string GetCommand() const;
 };
 
 #endif // BITCOIN_PROTOCOL_H
