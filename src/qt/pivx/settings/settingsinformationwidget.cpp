@@ -115,6 +115,7 @@ void SettingsInformationWidget::loadClientModel()
         ui->labelInfoAgent->setText(clientModel->clientName());
         ui->labelInfoTime->setText(clientModel->formatClientStartupTime());
         ui->labelInfoName->setText(QString::fromStdString(Params().NetworkIDString()));
+        ui->labelInfoDataDir->setText(clientModel->dataDir());
 
         setNumConnections(clientModel->getNumConnections());
         connect(clientModel, &ClientModel::numConnectionsChanged, this, &SettingsInformationWidget::setNumConnections);
@@ -123,13 +124,6 @@ void SettingsInformationWidget::loadClientModel()
         connect(clientModel, &ClientModel::numBlocksChanged, this, &SettingsInformationWidget::setNumBlocks);
 
         connect(clientModel, &ClientModel::strMasternodesChanged, this, &SettingsInformationWidget::setMasternodeCount);
-    }
-}
-
-void SettingsInformationWidget::loadWalletModel()
-{
-    if (walletModel) {
-        ui->labelInfoDataDir->setText(walletModel->getWalletPath());
     }
 }
 
@@ -163,8 +157,9 @@ void SettingsInformationWidget::setMasternodeCount(const QString& strMasternodes
 void SettingsInformationWidget::openNetworkMonitor()
 {
     if (!rpcConsole) {
-        rpcConsole = new RPCConsole(0);
+        rpcConsole = new RPCConsole(nullptr);
         rpcConsole->setClientModel(clientModel);
+        rpcConsole->setWalletModel(walletModel);
     }
     rpcConsole->showNetwork();
 }

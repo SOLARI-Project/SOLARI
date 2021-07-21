@@ -17,9 +17,6 @@
 #include "chainparams.h"
 #include "netbase.h"
 #include "util/system.h"
-#ifdef ENABLE_WALLET
-#include "wallet/wallet.h"
-#endif // ENABLE_WALLET
 
 #ifdef ENABLE_WALLET
 #include <db_cxx.h>
