@@ -74,10 +74,9 @@ class MultiWalletTest(PivxTestFramework):
         # should not initialize if there are duplicate wallets
         self.assert_start_raises_init_error(0, ['-wallet=w1', '-wallet=w1'], 'Error loading wallet w1. Duplicate -wallet filename specified.')
 
-        # !TODO: automatic backup changes the environment, fix in the next commit
         # should not initialize if one wallet is a copy of another
-        # shutil.copyfile(wallet_dir('w8'), wallet_dir('w8_copy'))
-        # self.assert_start_raises_init_error(0, ['-wallet=w8', '-wallet=w8_copy'], 'duplicates fileid')
+        shutil.copyfile(wallet_dir('w8'), wallet_dir('w8_copy'))
+        self.assert_start_raises_init_error(0, ['-wallet=w8', '-wallet=w8_copy'], 'duplicates fileid')
 
         # should not initialize if wallet file is a symlink
         os.symlink('w8', wallet_dir('w8_symlink'))

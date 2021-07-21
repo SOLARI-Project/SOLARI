@@ -219,19 +219,22 @@ bool InitLoadWallet()
             return false;
         }
 
-        // automatic backup
+        // add to wallets in use
+        vpwallets.emplace_back(pwallet);
+    }
+
+    // automatic backup
+    // do this after loading all wallets, so unique fileids are checked properly
+    for (CWallet* pwallet: vpwallets) {
         std::string strWarning, strError;
         if (!AutoBackupWallet(*pwallet, strWarning, strError)) {
             if (!strWarning.empty()) {
-                UIWarning(strprintf("%s: %s", walletFile, strWarning));
+                UIWarning(strprintf("%s: %s", pwallet->GetName(), strWarning));
             }
             if (!strError.empty()) {
-                return UIError(strprintf("%s: %s", walletFile, strError));
+                return UIError(strprintf("%s: %s", pwallet->GetName(), strError));
             }
         }
-
-        // add to wallets in use
-        vpwallets.emplace_back(pwallet);
     }
 
     return true;
