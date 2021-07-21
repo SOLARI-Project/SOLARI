@@ -744,6 +744,9 @@ public:
      */
     const std::string& GetName() const { return m_name; }
 
+    /** Get the path to the wallet's db file */
+    fs::path GetPathToDBFile() { return dbw->GetPathToFile(); }
+
     /** Construct wallet with specified name and database implementation. */
     CWallet(std::string name, std::unique_ptr<CWalletDBWrapper> dbw_in);
     ~CWallet();

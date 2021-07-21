@@ -153,7 +153,7 @@ public:
     unsigned int nLastSeen;
     unsigned int nLastFlushed;
     int64_t nLastWalletUpdate;
-    unsigned int GetUpdateCounter();
+    fs::path GetPathToFile() { return env->Directory() / strFile; }
 
 private:
     /** BerkeleyDB specific */

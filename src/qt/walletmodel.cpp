@@ -122,7 +122,7 @@ bool WalletModel::upgradeWallet(std::string& upgradeError)
 
 QString WalletModel::getWalletPath()
 {
-    return QString::fromStdString(GetDataDir().string() + QDir::separator().toLatin1() + wallet->GetName());
+    return QString::fromStdString(wallet->GetPathToDBFile().string());
 }
 
 CAmount WalletModel::getBalance(const CCoinControl* coinControl, bool fIncludeDelegated, bool fUnlockedOnly, bool fIncludeShielded) const
