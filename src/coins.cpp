@@ -338,13 +338,14 @@ CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
     if (tx.IsCoinBase())
         return 0;
 
-    //todo are there any security precautions to take here?
-    if (tx.HasZerocoinSpendInputs())
-        return tx.GetZerocoinSpent();
-
     CAmount nResult = 0;
-    for (unsigned int i = 0; i < tx.vin.size(); i++)
-        nResult += AccessCoin(tx.vin[i].prevout).out.nValue;
+    for (const CTxIn& in : tx.vin) {
+        if (in.IsZerocoinSpend() || in.IsZerocoinPublicSpend()) {
+            nResult += in.nSequence * COIN;
+        } else {
+            nResult += AccessCoin(in.prevout).out.nValue;
+        }
+    }
 
     // Sapling
     nResult += tx.GetShieldedValueIn();

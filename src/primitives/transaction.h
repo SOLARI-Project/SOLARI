@@ -368,8 +368,6 @@ public:
         return HasZerocoinSpendInputs() || HasZerocoinMintOutputs();
     }
 
-    CAmount GetZerocoinSpent() const;
-
     bool IsCoinBase() const
     {
         return (vin.size() == 1 && vin[0].prevout.IsNull() && !vin[0].scriptSig.IsZerocoinSpend());

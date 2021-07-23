@@ -1568,7 +1568,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 return false; // Invalidity/DoS is handled by ParseAndValidateZerocoinSpends.
             }
             for (const CoinSpendValue& s : *opCoinSpendValues) {
-                nValueIn += s.value;
                 vSpends.emplace_back(s.serial, tx.GetHash());
             }
         } else if (!tx.IsCoinBase()) {
@@ -1592,10 +1591,12 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         // Cache the sig ser hashes
         precomTxData.emplace_back(tx);
 
+        CAmount txValueOut = tx.GetValueOut();
         if (!tx.IsCoinBase()) {
+            CAmount txValueIn = view.GetValueIn(tx);
             if (!tx.IsCoinStake())
-                nFees += view.GetValueIn(tx) - tx.GetValueOut();
-            nValueIn += view.GetValueIn(tx);
+                nFees += txValueIn - txValueOut;
+            nValueIn += txValueIn;
 
             std::vector<CScriptCheck> vChecks;
             unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG;
@@ -1607,7 +1608,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 return error("%s: Check inputs on %s failed with %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
             control.Add(vChecks);
         }
-        nValueOut += tx.GetValueOut();
+        nValueOut += txValueOut;
 
         CTxUndo undoDummy;
         if (i > 0) {
@@ -1642,6 +1643,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     }
 
     // track mint amount info
+    assert(nFees >= 0);
     const int64_t nMint = (nValueOut - nValueIn) + nFees;
 
     int64_t nTime1 = GetTimeMicros();

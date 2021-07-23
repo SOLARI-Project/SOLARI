@@ -223,19 +223,6 @@ CAmount CTransaction::GetShieldedValueIn() const
     return nValue;
 }
 
-CAmount CTransaction::GetZerocoinSpent() const
-{
-    CAmount nValueOut = 0;
-    for (const CTxIn& txin : vin) {
-        if(!txin.IsZerocoinSpend())
-            continue;
-
-        nValueOut += txin.nSequence * COIN;
-    }
-
-    return nValueOut;
-}
-
 unsigned int CTransaction::GetTotalSize() const
 {
     return ::GetSerializeSize(*this, PROTOCOL_VERSION);
