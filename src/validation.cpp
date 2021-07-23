@@ -402,10 +402,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         *pfMissingInputs = false;
 
     // Check maintenance mode
-    bool hasTxZerocoins = tx.ContainsZerocoins();
-    if (sporkManager.IsSporkActive(SPORK_16_ZEROCOIN_MAINTENANCE_MODE) && hasTxZerocoins)
-        return state.DoS(10, error("%s : Zerocoin transactions are temporarily disabled for maintenance",
-                __func__), REJECT_INVALID, "bad-tx-zerocoin-maintenance");
     if (sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE) && tx.IsShieldedTx())
         return state.DoS(10, error("%s : Shielded transactions are temporarily disabled for maintenance",
                 __func__), REJECT_INVALID, "bad-tx-sapling-maintenance");
@@ -415,7 +411,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
     int chainHeight = chainActive.Height();
 
     // Zerocoin txes are not longer accepted in the mempool.
-    if (hasTxZerocoins) {
+    if (tx.ContainsZerocoins()) {
         return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__),
                          REJECT_INVALID, "bad-tx-with-zc");
     }
@@ -1539,7 +1535,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::vector<PrecomputedTransactionData> precomTxData;
     precomTxData.reserve(block.vtx.size()); // Required so that pointers to individual precomTxData don't get invalidated
     bool fInitialBlockDownload = IsInitialBlockDownload();
-    bool fZerocoinMaintenance =  (block.nTime > sporkManager.GetSporkValue(SPORK_16_ZEROCOIN_MAINTENANCE_MODE));
     bool fSaplingMaintenance =  (block.nTime > sporkManager.GetSporkValue(SPORK_20_SAPLING_MAINTENANCE));
     for (unsigned int i = 0; i < block.vtx.size(); i++) {
         const CTransaction& tx = *block.vtx[i];
@@ -1550,11 +1545,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             return state.DoS(100, error("ConnectBlock() : too many sigops"), REJECT_INVALID, "bad-blk-sigops");
 
         // Check maintenance mode
-        if (!fInitialBlockDownload) {
-            if (fZerocoinMaintenance && tx.ContainsZerocoins())
-                return state.DoS(100, error("%s : zerocoin transactions are currently in maintenance mode", __func__));
-            if (fSaplingMaintenance && tx.IsShieldedTx())
-                return state.DoS(100, error("%s : shielded transactions are currently in maintenance mode", __func__));
+        if (!fInitialBlockDownload && fSaplingMaintenance && tx.IsShieldedTx()) {
+            return state.DoS(100, error("%s : shielded transactions are currently in maintenance mode", __func__));
         }
 
         // If v5 is active, bye bye zerocoin
