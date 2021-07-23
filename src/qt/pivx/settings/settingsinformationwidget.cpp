@@ -91,7 +91,6 @@ SettingsInformationWidget::SettingsInformationWidget(PIVXGUI* _window,QWidget *p
 #ifdef ENABLE_WALLET
     // Wallet data -- remove it with if it's needed
     ui->labelInfoBerkeley->setText(DbEnv::version(0, 0, 0));
-    ui->labelInfoDataDir->setText(QString::fromStdString(GetDataDir().string() + QDir::separator().toLatin1() + gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT)));
 #else
     ui->labelInfoBerkeley->setText(tr("No information"));
 #endif
@@ -116,6 +115,7 @@ void SettingsInformationWidget::loadClientModel()
         ui->labelInfoAgent->setText(clientModel->clientName());
         ui->labelInfoTime->setText(clientModel->formatClientStartupTime());
         ui->labelInfoName->setText(QString::fromStdString(Params().NetworkIDString()));
+        ui->labelInfoDataDir->setText(clientModel->dataDir());
 
         setNumConnections(clientModel->getNumConnections());
         connect(clientModel, &ClientModel::numConnectionsChanged, this, &SettingsInformationWidget::setNumConnections);
@@ -157,8 +157,9 @@ void SettingsInformationWidget::setMasternodeCount(const QString& strMasternodes
 void SettingsInformationWidget::openNetworkMonitor()
 {
     if (!rpcConsole) {
-        rpcConsole = new RPCConsole(0);
+        rpcConsole = new RPCConsole(nullptr);
         rpcConsole->setClientModel(clientModel);
+        rpcConsole->setWalletModel(walletModel);
     }
     rpcConsole->showNetwork();
 }

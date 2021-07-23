@@ -847,8 +847,6 @@ namespace { // Variables internal to initialization process only
     int nUserMaxConnections;
     int nFD;
     ServiceFlags nLocalServices = NODE_NETWORK;
-
-    std::string strWalletFile;
 }
 
 bool AppInitBasicSetup()
@@ -1173,7 +1171,6 @@ bool AppInitParameterInteraction()
     }
 
 #ifdef ENABLE_WALLET
-    strWalletFile = gArgs.GetArg("-wallet", DEFAULT_WALLET_DAT);
     if (!WalletParameterInteraction())
         return false;
 #endif // ENABLE_WALLET
@@ -1199,27 +1196,10 @@ bool AppInitParameterInteraction()
 
 static bool LockDataDirectory(bool probeOnly)
 {
-    std::string strDataDir = GetDataDir().string();
-
     // Make sure only a single PIVX process is using the data directory.
-    fs::path pathLockFile = GetDataDir() / ".lock";
-    FILE* file = fsbridge::fopen(pathLockFile, "a"); // empty lock file; created if it doesn't exist.
-    if (file) fclose(file);
-
-    try {
-        static boost::interprocess::file_lock lock(pathLockFile.string().c_str());
-        // Wait maximum 10 seconds if an old wallet is still running. Avoids lockup during restart
-        if (!lock.timed_lock(boost::get_system_time() + boost::posix_time::seconds(10))) {
-            return UIError(strprintf(_("Cannot obtain a lock on data directory %s. %s is probably already running."),
-                                     strDataDir, _(PACKAGE_NAME)));
-        }
-        if (probeOnly) {
-            lock.unlock();
-        }
-    } catch (const boost::interprocess::interprocess_exception& e) {
-        return UIError(
-                strprintf(_("Cannot obtain a lock on data directory %s. %s is probably already running.") + " %s.",
-                          strDataDir, _(PACKAGE_NAME), e.what()));
+    fs::path datadir = GetDataDir();
+    if (!LockDirectory(datadir, ".lock", probeOnly)) {
+        return UIError(strprintf(_("Cannot obtain a lock on data directory %s. %s is probably already running."), datadir.string(), _(PACKAGE_NAME)));
     }
     return true;
 }
@@ -1271,6 +1251,15 @@ bool AppInitMain()
     LogPrintf("Using config file %s\n", GetConfigFile(gArgs.GetArg("-conf", PIVX_CONF_FILENAME)).string());
     LogPrintf("Using at most %i connections (%i file descriptors available)\n", nMaxConnections, nFD);
     std::ostringstream strErrors;
+
+    // Warn about relative -datadir path.
+    if (gArgs.IsArgSet("-datadir") && !fs::path(gArgs.GetArg("-datadir", "")).is_absolute()) {
+        LogPrintf("Warning: relative datadir option '%s' specified, which will be interpreted relative to the "
+                  "current working directory '%s'. This is fragile because if PIVX is started in the future "
+                  "from a different location. It will be unable to locate the current data files. There could "
+                  "also be data loss if PIVX is started while in a temporary directory.\n",
+            gArgs.GetArg("-datadir", ""), fs::current_path().string());
+    }
 
     InitSignatureCache();
 

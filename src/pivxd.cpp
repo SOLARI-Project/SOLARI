@@ -11,7 +11,6 @@
 #include "init.h"
 #include "masternodeconfig.h"
 #include "noui.h"
-#include "rpc/server.h"
 #include "util/system.h"
 
 #include <stdio.h>

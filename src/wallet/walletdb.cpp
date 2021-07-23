@@ -18,6 +18,7 @@
 #include "util/system.h"
 #include "utiltime.h"
 #include "wallet/wallet.h"
+#include "wallet/walletutil.h"
 
 #include <atomic>
 #include <string>
@@ -827,34 +828,6 @@ void MaybeCompactWalletDB()
     fOneThread = false;
 }
 
-void NotifyBacked(const CWallet& wallet, bool fSuccess, std::string strMessage)
-{
-    LogPrintf("%s\n", strMessage);
-    wallet.NotifyWalletBacked(fSuccess, strMessage);
-}
-
-// Returns first the pathCustom, second the pathWithFile.
-std::pair<fs::path, fs::path> GetBackupPath(const CWallet& wallet)
-{
-    fs::path pathCustom;
-    fs::path pathWithFile = gArgs.GetArg("-backuppath", "");
-    if(!pathWithFile.empty()) {
-        if(!pathWithFile.has_extension()) {
-            pathCustom = pathWithFile;
-            pathWithFile /= wallet.GetUniqueWalletBackupName();
-        } else {
-            pathCustom = pathWithFile.parent_path();
-        }
-        try {
-            fs::create_directories(pathCustom);
-        } catch (const fs::filesystem_error& e) {
-            NotifyBacked(wallet, false, strprintf("%s\n", e.what()));
-            pathCustom = "";
-        }
-    }
-    return {pathCustom, pathWithFile};
-}
-
 typedef std::multimap<std::time_t, fs::path> folder_set_t;
 static folder_set_t buildBackupsMapSortedByLastWrite(const std::string& strWalletFile, const fs::path& backupsDir)
 {
@@ -894,10 +867,8 @@ static bool cleanWalletBackups(folder_set_t& folder_set, int nWalletBackups, std
     return true;
 }
 
-bool AutoBackupWallet(const CWallet& wallet, std::string& strBackupWarning, std::string& strBackupError)
+bool AutoBackupWallet(CWallet& wallet, std::string& strBackupWarning, std::string& strBackupError)
 {
-    std::string strWalletFile = wallet.GetDBHandle().GetName();
-
     strBackupWarning = strBackupError = "";
     int nWalletBackups = std::max(0, std::min(10, (int)gArgs.GetArg("-createwalletbackups", DEFAULT_CREATEWALLETBACKUPS)));
     if (nWalletBackups == 0) {
@@ -908,25 +879,17 @@ bool AutoBackupWallet(const CWallet& wallet, std::string& strBackupWarning, std:
     fs::path backupsDir = GetDataDir() / "backups";
     backupsDir.make_preferred();
     TryCreateDirectories(backupsDir);
-
-    // Copy wallet file
-    fs::path sourceFile = GetDataDir() / strWalletFile;
-    fs::path backupFile = backupsDir / (strWalletFile + FormatISO8601DateTimeForBackup(GetTime()));
-    sourceFile.make_preferred();
+    std::string strWalletFile = wallet.GetUniqueWalletBackupName();
+    fs::path backupFile = backupsDir / strWalletFile;
     backupFile.make_preferred();
     if (fs::exists(backupFile)) {
         LogPrintf("%s\n", _("Failed to create backup, file already exists! This could happen if you restarted wallet in less than 60 seconds. You can continue if you are ok with this."));
         return false;
     }
 
-    if (!fs::exists(sourceFile)) {
-        strBackupWarning = _("Failed to create backup, wallet file not found");
-        LogPrintf("%s\n", strBackupWarning);
-        return false;
-    }
-
     // Try to backup
-    if (!AttemptBackupWallet(&wallet, sourceFile, backupFile)) {
+    if (!wallet.BackupWallet(backupFile.string())) {
+        strBackupError = "Failed to backup wallet";
         return false; // error is logged internally
     }
 
@@ -935,110 +898,19 @@ bool AutoBackupWallet(const CWallet& wallet, std::string& strBackupWarning, std:
     return cleanWalletBackups(folder_set, nWalletBackups, strBackupWarning);
 }
 
-void MultiBackup(const CWallet& wallet, fs::path pathCustom, fs::path pathWithFile, const fs::path& pathSrc)
-{
-    int nThreshold = gArgs.GetArg("-custombackupthreshold", DEFAULT_CUSTOMBACKUPTHRESHOLD);
-    if (nThreshold > 0) {
-        std::string strBackupWarning;
-        pathCustom.make_preferred();
-        folder_set_t folderSet = buildBackupsMapSortedByLastWrite(wallet.GetDBHandle().GetName(), pathCustom);
-        if (!cleanWalletBackups(folderSet, nThreshold, strBackupWarning)) {
-            NotifyBacked(wallet, false, strBackupWarning);
-        }
-
-        // TODO: add seconds to avoid naming conflicts
-        for (const auto& entry : folderSet) {
-            if(entry.second == pathWithFile) {
-                pathWithFile += "(1)";
-            }
-        }
-    }
-    AttemptBackupWallet(&wallet, pathSrc.string(), pathWithFile.string());
-}
-
-bool BackupWallet(const CWallet& wallet, const fs::path& strDest)
-{
-    const auto& pathsPair = GetBackupPath(wallet);
-    fs::path pathCustom = pathsPair.first;
-    fs::path pathWithFile = pathsPair.second;
-
-    std::string strFile = wallet.GetDBHandle().GetName();
-    while (true) {
-        {
-            LOCK(bitdb.cs_db);
-            if (!bitdb.mapFileUseCount.count(strFile) || bitdb.mapFileUseCount[strFile] == 0) {
-                // Flush log data to the dat file
-                bitdb.CloseDb(strFile);
-                bitdb.CheckpointLSN(strFile);
-                bitdb.mapFileUseCount.erase(strFile);
-
-                // Copy wallet file
-                fs::path pathDest(strDest);
-                fs::path pathSrc = GetDataDir() / strFile;
-                if (is_directory(pathDest)) {
-                    if(!exists(pathDest)) create_directory(pathDest);
-                    pathDest /= strFile;
-                }
-                bool defaultPath = AttemptBackupWallet(&wallet, pathSrc.string(), pathDest.string());
-
-                if(defaultPath && !pathCustom.empty()) {
-                    MultiBackup(wallet, pathCustom, pathWithFile, pathSrc);
-                }
-
-                return defaultPath;
-            }
-        }
-        MilliSleep(100);
-    }
-    return false;
-}
-
-bool AttemptBackupWallet(const CWallet* wallet, const fs::path& pathSrc, const fs::path& pathDest)
-{
-    bool retStatus;
-    std::string strMessage;
-    try {
-        if (fs::equivalent(pathSrc, pathDest)) {
-            LogPrintf("cannot backup to wallet source file %s\n", pathDest.string());
-            return false;
-        }
-#if BOOST_VERSION >= 107400
-        fs::copy_file(pathSrc.c_str(), pathDest, fs::copy_options::overwrite_existing);
-#elif BOOST_VERSION >= 105800 /* BOOST_LIB_VERSION 1_58 */
-        fs::copy_file(pathSrc.c_str(), pathDest, fs::copy_option::overwrite_if_exists);
-#else
-        std::ifstream src(pathSrc.c_str(),  std::ios::binary | std::ios::in);
-        std::ofstream dst(pathDest.c_str(), std::ios::binary | std::ios::out | std::ios::trunc);
-        dst << src.rdbuf();
-        dst.flush();
-        src.close();
-        dst.close();
-#endif
-        strMessage = strprintf("copied %s to %s\n", pathSrc.string(), pathDest.string());
-        LogPrintf("%s : %s\n", __func__, strMessage);
-        retStatus = true;
-    } catch (const fs::filesystem_error& e) {
-        retStatus = false;
-        strMessage = strprintf("%s\n", e.what());
-        LogPrintf("%s : %s\n", __func__, strMessage);
-    }
-    if (wallet) NotifyBacked(*wallet, retStatus, strMessage);
-    return retStatus;
-}
-
 //
 // Try to (very carefully!) recover wallet file if there is a problem.
 //
-bool CWalletDB::Recover(const std::string& filename, void *callbackDataIn, bool (*recoverKVcallback)(void* callbackData, CDataStream ssKey, CDataStream ssValue), std::string& out_backup_filename)
+bool CWalletDB::Recover(const fs::path& wallet_path, void *callbackDataIn, bool (*recoverKVcallback)(void* callbackData, CDataStream ssKey, CDataStream ssValue), std::string& out_backup_filename)
 {
-    return CDB::Recover(filename, callbackDataIn, recoverKVcallback, out_backup_filename);
+    return CDB::Recover(wallet_path, callbackDataIn, recoverKVcallback, out_backup_filename);
 }
 
-bool CWalletDB::Recover(const std::string& filename, std::string& out_backup_filename)
+bool CWalletDB::Recover(const fs::path& wallet_path, std::string& out_backup_filename)
 {
     // recover without a key filter callback
     // results in recovering all record types
-    return CWalletDB::Recover(filename, NULL, NULL, out_backup_filename);
+    return CWalletDB::Recover(wallet_path, nullptr, nullptr, out_backup_filename);
 }
 
 bool CWalletDB::RecoverKeysOnlyFilter(void *callbackData, CDataStream ssKey, CDataStream ssValue)
@@ -1064,14 +936,14 @@ bool CWalletDB::RecoverKeysOnlyFilter(void *callbackData, CDataStream ssKey, CDa
     return true;
 }
 
-bool CWalletDB::VerifyEnvironment(const std::string& walletFile, const fs::path& dataDir, std::string& errorStr)
+bool CWalletDB::VerifyEnvironment(const fs::path& wallet_path, std::string& errorStr)
 {
-    return CDB::VerifyEnvironment(walletFile, dataDir, errorStr);
+    return CDB::VerifyEnvironment(wallet_path, errorStr);
 }
 
-bool CWalletDB::VerifyDatabaseFile(const std::string& walletFile, const fs::path& dataDir, std::string& warningStr, std::string& errorStr)
+bool CWalletDB::VerifyDatabaseFile(const fs::path& wallet_path, std::string& warningStr, std::string& errorStr)
 {
-    return CDB::VerifyDatabaseFile(walletFile, dataDir, warningStr, errorStr, CWalletDB::Recover);
+    return CDB::VerifyDatabaseFile(wallet_path, warningStr, errorStr, CWalletDB::Recover);
 }
 
 bool CWalletDB::WriteDestData(const std::string& address, const std::string& key, const std::string& value)

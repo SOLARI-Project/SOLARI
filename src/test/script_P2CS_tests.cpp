@@ -303,7 +303,7 @@ static void setupWallet(CWallet& wallet)
 
 BOOST_AUTO_TEST_CASE(fake_script_test)
 {
-    CWallet& wallet = *pwalletMain;
+    CWallet& wallet = m_wallet;
     LOCK(wallet.cs_wallet);
     setupWallet(wallet);
     CKey stakerKey;         // dummy staker key (not in the wallet)
