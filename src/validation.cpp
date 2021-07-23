@@ -410,12 +410,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
     const Consensus::Params& consensus = params.GetConsensus();
     int chainHeight = chainActive.Height();
 
-    // Zerocoin txes are not longer accepted in the mempool.
-    if (tx.ContainsZerocoins()) {
-        return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__),
-                         REJECT_INVALID, "bad-tx-with-zc");
-    }
-
     // Check transaction
     bool fColdStakingActive = !sporkManager.IsSporkActive(SPORK_19_COLDSTAKING_MAINTENANCE);
     if (!CheckTransaction(tx, state, fColdStakingActive))
@@ -1549,7 +1543,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             return state.DoS(100, error("%s : shielded transactions are currently in maintenance mode", __func__));
         }
 
-        // When v5 is enforced CheckBlock rejects zerocoin transactions.
+        // When v5 is enforced ContextualCheckTransaction rejects zerocoin transactions.
         // Therefore no need to call HasZerocoinSpendInputs after the enforcement.
         if (!isV5UpgradeEnforced && tx.HasZerocoinSpendInputs()) {
             auto opCoinSpendValues = ParseAndValidateZerocoinSpends(consensus, tx, pindex->nHeight, state);
@@ -2740,9 +2734,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     // Cold Staking enforcement (true during sync - reject P2CS outputs when false)
     bool fColdStakingActive = true;
 
-    // Zerocoin activation
-    bool fZerocoinActive = block.GetBlockTime() > Params().GetConsensus().ZC_TimeStart;
-
     // masternode payments / budgets
     CBlockIndex* pindexPrev = chainActive.Tip();
     int nHeight = 0;
@@ -2779,7 +2770,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     }
 
     // Check transactions
-    bool fSaplingActive = Params().GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0);
     std::vector<CBigNum> vBlockSerials;
     for (const auto& txIn : block.vtx) {
         const CTransaction& tx = *txIn;
@@ -2793,20 +2783,13 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
             // pass the state returned by the function above
             return false;
         }
-
-        // No need to check for zerocoin anymore after sapling, they are networkely disabled
-        // and checkpoints are preventing the chain for any massive reorganization.
-        if (fSaplingActive && tx.ContainsZerocoins()) {
-            return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__),
-                             REJECT_INVALID, "bad-blk-with-zc");
-        }
     }
 
     unsigned int nSigOps = 0;
     for (const auto& tx : block.vtx) {
         nSigOps += GetLegacySigOpCount(*tx);
     }
-    unsigned int nMaxBlockSigOps = fZerocoinActive ? MAX_BLOCK_SIGOPS_CURRENT : MAX_BLOCK_SIGOPS_LEGACY;
+    unsigned int nMaxBlockSigOps = block.GetBlockTime() > Params().GetConsensus().ZC_TimeStart ? MAX_BLOCK_SIGOPS_CURRENT : MAX_BLOCK_SIGOPS_LEGACY;
     if (nSigOps > nMaxBlockSigOps)
         return state.DoS(100, error("%s : out-of-bounds SigOpCount", __func__),
             REJECT_INVALID, "bad-blk-sigops", true);

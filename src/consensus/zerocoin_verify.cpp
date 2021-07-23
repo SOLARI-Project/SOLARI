@@ -127,13 +127,13 @@ bool CheckPublicCoinSpendEnforced(int blockHeight, bool isPublicSpend)
     return true;
 }
 
-bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& state, const Consensus::Params& consensus, int nHeight)
+bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& state, const Consensus::Params& consensus, int nHeight, bool isMined)
 {
     // zerocoin enforced via block time. First block with a zc mint is 863735
     const bool fZerocoinEnforced = (nHeight >= consensus.ZC_HeightStart);
     const bool fPublicSpendEnforced = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC_PUBLIC);
-    const bool fRejectMintsAndPrivateSpends = !fZerocoinEnforced || fPublicSpendEnforced;
-    const bool fRejectPublicSpends = !fPublicSpendEnforced || consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0);
+    const bool fRejectMintsAndPrivateSpends = !isMined || !fZerocoinEnforced || fPublicSpendEnforced;
+    const bool fRejectPublicSpends = !isMined || !fPublicSpendEnforced || consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0);
 
     const bool hasPrivateSpendInputs = !tx->vin.empty() && tx->vin[0].IsZerocoinSpend();
     const bool hasPublicSpendInputs = !tx->vin.empty() && tx->vin[0].IsZerocoinPublicSpend();

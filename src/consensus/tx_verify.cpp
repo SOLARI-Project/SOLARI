@@ -134,7 +134,7 @@ bool ContextualCheckTransaction(const CTransactionRef& tx, CValidationState& sta
     }
 
     // Dispatch to ZerocoinTx validator
-    if (!ContextualCheckZerocoinTx(tx, state, chainparams.GetConsensus(), nHeight)) {
+    if (!ContextualCheckZerocoinTx(tx, state, chainparams.GetConsensus(), nHeight, isMined)) {
         return false; // Failure reason has been set in validation state object
     }
 

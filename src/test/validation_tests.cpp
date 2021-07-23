@@ -94,7 +94,7 @@ BOOST_FIXTURE_TEST_CASE(test_simple_shielded_invalid, TestingSetup)
     }
 }
 
-void CheckBlockZcRejection(std::shared_ptr<CBlock>& pblock, int nHeight, CMutableTransaction& mtx)
+void CheckBlockZcRejection(std::shared_ptr<CBlock>& pblock, int nHeight, CMutableTransaction& mtx, const std::string& expected_msg)
 {
     pblock->vtx.emplace_back(MakeTransactionRef(mtx));
     BOOST_CHECK(SolveBlock(pblock, nHeight));
@@ -102,17 +102,17 @@ void CheckBlockZcRejection(std::shared_ptr<CBlock>& pblock, int nHeight, CMutabl
     stateCatcher.registerEvent();
     BOOST_CHECK(!ProcessNewBlock(pblock, nullptr));
     BOOST_CHECK(stateCatcher.found && !stateCatcher.state.IsValid());
-    BOOST_CHECK_EQUAL(stateCatcher.state.GetRejectReason(), "bad-blk-with-zc");
+    BOOST_CHECK_EQUAL(stateCatcher.state.GetRejectReason(), expected_msg);
 }
 
-void CheckMempoolZcRejection(CMutableTransaction& mtx)
+void CheckMempoolZcRejection(CMutableTransaction& mtx, const std::string& expected_msg)
 {
     LOCK(cs_main);
     CValidationState state;
     BOOST_CHECK(!AcceptToMemoryPool(
             mempool, state, MakeTransactionRef(mtx), true, nullptr, false, true));
     BOOST_CHECK(!state.IsValid());
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-with-zc");
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), expected_msg);
 }
 
 /*
@@ -121,6 +121,7 @@ void CheckMempoolZcRejection(CMutableTransaction& mtx)
 BOOST_FIXTURE_TEST_CASE(zerocoin_rejection_tests, WalletRegTestingSetup)
 {
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
+    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_ZC_PUBLIC, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
     const CChainParams& chainparams = Params();
 
     std::unique_ptr<CBlockTemplate> pblocktemplate;
@@ -140,21 +141,21 @@ BOOST_FIXTURE_TEST_CASE(zerocoin_rejection_tests, WalletRegTestingSetup)
                                          CBigNum::randBignum(chainparams.GetConsensus().Zerocoin_Params(false)->coinCommitmentGroup.groupOrder).getvch();
     mtx.vout[0].nValue = 1 * COIN;
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
-    CheckBlockZcRejection(pblock, 1, mtx);
-    CheckMempoolZcRejection(mtx);
+    CheckBlockZcRejection(pblock, 1, mtx, "bad-txns-zc-mint");
+    CheckMempoolZcRejection(mtx, "bad-txns-zc-mint");
 
     // Zerocoin spends rejection test
     mtx.vout[0].scriptPubKey = scriptPubKey;
     mtx.vin[0].scriptSig = CScript() << OP_ZEROCOINSPEND;
     pblock = std::make_shared<CBlock>(pblocktemplate->block);
-    CheckBlockZcRejection(pblock, 1, mtx);
-    CheckMempoolZcRejection(mtx);
+    CheckBlockZcRejection(pblock, 1, mtx, "bad-txns-zc-private-spend");
+    CheckMempoolZcRejection(mtx, "bad-txns-zc-private-spend");
 
     // Zerocoin public spends rejection test
     mtx.vin[0].scriptSig = CScript() << OP_ZEROCOINPUBLICSPEND;
     pblock = std::make_shared<CBlock>(pblocktemplate->block);
-    CheckBlockZcRejection(pblock, 1, mtx);
-    CheckMempoolZcRejection(mtx);
+    CheckBlockZcRejection(pblock, 1, mtx, "bad-txns-zc-public-spend");
+    CheckMempoolZcRejection(mtx, "bad-txns-zc-public-spend");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
