@@ -1549,12 +1549,9 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             return state.DoS(100, error("%s : shielded transactions are currently in maintenance mode", __func__));
         }
 
-        // If v5 is active, bye bye zerocoin
-        if (isV5UpgradeEnforced && tx.ContainsZerocoins()) {
-            return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__));
-        }
-
-        if (tx.HasZerocoinSpendInputs()) {
+        // When v5 is enforced CheckBlock rejects zerocoin transactions.
+        // Therefore no need to call HasZerocoinSpendInputs after the enforcement.
+        if (!isV5UpgradeEnforced && tx.HasZerocoinSpendInputs()) {
             auto opCoinSpendValues = ParseAndValidateZerocoinSpends(consensus, tx, pindex->nHeight, state);
             if (!opCoinSpendValues) {
                 return false; // Invalidity/DoS is handled by ParseAndValidateZerocoinSpends.
