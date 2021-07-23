@@ -198,10 +198,11 @@ void DumpMasternodePayments()
 
 bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CAmount& nBudgetAmt)
 {
+    const Consensus::Params& consensus = Params().GetConsensus();
     if (!masternodeSync.IsSynced()) {
         //there is no budget data to use to check anything
         //super blocks will always be on these blocks, max 100 per budgeting
-        if (nHeight % Params().GetConsensus().nBudgetCycleBlocks < 100) {
+        if (nHeight % consensus.nBudgetCycleBlocks < 100) {
             if (Params().IsTestnet()) {
                 return true;
             }
@@ -218,7 +219,9 @@ bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CA
         }
     }
 
-    return nMinted <= nExpectedValue;
+    // !todo: remove after V6 enforcement and default it to true
+    const bool isV6UpgradeEnforced = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0);
+    return (!isV6UpgradeEnforced || nMinted >= 0) && nMinted <= nExpectedValue;
 }
 
 bool IsBlockPayeeValid(const CBlock& block, const CBlockIndex* pindexPrev)
