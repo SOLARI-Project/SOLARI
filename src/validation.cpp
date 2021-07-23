@@ -1563,12 +1563,14 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         }
 
         if (tx.HasZerocoinSpendInputs()) {
-            auto opCoinSpendValues = ParseAndValidateZerocoinSpend(consensus, tx, pindex->nHeight, state);
+            auto opCoinSpendValues = ParseAndValidateZerocoinSpends(consensus, tx, pindex->nHeight, state);
             if (!opCoinSpendValues) {
-                return false; // Invalidity/DoS is handled by ParseAndValidateZerocoinSpend.
+                return false; // Invalidity/DoS is handled by ParseAndValidateZerocoinSpends.
             }
-            nValueIn += opCoinSpendValues->value;
-            vSpends.emplace_back(opCoinSpendValues->serial, tx.GetHash());
+            for (const CoinSpendValue& s : *opCoinSpendValues) {
+                nValueIn += s.value;
+                vSpends.emplace_back(s.serial, tx.GetHash());
+            }
         } else if (!tx.IsCoinBase()) {
             if (!view.HaveInputs(tx)) {
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-missingorspent");

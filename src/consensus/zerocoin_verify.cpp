@@ -250,10 +250,11 @@ bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const lib
     return true;
 }
 
-Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params& consensus,
+Optional<CoinSpendValues> ParseAndValidateZerocoinSpends(const Consensus::Params& consensus,
                                                         const CTransaction& tx, int chainHeight,
                                                         CValidationState& state)
 {
+    CoinSpendValues spends;
     for (const CTxIn& txIn : tx.vin) {
         bool isPublicSpend = txIn.IsZerocoinPublicSpend();
         bool isPrivZerocoinSpend = txIn.IsZerocoinSpend();
@@ -261,7 +262,7 @@ Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params&
             continue;
 
         // Check enforcement
-        if (!CheckPublicCoinSpendEnforced(chainHeight, isPublicSpend)){
+        if (!CheckPublicCoinSpendEnforced(chainHeight, isPublicSpend)) {
             return nullopt;
         }
 
@@ -269,7 +270,7 @@ Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params&
             libzerocoin::ZerocoinParams* params = consensus.Zerocoin_Params(false);
             PublicCoinSpend publicSpend(params);
             if (!ZPIVModule::ParseZerocoinPublicSpend(txIn, tx, state, publicSpend) ||
-                !CheckPublicCoinSpendVersion(publicSpend.getCoinVersion())){
+                !CheckPublicCoinSpendVersion(publicSpend.getCoinVersion())) {
                 return nullopt;
             }
             //queue for db write after the 'justcheck' section has concluded
@@ -278,8 +279,7 @@ Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params&
                                      tx.GetHash().GetHex()), REJECT_INVALID);
                 return nullopt;
             }
-            // return value
-            return Optional<CoinSpendValues>(CoinSpendValues(publicSpend.getCoinSerialNumber(), publicSpend.getDenomination() * COIN));
+            spends.emplace_back(publicSpend.getCoinSerialNumber(), publicSpend.getDenomination() * COIN);
         } else {
             libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txIn);
             //queue for db write after the 'justcheck' section has concluded
@@ -288,8 +288,8 @@ Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params&
                                      tx.GetHash().GetHex()), REJECT_INVALID);
                 return nullopt;
             }
-            return Optional<CoinSpendValues>(CoinSpendValues(spend.getCoinSerialNumber(), spend.getDenomination() * COIN));
+            spends.emplace_back(spend.getCoinSerialNumber(), spend.getDenomination() * COIN);
         }
     }
-    return nullopt;
+    return spends.empty() ? nullopt : Optional<CoinSpendValues>(spends);
 }
