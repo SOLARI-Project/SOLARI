@@ -127,14 +127,6 @@ bool CheckPublicCoinSpendEnforced(int blockHeight, bool isPublicSpend)
     return true;
 }
 
-int CurrentPublicCoinSpendVersion() {
-    return sporkManager.IsSporkActive(SPORK_18_ZEROCOIN_PUBLICSPEND_V4) ? 4 : 3;
-}
-
-bool CheckPublicCoinSpendVersion(int version) {
-    return version == CurrentPublicCoinSpendVersion();
-}
-
 bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& state, const Consensus::Params& consensus, int nHeight)
 {
     // zerocoin enforced via block time. First block with a zc mint is 863735
@@ -269,8 +261,7 @@ Optional<CoinSpendValues> ParseAndValidateZerocoinSpends(const Consensus::Params
         if (isPublicSpend) {
             libzerocoin::ZerocoinParams* params = consensus.Zerocoin_Params(false);
             PublicCoinSpend publicSpend(params);
-            if (!ZPIVModule::ParseZerocoinPublicSpend(txIn, tx, state, publicSpend) ||
-                !CheckPublicCoinSpendVersion(publicSpend.getCoinVersion())) {
+            if (!ZPIVModule::ParseZerocoinPublicSpend(txIn, tx, state, publicSpend)) {
                 return nullopt;
             }
             //queue for db write after the 'justcheck' section has concluded
