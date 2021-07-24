@@ -1546,12 +1546,8 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         // When v5 is enforced ContextualCheckTransaction rejects zerocoin transactions.
         // Therefore no need to call HasZerocoinSpendInputs after the enforcement.
         if (!isV5UpgradeEnforced && tx.HasZerocoinSpendInputs()) {
-            auto opCoinSpendValues = ParseAndValidateZerocoinSpends(consensus, tx, pindex->nHeight, state);
-            if (!opCoinSpendValues) {
-                return false; // Invalidity/DoS is handled by ParseAndValidateZerocoinSpends.
-            }
-            for (const CoinSpendValue& s : *opCoinSpendValues) {
-                vSpends.emplace_back(s.serial, tx.GetHash());
+            if (!ParseAndValidateZerocoinSpends(consensus, tx, pindex->nHeight, state, vSpends)) {
+                return false; // Invalidity/DoS is handled by the function.
             }
         } else if (!tx.IsCoinBase()) {
             if (!view.HaveInputs(tx)) {
