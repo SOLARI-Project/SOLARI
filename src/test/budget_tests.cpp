@@ -241,8 +241,7 @@ BOOST_FIXTURE_TEST_CASE(budget_blocks_payee_test, TestChain100Setup)
     // Now create the good block
     block.vtx[0] = MakeTransactionRef(goodMtx);
     pblock = FinalizeBlock(std::make_shared<CBlock>(block));
-    CValidationState state;
-    ProcessNewBlock(state, pblock, nullptr);
+    ProcessNewBlock(pblock, nullptr);
     BOOST_CHECK_EQUAL(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash();), pblock->GetHash());
 }
 
@@ -284,9 +283,8 @@ BOOST_FIXTURE_TEST_CASE(budget_blocks_reorg_test, TestChain100Setup)
     BOOST_CHECK(payeeOut.scriptPubKey == payee);
 
     // Now let's process BlockA:
-    CValidationState stateA;
     auto pblockA = std::make_shared<const CBlock>(blockA);
-    ProcessNewBlock(stateA, pblockA, nullptr);
+    ProcessNewBlock(pblockA, nullptr);
     BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash()) == blockA.GetHash());
 
     // Now let's create blockC on top of BlockA, blockD on top of blockB
@@ -296,20 +294,19 @@ BOOST_FIXTURE_TEST_CASE(budget_blocks_reorg_test, TestChain100Setup)
     CBlock blockD = CreateBlock({}, forkCoinbaseScript, false);
 
     // Process and connect blockC
-    ProcessNewBlock(stateA, std::make_shared<const CBlock>(blockC), nullptr);
+    ProcessNewBlock(std::make_shared<const CBlock>(blockC), nullptr);
     BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash()) == blockC.GetHash());
 
     // Now let's process the secondary chain
     blockD.hashPrevBlock = blockB.GetHash();
     std::shared_ptr<CBlock> pblockD = FinalizeBlock(std::make_shared<CBlock>(blockD));
 
-    CValidationState stateB;
-    ProcessNewBlock(stateB, std::make_shared<const CBlock>(blockB), nullptr);
-    ProcessNewBlock(stateB, pblockD, nullptr);
+    ProcessNewBlock(std::make_shared<const CBlock>(blockB), nullptr);
+    ProcessNewBlock(pblockD, nullptr);
     CBlock blockE = CreateBlock({}, forkCoinbaseScript, false);
     blockE.hashPrevBlock = pblockD->GetHash();
     std::shared_ptr<CBlock> pblockE = FinalizeBlock(std::make_shared<CBlock>(blockE));
-    ProcessNewBlock(stateB, pblockE, nullptr);
+    ProcessNewBlock(pblockE, nullptr);
     BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash()) == pblockE->GetHash());
 }
 
