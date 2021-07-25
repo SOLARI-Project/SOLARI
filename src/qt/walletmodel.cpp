@@ -483,7 +483,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
                 }
 
                 const CKeyID* stakerId = boost::get<CKeyID>(&out);
-                const CKeyID* ownerId = boost::get<CKeyID>(&ownerAdd.dest);
+                const CKeyID* ownerId = ownerAdd.getKeyID();
                 if (!stakerId || !ownerId) {
                     return InvalidAddress;
                 }
