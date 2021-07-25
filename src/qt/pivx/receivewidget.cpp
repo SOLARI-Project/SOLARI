@@ -250,14 +250,8 @@ void ReceiveWidget::onNewAddressClicked()
             return;
         }
 
-        QString strAddress;
-        CallResult<Destination> r(false, "");
-        if (!shieldedMode) {
-            r = walletModel->getNewAddress("");
-            if (r) strAddress = QString::fromStdString(r.getObjResult()->ToString());
-        } else {
-            r = walletModel->getNewShieldedAddress(strAddress, "");
-        }
+        CallResult<Destination> r = !shieldedMode ? walletModel->getNewAddress("") :
+                walletModel->getNewShieldedAddress("");
 
         // Check validity
         if (!r) {
@@ -265,7 +259,7 @@ void ReceiveWidget::onNewAddressClicked()
             return;
         }
 
-        refreshView(strAddress);
+        refreshView(QString::fromStdString(r.getObjResult()->ToString()));
         inform(tr("New address created"));
     } catch (const std::runtime_error& error) {
         // Error generating address

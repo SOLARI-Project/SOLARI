@@ -27,6 +27,7 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QSet>
 #include <QTimer>
+#include <utility>
 
 
 WalletModel::WalletModel(CWallet* wallet, OptionsModel* optionsModel, QObject* parent) : QObject(parent), wallet(wallet), walletWrapper(*wallet),
@@ -941,11 +942,9 @@ CallResult<Destination> WalletModel::getNewStakingAddress(const std::string& lab
            CallResult<Destination>(res.getError());
 }
 
-CallResult<Destination> WalletModel::getNewShieldedAddress(QString& shieldedAddrRet, std::string strLabel)
+CallResult<Destination> WalletModel::getNewShieldedAddress(std::string strLabel)
 {
-    shieldedAddrRet = QString::fromStdString(
-            KeyIO::EncodePaymentAddress(wallet->GenerateNewSaplingZKey(strLabel)));
-    return CallResult<Destination>(true, "");
+    return CallResult<Destination>(Destination(wallet->GenerateNewSaplingZKey(std::move(strLabel))));
 }
 
 bool WalletModel::whitelistAddressFromColdStaking(const QString &addressStr)

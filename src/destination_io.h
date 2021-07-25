@@ -29,36 +29,20 @@ namespace Standard {
 /**
  * Wrapper class for every supported address
  */
-struct Destination {
+class Destination {
 public:
     explicit Destination() {}
     explicit Destination(const CTxDestination& _dest, bool _isP2CS) : dest(_dest), isP2CS(_isP2CS) {}
+    explicit Destination(const libzcash::SaplingPaymentAddress& _dest) : dest(_dest) {}
 
     CWDestination dest{CNoDestination()};
     bool isP2CS{false};
 
-    Destination& operator=(const Destination& from)
-    {
-        this->dest = from.dest;
-        this->isP2CS = from.isP2CS;
-        return *this;
-    }
-
+    Destination& operator=(const Destination& from);
     // Returns the key ID if Destination is a transparent "regular" destination
-    const CKeyID* getKeyID()
-    {
-        const CTxDestination* regDest = Standard::GetTransparentDestination(dest);
-        return (regDest) ? boost::get<CKeyID>(regDest) : nullptr;
-    }
-
-    std::string ToString() const
-    {
-        if (!Standard::IsValidDestination(dest)) {
-            // Invalid address
-            return "";
-        }
-        return Standard::EncodeDestination(dest, isP2CS ? CChainParams::STAKING_ADDRESS : CChainParams::PUBKEY_ADDRESS);
-    }
+    const CKeyID* getKeyID();
+    // Returns the encoded string address
+    std::string ToString() const;
 };
 
 #endif //DESTINATION_IO_H

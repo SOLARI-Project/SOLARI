@@ -278,7 +278,7 @@ public:
     CallResult<Destination> getNewStakingAddress(const std::string& label = "") const;
 
     //! Return a new shielded address.
-    CallResult<Destination> getNewShieldedAddress(QString& shieldedAddrRet, std::string strLabel = "");
+    CallResult<Destination> getNewShieldedAddress(std::string strLabel = "");
 
     //! Return new wallet rescan reserver
     WalletRescanReserver getRescanReserver() const { return WalletRescanReserver(wallet); }
