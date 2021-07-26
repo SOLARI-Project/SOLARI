@@ -103,6 +103,7 @@ void CheckBlockZcRejection(std::shared_ptr<CBlock>& pblock, int nHeight, CMutabl
     BOOST_CHECK(!ProcessNewBlock(pblock, nullptr));
     BOOST_CHECK(stateCatcher.found && !stateCatcher.state.IsValid());
     BOOST_CHECK_EQUAL(stateCatcher.state.GetRejectReason(), expected_msg);
+    BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash(); ) != pblock->GetHash());
 }
 
 void CheckMempoolZcRejection(CMutableTransaction& mtx, const std::string& expected_msg)
