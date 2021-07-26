@@ -10,6 +10,7 @@
 #include "guiinterfaceutil.h"
 #include "hash.h"
 #include "protocol.h"
+#include "util/memory.h"
 #include "util/system.h"
 #include "utilstrencodings.h"
 #include "wallet/walletutil.h"
@@ -106,7 +107,7 @@ void CDBEnv::Close()
 
     int ret = dbenv->close(0);
     if (ret != 0)
-        LogPrintf("CDBEnv::EnvShutdown : Error %d shutting down database environment: %s\n", ret, DbEnv::strerror(ret));
+        LogPrintf("Error %d shutting down database environment: %s\n", ret, DbEnv::strerror(ret));
     if (!fMockDb)
         DbEnv((u_int32_t)0).remove(strPath.c_str(), 0);
 }
@@ -239,7 +240,7 @@ CDBEnv::VerifyResult CDBEnv::Verify(const std::string& strFile, recoverFunc_type
     int result = db.verify(strFile.c_str(), nullptr, nullptr, 0);
     if (result == 0)
         return VERIFY_OK;
-    else if (recoverFunc == NULL)
+    else if (recoverFunc == nullptr)
         return RECOVER_FAIL;
 
     // Try to recover:
@@ -281,7 +282,7 @@ bool CDB::Recover(const fs::path& file_path, void *callbackDataIn, bool (*recove
     LogPrintf("Salvage(aggressive) found %u records\n", salvagedData.size());
 
     std::unique_ptr<Db> pdbCopy = std::make_unique<Db>(env->dbenv.get(), 0);
-    int ret = pdbCopy->open(nullptr,               // Txn pointer
+    int ret = pdbCopy->open(nullptr,            // Txn pointer
                             filename.c_str(),   // Filename
                             "main",             // Logical db name
                             DB_BTREE,           // Database type
@@ -462,7 +463,7 @@ CDB::CDB(CWalletDBWrapper& dbw, const char* pszMode, bool fFlushOnCloseIn) : pdb
         pdb = env->mapDb[strFilename];
         if (pdb == nullptr) {
             int ret;
-            std::unique_ptr<Db> pdb_temp(new Db(env->dbenv.get(), 0));
+            std::unique_ptr<Db> pdb_temp = MakeUnique<Db>(env->dbenv.get(), 0);
 
             bool fMockDb = env->IsMock();
             if (fMockDb) {
@@ -589,7 +590,7 @@ bool CDB::Rewrite(CWalletDBWrapper& dbw, const char* pszSkip)
                 std::string strFileRes = strFile + ".rewrite";
                 { // surround usage of db with extra {}
                     CDB db(dbw, "r");
-                    Db* pdbCopy = new Db(env->dbenv.get(), 0);
+                    std::unique_ptr<Db> pdbCopy = MakeUnique<Db>(env->dbenv.get(), 0);
 
                     int ret = pdbCopy->open(NULL, // Txn pointer
                         strFileRes.c_str(),       // Filename
@@ -638,7 +639,6 @@ bool CDB::Rewrite(CWalletDBWrapper& dbw, const char* pszSkip)
                     } else {
                         pdbCopy->close(0);
                     }
-                    delete pdbCopy;
                 }
                 if (fSuccess) {
                     Db dbA(env->dbenv.get(), 0);
@@ -655,7 +655,6 @@ bool CDB::Rewrite(CWalletDBWrapper& dbw, const char* pszSkip)
         }
         MilliSleep(100);
     }
-    return false;
 }
 
 
@@ -789,7 +788,6 @@ bool CWalletDBWrapper::Backup(const std::string& strDest)
         }
         MilliSleep(100);
     }
-    return false;
 }
 
 void CWalletDBWrapper::Flush(bool shutdown)

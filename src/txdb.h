@@ -134,12 +134,12 @@ public:
 
     bool WriteBlockIndex(const CDiskBlockIndex& blockindex);
     bool WriteBatchSync(const std::vector<std::pair<int, const CBlockFileInfo*> >& fileInfo, int nLastFile, const std::vector<const CBlockIndex*>& blockinfo);
-    bool ReadBlockFileInfo(int nFile, CBlockFileInfo& fileinfo);
+    bool ReadBlockFileInfo(int nFile, CBlockFileInfo& info);
     bool ReadLastBlockFile(int& nFile);
-    bool WriteReindexing(bool fReindex);
-    bool ReadReindexing(bool& fReindex);
+    bool WriteReindexing(bool fReindexing);
+    bool ReadReindexing(bool& fReindexing);
     bool ReadTxIndex(const uint256& txid, CDiskTxPos& pos);
-    bool WriteTxIndex(const std::vector<std::pair<uint256, CDiskTxPos> >& list);
+    bool WriteTxIndex(const std::vector<std::pair<uint256, CDiskTxPos> >& vect);
     bool WriteFlag(const std::string& name, bool fValue);
     bool ReadFlag(const std::string& name, bool& fValue);
     bool WriteInt(const std::string& name, int nValue);
@@ -166,9 +166,9 @@ public:
     bool EraseCoinSpend(const CBigNum& bnSerial);
 
     /** Accumulators (only for zPoS IBD): [checksum, denom] --> block height **/
-    bool WriteAccChecksum(const uint32_t& nChecksum, const libzerocoin::CoinDenomination denom, const int nHeight);
-    bool ReadAccChecksum(const uint32_t& nChecksum, const libzerocoin::CoinDenomination denom, int& nHeightRet);
-    bool EraseAccChecksum(const uint32_t& nChecksum, const libzerocoin::CoinDenomination denom);
+    bool WriteAccChecksum(const uint32_t nChecksum, const libzerocoin::CoinDenomination denom, const int nHeight);
+    bool ReadAccChecksum(const uint32_t nChecksum, const libzerocoin::CoinDenomination denom, int& nHeightRet);
+    bool EraseAccChecksum(const uint32_t nChecksum, const libzerocoin::CoinDenomination denom);
     bool WipeAccChecksums();
 };
 

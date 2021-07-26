@@ -232,7 +232,7 @@ CNodeState* State(NodeId pnode)
 {
     std::map<NodeId, CNodeState>::iterator it = mapNodeState.find(pnode);
     if (it == mapNodeState.end())
-        return NULL;
+        return nullptr;
     return &it->second;
 }
 
@@ -272,6 +272,7 @@ void MarkBlockAsReceived(const uint256& hash)
     std::map<uint256, std::pair<NodeId, std::list<QueuedBlock>::iterator> >::iterator itInFlight = mapBlocksInFlight.find(hash);
     if (itInFlight != mapBlocksInFlight.end()) {
         CNodeState* state = State(itInFlight->second.first);
+        assert(state != nullptr);
         nQueuedValidatedHeaders -= itInFlight->second.second->fValidatedHeaders;
         state->vBlocksInFlight.erase(itInFlight->second.second);
         state->nBlocksInFlight--;
@@ -284,7 +285,7 @@ void MarkBlockAsReceived(const uint256& hash)
 void MarkBlockAsInFlight(NodeId nodeid, const uint256& hash, const CBlockIndex* pindex = nullptr)
 {
     CNodeState* state = State(nodeid);
-    assert(state != NULL);
+    assert(state != nullptr);
 
     // Make sure it's not listed somewhere already.
     MarkBlockAsReceived(hash);
@@ -300,7 +301,7 @@ void MarkBlockAsInFlight(NodeId nodeid, const uint256& hash, const CBlockIndex* 
 void ProcessBlockAvailability(NodeId nodeid)
 {
     CNodeState* state = State(nodeid);
-    assert(state != NULL);
+    assert(state != nullptr);
 
     if (!state->hashLastUnknownBlock.IsNull()) {
         BlockMap::iterator itOld = mapBlockIndex.find(state->hashLastUnknownBlock);
@@ -316,7 +317,7 @@ void ProcessBlockAvailability(NodeId nodeid)
 void UpdateBlockAvailability(NodeId nodeid, const uint256& hash)
 {
     CNodeState* state = State(nodeid);
-    assert(state != NULL);
+    assert(state != nullptr);
 
     ProcessBlockAvailability(nodeid);
 
@@ -340,7 +341,7 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<con
 
     vBlocks.reserve(vBlocks.size() + count);
     CNodeState* state = State(nodeid);
-    assert(state != NULL);
+    assert(state != nullptr);
 
     // Make sure pindexBestKnownBlock is up to date, we'll need it.
     ProcessBlockAvailability(nodeid);
@@ -1489,7 +1490,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         }
 
         if (AcceptToMemoryPool(mempool, state, ptx, true, &fMissingInputs, false, ignoreFees)) {
-            mempool.check(pcoinsTip);
+            mempool.check(pcoinsTip.get());
             RelayTransaction(tx, connman);
             for (unsigned int i = 0; i < tx.vout.size(); i++) {
                 vWorkQueue.emplace_back(inv.hash, i);
@@ -1543,7 +1544,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
                         assert(recentRejects);
                         recentRejects->insert(orphanHash);
                     }
-                    mempool.check(pcoinsTip);
+                    mempool.check(pcoinsTip.get());
                 }
             }
 
@@ -1835,8 +1836,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
             LOCK(cs_main);
             Misbehaving(pfrom->GetId(), 100);
         } else {
-            delete pfrom->pfilter;
-            pfrom->pfilter = new CBloomFilter(filter);
+            pfrom->pfilter.reset(new CBloomFilter(filter));
             pfrom->pfilter->UpdateEmptyFull();
             pfrom->fRelayTxes = true;
         }
@@ -1869,8 +1869,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
 
     else if (strCommand == NetMsgType::FILTERCLEAR) {
         LOCK(pfrom->cs_filter);
-        delete pfrom->pfilter;
-        pfrom->pfilter = new CBloomFilter();
+        pfrom->pfilter.reset(new CBloomFilter());
         pfrom->fRelayTxes = true;
     }
 
