@@ -20,7 +20,6 @@
 #include "script/sigcache.h"
 #include "sporkdb.h"
 #include "txmempool.h"
-#include "util/memory.h"
 #include "validation.h"
 
 #include <boost/test/unit_test.hpp>
@@ -83,7 +82,7 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
 
         // Register EvoNotificationInterface
-        g_connman = MakeUnique<CConnman>(0x1337, 0x1337); // Deterministic randomness for tests.
+        g_connman = std::make_unique<CConnman>(0x1337, 0x1337); // Deterministic randomness for tests.
         connman = g_connman.get();
         pEvoNotificationInterface = new EvoNotificationInterface(*connman);
         RegisterValidationInterface(pEvoNotificationInterface);

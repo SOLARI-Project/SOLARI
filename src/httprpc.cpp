@@ -14,7 +14,6 @@
 #include "rpc/server.h"
 #include "random.h"
 #include "sync.h"
-#include "util/memory.h"
 #include "util/system.h"
 #include "utilstrencodings.h"
 
@@ -234,7 +233,7 @@ bool StartHTTPRPC()
     RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC);
 #endif
     assert(EventBase());
-    httpRPCTimerInterface = MakeUnique<HTTPRPCTimerInterface>(EventBase());
+    httpRPCTimerInterface = std::make_unique<HTTPRPCTimerInterface>(EventBase());
     RPCSetTimerInterface(httpRPCTimerInterface.get());
     return true;
 }

@@ -24,7 +24,7 @@ struct TestSaplingChainSetup: public TestChain100Setup
         initZKSNARKS(); // init zk-snarks lib
 
         bool fFirstRun;
-        pwalletMain = MakeUnique<CWallet>("testWallet", CWalletDBWrapper::CreateMock());
+        pwalletMain = std::make_unique<CWallet>("testWallet", CWalletDBWrapper::CreateMock());
         pwalletMain->LoadWallet(fFirstRun);
         RegisterValidationInterface(pwalletMain.get());
 
