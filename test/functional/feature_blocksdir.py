@@ -23,7 +23,7 @@ class BlocksdirTest(PivxTestFramework):
         initialize_datadir(self.options.tmpdir, 0)
         self.log.info("Starting with nonexistent blocksdir ...")
         blocksdir_path = os.path.join(self.options.tmpdir, 'blocksdir')
-        expected_err = "Error: Specified blocks directory \"{}\" does not exist.\n".format(blocksdir_path)
+        expected_err = 'Error: Specified blocks directory "{}" does not exist.'.format(blocksdir_path)
         self.nodes[0].assert_start_raises_init_error(["-blocksdir=" + blocksdir_path], expected_err)
         os.mkdir(blocksdir_path)
         self.log.info("Starting with existing blocksdir ...")
