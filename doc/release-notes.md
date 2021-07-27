@@ -478,6 +478,7 @@ The fee will be equally deducted from the amount of each selected address.
   [\"address\"          (string) Subtract fee from this address\n"
    ,...
   ]
+```
 
 For `fundrawtransaction` a new key (`subtractFeeFromOutputs`) is added to the `options` argument.
 It can be used to specify a list of output indexes.
