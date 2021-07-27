@@ -44,7 +44,7 @@ class AbortNodeTest(PivxTestFramework):
             self.log.info("Waiting for crash")
             wait_until(lambda: self.nodes[0].is_node_stopped(), timeout=60)
         self.log.info("Node crashed - now verifying restart fails")
-        self.assert_start_raises_init_error(0)
+        self.nodes[0].assert_start_raises_init_error()
 
 if __name__ == '__main__':
     AbortNodeTest().main()

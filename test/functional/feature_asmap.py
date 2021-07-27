@@ -76,7 +76,7 @@ class AsmapTest(PivxTestFramework):
         self.log.info('Test pivxd -asmap with missing default map file')
         self.stop_node(0)
         msg = "Error: Could not find asmap file \"{}\"".format(self.default_asmap)
-        self.assert_start_raises_init_error(0, extra_args=['-asmap'], expected_msg=msg)
+        self.nodes[0].assert_start_raises_init_error(extra_args=['-asmap'], expected_msg=msg)
 
     def test_empty_asmap(self):
         self.log.info('Test pivxd -asmap with empty map file')
@@ -84,7 +84,7 @@ class AsmapTest(PivxTestFramework):
         with open(self.default_asmap, "w", encoding="utf-8") as f:
             f.write("")
         msg = "Error: Could not parse asmap file \"{}\"".format(self.default_asmap)
-        self.assert_start_raises_init_error(0, extra_args=['-asmap'], expected_msg=msg)
+        self.nodes[0].assert_start_raises_init_error(extra_args=['-asmap'], expected_msg=msg)
         os.remove(self.default_asmap)
 
     def run_test(self):

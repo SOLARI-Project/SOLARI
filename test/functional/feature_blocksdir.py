@@ -22,7 +22,7 @@ class BlocksdirTest(PivxTestFramework):
         shutil.rmtree(self.nodes[0].datadir)
         initialize_datadir(self.options.tmpdir, 0)
         self.log.info("Starting with nonexistent blocksdir ...")
-        self.assert_start_raises_init_error(0, ["-blocksdir="+self.options.tmpdir+ "/blocksdir"], "Specified blocks director")
+        self.nodes[0].assert_start_raises_init_error(["-blocksdir="+self.options.tmpdir+ "/blocksdir"], "Specified blocks director")
         os.mkdir(self.options.tmpdir+ "/blocksdir")
         self.log.info("Starting with existing blocksdir ...")
         self.start_node(0, ["-blocksdir="+self.options.tmpdir+ "/blocksdir"])

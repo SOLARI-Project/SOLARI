@@ -65,42 +65,42 @@ class MultiWalletTest(PivxTestFramework):
             assert_equal(os.path.isfile(wallet_file(wallet_name)), True)
 
         # should not initialize if wallet path can't be created
-        self.assert_start_raises_init_error(0, ['-wallet=wallet.dat/bad'], 'Not a directory')
+        self.nodes[0].assert_start_raises_init_error(['-wallet=wallet.dat/bad'], 'Not a directory')
 
-        self.assert_start_raises_init_error(0, ['-walletdir=wallets'], 'Error: Specified -walletdir "wallets" does not exist')
-        self.assert_start_raises_init_error(0, ['-walletdir=wallets'], 'Error: Specified -walletdir "wallets" is a relative path', cwd=data_dir())
-        self.assert_start_raises_init_error(0, ['-walletdir=debug.log'], 'Error: Specified -walletdir "debug.log" is not a directory', cwd=data_dir())
+        self.nodes[0].assert_start_raises_init_error(['-walletdir=wallets'], 'Error: Specified -walletdir "wallets" does not exist')
+        self.nodes[0].assert_start_raises_init_error(['-walletdir=wallets'], 'Error: Specified -walletdir "wallets" is a relative path', cwd=data_dir())
+        self.nodes[0].assert_start_raises_init_error(['-walletdir=debug.log'], 'Error: Specified -walletdir "debug.log" is not a directory', cwd=data_dir())
 
         # should not initialize if there are duplicate wallets
-        self.assert_start_raises_init_error(0, ['-wallet=w1', '-wallet=w1'], 'Error loading wallet w1. Duplicate -wallet filename specified.')
+        self.nodes[0].assert_start_raises_init_error(['-wallet=w1', '-wallet=w1'], 'Error loading wallet w1. Duplicate -wallet filename specified.')
 
         # should not initialize if one wallet is a copy of another
         shutil.copyfile(wallet_dir('w8'), wallet_dir('w8_copy'))
-        self.assert_start_raises_init_error(0, ['-wallet=w8', '-wallet=w8_copy'], 'duplicates fileid')
+        self.nodes[0].assert_start_raises_init_error(['-wallet=w8', '-wallet=w8_copy'], 'duplicates fileid')
 
         # should not initialize if wallet file is a symlink
         os.symlink('w8', wallet_dir('w8_symlink'))
-        self.assert_start_raises_init_error(0, ['-wallet=w8_symlink'], 'Invalid -wallet path')
+        self.nodes[0].assert_start_raises_init_error(['-wallet=w8_symlink'], 'Invalid -wallet path')
 
         # should not initialize if the specified walletdir does not exist
-        self.assert_start_raises_init_error(0, ['-walletdir=bad'], 'Error: Specified -walletdir "bad" does not exist')
+        self.nodes[0].assert_start_raises_init_error(['-walletdir=bad'], 'Error: Specified -walletdir "bad" does not exist')
         # should not initialize if the specified walletdir is not a directory
         not_a_dir = wallet_dir('notadir')
         open(not_a_dir, 'a', encoding="utf8").close()
-        self.assert_start_raises_init_error(0, ['-walletdir='+not_a_dir], 'Error: Specified -walletdir "' + not_a_dir + '" is not a directory')
+        self.nodes[0].assert_start_raises_init_error(['-walletdir='+not_a_dir], 'Error: Specified -walletdir "' + not_a_dir + '" is not a directory')
 
         self.log.info("Do not allow -zapwallettxes with multiwallet")
-        self.assert_start_raises_init_error(0, ['-zapwallettxes', '-wallet=w1', '-wallet=w2'], "Error: -zapwallettxes is only allowed with a single wallet file")
-        self.assert_start_raises_init_error(0, ['-zapwallettxes=1', '-wallet=w1', '-wallet=w2'], "Error: -zapwallettxes is only allowed with a single wallet file")
-        self.assert_start_raises_init_error(0, ['-zapwallettxes=2', '-wallet=w1', '-wallet=w2'], "Error: -zapwallettxes is only allowed with a single wallet file")
+        self.nodes[0].assert_start_raises_init_error(['-zapwallettxes', '-wallet=w1', '-wallet=w2'], "Error: -zapwallettxes is only allowed with a single wallet file")
+        self.nodes[0].assert_start_raises_init_error(['-zapwallettxes=1', '-wallet=w1', '-wallet=w2'], "Error: -zapwallettxes is only allowed with a single wallet file")
+        self.nodes[0].assert_start_raises_init_error(['-zapwallettxes=2', '-wallet=w1', '-wallet=w2'], "Error: -zapwallettxes is only allowed with a single wallet file")
 
         self.log.info("Do not allow -salvagewallet with multiwallet")
-        self.assert_start_raises_init_error(0, ['-salvagewallet', '-wallet=w1', '-wallet=w2'], "Error: -salvagewallet is only allowed with a single wallet file")
-        self.assert_start_raises_init_error(0, ['-salvagewallet=1', '-wallet=w1', '-wallet=w2'], "Error: -salvagewallet is only allowed with a single wallet file")
+        self.nodes[0].assert_start_raises_init_error(['-salvagewallet', '-wallet=w1', '-wallet=w2'], "Error: -salvagewallet is only allowed with a single wallet file")
+        self.nodes[0].assert_start_raises_init_error(['-salvagewallet=1', '-wallet=w1', '-wallet=w2'], "Error: -salvagewallet is only allowed with a single wallet file")
 
         self.log.info("Do not allow -upgradewallet with multiwallet")
-        self.assert_start_raises_init_error(0, ['-upgradewallet', '-wallet=w1', '-wallet=w2'], "Error: -upgradewallet is only allowed with a single wallet file")
-        self.assert_start_raises_init_error(0, ['-upgradewallet=1', '-wallet=w1', '-wallet=w2'], "Error: -upgradewallet is only allowed with a single wallet file")
+        self.nodes[0].assert_start_raises_init_error(['-upgradewallet', '-wallet=w1', '-wallet=w2'], "Error: -upgradewallet is only allowed with a single wallet file")
+        self.nodes[0].assert_start_raises_init_error(['-upgradewallet=1', '-wallet=w1', '-wallet=w2'], "Error: -upgradewallet is only allowed with a single wallet file")
 
         # if wallets/ doesn't exist, datadir should be the default wallet dir
         wallet_dir2 = data_dir('walletdir')
@@ -121,7 +121,7 @@ class MultiWalletTest(PivxTestFramework):
         competing_wallet_dir = os.path.join(self.options.tmpdir, 'competing_walletdir')
         os.mkdir(competing_wallet_dir)
         self.restart_node(0, ['-walletdir='+competing_wallet_dir])
-        self.assert_start_raises_init_error(1, ['-walletdir='+competing_wallet_dir], 'Error initializing wallet database environment')
+        self.nodes[1].assert_start_raises_init_error(['-walletdir='+competing_wallet_dir], 'Error initializing wallet database environment')
 
         self.restart_node(0, extra_args)
 
