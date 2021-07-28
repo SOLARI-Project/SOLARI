@@ -124,6 +124,39 @@ CBLSSignature CBLSSecretKey::Sign(const uint256& hash) const
     return sigRet;
 }
 
+bool CBLSSecretKey::Recover(const std::vector<CBLSSecretKey>& keys, const std::vector<CBLSId>& ids)
+{
+    fValid = false;
+    cachedHash.SetNull();
+
+    if (keys.empty() || ids.empty() || keys.size() != ids.size()) {
+        return false;
+    }
+
+    std::vector<bls::PrivateKey> keysVec;
+    std::vector<bls::Bytes> idsVec;
+    keysVec.reserve(keys.size());
+    idsVec.reserve(keys.size());
+
+    for (size_t i = 0; i < keys.size(); i++) {
+        if (!keys[i].IsValid() || !ids[i].IsValid()) {
+            return false;
+        }
+        keysVec.emplace_back(keys[i].impl);
+        idsVec.emplace_back(ids[i].impl.begin(), ids[i].impl.size());
+    }
+
+    try {
+        impl = bls::Threshold::PrivateKeyRecover(keysVec, idsVec);
+    } catch (...) {
+        return false;
+    }
+
+    fValid = true;
+    cachedHash.SetNull();
+    return true;
+}
+
 void CBLSPublicKey::AggregateInsecure(const CBLSPublicKey& o)
 {
     assert(IsValid() && o.IsValid());

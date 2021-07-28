@@ -228,6 +228,7 @@ public:
 
     CBLSPublicKey GetPublicKey() const;
     CBLSSignature Sign(const uint256& hash) const;
+    bool Recover(const std::vector<CBLSSecretKey>& keys, const std::vector<CBLSId>& ids);
 };
 
 class CBLSPublicKey : public CBLSWrapper<bls::G1Element, BLS_CURVE_PUBKEY_SIZE, CBLSPublicKey>
