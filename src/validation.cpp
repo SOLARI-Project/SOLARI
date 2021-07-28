@@ -400,10 +400,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         *pfMissingInputs = false;
 
     // Check maintenance mode
-    bool hasTxZerocoins = tx.ContainsZerocoins();
-    if (sporkManager.IsSporkActive(SPORK_16_ZEROCOIN_MAINTENANCE_MODE) && hasTxZerocoins)
-        return state.DoS(10, error("%s : Zerocoin transactions are temporarily disabled for maintenance",
-                __func__), REJECT_INVALID, "bad-tx-zerocoin-maintenance");
     if (sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE) && tx.IsShieldedTx())
         return state.DoS(10, error("%s : Shielded transactions are temporarily disabled for maintenance",
                 __func__), REJECT_INVALID, "bad-tx-sapling-maintenance");
@@ -411,12 +407,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
     const CChainParams& params = Params();
     const Consensus::Params& consensus = params.GetConsensus();
     int chainHeight = chainActive.Height();
-
-    // Zerocoin txes are not longer accepted in the mempool.
-    if (hasTxZerocoins) {
-        return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__),
-                         REJECT_INVALID, "bad-tx-with-zc");
-    }
 
     // Check transaction
     bool fColdStakingActive = !sporkManager.IsSporkActive(SPORK_19_COLDSTAKING_MAINTENANCE);
@@ -1537,7 +1527,6 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     std::vector<PrecomputedTransactionData> precomTxData;
     precomTxData.reserve(block.vtx.size()); // Required so that pointers to individual precomTxData don't get invalidated
     bool fInitialBlockDownload = IsInitialBlockDownload();
-    bool fZerocoinMaintenance =  (block.nTime > sporkManager.GetSporkValue(SPORK_16_ZEROCOIN_MAINTENANCE_MODE));
     bool fSaplingMaintenance =  (block.nTime > sporkManager.GetSporkValue(SPORK_20_SAPLING_MAINTENANCE));
     for (unsigned int i = 0; i < block.vtx.size(); i++) {
         const CTransaction& tx = *block.vtx[i];
@@ -1548,25 +1537,16 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             return state.DoS(100, error("ConnectBlock() : too many sigops"), REJECT_INVALID, "bad-blk-sigops");
 
         // Check maintenance mode
-        if (!fInitialBlockDownload) {
-            if (fZerocoinMaintenance && tx.ContainsZerocoins())
-                return state.DoS(100, error("%s : zerocoin transactions are currently in maintenance mode", __func__));
-            if (fSaplingMaintenance && tx.IsShieldedTx())
-                return state.DoS(100, error("%s : shielded transactions are currently in maintenance mode", __func__));
+        if (!fInitialBlockDownload && fSaplingMaintenance && tx.IsShieldedTx()) {
+            return state.DoS(100, error("%s : shielded transactions are currently in maintenance mode", __func__));
         }
 
-        // If v5 is active, bye bye zerocoin
-        if (isV5UpgradeEnforced && tx.ContainsZerocoins()) {
-            return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__));
-        }
-
-        if (tx.HasZerocoinSpendInputs()) {
-            auto opCoinSpendValues = ParseAndValidateZerocoinSpend(consensus, tx, pindex->nHeight, state);
-            if (!opCoinSpendValues) {
-                return false; // Invalidity/DoS is handled by ParseAndValidateZerocoinSpend.
+        // When v5 is enforced ContextualCheckTransaction rejects zerocoin transactions.
+        // Therefore no need to call HasZerocoinSpendInputs after the enforcement.
+        if (!isV5UpgradeEnforced && tx.HasZerocoinSpendInputs()) {
+            if (!ParseAndValidateZerocoinSpends(consensus, tx, pindex->nHeight, state, vSpends)) {
+                return false; // Invalidity/DoS is handled by the function.
             }
-            nValueIn += opCoinSpendValues->value;
-            vSpends.emplace_back(opCoinSpendValues->serial, tx.GetHash());
         } else if (!tx.IsCoinBase()) {
             if (!view.HaveInputs(tx)) {
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-missingorspent");
@@ -1588,10 +1568,12 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         // Cache the sig ser hashes
         precomTxData.emplace_back(tx);
 
+        CAmount txValueOut = tx.GetValueOut();
         if (!tx.IsCoinBase()) {
+            CAmount txValueIn = view.GetValueIn(tx);
             if (!tx.IsCoinStake())
-                nFees += view.GetValueIn(tx) - tx.GetValueOut();
-            nValueIn += view.GetValueIn(tx);
+                nFees += txValueIn - txValueOut;
+            nValueIn += txValueIn;
 
             std::vector<CScriptCheck> vChecks;
             unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG;
@@ -1603,7 +1585,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                 return error("%s: Check inputs on %s failed with %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
             control.Add(vChecks);
         }
-        nValueOut += tx.GetValueOut();
+        nValueOut += txValueOut;
 
         CTxUndo undoDummy;
         if (i > 0) {
@@ -1638,6 +1620,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     }
 
     // track mint amount info
+    assert(nFees >= 0);
     const int64_t nMint = (nValueOut - nValueIn) + nFees;
 
     int64_t nTime1 = GetTimeMicros();
@@ -2745,9 +2728,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     // Cold Staking enforcement (true during sync - reject P2CS outputs when false)
     bool fColdStakingActive = true;
 
-    // Zerocoin activation
-    bool fZerocoinActive = block.GetBlockTime() > Params().GetConsensus().ZC_TimeStart;
-
     // masternode payments / budgets
     CBlockIndex* pindexPrev = chainActive.Tip();
     int nHeight = 0;
@@ -2784,7 +2764,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     }
 
     // Check transactions
-    bool fSaplingActive = Params().GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0);
     std::vector<CBigNum> vBlockSerials;
     for (const auto& txIn : block.vtx) {
         const CTransaction& tx = *txIn;
@@ -2798,20 +2777,13 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
             // pass the state returned by the function above
             return false;
         }
-
-        // No need to check for zerocoin anymore after sapling, they are networkely disabled
-        // and checkpoints are preventing the chain for any massive reorganization.
-        if (fSaplingActive && tx.ContainsZerocoins()) {
-            return state.DoS(100, error("%s : v5 upgrade enforced, zerocoin disabled", __func__),
-                             REJECT_INVALID, "bad-blk-with-zc");
-        }
     }
 
     unsigned int nSigOps = 0;
     for (const auto& tx : block.vtx) {
         nSigOps += GetLegacySigOpCount(*tx);
     }
-    unsigned int nMaxBlockSigOps = fZerocoinActive ? MAX_BLOCK_SIGOPS_CURRENT : MAX_BLOCK_SIGOPS_LEGACY;
+    unsigned int nMaxBlockSigOps = block.GetBlockTime() > Params().GetConsensus().ZC_TimeStart ? MAX_BLOCK_SIGOPS_CURRENT : MAX_BLOCK_SIGOPS_LEGACY;
     if (nSigOps > nMaxBlockSigOps)
         return state.DoS(100, error("%s : out-of-bounds SigOpCount", __func__),
             REJECT_INVALID, "bad-blk-sigops", true);

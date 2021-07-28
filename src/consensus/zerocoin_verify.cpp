@@ -127,21 +127,13 @@ bool CheckPublicCoinSpendEnforced(int blockHeight, bool isPublicSpend)
     return true;
 }
 
-int CurrentPublicCoinSpendVersion() {
-    return sporkManager.IsSporkActive(SPORK_18_ZEROCOIN_PUBLICSPEND_V4) ? 4 : 3;
-}
-
-bool CheckPublicCoinSpendVersion(int version) {
-    return version == CurrentPublicCoinSpendVersion();
-}
-
-bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& state, const Consensus::Params& consensus, int nHeight)
+bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& state, const Consensus::Params& consensus, int nHeight, bool isMined)
 {
     // zerocoin enforced via block time. First block with a zc mint is 863735
     const bool fZerocoinEnforced = (nHeight >= consensus.ZC_HeightStart);
     const bool fPublicSpendEnforced = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_ZC_PUBLIC);
-    const bool fRejectMintsAndPrivateSpends = !fZerocoinEnforced || fPublicSpendEnforced;
-    const bool fRejectPublicSpends = !fPublicSpendEnforced || consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0);
+    const bool fRejectMintsAndPrivateSpends = !isMined || !fZerocoinEnforced || fPublicSpendEnforced;
+    const bool fRejectPublicSpends = !isMined || !fPublicSpendEnforced || consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_0);
 
     const bool hasPrivateSpendInputs = !tx->vin.empty() && tx->vin[0].IsZerocoinSpend();
     const bool hasPublicSpendInputs = !tx->vin.empty() && tx->vin[0].IsZerocoinPublicSpend();
@@ -250,9 +242,10 @@ bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const lib
     return true;
 }
 
-Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params& consensus,
-                                                        const CTransaction& tx, int chainHeight,
-                                                        CValidationState& state)
+bool ParseAndValidateZerocoinSpends(const Consensus::Params& consensus,
+                                    const CTransaction& tx, int chainHeight,
+                                    CValidationState& state,
+                                    std::vector<std::pair<CBigNum, uint256>>& vSpendsRet)
 {
     for (const CTxIn& txIn : tx.vin) {
         bool isPublicSpend = txIn.IsZerocoinPublicSpend();
@@ -261,35 +254,32 @@ Optional<CoinSpendValues> ParseAndValidateZerocoinSpend(const Consensus::Params&
             continue;
 
         // Check enforcement
-        if (!CheckPublicCoinSpendEnforced(chainHeight, isPublicSpend)){
-            return nullopt;
+        if (!CheckPublicCoinSpendEnforced(chainHeight, isPublicSpend)) {
+            return false;
         }
 
         if (isPublicSpend) {
             libzerocoin::ZerocoinParams* params = consensus.Zerocoin_Params(false);
             PublicCoinSpend publicSpend(params);
-            if (!ZPIVModule::ParseZerocoinPublicSpend(txIn, tx, state, publicSpend) ||
-                !CheckPublicCoinSpendVersion(publicSpend.getCoinVersion())){
-                return nullopt;
+            if (!ZPIVModule::ParseZerocoinPublicSpend(txIn, tx, state, publicSpend)) {
+                return false;
             }
             //queue for db write after the 'justcheck' section has concluded
             if (!ContextualCheckZerocoinSpend(tx, &publicSpend, chainHeight)) {
                 state.DoS(100, error("%s: failed to add block %s with invalid public zc spend", __func__,
                                      tx.GetHash().GetHex()), REJECT_INVALID);
-                return nullopt;
+                return false;
             }
-            // return value
-            return Optional<CoinSpendValues>(CoinSpendValues(publicSpend.getCoinSerialNumber(), publicSpend.getDenomination() * COIN));
+            vSpendsRet.emplace_back(publicSpend.getCoinSerialNumber(), tx.GetHash());
         } else {
             libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txIn);
             //queue for db write after the 'justcheck' section has concluded
             if (!ContextualCheckZerocoinSpend(tx, &spend, chainHeight)) {
-                state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
+                return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                      tx.GetHash().GetHex()), REJECT_INVALID);
-                return nullopt;
             }
-            return Optional<CoinSpendValues>(CoinSpendValues(spend.getCoinSerialNumber(), spend.getDenomination() * COIN));
+            vSpendsRet.emplace_back(spend.getCoinSerialNumber(), tx.GetHash());
         }
     }
-    return nullopt;
+    return !vSpendsRet.empty();
 }

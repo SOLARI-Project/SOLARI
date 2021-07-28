@@ -56,11 +56,13 @@ BOOST_AUTO_TEST_CASE(budget_value)
 BOOST_FIXTURE_TEST_CASE(block_value, TestnetSetup)
 {
     enableMnSyncAndSuperblocksPayment();
-    // regular block
     int nHeight = 100; std::string strError;
     const CAmount nBlockReward = GetBlockValue(nHeight);
     CAmount nExpectedRet = nBlockReward;
     CAmount nBudgetAmtRet = 0;
+
+    // regular block
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, 0, nBudgetAmtRet));
     BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, nBlockReward-1, nBudgetAmtRet));
     BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
     BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
@@ -127,6 +129,16 @@ BOOST_FIXTURE_TEST_CASE(block_value, TestnetSetup)
     BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
 }
 
+BOOST_FIXTURE_TEST_CASE(block_value_undermint, RegTestingSetup)
+{
+    int nHeight = 100;
+    CAmount nExpectedRet = GetBlockValue(nHeight);
+    CAmount nBudgetAmtRet = 0;
+    // under-minting blocks are invalid after v6
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, -1, nBudgetAmtRet));
+    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
+    BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, -1, nBudgetAmtRet));
+}
 
 /**
  * 1) Create two proposals and two budget finalizations with a different proposal payment order:
