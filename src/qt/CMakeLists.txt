@@ -177,6 +177,9 @@ target_include_directories(qt_stuff PUBLIC ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/src/leveldb/include
         ${CMAKE_SOURCE_DIR}/src/univalue/include
         ${CMAKE_SOURCE_DIR}/src/secp256k1/include
+        ${CMAKE_SOURCE_DIR}/src/chiabls/src
+        ${relic_SOURCE_DIR}/include
+        ${relic_BINARY_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings

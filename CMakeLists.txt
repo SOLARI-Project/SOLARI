@@ -286,6 +286,9 @@ target_include_directories(WALLET_A PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/secp256k1/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/univalue/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/leveldb/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/chiabls/src
+        ${relic_SOURCE_DIR}/include
+        ${relic_BINARY_DIR}/include
         ${BerkeleyDB_INCLUDE_DIRS}
         )
 
