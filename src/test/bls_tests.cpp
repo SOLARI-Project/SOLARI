@@ -5,6 +5,7 @@
 #include "test/test_pivx.h"
 #include "bls/bls_worker.h"
 #include "bls/bls_wrapper.h"
+#include "random.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -68,7 +69,7 @@ std::vector<size_t> GetRandomElements(size_t m, size_t n)
     for (size_t i = 0; i < n; i++) {
         idxs.emplace_back(i);
     }
-    std::random_shuffle(idxs.begin(), idxs.end());
+    Shuffle(idxs.begin(), idxs.end(), FastRandomContext());
     return std::vector<size_t>(idxs.begin(), idxs.begin() + m);
 }
 
