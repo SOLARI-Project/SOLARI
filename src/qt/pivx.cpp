@@ -686,6 +686,7 @@ int main(int argc, char* argv[])
     // Check if at least one wallet exists, otherwise prompt tutorial
     bool createTutorial{true};
     const fs::path wallet_dir = GetWalletDir();
+    gArgs.SoftSetArg("-wallet", "");
     for (const std::string& wallet_name : gArgs.GetArgs("-wallet")) {
         auto opRes = VerifyWalletPath(wallet_name);
         if (!opRes) throw std::runtime_error(opRes.getError());
