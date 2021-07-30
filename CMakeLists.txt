@@ -308,6 +308,8 @@ set(BITCOIN_CRYPTO_SOURCES
         ./src/crypto/common.h
         ./src/crypto/sha256.h
         ./src/crypto/sha512.h
+        ./src/crypto/siphash.cpp
+        ./src/crypto/siphash.h
         ./src/crypto/chacha20.h
         ./src/crypto/hmac_sha256.h
         ./src/crypto/rfc6979_hmac_sha256.h
