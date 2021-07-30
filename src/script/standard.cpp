@@ -86,9 +86,6 @@ static bool MatchMultisig(const CScript& script, unsigned int& required, std::ve
     return (it + 1 == script.end());
 }
 
-/**
- * Return public keys or hashes from scriptPubKey, for 'standard' transaction types.
- */
 bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::vector<unsigned char> >& vSolutionsRet)
 {
     if (scriptPubKey.empty())

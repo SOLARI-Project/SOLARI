@@ -5,6 +5,7 @@
 #ifndef DESTINATION_IO_H
 #define DESTINATION_IO_H
 
+#include "chainparams.h"
 #include "script/standard.h"
 
 // Regular + shielded addresses variant.
