@@ -293,6 +293,7 @@ BITCOIN_CORE_H = \
   guiinterfaceutil.h \
   uint256.h \
   undo.h \
+  util/asmap.h \
   util/blockstatecatcher.h \
   util/system.h \
   util/macros.h \
@@ -561,6 +562,7 @@ libbitcoin_util_a_SOURCES = \
   support/lockedpool.cpp \
   sync.cpp \
   threadinterrupt.cpp \
+  util/asmap.cpp \
   uint256.cpp \
   util/system.cpp \
   utilmoneystr.cpp \
