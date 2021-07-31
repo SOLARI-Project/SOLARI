@@ -136,7 +136,7 @@ BOOST_FIXTURE_TEST_CASE(block_value_undermint, RegTestingSetup)
     CAmount nBudgetAmtRet = 0;
     // under-minting blocks are invalid after v6
     BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, -1, nBudgetAmtRet));
-    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
+    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_3, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
     BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, -1, nBudgetAmtRet));
 }
 

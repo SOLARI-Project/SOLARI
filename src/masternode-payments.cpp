@@ -161,11 +161,11 @@ std::string CMasternodePaymentWinner::GetStrMessage() const
     return vinMasternode.prevout.ToStringShort() + std::to_string(nBlockHeight) + HexStr(payee);
 }
 
-bool CMasternodePaymentWinner::IsValid(CNode* pnode, std::string& strError)
+bool CMasternodePaymentWinner::IsValid(CNode* pnode, std::string& strError, int chainHeight)
 {
     int n = mnodeman.GetMasternodeRank(vinMasternode, nBlockHeight - 100);
-
-    if (n < 1 || n > MNPAYMENTS_SIGNATURES_TOTAL) {
+    bool guard = Params().GetConsensus().NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3);
+    if ((guard && n < 1) || n > MNPAYMENTS_SIGNATURES_TOTAL) {
         //It's common to have masternodes mistakenly think they are in the top 10
         // We don't want to print all of these messages, or punish them unless they're way off
         if (n > MNPAYMENTS_SIGNATURES_TOTAL * 2) {
@@ -173,6 +173,12 @@ bool CMasternodePaymentWinner::IsValid(CNode* pnode, std::string& strError)
             LogPrint(BCLog::MASTERNODE,"CMasternodePaymentWinner::IsValid - %s\n", strError);
             //if (masternodeSync.IsSynced()) Misbehaving(pnode->GetId(), 20);
         }
+        return false;
+    }
+
+    // Must be a P2PKH
+    if (guard && !payee.IsPayToPublicKeyHash()) {
+        LogPrint(BCLog::MASTERNODE, "%s - payee must be a P2PKH\n", __func__);
         return false;
     }
 
@@ -219,9 +225,9 @@ bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CA
         }
     }
 
-    // !todo: remove after V6 enforcement and default it to true
-    const bool isV6UpgradeEnforced = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0);
-    return (!isV6UpgradeEnforced || nMinted >= 0) && nMinted <= nExpectedValue;
+    // !todo: remove after V5.3 enforcement and default it to true
+    const bool isUpgradeEnforced = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_3);
+    return (!isUpgradeEnforced || nMinted >= 0) && nMinted <= nExpectedValue;
 }
 
 bool IsBlockPayeeValid(const CBlock& block, const CBlockIndex* pindexPrev)
@@ -326,7 +332,7 @@ bool CMasternodePayments::GetLegacyMasternodeTxOut(int nHeight, std::vector<CTxO
     if (!GetBlockPayee(nHeight, payee)) {
         //no masternode detected
         const Consensus::Params& consensus = Params().GetConsensus();
-        const uint256& hash = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0) ?
+        const uint256& hash = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_3) ?
                               mnodeman.GetHashAtHeight(nHeight - 1) : consensus.hashGenesisBlock;
         MasternodeRef winningNode = mnodeman.GetCurrentMasterNode(hash);
         if (winningNode) {
@@ -457,7 +463,7 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
         }
 
         std::string strError = "";
-        if (!winner.IsValid(pfrom, strError)) {
+        if (!winner.IsValid(pfrom, strError, nHeight)) {
             // if(strError != "") LogPrint(BCLog::MASTERNODE,"mnw - invalid message - %s\n", strError);
             return;
         }

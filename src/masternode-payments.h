@@ -177,7 +177,7 @@ public:
     std::string GetStrMessage() const override;
     CTxIn GetVin() const { return vinMasternode; };
 
-    bool IsValid(CNode* pnode, std::string& strError);
+    bool IsValid(CNode* pnode, std::string& strError, int chainHeight);
     void Relay();
 
     void AddPayee(const CScript& payeeIn)
