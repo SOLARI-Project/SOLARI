@@ -294,6 +294,7 @@ void PrepareShutdown()
         pcoinsdbview.reset();
         pblocktree.reset();
         zerocoinDB.reset();
+        accumulatorCache.reset();
         pSporkDB.reset();
         deterministicMNManager.reset();
         evoDb.reset();
@@ -1564,6 +1565,7 @@ bool AppInitMain()
                 //PIVX specific: zerocoin and spork DB's
                 zerocoinDB.reset(new CZerocoinDB(0, false, fReindex));
                 pSporkDB.reset(new CSporkDB(0, false, false));
+                accumulatorCache.reset(new AccumulatorCache(zerocoinDB.get()));
 
                 deterministicMNManager.reset();
                 evoDb.reset();
