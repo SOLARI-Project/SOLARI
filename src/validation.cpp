@@ -2935,6 +2935,22 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
         }
     }
 
+    bool fActiveV5_3 = chainparams.GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_3);
+    if (fActiveV5_3 && block.IsProofOfStake()) {
+        CTransactionRef csTx = block.vtx[1];
+        if (csTx->vin.size() > 1) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-cs-multi-inputs", false,
+                             "invalid multi-inputs coinstake");
+        }
+
+        // Prevent multi-empty-outputs
+        for (int i=1; i<csTx->vout.size(); i++ ) {
+            if (csTx->vout[i].IsEmpty()) {
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-empty");
+            }
+        }
+    }
+
     return true;
 }
 
