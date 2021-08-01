@@ -84,7 +84,9 @@ BITCOIN_TEST_SUITE = \
 if ENABLE_WALLET
 BITCOIN_TEST_SUITE += \
   wallet/test/wallet_test_fixture.cpp \
-  wallet/test/wallet_test_fixture.h
+  wallet/test/wallet_test_fixture.h \
+  wallet/test/pos_test_fixture.cpp \
+  wallet/test/pos_test_fixture.h
 endif
 
 # test_pivx binary #
