@@ -527,7 +527,7 @@ class PivxTestFramework():
                 if i == 0:
                     # Add .incomplete flagfile
                     # (removed at the end during clean_cache_subdir)
-                    open(os.path.join(datadir, ".incomplete"), 'a').close()
+                    open(os.path.join(datadir, ".incomplete"), 'a', encoding="utf8").close()
                 args = [os.getenv("BITCOIND", "pivxd"), "-spendzeroconfchange=1", "-server", "-keypool=1",
                         "-datadir=" + datadir, "-discover=0"]
                 self.nodes.append(
@@ -1147,7 +1147,7 @@ class PivxTestFramework():
                                                  collateralTxId,
                                                  collateralTxId_n)
         destPath = os.path.join(mnOwnerDirPath, "masternode.conf")
-        with open(destPath, "a+") as file_object:
+        with open(destPath, "a+", encoding="utf8") as file_object:
             file_object.write("\n")
             file_object.write(confData)
 
