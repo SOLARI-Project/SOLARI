@@ -321,7 +321,7 @@ void WalletModel::pollFinished()
 
 void WalletModel::stop()
 {
-    if(pollFuture.isRunning()) {
+    if (pollFuture.isRunning()) {
         pollFuture.cancel();
         pollFuture.setPaused(true);
     }

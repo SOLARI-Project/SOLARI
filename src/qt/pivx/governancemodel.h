@@ -125,6 +125,10 @@ public:
     OperationResult voteForProposal(const ProposalInfo& prop,
                                     bool isVotePositive,
                                     const std::vector<std::string>& mnVotingAlias);
+
+    // Stop internal timers
+    void stop();
+
 public Q_SLOTS:
     void pollGovernanceChanged();
     void txLoaded(const QString& hash, const int txType, const int txStatus);
@@ -144,10 +148,9 @@ private:
     std::vector<CBudgetProposal> waitingPropsForConfirmations;
 
     void scheduleBroadcast(const CBudgetProposal& proposal);
-    void stopPolling();
 
     // Util function to create a ProposalInfo object
-    ProposalInfo buidProposalInfo(const CBudgetProposal* prop, bool isPassing, bool isPending);
+    ProposalInfo buildProposalInfo(const CBudgetProposal* prop, bool isPassing, bool isPending);
 };
 
 #endif // GOVERNANCEMODEL_H

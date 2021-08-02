@@ -165,7 +165,7 @@ void GovernanceWidget::loadClientModel()
 
 void GovernanceWidget::chainHeightChanged(int height)
 {
-    if (!isVisible()) return;
+    if (!isVisible() && clientModel->inInitialBlockDownload()) return;
     int remainingBlocks = governanceModel->getNextSuperblockHeight() - height;
     int remainingDays = remainingBlocks / 1440;
     QString text = remainingDays == 0 ? tr("Next superblock today!\n%2 blocks to go.").arg(remainingBlocks) :

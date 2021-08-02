@@ -631,7 +631,8 @@
               <item>
                <widget class="QLabel" name="labelNextSuperblock">
                 <property name="text">
-                 <string>Next superblock in 7,544 blocks</string>
+                 <string>Next superblock unknown.
+                  Wait until the node is fully sync.</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>

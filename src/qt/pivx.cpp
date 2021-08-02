@@ -455,6 +455,7 @@ void BitcoinApplication::requestShutdown()
     qDebug() << __func__ << ": Requesting shutdown";
     startThread();
     window->hide();
+    if (govModel) govModel->stop();
     if (walletModel) walletModel->stop();
     window->setClientModel(nullptr);
     pollShutdownTimer->stop();
