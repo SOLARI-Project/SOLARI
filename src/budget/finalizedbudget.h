@@ -37,7 +37,7 @@ private:
     std::string strInvalid;
 
     // Functions used inside IsWellFormed/UpdateValid - setting strInvalid
-    bool IsExpired(int nCurrentHeight);
+    bool updateExpired(int nCurrentHeight);
     bool CheckStartEnd();
     bool CheckAmount(const CAmount& nTotalBudget);
     bool CheckName();
