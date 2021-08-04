@@ -117,11 +117,10 @@ static CTxDestination GetNewAddressFromLabel(CWallet* const pwallet, const std::
     if (!params.isNull() && params.size() > 0)
         label = LabelFromValue(params[0]);
 
-    CTxDestination address;
-    PairResult r = pwallet->getNewAddress(address, label, purpose, addrType);
-    if(!r.result)
-        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, *r.status);
-    return address;
+    auto r = pwallet->getNewAddress(label, purpose, addrType);
+    if(!r)
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, r.getError());
+    return *r.getObjResult();
 }
 
 /** Convert CAddressBookData to JSON record.  */
@@ -2437,7 +2436,7 @@ UniValue sendmany(const JSONRPCRequest& request)
     bool fShieldSend = false;
     for (const std::string& key : sendTo.getKeys()) {
         bool isStaking = false, isShielded = false;
-        const CWDestination& dest = Standard::DecodeDestination(key, isStaking, isShielded);
+        Standard::DecodeDestination(key, isStaking, isShielded);
         if (isShielded) {
             fShieldSend = true;
             break;

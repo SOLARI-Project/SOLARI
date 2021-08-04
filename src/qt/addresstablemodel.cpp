@@ -631,18 +631,9 @@ QString AddressTableModel::getAddressToShow(bool isShielded) const
     }
 
     // For some reason we don't have any address in our address book, let's create one
-    PairResult res(false);
-    QString addressStr;
-    if (!isShielded) {
-        Destination newAddress;
-        res = walletModel->getNewAddress(newAddress, "Default");
-        if (res.result) {
-            addressStr = QString::fromStdString(newAddress.ToString());
-        }
-    } else {
-        res = walletModel->getNewShieldedAddress(addressStr, "default shielded");
-    }
-    return addressStr;
+    CallResult<Destination> res = !isShielded ? walletModel->getNewAddress("Default") :
+            walletModel->getNewShieldedAddress("default shielded");
+    return (res) ? QString::fromStdString(res.getObjResult()->ToString()) : "";;
 }
 
 void AddressTableModel::emitDataChanged(int idx)

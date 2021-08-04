@@ -743,14 +743,12 @@ void SendWidget::onShieldCoinsClicked()
 
         // Process spending
         ProcessSend(recipients, true, [this](QList<SendCoinsRecipient>& recipients) {
-            QString strAddress;
-            auto res = walletModel->getNewShieldedAddress(strAddress, "");
-            // Check for generation errors
-            if (!res.result) {
+            auto res = walletModel->getNewShieldedAddress("");
+            if (!res) {
                 inform(tr("Error generating address to shield PIVs"));
                 return false;
             }
-            recipients.back().address = strAddress;
+            recipients.back().address = QString::fromStdString(res.getObjResult()->ToString());
             resetCoinControl();
             return true;
         });
