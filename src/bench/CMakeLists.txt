@@ -54,6 +54,7 @@ set(BITCOIN_BENCH_SUITE
         ${CMAKE_CURRENT_SOURCE_DIR}/perf.h
         ${CMAKE_CURRENT_SOURCE_DIR}/prevector.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/util_time.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/walletprocessblock.cpp
         )
 
 set(bench_bench_pivx_SOURCES ${BITCOIN_BENCH_SUITE} ${BITCOIN_TESTS})

@@ -1529,7 +1529,7 @@ bool AppInitMain()
     }
 #endif
 
-    pEvoNotificationInterface = new EvoNotificationInterface(connman);
+    pEvoNotificationInterface = new EvoNotificationInterface();
     RegisterValidationInterface(pEvoNotificationInterface);
 
     // ********************************************************* Step 7: load block chain
