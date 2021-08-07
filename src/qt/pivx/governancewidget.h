@@ -68,6 +68,7 @@ public:
     void setMNModel(MNModel* _mnModel);
 
 public Q_SLOTS:
+    void tierTwoSynced(bool IsSync);
     void onFilterChanged(const QString& value);
     void chainHeightChanged(int height);
     void onVoteForPropClicked(const ProposalInfo& proposalInfo);
@@ -77,6 +78,7 @@ private:
     Ui::governancewidget *ui;
     GovernanceModel* governanceModel{nullptr};
     MNModel* mnModel{nullptr};
+    bool isSync{false};
     QGridLayout* gridLayout{nullptr}; // cards
     std::vector<ProposalCard*> cards;
     int propsPerRow = 0;

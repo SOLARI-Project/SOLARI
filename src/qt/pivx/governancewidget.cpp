@@ -92,6 +92,12 @@ GovernanceWidget::GovernanceWidget(PIVXGUI* parent) :
     setCssProperty(ui->iconClock , "ic-time");
     setCssProperty(ui->labelNextSuperblock, "label-budget-text");
 
+    // Sync Warning
+    ui->layoutWarning->setVisible(true);
+    ui->lblWarning->setText(tr("Please wait until the node is fully synced to see the correct information"));
+    setCssProperty(ui->lblWarning, "text-warning");
+    setCssProperty(ui->imgWarning, "ic-warning");
+
     // Create proposal
     ui->btnCreateProposal->setTitleClassAndText("btn-title-grey", "Create Proposal");
     ui->btnCreateProposal->setSubTitleClassAndText("text-subtitle", "Prepare and submit a new proposal.");
@@ -165,7 +171,7 @@ void GovernanceWidget::loadClientModel()
 
 void GovernanceWidget::chainHeightChanged(int height)
 {
-    if (!isVisible() && clientModel->inInitialBlockDownload()) return;
+    if (!isVisible() || clientModel->inInitialBlockDownload()) return;
     int remainingBlocks = governanceModel->getNextSuperblockHeight() - height;
     int remainingDays = remainingBlocks / 1440;
     QString text = remainingDays == 0 ? tr("Next superblock today!\n%2 blocks to go.").arg(remainingBlocks) :
@@ -323,5 +329,15 @@ int GovernanceWidget::calculateColumnsPerRow()
         return 3;
     } else {
         return 4; // max amount of cards
+    }
+}
+
+void GovernanceWidget::tierTwoSynced(bool sync)
+{
+    if (isSync != sync) {
+        isSync = sync;
+        ui->layoutWarning->setVisible(!isSync);
+        if (!isVisible()) return;
+        tryGridRefresh();
     }
 }
