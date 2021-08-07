@@ -70,6 +70,7 @@ std::list<ProposalInfo> GovernanceModel::getProposals(const ProposalInfo::Status
     if (!clientModel) return {};
     std::list<ProposalInfo> ret;
     std::vector<CBudgetProposal> budget = g_budgetman.GetBudget();
+    allocatedAmount = 0;
     for (const auto& prop : g_budgetman.GetAllProposalsOrdered()) {
         bool isPassing = std::find(budget.begin(), budget.end(), *prop) != budget.end();
         ProposalInfo propInfo = buildProposalInfo(prop, isPassing, false);
