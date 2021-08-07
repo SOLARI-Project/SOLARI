@@ -137,7 +137,8 @@ void CreateProposalDialog::setupPageThree()
 
 void CreateProposalDialog::propNameChanged(const QString& newText)
 {
-    setCssEditLine(ui->lineEditPropName, !newText.isEmpty(), true);
+    bool isValid = !newText.isEmpty() && IsValidUTF8(newText.toStdString());
+    setCssEditLine(ui->lineEditPropName, isValid, true);
 }
 
 void CreateProposalDialog::propUrlChanged(const QString& newText)
@@ -166,11 +167,21 @@ bool CreateProposalDialog::propaddressChanged(const QString& str)
 
 bool CreateProposalDialog::validatePageOne()
 {
-    if (ui->lineEditPropName->text().isEmpty()) {
+    QString propName = ui->lineEditPropName->text();
+    if (propName.isEmpty()) {
         setCssEditLine(ui->lineEditPropName, false, true);
-        inform(tr("Proposal name field cannot be empty"));
+        inform(tr("Proposal name cannot be empty"));
         return false;
     }
+
+    // For now, only accept UTF8 valid strings.
+    if (!IsValidUTF8(propName.toStdString())) {
+        setCssEditLine(ui->lineEditPropName, false, true);
+        inform(tr("Proposal name cannot contain non UTF-8 characters"));
+        return false;
+    }
+
+
     auto res = govModel->validatePropURL(ui->lineEditURL->text());
     if (!res) inform(QString::fromStdString(res.getError()));
     return res.getRes();
