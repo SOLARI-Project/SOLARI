@@ -248,6 +248,9 @@ bool MasterNodesWidget::startMN(const CMasternodeConfig::CMasternodeEntry& mne, 
         return false;
 
     mnodeman.UpdateMasternodeList(mnb);
+    if (activeMasternode.pubKeyMasternode == mnb.GetPubKey()) {
+        activeMasternode.EnableHotColdMasterNode(mnb.vin, mnb.addr);
+    }
     mnb.Relay();
     return true;
 }

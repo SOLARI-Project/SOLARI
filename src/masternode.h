@@ -113,6 +113,7 @@ public:
     uint256 GetSignatureHash() const override;
     std::string GetStrMessage() const override;
     const CTxIn GetVin() const { return vin; };
+    CPubKey GetPubKey() const { return pubKeyMasternode; }
 
     void SetLastPing(const CMasternodePing& _lastPing) { WITH_LOCK(cs, lastPing = _lastPing;); }
 
