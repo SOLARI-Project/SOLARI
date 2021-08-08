@@ -712,6 +712,15 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
         return 0;
     }
 
+    int chainHeight = GetBestHeight();
+    const auto& consensus = Params().GetConsensus();
+    // Check if mnb contains a ADDRv2 and reject it if the new NU wasn't enforced.
+    if (!mnb.addr.IsAddrV1Compatible() &&
+        !consensus.NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3)) {
+        LogPrint(BCLog::MASTERNODE, "mnb - received a ADDRv2 before enforcement\n");
+        return 33;
+    }
+
     int nDoS = 0;
     if (!mnb.CheckAndUpdate(nDoS, GetBestHeight())) {
         return nDoS;
@@ -720,7 +729,7 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     // make sure the vout that was signed is related to the transaction that spawned the Masternode
     //  - this is expensive, so it's only done once per Masternode
     if (!mnb.IsInputAssociatedWithPubkey()) {
-        LogPrintf("CMasternodeMan::ProcessMessage() : mnb - Got mismatched pubkey and vin\n");
+        LogPrint(BCLog::MASTERNODE, "%s : mnb - Got mismatched pubkey and vin\n", __func__);
         return 33;
     }
 
@@ -729,7 +738,7 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
 
     // make sure it's still unspent
     //  - this is checked later by .check() in many places and by ThreadCheckObfuScationPool()
-    if (mnb.CheckInputsAndAdd(GetBestHeight(), nDoS)) {
+    if (mnb.CheckInputsAndAdd(chainHeight, nDoS)) {
         // use this as a peer
         g_connman->AddNewAddress(CAddress(mnb.addr, NODE_NETWORK), pfrom->addr, 2 * 60 * 60);
         masternodeSync.AddedMasternodeList(mnbHash);

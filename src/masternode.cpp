@@ -253,7 +253,8 @@ bool CMasternodeBroadcast::Create(const std::string& strService,
                                   const std::string& strOutputIndex,
                                   std::string& strErrorRet,
                                   CMasternodeBroadcast& mnbRet,
-                                  bool fOffline)
+                                  bool fOffline,
+                                  int chainHeight)
 {
     CTxIn txin;
     CPubKey pubKeyCollateralAddressNew;
@@ -292,6 +293,13 @@ bool CMasternodeBroadcast::Create(const std::string& strService,
     // The service needs the correct default port to work properly
     if (!CheckDefaultPort(_service, strErrorRet, "CMasternodeBroadcast::Create"))
         return false;
+
+    // Check if the MN has a ADDRv2 and reject it if the new NU wasn't enforced.
+    if (!_service.IsAddrV1Compatible() &&
+        !Params().GetConsensus().NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3)) {
+        strErrorRet = "Cannot start MN with a v2 address before the v5.3 enforcement\n";
+        return false;
+    }
 
     return Create(txin, _service, keyCollateralAddressNew, pubKeyCollateralAddressNew, keyMasternodeNew, pubKeyMasternodeNew, strErrorRet, mnbRet);
 }
