@@ -88,6 +88,8 @@ set(BITCOIN_TEST_SUITE
         ${CMAKE_CURRENT_SOURCE_DIR}/librust/sapling_test_fixture.cpp
         ${CMAKE_SOURCE_DIR}/src/wallet/test/wallet_test_fixture.h
         ${CMAKE_SOURCE_DIR}/src/wallet/test/wallet_test_fixture.cpp
+        ${CMAKE_SOURCE_DIR}/src/wallet/test/pos_test_fixture.h
+        ${CMAKE_SOURCE_DIR}/src/wallet/test/pos_test_fixture.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/librust/utiltest.h
         ${CMAKE_CURRENT_SOURCE_DIR}/librust/utiltest.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/librust/json_test_vectors.h
@@ -175,6 +177,7 @@ set(BITCOIN_TESTS
         ${CMAKE_SOURCE_DIR}/src/wallet/test/crypto_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/wallet/test/wallet_shielded_balances_tests.cpp
         ${CMAKE_SOURCE_DIR}/src/wallet/test/wallet_sapling_transactions_validations_tests.cpp
+        ${CMAKE_SOURCE_DIR}/src/wallet/test/pos_validations_tests.cpp
         )
 
 set(test_test_pivx_SOURCES ${BITCOIN_TEST_SUITE} ${BITCOIN_TESTS} ${JSON_TEST_FILES})

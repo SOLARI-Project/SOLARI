@@ -713,7 +713,7 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     }
 
     int nDoS = 0;
-    if (!mnb.CheckAndUpdate(nDoS)) {
+    if (!mnb.CheckAndUpdate(nDoS, GetBestHeight())) {
         return nDoS;
     }
 
@@ -747,7 +747,7 @@ int CMasternodeMan::ProcessMNPing(CNode* pfrom, CMasternodePing& mnp)
     if (mapSeenMasternodePing.count(mnpHash)) return 0; //seen
 
     int nDoS = 0;
-    if (mnp.CheckAndUpdate(nDoS)) return 0;
+    if (mnp.CheckAndUpdate(nDoS, GetBestHeight())) return 0;
 
     if (nDoS > 0) {
         // if anything significant failed, mark that node
@@ -894,7 +894,7 @@ void CMasternodeMan::UpdateMasternodeList(CMasternodeBroadcast& mnb)
         CMasternode mn(mnb);
         Add(mn);
     } else {
-        pmn->UpdateFromNewBroadcast(mnb);
+        pmn->UpdateFromNewBroadcast(mnb, GetBestHeight());
     }
 }
 

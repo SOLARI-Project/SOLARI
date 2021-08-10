@@ -58,7 +58,7 @@ public:
     const CTxIn GetVin() const { return vin; };
     bool IsNull() const { return blockHash.IsNull() || vin.prevout.IsNull(); }
 
-    bool CheckAndUpdate(int& nDos, bool fRequireAvailable = true, bool fCheckSigTimeOnly = false);
+    bool CheckAndUpdate(int& nDos, int nChainHeight, bool fRequireAvailable = true, bool fCheckSigTimeOnly = false);
     void Relay();
 
     CMasternodePing& operator=(const CMasternodePing& other) = default;
@@ -156,7 +156,7 @@ public:
         Unserialize(s);
     }
 
-    bool UpdateFromNewBroadcast(CMasternodeBroadcast& mnb);
+    bool UpdateFromNewBroadcast(CMasternodeBroadcast& mnb, int chainHeight);
 
     CMasternode::state GetActiveState() const;
 
@@ -243,7 +243,7 @@ public:
     CMasternodeBroadcast(CService newAddr, CTxIn newVin, CPubKey newPubkey, CPubKey newPubkey2, int protocolVersionIn, const CMasternodePing& _lastPing);
     CMasternodeBroadcast(const CMasternode& mn);
 
-    bool CheckAndUpdate(int& nDoS);
+    bool CheckAndUpdate(int& nDoS, int nChainHeight);
     bool CheckInputsAndAdd(int chainHeight, int& nDos);
 
     uint256 GetHash() const;
