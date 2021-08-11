@@ -67,7 +67,7 @@ class MasternodePingTest(PivxTestFramework):
         confData = masternodeAlias + " 127.0.0.1:" + str(p2p_port(2)) + " " + \
                    str(mnPrivkey) +  " " + str(collateralTxId) + " " + str(vout)
         destPath = os.path.join(self.options.tmpdir, "node1", "regtest", "masternode.conf")
-        with open(destPath, "a+") as file_object:
+        with open(destPath, "a+", encoding="utf8") as file_object:
             file_object.write("\n")
             file_object.write(confData)
 

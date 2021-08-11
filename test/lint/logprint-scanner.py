@@ -29,7 +29,7 @@ def countRelevantCommas(line):
     return numRelevantCommas
 
 if __name__ == "__main__":
-    out = check_output("git rev-parse --show-toplevel", shell=True, universal_newlines=True)
+    out = check_output("git rev-parse --show-toplevel", shell=True, universal_newlines=True, encoding="utf8")
     srcDir = out.rstrip() + "/src/"
 
     filelist = [os.path.join(dp, f) for dp, dn, filenames in os.walk(srcDir) for f in filenames if os.path.splitext(f)[1] == '.cpp' or os.path.splitext(f)[1] == '.h' ]

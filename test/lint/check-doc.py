@@ -25,8 +25,8 @@ REGEX_DOC = re.compile(r'HelpMessageOpt\(\"(\-[^\"=]+?)(?:=|\")')
 SET_DOC_OPTIONAL = set(['-rpcssl', '-benchmark', '-h', '-help', '-socks', '-tor', '-debugnet', '-whitelistalwaysrelay', '-prematurewitness', '-walletprematurewitness', '-promiscuousmempoolflags', '-blockminsize', '-checklevel', '-liquidityprovider', '-anonymizepivxamount', '-dbcrashratio'])
 
 def main():
-    used = check_output(CMD_GREP_ARGS, shell=True, universal_newlines=True)
-    docd = check_output(CMD_GREP_DOCS, shell=True, universal_newlines=True)
+    used = check_output(CMD_GREP_ARGS, shell=True, universal_newlines=True, encoding="utf8")
+    docd = check_output(CMD_GREP_DOCS, shell=True, universal_newlines=True, encoding="utf8")
 
     args_used = set(re.findall(re.compile(REGEX_ARG), used))
     args_docd = set(re.findall(re.compile(REGEX_DOC), docd)).union(SET_DOC_OPTIONAL)

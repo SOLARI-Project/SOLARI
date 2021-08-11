@@ -293,7 +293,7 @@ def main():
             args.is_fedora = True
         if os.path.isfile('/etc/centos-release'):
             args.is_centos = True
-        if os.path.isfile('/proc/version') and open('/proc/version', 'r').read().find('Microsoft'):
+        if os.path.isfile('/proc/version') and open('/proc/version', 'r', encoding="utf8").read().find('Microsoft'):
             args.is_wsl = True
 
     if args.kvm and args.docker:
