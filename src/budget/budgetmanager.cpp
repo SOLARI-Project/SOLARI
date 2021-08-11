@@ -899,10 +899,10 @@ bool CBudgetManager::AddAndRelayProposalVote(const CBudgetVote& vote, std::strin
 
 void CBudgetManager::UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload)
 {
-    NewBlock(pindexNew->nHeight);
+    NewBlock();
 }
 
-void CBudgetManager::NewBlock(int height)
+void CBudgetManager::NewBlock()
 {
     if (masternodeSync.RequestedMasternodeAssets <= MASTERNODE_SYNC_BUDGET) return;
 

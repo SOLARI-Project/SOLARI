@@ -98,7 +98,7 @@ public:
     void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     /// Process the message and returns the ban score (0 if no banning is needed)
     int ProcessMessageInner(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
-    void NewBlock(int height);
+    void NewBlock();
 
     int ProcessBudgetVoteSync(const uint256& nProp, CNode* pfrom);
     int ProcessProposal(CBudgetProposal& proposal);
