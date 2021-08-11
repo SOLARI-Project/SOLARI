@@ -18,6 +18,7 @@
 #include "guiinterface.h"
 #include "netbase.h"
 #include "netmessagemaker.h"
+#include "optional.h"
 #include "primitives/transaction.h"
 #include "scheduler.h"
 #include "validation.h"
@@ -2144,7 +2145,7 @@ bool CConnman::AddNewAddresses(const std::vector<CAddress>& vAddr, const CAddres
 
 std::vector<CAddress> CConnman::GetAddresses(size_t max_addresses, size_t max_pct)
 {
-    return addrman.GetAddr(max_addresses, max_pct);
+    return addrman.GetAddr(max_addresses, max_pct, /* network */ nullopt);
 }
 
 bool CConnman::AddNode(const std::string& strNode)
