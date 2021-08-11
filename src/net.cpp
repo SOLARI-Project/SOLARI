@@ -16,6 +16,7 @@
 #include "crypto/common.h"
 #include "crypto/sha256.h"
 #include "guiinterface.h"
+#include "netaddress.h"
 #include "netbase.h"
 #include "netmessagemaker.h"
 #include "optional.h"
@@ -2143,9 +2144,9 @@ bool CConnman::AddNewAddresses(const std::vector<CAddress>& vAddr, const CAddres
     return addrman.Add(vAddr, addrFrom, nTimePenalty);
 }
 
-std::vector<CAddress> CConnman::GetAddresses(size_t max_addresses, size_t max_pct)
+std::vector<CAddress> CConnman::GetAddresses(size_t max_addresses, size_t max_pct, Optional<Network> network)
 {
-    return addrman.GetAddr(max_addresses, max_pct, /* network */ nullopt);
+    return addrman.GetAddr(max_addresses, max_pct, network);
 }
 
 bool CConnman::AddNode(const std::string& strNode)

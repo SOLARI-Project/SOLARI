@@ -10,6 +10,7 @@
 #include "net.h"
 #include "netbase.h"
 #include "net_processing.h"
+#include "optional.h"
 #include "protocol.h"
 #include "sync.h"
 #include "timedata.h"
@@ -594,7 +595,7 @@ static UniValue getnodeaddresses(const JSONRPCRequest& request)
     if (count < 0) throw JSONRPCError(RPC_INVALID_PARAMETER, "Address count out of range");
 
     // returns a shuffled list of CAddress
-    const std::vector<CAddress> vAddr{g_connman->GetAddresses(count, /* max_pct */ 0)};
+    const std::vector<CAddress> vAddr{g_connman->GetAddresses(count, /* max_pct */ 0, /* network */ nullopt)};
     UniValue ret(UniValue::VARR);
 
     for (const CAddress& addr : vAddr) {
