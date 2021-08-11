@@ -702,6 +702,13 @@ void CMasternodePayments::CleanPaymentList(int mnCount, int nHeight)
     }
 }
 
+void CMasternodePayments::UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload)
+{
+    if (masternodeSync.RequestedMasternodeAssets > MASTERNODE_SYNC_LIST) {
+        ProcessBlock(pindexNew->nHeight + 10);
+    }
+}
+
 void CMasternodePayments::ProcessBlock(int nBlockHeight)
 {
     // No more mnw messages after transition to DMN

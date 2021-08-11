@@ -2075,6 +2075,13 @@ bool static ConnectTip(CValidationState& state, CBlockIndex* pindexNew, const st
     disconnectpool.removeForBlock(blockConnecting.vtx);
     // Update chainActive & related variables.
     UpdateTip(pindexNew);
+    // Update TierTwo managers
+    // !TODO: remove isV5_3 guard after v5.3 enforcement
+    bool isV5_3 = Params().GetConsensus().NetworkUpgradeActive(pindexNew->nHeight, Consensus::UPGRADE_V5_3);
+    if (!fLiteMode && isV5_3) {
+        mnodeman.SetBestHeight(pindexNew->nHeight);
+        g_budgetman.SetBestHeight(pindexNew->nHeight);
+    }
     // Update MN manager cache
     mnodeman.CacheBlockHash(pindexNew);
     mnodeman.CheckSpentCollaterals(blockConnecting.vtx);
@@ -2944,7 +2951,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
         }
 
         // Prevent multi-empty-outputs
-        for (int i=1; i<csTx->vout.size(); i++ ) {
+        for (size_t i=1; i<csTx->vout.size(); i++ ) {
             if (csTx->vout[i].IsEmpty()) {
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-empty");
             }
@@ -3362,12 +3369,13 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& pblock, const FlatFile
     if (!ActivateBestChain(state, pblock))
         return error("%s : ActivateBestChain failed", __func__);
 
-    if (!fLiteMode) {
+    // !TODO: remove after v5.3 enforcement
+    bool isV5_3 = Params().GetConsensus().NetworkUpgradeActive(
+                                    WITH_LOCK(cs_main, return chainActive.Height(); ),
+                                    Consensus::UPGRADE_V5_3);
+    if (!fLiteMode && !isV5_3) {
         mnodeman.SetBestHeight(newHeight);
-        g_budgetman.NewBlock(newHeight);
-        if (masternodeSync.RequestedMasternodeAssets > MASTERNODE_SYNC_LIST) {
-            masternodePayments.ProcessBlock(newHeight + 10);
-        }
+        g_budgetman.SetBestHeight(newHeight);
     }
 
     LogPrintf("%s : ACCEPTED Block %ld in %ld milliseconds with size=%d\n", __func__, newHeight, GetTimeMillis() - nStartTime,
