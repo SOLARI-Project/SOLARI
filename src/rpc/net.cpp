@@ -572,10 +572,11 @@ static UniValue getnodeaddresses(const JSONRPCRequest& request)
             "\nResult:\n"
             "[\n"
             "  {\n"
-            "    \"time\": ttt,                (numeric) Timestamp in seconds since epoch (Jan 1 1970 GMT) keeping track of when the node was last seen\n"
-            "    \"services\": n,              (numeric) The services offered\n"
+            "    \"time\": ttt,                (numeric) Timestamp in seconds since epoch (Jan 1 1970 GMT) when the node was last seen\n"
+            "    \"services\": n,              (numeric) The services offered by the node\n"
             "    \"address\": \"host\",        (string) The address of the node\n"
-            "    \"port\": n                   (numeric) The port of the node\n"
+            "    \"port\": n,                  (numeric) The port number of the node\n"
+            "    \"network\": \"xxxx\"         (string) The network (ipv4, ipv6, onion) the node connected through\n"
             "  }\n"
             "  ,...\n"
             "]\n"
@@ -589,15 +590,11 @@ static UniValue getnodeaddresses(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
     }
 
-    int count = 1;
-    if (!request.params[0].isNull()) {
-        count = request.params[0].get_int();
-        if (count < 0) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Address count out of range");
-        }
-    }
+    const int count{request.params[0].isNull() ? 1 : request.params[0].get_int()};
+    if (count < 0) throw JSONRPCError(RPC_INVALID_PARAMETER, "Address count out of range");
+
     // returns a shuffled list of CAddress
-    std::vector<CAddress> vAddr = g_connman->GetAddresses(count, /* max_pct */ 0);
+    const std::vector<CAddress> vAddr{g_connman->GetAddresses(count, /* max_pct */ 0)};
     UniValue ret(UniValue::VARR);
 
     for (const CAddress& addr : vAddr) {
@@ -606,6 +603,7 @@ static UniValue getnodeaddresses(const JSONRPCRequest& request)
         obj.pushKV("services", (uint64_t)addr.nServices);
         obj.pushKV("address", addr.ToStringIP());
         obj.pushKV("port", addr.GetPort());
+        obj.pushKV("network", GetNetworkName(addr.GetNetClass()));
         ret.push_back(obj);
     }
     return ret;
