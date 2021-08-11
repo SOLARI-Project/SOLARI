@@ -28,6 +28,7 @@ public:
 static const CRPCConvertParam vRPCConvertParams[] = {
     { "addmultisigaddress", 0, "nrequired" },
     { "addmultisigaddress", 1, "keys" },
+    { "addpeeraddress", 1, "port" },
     { "autocombinerewards", 0, "enable" },
     { "autocombinerewards", 1, "threshold" },
     { "createmultisig", 0, "nrequired" },

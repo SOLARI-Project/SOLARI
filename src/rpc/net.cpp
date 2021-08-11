@@ -611,6 +611,53 @@ static UniValue getnodeaddresses(const JSONRPCRequest& request)
     return ret;
 }
 
+static UniValue addpeeraddress(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 2) {
+        throw std::runtime_error(
+            "addpeeraddress \"address\" port\n"
+            "\nAdd the address of a potential peer to the address manager. This RPC is for testing only.\n"
+
+            "\nArguments\n"
+            "1. \"address\"     (string, required) The IP address of the peer\n"
+            "2. port            (numeric, required) The port of the peer\n"
+
+            "\nResult:\n"
+            "{\n"
+            "  \"success\": true|false      (boolean) Whether the peer address was successfully added to the address manager\n"
+            "}\n"
+
+            "\nExamples:\n"
+            + HelpExampleCli("addpeeraddress", "\"1.2.3.4\" 51472")
+            + HelpExampleRpc("addpeeraddress", "\"1.2.3.4\", 51472"));
+    }
+    if (!g_connman) {
+        throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
+    }
+
+    UniValue obj(UniValue::VOBJ);
+
+    std::string addr_string = request.params[0].get_str();
+    uint16_t port = request.params[1].get_int();
+
+    CNetAddr net_addr;
+    if (!LookupHost(addr_string, net_addr, false)) {
+        obj.pushKV("success", false);
+        return obj;
+    }
+    CAddress address = CAddress({net_addr, port}, ServiceFlags(NODE_NETWORK));
+    address.nTime = GetAdjustedTime();
+    // The source address is set equal to the address. This is equivalent to the peer
+    // announcing itself.
+    if (!g_connman->AddNewAddresses({address}, address)) {
+        obj.pushKV("success", false);
+        return obj;
+    }
+
+    obj.pushKV("success", true);
+    return obj;
+}
+
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafe argNames
   //  --------------------- ------------------------  -----------------------  ------ --------
@@ -626,6 +673,9 @@ static const CRPCCommand commands[] =
     { "network",            "listbanned",             &listbanned,             true,  {} },
     { "network",            "ping",                   &ping,                   true,  {} },
     { "network",            "setban",                 &setban,                 true,  {"subnet", "command", "bantime", "absolute"} },
+
+    // Hidden, for testing only
+    { "hidden",             "addpeeraddress",         &addpeeraddress,         true,  {"address", "port"} },
 };
 
 void RegisterNetRPCCommands(CRPCTable &tableRPC)
