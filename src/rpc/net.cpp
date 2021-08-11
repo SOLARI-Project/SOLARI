@@ -349,13 +349,12 @@ static UniValue GetNetworksInfo()
     UniValue networks(UniValue::VARR);
     for (int n = 0; n < NET_MAX; ++n) {
         enum Network network = static_cast<enum Network>(n);
-        if (network == NET_UNROUTABLE || network == NET_INTERNAL)
-            continue;
+        if (network == NET_UNROUTABLE || network == NET_I2P || network == NET_CJDNS || network == NET_INTERNAL) continue;
         proxyType proxy;
         UniValue obj(UniValue::VOBJ);
         GetProxy(network, proxy);
         obj.pushKV("name", GetNetworkName(network));
-        obj.pushKV("limited", IsLimited(network));
+        obj.pushKV("limited", !IsReachable(network));
         obj.pushKV("reachable", IsReachable(network));
         obj.pushKV("proxy", proxy.IsValid() ? proxy.proxy.ToStringIPPort() : std::string());
         obj.pushKV("proxy_randomize_credentials", proxy.randomize_credentials);
@@ -466,10 +465,10 @@ UniValue setban(const JSONRPCRequest& request)
 
     if (!isSubnet) {
         CNetAddr resolved;
-        LookupHost(request.params[0].get_str().c_str(), resolved, false);
+        LookupHost(request.params[0].get_str(), resolved, false);
         netAddr = resolved;
     } else
-        LookupSubNet(request.params[0].get_str().c_str(), subNet);
+        LookupSubNet(request.params[0].get_str(), subNet);
 
     if (! (isSubnet ? subNet.IsValid() : netAddr.IsValid()) )
         throw JSONRPCError(RPC_CLIENT_NODE_ALREADY_ADDED, "Error: Invalid IP/Subnet");

@@ -390,7 +390,7 @@ static void registerSignalHandler(int signal, void(*handler)(int))
 
 bool static Bind(CConnman& connman, const CService& addr, unsigned int flags)
 {
-    if (!(flags & BF_EXPLICIT) && IsLimited(addr))
+    if (!(flags & BF_EXPLICIT) && !IsReachable(addr))
         return false;
     std::string strError;
     if (!connman.BindListenPort(addr, strError, (flags & BF_WHITELIST) != 0)) {
@@ -600,7 +600,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageGroup(_("RPC server options:"));
     strUsage += HelpMessageOpt("-server", _("Accept command line and JSON-RPC commands"));
     strUsage += HelpMessageOpt("-rest", strprintf(_("Accept public REST requests (default: %u)"), DEFAULT_REST_ENABLE));
-    strUsage += HelpMessageOpt("-rpcbind=<addr>", _("Bind to given address to listen for JSON-RPC connections. Use [host]:port notation for IPv6. This option can be specified multiple times (default: bind to all interfaces)"));
+    strUsage += HelpMessageOpt("-rpcbind=<addr>", _("Bind to given address to listen for JSON-RPC connections. Do not expose the RPC server to untrusted networks such as the public internet! This option is ignored unless -rpcallowip is also passed. Port is optional and overrides -rpcport. Use [host]:port notation for IPv6. This option can be specified multiple times (default: 127.0.0.1 and ::1 i.e., localhost)"));
     strUsage += HelpMessageOpt("-rpccookiefile=<loc>", _("Location of the auth cookie (default: data dir)"));
     strUsage += HelpMessageOpt("-rpcuser=<user>", _("Username for JSON-RPC connections"));
     strUsage += HelpMessageOpt("-rpcpassword=<pw>", _("Password for JSON-RPC connections"));
@@ -1384,13 +1384,13 @@ bool AppInitMain()
         for (int n = 0; n < NET_MAX; n++) {
             enum Network net = (enum Network)n;
             if (!nets.count(net))
-                SetLimited(net);
+                SetReachable(net, false);
         }
     }
 
     for (const auto& net : gArgs.GetArgs("-whitelist")) {
         CSubNet subnet;
-        LookupSubNet(net.c_str(), subnet);
+        LookupSubNet(net, subnet);
         if (!subnet.IsValid())
             return UIError(strprintf(_("Invalid netmask specified in %s: '%s'"), "-whitelist", net));
         connman.AddWhitelistedRange(subnet);
@@ -1403,10 +1403,10 @@ bool AppInitMain()
     // -proxy sets a proxy for all outgoing network traffic
     // -noproxy (or -proxy=0) as well as the empty string can be used to not set a proxy, this is the default
     std::string proxyArg = gArgs.GetArg("-proxy", "");
-    SetLimited(NET_ONION);
+    SetReachable(NET_ONION, false);
     if (!proxyArg.empty() && proxyArg != "0") {
         CService proxyAddr;
-        if (!Lookup(proxyArg.c_str(), proxyAddr, 9050, fNameLookup)) {
+        if (!Lookup(proxyArg, proxyAddr, 9050, fNameLookup)) {
             return UIError(strprintf(_("%s Invalid %s address or hostname: '%s'"), "Lookup():", "-proxy", proxyArg));
         }
 
@@ -1418,7 +1418,7 @@ bool AppInitMain()
         SetProxy(NET_IPV6, addrProxy);
         SetProxy(NET_ONION, addrProxy);
         SetNameProxy(addrProxy);
-        SetLimited(NET_ONION, false); // by default, -proxy sets onion as reachable, unless -noonion later
+        SetReachable(NET_ONION, true); // by default, -proxy sets onion as reachable, unless -noonion later
     }
 
     // -onion can be used to set only a proxy for .onion, or override normal proxy for .onion addresses
@@ -1427,17 +1427,17 @@ bool AppInitMain()
     std::string onionArg = gArgs.GetArg("-onion", "");
     if (!onionArg.empty()) {
         if (onionArg == "0") { // Handle -noonion/-onion=0
-            SetLimited(NET_ONION); // set onions as unreachable
+            SetReachable(NET_ONION, false);
         } else {
             CService onionProxy;
-            if (!Lookup(onionArg.c_str(), onionProxy, 9050, fNameLookup)) {
+            if (!Lookup(onionArg, onionProxy, 9050, fNameLookup)) {
                 return UIError(strprintf(_("%s Invalid %s address or hostname: '%s'"), "Lookup():", "-onion", onionArg));
             }
             proxyType addrOnion = proxyType(onionProxy, proxyRandomize);
             if (!addrOnion.IsValid())
                 return UIError(strprintf(_("%s Invalid %s address or hostname: '%s'"), "isValid():", "-onion", onionArg));
             SetProxy(NET_ONION, addrOnion);
-            SetLimited(NET_ONION, false);
+            SetReachable(NET_ONION, true);
         }
     }
 
@@ -1449,13 +1449,13 @@ bool AppInitMain()
     if (fListen) {
         for (const std::string& strBind : gArgs.GetArgs("-bind")) {
             CService addrBind;
-            if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false))
+            if (!Lookup(strBind, addrBind, GetListenPort(), false))
                 return UIError(ResolveErrMsg("bind", strBind));
             fBound |= Bind(connman, addrBind, (BF_EXPLICIT | BF_REPORT_ERROR));
         }
         for (const std::string& strBind : gArgs.GetArgs("-whitebind")) {
             CService addrBind;
-            if (!Lookup(strBind.c_str(), addrBind, 0, false))
+            if (!Lookup(strBind, addrBind, 0, false))
                 return UIError(ResolveErrMsg("whitebind", strBind));
             if (addrBind.GetPort() == 0)
                 return UIError(strprintf(_("Need to specify a port with %s: '%s'"), "-whitebind", strBind));
@@ -1473,7 +1473,7 @@ bool AppInitMain()
 
     for (const std::string& strAddr : gArgs.GetArgs("-externalip")) {
         CService addrLocal;
-        if (Lookup(strAddr.c_str(), addrLocal, GetListenPort(), fNameLookup) && addrLocal.IsValid())
+        if (Lookup(strAddr, addrLocal, GetListenPort(), fNameLookup) && addrLocal.IsValid())
             AddLocal(addrLocal, LOCAL_MANUAL);
         else
             return UIError(ResolveErrMsg("externalip", strAddr));
