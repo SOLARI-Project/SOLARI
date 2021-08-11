@@ -385,7 +385,7 @@ BOOST_AUTO_TEST_CASE(addrman_getaddr)
     // Test: Sanity check, GetAddr should never return anything if addrman
     //  is empty.
     BOOST_CHECK(addrman.size() == 0);
-    std::vector<CAddress> vAddr1 = addrman.GetAddr();
+    std::vector<CAddress> vAddr1 = addrman.GetAddr(/* max_addresses */ 0, /* max_pct */0);
     BOOST_CHECK(vAddr1.size() == 0);
 
     CAddress addr1 = CAddress(ResolveService("250.250.2.1", 8333), NODE_NONE);
@@ -408,13 +408,15 @@ BOOST_AUTO_TEST_CASE(addrman_getaddr)
     addrman.Add(addr4, source2);
     addrman.Add(addr5, source1);
 
-    // GetAddr returns 23% of addresses, 23% of 5 is 1 rounded down.
-    BOOST_CHECK(addrman.GetAddr().size() == 1);
+    BOOST_CHECK_EQUAL(addrman.GetAddr(/* max_addresses */ 0, /* max_pct */ 0).size(), 5U);
+    // Net processing asks for 23% of addresses. 23% of 5 is 1 rounded down.
+    BOOST_CHECK_EQUAL(addrman.GetAddr(/* max_addresses */ 2500, /* max_pct */ 23).size(), 1U);
 
     // Test 24: Ensure GetAddr works with new and tried addresses.
     addrman.Good(CAddress(addr1, NODE_NONE));
     addrman.Good(CAddress(addr2, NODE_NONE));
-    BOOST_CHECK(addrman.GetAddr().size() == 1);
+    BOOST_CHECK_EQUAL(addrman.GetAddr(/* max_addresses */ 0, /* max_pct */ 0).size(), 5U);
+    BOOST_CHECK_EQUAL(addrman.GetAddr(/* max_addresses */ 2500, /* max_pct */ 23).size(), 1U);
 
     // Test 25: Ensure GetAddr still returns 23% when addrman has many addrs.
     for (unsigned int i = 1; i < (8 * 256); i++) {
@@ -430,7 +432,7 @@ BOOST_AUTO_TEST_CASE(addrman_getaddr)
         if (i % 8 == 0)
             addrman.Good(addr);
     }
-    std::vector<CAddress> vAddr = addrman.GetAddr();
+    std::vector<CAddress> vAddr = addrman.GetAddr(/* max_addresses */ 2500, /* max_pct */ 23);
 
     size_t percent23 = (addrman.size() * 23) / 100;
     BOOST_CHECK(vAddr.size() == percent23);

@@ -24,6 +24,9 @@ int64_t nTimeBestReceived = 0;  // Used only to inform the wallet of when we las
 
 static const uint64_t RANDOMIZER_ID_ADDRESS_RELAY = 0x3cac0035b5866b90ULL; // SHA256("main address relay")[0:8]
 
+/** the maximum percentage of addresses from our addrman to return in response to a getaddr message. */
+static constexpr size_t MAX_PCT_ADDR_TO_SEND = 23;
+
 struct IteratorComparator
 {
     template<typename I>
@@ -1746,7 +1749,7 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
     // getaddr message mitigates the attack.
     else if ((strCommand == NetMsgType::GETADDR) && (pfrom->fInbound)) {
         pfrom->vAddrToSend.clear();
-        std::vector<CAddress> vAddr = connman->GetAddresses();
+        std::vector<CAddress> vAddr = connman->GetAddresses(MAX_ADDR_TO_SEND, MAX_PCT_ADDR_TO_SEND);
         FastRandomContext insecure_rand;
         for (const CAddress& addr : vAddr)
             pfrom->PushAddress(addr, insecure_rand);
