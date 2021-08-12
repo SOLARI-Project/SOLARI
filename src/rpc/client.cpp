@@ -28,6 +28,7 @@ public:
 static const CRPCConvertParam vRPCConvertParams[] = {
     { "addmultisigaddress", 0, "nrequired" },
     { "addmultisigaddress", 1, "keys" },
+    { "addpeeraddress", 1, "port" },
     { "autocombinerewards", 0, "enable" },
     { "autocombinerewards", 1, "threshold" },
     { "createmultisig", 0, "nrequired" },
@@ -62,6 +63,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "getshieldbalance", 2, "include_watchonly" },
     { "getnetworkhashps", 0, "nblocks" },
     { "getnetworkhashps", 1, "height" },
+    { "getnodeaddresses", 0, "count" },
     { "getrawmempool", 0, "verbose" },
     { "getrawtransaction", 1, "verbose" },
     { "getreceivedbyaddress", 1, "minconf" },

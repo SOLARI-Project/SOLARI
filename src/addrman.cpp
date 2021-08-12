@@ -7,8 +7,10 @@
 #include "addrman.h"
 
 #include "hash.h"
-#include "streams.h"
 #include "logging.h"
+#include "netaddress.h"
+#include "optional.h"
+#include "streams.h"
 #include "serialize.h"
 
 
@@ -481,13 +483,18 @@ int CAddrMan::Check_()
 }
 #endif
 
-void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr)
+void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr, size_t max_addresses, size_t max_pct, Optional<Network> network)
 {
-    unsigned int nNodes = ADDRMAN_GETADDR_MAX_PCT * vRandom.size() / 100;
-    if (nNodes > ADDRMAN_GETADDR_MAX)
-        nNodes = ADDRMAN_GETADDR_MAX;
+    size_t nNodes = vRandom.size();
+    if (max_pct != 0) {
+        nNodes = max_pct * nNodes / 100;
+    }
+    if (max_addresses != 0) {
+        nNodes = std::min(nNodes, max_addresses);
+    }
 
     // gather a list of random nodes, skipping those of low quality
+    const int64_t now{GetAdjustedTime()};
     for (unsigned int n = 0; n < vRandom.size(); n++) {
         if (vAddr.size() >= nNodes)
             break;
@@ -497,8 +504,14 @@ void CAddrMan::GetAddr_(std::vector<CAddress>& vAddr)
         assert(mapInfo.count(vRandom[n]) == 1);
 
         const CAddrInfo& ai = mapInfo[vRandom[n]];
-        if (!ai.IsTerrible())
-            vAddr.push_back(ai);
+
+        // Filter by network (optional)
+        if (network != nullopt && ai.GetNetClass() != network) continue;
+
+        // Filter for quality
+        if (ai.IsTerrible(now)) continue;
+
+        vAddr.push_back(ai);
     }
 }
 
