@@ -369,6 +369,30 @@ Low-level RPC changes
   now the empty string `""` instead of `"wallet.dat"`. If PIVX is started
   with any `-wallet=<path>` options, there is no change in behavior, and the
   name of any wallet is just its `<path>` string.
+  
+### New RPC Commands
+
+* `getnodeaddresses`
+    ```
+    getnodeaddresses ( count "network" )
+
+    Return known addresses which can potentially be used to find new nodes in the network
+
+    Arguments:
+    1. count      (numeric, optional) The maximum number of addresses to return. Specify 0 to return all known addresses.
+    2. "network"  (string, optional) Return only addresses of the specified network. Can be one of: ipv4, ipv6, onion.
+    Result:
+    [
+      {
+        "time": ttt,          (numeric) Timestamp in seconds since epoch (Jan 1 1970 GMT) when the node was last seen
+        "services": n,        (numeric) The services offered by the node
+        "address": "host",    (string) The address of the node
+        "port": n,            (numeric) The port number of the node
+        "network": "xxxx"     (string) The network (ipv4, ipv6, onion) the node connected through
+      }
+      ,...
+    ]
+    ```
 
 Database cache memory increased
 --------------------------------
