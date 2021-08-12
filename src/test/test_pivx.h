@@ -9,6 +9,8 @@
 #include "scheduler.h"
 #include "txdb.h"
 
+#include <stdexcept>
+
 #include <boost/thread.hpp>
 
 extern FastRandomContext insecure_rand_ctx;
@@ -144,17 +146,20 @@ struct TestMemPoolEntryHelper
 // define an implicit conversion here so that uint256 may be used directly in BOOST_CHECK_*
 std::ostream& operator<<(std::ostream& os, const uint256& num);
 
-// BOOST_CHECK_EXCEPTION predicates to check the specific validation error
-class HasReason {
+/**
+ * BOOST_CHECK_EXCEPTION predicates to check the specific validation error.
+ * Use as
+ * BOOST_CHECK_EXCEPTION(code that throws, exception type, HasReason("foo"));
+ */
+class HasReason
+{
 public:
-    HasReason(const std::string& reason) : m_reason(reason) {}
-    bool operator() (const std::runtime_error& e) const {
-        bool ret = std::string(e.what()).find(m_reason) != std::string::npos;
-        if (!ret) {
-            std::cout << "error: " << e.what() << std::endl;
-        }
-        return ret;
+    explicit HasReason(const std::string& reason) : m_reason(reason) {}
+    bool operator()(const std::exception& e) const
+    {
+        return std::string(e.what()).find(m_reason) != std::string::npos;
     };
+
 private:
     const std::string m_reason;
 };
