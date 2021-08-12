@@ -20,9 +20,6 @@ static const int INIT_PROTO_VERSION = 209;
 static const int MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT = 70922;
 static const int MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT = 70923;
 
-//! BIP 0031, pong message, is enabled for all versions AFTER this one
-static const int BIP0031_VERSION = 60000;
-
 // Make sure that none of the values above collide with
 // `ADDRV2_FORMAT`.
 
