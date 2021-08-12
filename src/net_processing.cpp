@@ -836,10 +836,8 @@ static void RelayAddress(const CAddress& addr, bool fReachable, CConnman* connma
     const CSipHasher hasher = connman->GetDeterministicRandomizer(RANDOMIZER_ID_ADDRESS_RELAY).Write(hashAddr << 32).Write((GetTime() + hashAddr) / (24*60*60));
 
     auto sortfunc = [&mapMix, &hasher](CNode* pnode) {
-        if (pnode->nVersion >= CADDR_TIME_VERSION) {
-            uint64_t hashKey = CSipHasher(hasher).Write(pnode->id).Finalize();
-            mapMix.emplace(hashKey, pnode);
-        }
+        uint64_t hashKey = CSipHasher(hasher).Write(pnode->id).Finalize();
+        mapMix.emplace(hashKey, pnode);
     };
 
     auto pushfunc = [&addr, &mapMix, &nRelayNodes] {
@@ -1209,10 +1207,8 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
             }
 
             // Get recent addresses
-            if (pfrom->fOneShot || pfrom->nVersion >= CADDR_TIME_VERSION || connman->GetAddressCount() < 1000) {
-                connman->PushMessage(pfrom, CNetMsgMaker(nSendVersion).Make(NetMsgType::GETADDR));
-                pfrom->fGetAddr = true;
-            }
+            connman->PushMessage(pfrom, CNetMsgMaker(nSendVersion).Make(NetMsgType::GETADDR));
+            pfrom->fGetAddr = true;
             connman->MarkAddressGood(pfrom->addr);
         }
 
@@ -1298,9 +1294,6 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         std::vector<CAddress> vAddr;
         s >> vAddr;
 
-        // Don't want addr from older versions unless seeding
-        if (pfrom->nVersion < CADDR_TIME_VERSION && connman->GetAddressCount() > 1000)
-            return true;
         if (vAddr.size() > MAX_ADDR_TO_SEND) {
             LOCK(cs_main);
             Misbehaving(pfrom->GetId(), 20, strprintf("%s message size = %u", strCommand, vAddr.size()));
