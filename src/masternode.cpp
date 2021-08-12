@@ -623,7 +623,7 @@ bool CMasternodePing::CheckAndUpdate(int& nDos, int nChainHeight, bool fRequireA
         LogPrint(BCLog::MNPING,"%s: Masternode %s block hash %s is too old or has an invalid block hash\n",
                                         __func__, vin.prevout.hash.ToString(), blockHash.ToString());
         // don't ban peers relaying stale data before the active protocol enforcement
-        nDos = (ActiveProtocol() < MIN_PEER_CACHEDVERSION ? 0 : 33);
+        nDos = 33;
         return false;
     }
 
