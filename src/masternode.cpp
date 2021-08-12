@@ -367,18 +367,6 @@ bool CMasternodeBroadcast::Sign(const CKey& key, const CPubKey& pubKey)
     return true;
 }
 
-bool CMasternodeBroadcast::Sign(const std::string strSignKey)
-{
-    CKey key;
-    CPubKey pubkey;
-
-    if (!CMessageSigner::GetKeysFromSecret(strSignKey, key, pubkey)) {
-        return error("%s : Invalid strSignKey", __func__);
-    }
-
-    return Sign(key, pubkey);
-}
-
 bool CMasternodeBroadcast::CheckSignature() const
 {
     std::string strError = "";

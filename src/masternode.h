@@ -253,7 +253,6 @@ public:
 
     // special sign/verify
     bool Sign(const CKey& key, const CPubKey& pubKey);
-    bool Sign(const std::string strSignKey);
     bool CheckSignature() const;
 
     SERIALIZE_METHODS(CMasternodeBroadcast, obj)
