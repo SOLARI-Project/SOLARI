@@ -446,10 +446,8 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
     }
 
     std::string strError = "";
-    if (!CheckSignature())
-    {
-        // don't ban for old masternodes, their sigs could be broken because of the bug
-        nDos = protocolVersion < MIN_PEER_MNANNOUNCE ? 0 : 100;
+    if (!CheckSignature()) {
+        nDos = 100;
         return error("%s : Got bad Masternode address signature", __func__);
     }
 
