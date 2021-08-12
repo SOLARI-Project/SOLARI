@@ -289,8 +289,6 @@ enum ServiceFlags : uint64_t {
     NODE_NETWORK = (1 << 0),
 
     // NODE_BLOOM means the node is capable and willing to handle bloom-filtered connections.
-    // Bitcoin Core nodes used to support this by default, without advertising this bit,
-    // but no longer do as of protocol version 70011 (= NO_BLOOM_VERSION)
     NODE_BLOOM = (1 << 2),
 
     // NODE_BLOOM_WITHOUT_MN means the node has the same features as NODE_BLOOM with the only difference
