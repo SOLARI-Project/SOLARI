@@ -99,43 +99,54 @@ class NetTest(PivxTestFramework):
 
     def _test_getnodeaddresses(self):
         self.nodes[0].add_p2p_connection(P2PInterface())
+        services = NODE_NETWORK
 
-        # Add some addresses to the Address Manager over RPC. Due to the way
-        # bucket and bucket position are calculated, some of these addresses
-        # will collide.
+        # Add an IPv6 address to the address manager.
+        ipv6_addr = "1233:3432:2434:2343:3234:2345:6546:4534"
+        self.nodes[0].addpeeraddress(ipv6_addr, 51472)
+
+        # Add 10,000 IPv4 addresses to the address manager. Due to the way bucket
+        # and bucket positions are calculated, some of these addresses will collide.
         imported_addrs = []
         for i in range(10000):
             first_octet = i >> 8
             second_octet = i % 256
-            a = "{}.{}.1.1".format(first_octet, second_octet)  # IPv4
+            a = f"{first_octet}.{second_octet}.1.1"
             imported_addrs.append(a)
             self.nodes[0].addpeeraddress(a, 51472)
 
-        # Obtain addresses via rpc call and check they were ones sent in before.
-        #
-        # Maximum possible addresses in addrman is 10000, although actual
-        # number will usually be less due to bucket and bucket position
-        # collisions.
-        node_addresses = self.nodes[0].getnodeaddresses(0)
+        # Fetch the addresses via the RPC and test the results.
+        assert_equal(len(self.nodes[0].getnodeaddresses()), 1)  # default count is 1
+        assert_equal(len(self.nodes[0].getnodeaddresses(2)), 2)
+        assert_equal(len(self.nodes[0].getnodeaddresses(8, "ipv4")), 8)
+
+        # Maximum possible addresses in AddrMan is 10000. The actual number will
+        # usually be less due to bucket and bucket position collisions.
+        node_addresses = self.nodes[0].getnodeaddresses(0, "ipv4")
         assert_greater_than(len(node_addresses), 5000)
         assert_greater_than(10000, len(node_addresses))
         for a in node_addresses:
             assert_greater_than(a["time"], 1527811200)  # 1st June 2018
-            assert_equal(a["services"], NODE_NETWORK)
+            assert_equal(a["services"], services)
             assert a["address"] in imported_addrs
             assert_equal(a["port"], 51472)
             assert_equal(a["network"], "ipv4")
 
-        node_addresses = self.nodes[0].getnodeaddresses(1)
-        assert_equal(len(node_addresses), 1)
+        # Test the IPv6 address.
+        res = self.nodes[0].getnodeaddresses(0, "ipv6")
+        assert_equal(len(res), 1)
+        assert_equal(res[0]["address"], ipv6_addr)
+        assert_equal(res[0]["network"], "ipv6")
+        assert_equal(res[0]["port"], 51472)
+        assert_equal(res[0]["services"], services)
 
+        # Test for the absence of onion addresses.
+        for network in ["onion"]:
+            assert_equal(self.nodes[0].getnodeaddresses(0, network), [])
+
+        # Test invalid arguments.
         assert_raises_rpc_error(-8, "Address count out of range", self.nodes[0].getnodeaddresses, -1)
-
-        # addrman's size cannot be known reliably after insertion, as hash collisions may occur
-        # so only test that requesting a large number of addresses returns less than that
-        LARGE_REQUEST_COUNT = 10000
-        node_addresses = self.nodes[0].getnodeaddresses(LARGE_REQUEST_COUNT)
-        assert_greater_than(LARGE_REQUEST_COUNT, len(node_addresses))
+        assert_raises_rpc_error(-8, "Network not recognized: Foo", self.nodes[0].getnodeaddresses, 1, "Foo")
 
 if __name__ == '__main__':
     NetTest().main()
