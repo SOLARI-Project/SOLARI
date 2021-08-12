@@ -212,7 +212,6 @@ public:
     CNode* ConnectNode(CAddress addrConnect);
 
     // Addrman functions
-    size_t GetAddressCount() const;
     void SetServices(const CService &addr, ServiceFlags nServices);
     void MarkAddressGood(const CAddress& addr);
     void AddNewAddress(const CAddress& addr, const CAddress& addrFrom, int64_t nTimePenalty = 0);
