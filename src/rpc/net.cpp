@@ -562,13 +562,14 @@ UniValue clearbanned(const JSONRPCRequest& request)
 
 static UniValue getnodeaddresses(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 1) {
+    if (request.fHelp || request.params.size() > 2) {
         throw std::runtime_error(
-            "getnodeaddresses ( count )\n"
+            "getnodeaddresses ( count \"network\" )\n"
             "\nReturn known addresses which can potentially be used to find new nodes in the network\n"
 
             "\nArguments:\n"
-            "1. \"count\"    (numeric, optional) The maximum number of addresses to return. Specify 0 to return all known addresses.\n"
+            "1. count        (numeric, optional) The maximum number of addresses to return. Specify 0 to return all known addresses.\n"
+            "2. \"network\"  (string, optional) Return only addresses of the specified network. Can be one of: ipv4, ipv6, onion."
 
             "\nResult:\n"
             "[\n"
@@ -584,7 +585,9 @@ static UniValue getnodeaddresses(const JSONRPCRequest& request)
 
             "\nExamples:\n"
             + HelpExampleCli("getnodeaddresses", "8")
+            + HelpExampleCli("getnodeaddresses", "4 \"ipv4\"")
             + HelpExampleRpc("getnodeaddresses", "8")
+            + HelpExampleRpc("getnodeaddresses", "4 \"ipv4\"")
         );
     }
     if (!g_connman) {
@@ -594,8 +597,13 @@ static UniValue getnodeaddresses(const JSONRPCRequest& request)
     const int count{request.params[0].isNull() ? 1 : request.params[0].get_int()};
     if (count < 0) throw JSONRPCError(RPC_INVALID_PARAMETER, "Address count out of range");
 
+    const Optional<Network> network{request.params[1].isNull() ? nullopt : Optional<Network>{ParseNetwork(request.params[1].get_str())}};
+    if (network == NET_UNROUTABLE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Network not recognized: %s", request.params[1].get_str()));
+    }
+
     // returns a shuffled list of CAddress
-    const std::vector<CAddress> vAddr{g_connman->GetAddresses(count, /* max_pct */ 0, /* network */ nullopt)};
+    const std::vector<CAddress> vAddr{g_connman->GetAddresses(count, /* max_pct */ 0, network)};
     UniValue ret(UniValue::VARR);
 
     for (const CAddress& addr : vAddr) {
