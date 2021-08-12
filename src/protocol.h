@@ -232,6 +232,11 @@ extern const char* GETSPORKS;
  */
 extern const char* MNBROADCAST;
 /**
+ * The mnbroadcast2 message is used to broadcast masternode startup data to connected peers
+ * Supporting BIP155 node addresses.
+ */
+extern const char* MNBROADCAST2;
+/**
  * The mnping message is used to ensure a masternode is still active
  */
 extern const char* MNPING;

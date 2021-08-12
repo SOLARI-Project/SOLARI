@@ -42,6 +42,7 @@ const char* SENDHEADERS = "sendheaders";
 const char* SPORK = "spork";
 const char* GETSPORKS = "getsporks";
 const char* MNBROADCAST = "mnb";
+const char* MNBROADCAST2 = "mnb2"; // BIP155 support
 const char* MNPING = "mnp";
 const char* MNWINNER = "mnw";
 const char* GETMNWINNERS = "mnget";
@@ -99,7 +100,8 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::GETMNLIST,
     NetMsgType::BUDGETVOTESYNC,
     NetMsgType::GETSPORKS,
-    NetMsgType::SYNCSTATUSCOUNT
+    NetMsgType::SYNCSTATUSCOUNT,
+    NetMsgType::MNBROADCAST2
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes + ARRAYLEN(allNetMessageTypes));
 const static std::vector<std::string> tiertwoNetMessageTypesVec(std::find(allNetMessageTypesVec.begin(), allNetMessageTypesVec.end(), NetMsgType::SPORK), allNetMessageTypesVec.end());
@@ -195,7 +197,7 @@ std::string CInv::GetCommand() const
         case MSG_BUDGET_FINALIZED: return cmd.append(NetMsgType::FINALBUDGET);
         case MSG_BUDGET_FINALIZED_VOTE: return cmd.append(NetMsgType::FINALBUDGETVOTE);
         case MSG_MASTERNODE_QUORUM: return cmd.append("mnq"); // Unused
-        case MSG_MASTERNODE_ANNOUNCE: return cmd.append(NetMsgType::MNBROADCAST);
+        case MSG_MASTERNODE_ANNOUNCE: return cmd.append(NetMsgType::MNBROADCAST); // or MNBROADCAST2
         case MSG_MASTERNODE_PING: return cmd.append(NetMsgType::MNPING);
         case MSG_DSTX: return cmd.append("dstx"); // Deprecated
         default:

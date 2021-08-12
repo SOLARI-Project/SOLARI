@@ -852,7 +852,8 @@ static void RelayAddress(const CAddress& addr, bool fReachable, CConnman* connma
 bool static PushTierTwoGetDataRequest(const CInv& inv,
                                       CNode* pfrom,
                                       CConnman* connman,
-                                      CNetMsgMaker& msgMaker)
+                                      CNetMsgMaker& msgMaker,
+                                      int chainHeight)
 {
     if (inv.type == MSG_SPORK) {
         if (mapSporks.count(inv.hash)) {
@@ -905,11 +906,21 @@ bool static PushTierTwoGetDataRequest(const CInv& inv,
 
     // !TODO: remove when transition to DMN is complete
     if (inv.type == MSG_MASTERNODE_ANNOUNCE && !deterministicMNManager->LegacyMNObsolete()) {
-        if (mnodeman.mapSeenMasternodeBroadcast.count(inv.hash)) {
-            CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+        auto it = mnodeman.mapSeenMasternodeBroadcast.find(inv.hash);
+        if (it != mnodeman.mapSeenMasternodeBroadcast.end()) {
+            const auto& mnb = it->second;
+
+            // Just to be double sure, do not broadcast BIP155 addresses pre-v5.3 enforcement
+            if (mnb.isBIP155Addr && !Params().GetConsensus().NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3)) {
+                return false;
+            }
+
+            int version = mnb.isBIP155Addr ? PROTOCOL_VERSION | ADDRV2_FORMAT : PROTOCOL_VERSION;
+            CDataStream ss(SER_NETWORK, version);
             ss.reserve(1000);
-            ss << mnodeman.mapSeenMasternodeBroadcast[inv.hash];
-            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::MNBROADCAST, ss));
+            ss << mnb;
+            std::string msgType = mnb.isBIP155Addr ? NetMsgType::MNBROADCAST2 : NetMsgType::MNBROADCAST;
+            connman->PushMessage(pfrom, msgMaker.Make(msgType, ss));
             return true;
         }
     }
@@ -1019,6 +1030,7 @@ void static ProcessGetData(CNode* pfrom, CConnman* connman, const std::atomic<bo
     CNetMsgMaker msgMaker(pfrom->GetSendVersion());
     {
         LOCK(cs_main);
+        int chainHeight = chainActive.Height();
 
         while (it != pfrom->vRecvGetData.end() && (it->type == MSG_TX || IsTierTwoInventoryTypeKnown(it->type))) {
             if (interruptMsgProc)
@@ -1045,7 +1057,7 @@ void static ProcessGetData(CNode* pfrom, CConnman* connman, const std::atomic<bo
 
             if (!pushed) {
                 // Now check if it's a tier two data request and push it.
-                pushed = PushTierTwoGetDataRequest(inv, pfrom, connman, msgMaker);
+                pushed = PushTierTwoGetDataRequest(inv, pfrom, connman, msgMaker, chainHeight);
             }
 
             if (!pushed) {
