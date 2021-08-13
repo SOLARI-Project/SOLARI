@@ -71,6 +71,7 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
     def check_vote_existence(self, proposalName, mnCollateralHash, voteType, voteValid):
         for i in range(0, len(self.nodes)):
             node = self.nodes[i]
+            node.syncwithvalidationinterfacequeue()
             votesInfo = node.getbudgetvotes(proposalName)
             assert(len(votesInfo) > 0)
             found = False

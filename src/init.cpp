@@ -1845,10 +1845,14 @@ bool AppInitMain()
     g_budgetman.ResetSync();
     g_budgetman.ClearSeen();
 
+    RegisterValidationInterface(&g_budgetman);
+
     uiInterface.InitMessage(_("Loading masternode payment cache..."));
 
     CMasternodePaymentDB mnpayments;
     CMasternodePaymentDB::ReadResult readResult3 = mnpayments.Read(masternodePayments);
+
+    RegisterValidationInterface(&masternodePayments);
 
     if (readResult3 == CMasternodePaymentDB::FileError)
         LogPrintf("Missing masternode payment cache - mnpayments.dat, will try to recreate\n");

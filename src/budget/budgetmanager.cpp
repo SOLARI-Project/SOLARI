@@ -897,10 +897,13 @@ bool CBudgetManager::AddAndRelayProposalVote(const CBudgetVote& vote, std::strin
     return false;
 }
 
-void CBudgetManager::NewBlock(int height)
+void CBudgetManager::UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload)
 {
-    SetBestHeight(height);
+    NewBlock();
+}
 
+void CBudgetManager::NewBlock()
+{
     if (masternodeSync.RequestedMasternodeAssets <= MASTERNODE_SYNC_BUDGET) return;
 
     if (strBudgetMode == "suggest") { //suggest the budget we see

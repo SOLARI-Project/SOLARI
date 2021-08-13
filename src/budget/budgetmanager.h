@@ -8,13 +8,14 @@
 
 #include "budget/budgetproposal.h"
 #include "budget/finalizedbudget.h"
+#include "validationinterface.h"
 
 class CValidationState;
 
 //
 // Budget Manager : Contains all proposals for the budget
 //
-class CBudgetManager
+class CBudgetManager : public CValidationInterface
 {
 protected:
     // map budget hash --> CollTx hash.
@@ -60,6 +61,8 @@ public:
         WITH_LOCK(cs_finalizedvotes, mapSeenFinalizedBudgetVotes.clear(); );
     }
 
+    void UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload) override;
+
     bool HaveProposal(const uint256& propHash) const { LOCK(cs_proposals); return mapProposals.count(propHash); }
     bool HaveSeenProposalVote(const uint256& voteHash) const { LOCK(cs_votes); return mapSeenProposalVotes.count(voteHash); }
     bool HaveFinalizedBudget(const uint256& budgetHash) const { LOCK(cs_budgets); return mapFinalizedBudgets.count(budgetHash); }
@@ -95,7 +98,7 @@ public:
     void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     /// Process the message and returns the ban score (0 if no banning is needed)
     int ProcessMessageInner(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
-    void NewBlock(int height);
+    void NewBlock();
 
     int ProcessBudgetVoteSync(const uint256& nProp, CNode* pfrom);
     int ProcessProposal(CBudgetProposal& proposal);

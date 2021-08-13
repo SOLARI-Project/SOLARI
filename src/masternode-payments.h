@@ -8,6 +8,7 @@
 
 #include "key.h"
 #include "masternode.h"
+#include "validationinterface.h"
 
 
 extern RecursiveMutex cs_vecPayments;
@@ -203,7 +204,7 @@ public:
 // Keeps track of who should get paid for which blocks
 //
 
-class CMasternodePayments
+class CMasternodePayments : public CValidationInterface
 {
 private:
     int nLastBlockHeight;
@@ -224,6 +225,8 @@ public:
         mapMasternodeBlocks.clear();
         mapMasternodePayeeVotes.clear();
     }
+
+    void UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload) override;
 
     bool AddWinningMasternode(CMasternodePaymentWinner& winner);
     void ProcessBlock(int nBlockHeight);

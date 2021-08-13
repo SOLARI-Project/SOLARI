@@ -621,18 +621,18 @@ std::string CMasternodeBlockPayees::GetRequiredPaymentsString()
 {
     LOCK(cs_vecPayments);
 
-    std::string ret = "Unknown";
+    std::string ret = "";
 
     for (CMasternodePayee& payee : vecPayments) {
         CTxDestination address1;
         ExtractDestination(payee.scriptPubKey, address1);
-        if (ret != "Unknown") {
+        if (ret != "") {
             ret += ", ";
         }
-        ret = EncodeDestination(address1) + ":" + std::to_string(payee.nVotes);
+        ret += EncodeDestination(address1) + ":" + std::to_string(payee.nVotes);
     }
 
-    return ret;
+    return ret.empty() ? "Unknown" : ret;
 }
 
 std::string CMasternodePayments::GetRequiredPaymentsString(int nBlockHeight)
@@ -699,6 +699,13 @@ void CMasternodePayments::CleanPaymentList(int mnCount, int nHeight)
         } else {
             ++it;
         }
+    }
+}
+
+void CMasternodePayments::UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload)
+{
+    if (masternodeSync.RequestedMasternodeAssets > MASTERNODE_SYNC_LIST) {
+        ProcessBlock(pindexNew->nHeight + 10);
     }
 }
 
