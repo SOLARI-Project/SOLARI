@@ -417,6 +417,14 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
         return false;
     }
 
+    // reject old signature version after v5.3
+    if (nMessVersion != MessageVersion::MESS_VER_HASH &&
+        Params().GetConsensus().NetworkUpgradeActive(nChainHeight, Consensus::UPGRADE_V5_3)) {
+        LogPrint(BCLog::MASTERNODE, "mnb - rejecting old message version for mn %s\n", vin.prevout.hash.ToString());
+        nDos = 30;
+        return false;
+    }
+
     if (protocolVersion < ActiveProtocol()) {
         LogPrint(BCLog::MASTERNODE,"mnb - ignoring outdated Masternode %s protocol version %d\n", vin.prevout.hash.ToString(), protocolVersion);
         return false;
@@ -612,6 +620,14 @@ bool CMasternodePing::CheckAndUpdate(int& nDos, int nChainHeight, bool fRequireA
 
     if (sigTime <= GetAdjustedTime() - 60 * 60) {
         LogPrint(BCLog::MNPING,"%s: Signature rejected, too far into the past %s - %d %d \n", __func__, vin.prevout.hash.ToString(), sigTime, GetAdjustedTime());
+        nDos = 30;
+        return false;
+    }
+
+    // reject old signature version after v5.3
+    if (nMessVersion != MessageVersion::MESS_VER_HASH &&
+        Params().GetConsensus().NetworkUpgradeActive(nChainHeight, Consensus::UPGRADE_V5_3)) {
+        LogPrint(BCLog::MNPING, "mnp - rejecting old message version for mn %s\n", vin.prevout.hash.ToString());
         nDos = 30;
         return false;
     }
