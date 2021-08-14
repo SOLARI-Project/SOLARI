@@ -446,10 +446,8 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
     }
 
     std::string strError = "";
-    if (!CheckSignature())
-    {
-        // don't ban for old masternodes, their sigs could be broken because of the bug
-        nDos = protocolVersion < MIN_PEER_MNANNOUNCE ? 0 : 100;
+    if (!CheckSignature()) {
+        nDos = 100;
         return error("%s : Got bad Masternode address signature", __func__);
     }
 
@@ -623,7 +621,7 @@ bool CMasternodePing::CheckAndUpdate(int& nDos, int nChainHeight, bool fRequireA
         LogPrint(BCLog::MNPING,"%s: Masternode %s block hash %s is too old or has an invalid block hash\n",
                                         __func__, vin.prevout.hash.ToString(), blockHash.ToString());
         // don't ban peers relaying stale data before the active protocol enforcement
-        nDos = (ActiveProtocol() < MIN_PEER_CACHEDVERSION ? 0 : 33);
+        nDos = 33;
         return false;
     }
 

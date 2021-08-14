@@ -289,8 +289,6 @@ enum ServiceFlags : uint64_t {
     NODE_NETWORK = (1 << 0),
 
     // NODE_BLOOM means the node is capable and willing to handle bloom-filtered connections.
-    // Bitcoin Core nodes used to support this by default, without advertising this bit,
-    // but no longer do as of protocol version 70011 (= NO_BLOOM_VERSION)
     NODE_BLOOM = (1 << 2),
 
     // NODE_BLOOM_WITHOUT_MN means the node has the same features as NODE_BLOOM with the only difference
@@ -324,7 +322,13 @@ public:
             READWRITE(nVersion);
         }
         if ((s.GetType() & SER_DISK) ||
-            (nVersion >= CADDR_TIME_VERSION && !(s.GetType() & SER_GETHASH))) {
+            (nVersion != INIT_PROTO_VERSION && !(s.GetType() & SER_GETHASH))) {
+            // The only time we serialize a CAddress object without nTime is in
+            // the initial VERSION messages which contain two CAddress records.
+            // At that point, the serialization version is INIT_PROTO_VERSION.
+            // After the version handshake, serialization version is >=
+            // MIN_PEER_PROTO_VERSION and all ADDR messages are serialized with
+            // nTime.
             READWRITE(obj.nTime);
         }
         if (nVersion & ADDRV2_FORMAT) {
