@@ -147,6 +147,7 @@ bool CMasternode::UpdateFromNewBroadcast(CMasternodeBroadcast& mnb, int chainHei
 {
     if (mnb.sigTime > sigTime) {
         // TODO: lock cs. Need to be careful as mnb.lastPing.CheckAndUpdate locks cs_main internally.
+        nMessVersion = mnb.nMessVersion;
         pubKeyMasternode = mnb.pubKeyMasternode;
         pubKeyCollateralAddress = mnb.pubKeyCollateralAddress;
         sigTime = mnb.sigTime;
