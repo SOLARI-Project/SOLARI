@@ -232,6 +232,9 @@ int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
         return 0;
     }
 
+    // !TODO: can be removed after enforcement
+    bool reject_v0 = Params().GetConsensus().NetworkUpgradeActive(GetBestHeight(), Consensus::UPGRADE_V5_3);
+
     LOCK(cs);
 
     //remove inactive and outdated (or replaced by DMN)
@@ -242,7 +245,8 @@ int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
         if (activeState == CMasternode::MASTERNODE_REMOVE ||
             activeState == CMasternode::MASTERNODE_VIN_SPENT ||
             (forceExpiredRemoval && activeState == CMasternode::MASTERNODE_EXPIRED) ||
-            mn->protocolVersion < ActiveProtocol()) {
+            mn->protocolVersion < ActiveProtocol() ||
+            (reject_v0 && mn->nMessVersion != MessageVersion::MESS_VER_HASH)) {
             LogPrint(BCLog::MASTERNODE, "Removing inactive (legacy) Masternode %s\n", it->first.ToString());
             //erase all of the broadcasts we've seen from this vin
             // -- if we missed a few pings and the node was removed, this will allow is to get it back without them
