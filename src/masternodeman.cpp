@@ -40,6 +40,7 @@ struct CompareScoreMN {
 //
 
 static const int MASTERNODE_DB_VERSION = 1;
+static const int MASTERNODE_DB_VERSION_BIP155 = 2;
 
 CMasternodeDB::CMasternodeDB()
 {
@@ -50,12 +51,14 @@ CMasternodeDB::CMasternodeDB()
 bool CMasternodeDB::Write(const CMasternodeMan& mnodemanToSave)
 {
     int64_t nStart = GetTimeMillis();
+    const auto& params = Params();
 
     // serialize, checksum data up to that point, then append checksum
-    CDataStream ssMasternodes(SER_DISK, CLIENT_VERSION);
-    ssMasternodes << MASTERNODE_DB_VERSION;
+    // Always done in the latest format.
+    CDataStream ssMasternodes(SER_DISK, CLIENT_VERSION | ADDRV2_FORMAT);
+    ssMasternodes << MASTERNODE_DB_VERSION_BIP155;
     ssMasternodes << strMagicMessage;                   // masternode cache file specific magic message
-    ssMasternodes << Params().MessageStart(); // network specific magic number
+    ssMasternodes << params.MessageStart(); // network specific magic number
     ssMasternodes << mnodemanToSave;
     uint256 hash = Hash(ssMasternodes.begin(), ssMasternodes.end());
     ssMasternodes << hash;
@@ -112,7 +115,9 @@ CMasternodeDB::ReadResult CMasternodeDB::Read(CMasternodeMan& mnodemanToLoad)
     }
     filein.fclose();
 
-    CDataStream ssMasternodes(vchData, SER_DISK, CLIENT_VERSION);
+    const auto& params = Params();
+    // serialize, checksum data up to that point, then append checksum
+    CDataStream ssMasternodes(vchData, SER_DISK,  CLIENT_VERSION);
 
     // verify stored checksum matches input data
     uint256 hashTmp = Hash(ssMasternodes.begin(), ssMasternodes.end());
@@ -139,12 +144,18 @@ CMasternodeDB::ReadResult CMasternodeDB::Read(CMasternodeMan& mnodemanToLoad)
         ssMasternodes >> MakeSpan(pchMsgTmp);
 
         // ... verify the network matches ours
-        if (memcmp(pchMsgTmp.data(), Params().MessageStart(), pchMsgTmp.size()) != 0) {
+        if (memcmp(pchMsgTmp.data(), params.MessageStart(), pchMsgTmp.size()) != 0) {
             error("%s : Invalid network magic number", __func__);
             return IncorrectMagicNumber;
         }
-        // de-serialize data into CMasternodeMan object
-        ssMasternodes >> mnodemanToLoad;
+        // de-serialize data into CMasternodeMan object.
+        if (version == MASTERNODE_DB_VERSION_BIP155) {
+            OverrideStream<CDataStream> s(&ssMasternodes, ssMasternodes.GetType(), ssMasternodes.GetVersion() | ADDRV2_FORMAT);
+            s >> mnodemanToLoad;
+        } else {
+            // Old format
+            ssMasternodes >> mnodemanToLoad;
+        }
     } catch (const std::exception& e) {
         mnodemanToLoad.Clear();
         error("%s : Deserialize or I/O error - %s", __func__, e.what());
@@ -860,6 +871,24 @@ int CMasternodeMan::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
     if (strCommand == NetMsgType::MNBROADCAST) {
         CMasternodeBroadcast mnb;
         vRecv >> mnb;
+        return ProcessMNBroadcast(pfrom, mnb);
+
+    } else if (strCommand == NetMsgType::MNBROADCAST2) {
+        if (!Params().GetConsensus().NetworkUpgradeActive(GetBestHeight(), Consensus::UPGRADE_V5_3)) {
+            LogPrint(BCLog::MASTERNODE, "%s: mnb2 not enabled pre-V5.3 enforcement\n", __func__);
+            return 30;
+        }
+        CMasternodeBroadcast mnb;
+        OverrideStream<CDataStream> s(&vRecv, vRecv.GetType(), vRecv.GetVersion() | ADDRV2_FORMAT);
+        s >> mnb;
+        mnb.isBIP155Addr = !mnb.addr.IsAddrV1Compatible();
+
+        // For now, let's not process mnb2 with pre-BIP155 node addr format.
+        if (!mnb.isBIP155Addr) {
+            LogPrint(BCLog::MASTERNODE, "%s: mnb2 with pre-BIP155 node addr format rejected\n", __func__);
+            return 30;
+        }
+
         return ProcessMNBroadcast(pfrom, mnb);
 
     } else if (strCommand == NetMsgType::MNPING) {

@@ -102,6 +102,8 @@ public:
     int nScanningErrorCount;
     int nLastScanningErrorBlockHeight;
     CMasternodePing lastPing;
+    // Whether the MN addr is in BIP155 format. Required for the signature hash.
+    bool isBIP155Addr{false};
 
     explicit CMasternode();
     CMasternode(const CMasternode& other);
@@ -130,6 +132,7 @@ public:
         protocolVersion = other.protocolVersion;
         nScanningErrorCount = other.nScanningErrorCount;
         nLastScanningErrorBlockHeight = other.nLastScanningErrorBlockHeight;
+        isBIP155Addr = other.isBIP155Addr;
         return *this;
     }
 
@@ -150,6 +153,10 @@ public:
         READWRITE(obj.vin, obj.addr, obj.pubKeyCollateralAddress);
         READWRITE(obj.pubKeyMasternode, obj.vchSig, obj.sigTime, obj.protocolVersion);
         READWRITE(obj.lastPing, obj.nScanningErrorCount, obj.nLastScanningErrorBlockHeight);
+
+        if (obj.protocolVersion >= MIN_BIP155_PROTOCOL_VERSION) {
+            READWRITE(obj.isBIP155Addr);
+        }
     }
 
     template <typename Stream>
@@ -253,7 +260,6 @@ public:
 
     // special sign/verify
     bool Sign(const CKey& key, const CPubKey& pubKey);
-    bool Sign(const std::string strSignKey);
     bool CheckSignature() const;
 
     SERIALIZE_METHODS(CMasternodeBroadcast, obj)

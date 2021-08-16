@@ -84,6 +84,7 @@ CMasternode::CMasternode() :
     nScanningErrorCount = 0;
     nLastScanningErrorBlockHeight = 0;
     mnPayeeScript.clear();
+    isBIP155Addr = false;
 }
 
 CMasternode::CMasternode(const CMasternode& other) :
@@ -100,6 +101,7 @@ CMasternode::CMasternode(const CMasternode& other) :
     nScanningErrorCount = other.nScanningErrorCount;
     nLastScanningErrorBlockHeight = other.nLastScanningErrorBlockHeight;
     mnPayeeScript = other.mnPayeeScript;
+    isBIP155Addr = other.isBIP155Addr;
 }
 
 CMasternode::CMasternode(const CDeterministicMNCPtr& dmn, int64_t registeredTime, const uint256& registeredHash) :
@@ -116,11 +118,13 @@ CMasternode::CMasternode(const CDeterministicMNCPtr& dmn, int64_t registeredTime
     nScanningErrorCount = 0;
     nLastScanningErrorBlockHeight = 0;
     mnPayeeScript = dmn->pdmnState->scriptPayout;
+    isBIP155Addr = !addr.IsAddrV1Compatible();
 }
 
 uint256 CMasternode::GetSignatureHash() const
 {
-    CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
+    int version = isBIP155Addr ? PROTOCOL_VERSION | ADDRV2_FORMAT : PROTOCOL_VERSION;
+    CHashWriter ss(SER_GETHASH, version);
     ss << nMessVersion;
     ss << addr;
     ss << sigTime;
@@ -154,6 +158,7 @@ bool CMasternode::UpdateFromNewBroadcast(CMasternodeBroadcast& mnb, int chainHei
         vchSig = mnb.vchSig;
         protocolVersion = mnb.protocolVersion;
         addr = mnb.addr;
+        isBIP155Addr = !mnb.addr.IsAddrV1Compatible();
         int nDoS = 0;
         if (mnb.lastPing.IsNull() || (!mnb.lastPing.IsNull() && mnb.lastPing.CheckAndUpdate(nDoS, chainHeight, false))) {
             lastPing = mnb.lastPing;
@@ -242,6 +247,7 @@ CMasternodeBroadcast::CMasternodeBroadcast(CService newAddr, CTxIn newVin, CPubK
     protocolVersion = protocolVersionIn;
     lastPing = _lastPing;
     sigTime = lastPing.sigTime;
+    isBIP155Addr = !addr.IsAddrV1Compatible();
 }
 
 CMasternodeBroadcast::CMasternodeBroadcast(const CMasternode& mn) :
@@ -366,18 +372,6 @@ bool CMasternodeBroadcast::Sign(const CKey& key, const CPubKey& pubKey)
     }
 
     return true;
-}
-
-bool CMasternodeBroadcast::Sign(const std::string strSignKey)
-{
-    CKey key;
-    CPubKey pubkey;
-
-    if (!CMessageSigner::GetKeysFromSecret(strSignKey, key, pubkey)) {
-        return error("%s : Invalid strSignKey", __func__);
-    }
-
-    return Sign(key, pubkey);
 }
 
 bool CMasternodeBroadcast::CheckSignature() const
