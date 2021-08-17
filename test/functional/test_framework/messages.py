@@ -35,9 +35,9 @@ MY_RELAY = 1 # from version 70001 onwards, fRelay should be appended to version 
 
 MAX_INV_SZ = 50000
 MAX_BLOCK_BASE_SIZE = 2000000
-CURRENT_BLK_VERSION = 10
+CURRENT_BLK_VERSION = 11
 
-COIN = 100000000 # 1 btc in satoshis
+COIN = 100000000 # 1 PIV in satoshis
 
 NODE_NETWORK = (1 << 0)
 # NODE_GETUTXO = (1 << 1)
