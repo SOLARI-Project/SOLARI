@@ -83,6 +83,9 @@ private:
     int ProcessMNPing(CNode* pfrom, CMasternodePing& mnp);
     int ProcessMessageInner(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
 
+    // Relay a MN
+    void BroadcastInvMN(CMasternode* mn, CNode* pfrom);
+
 public:
     // Keep track of all broadcasts I've seen
     std::map<uint256, CMasternodeBroadcast> mapSeenMasternodeBroadcast;
