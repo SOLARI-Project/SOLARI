@@ -113,6 +113,7 @@ bool RPCExecutor::ExecuteCommandLine(std::string& strResult, const std::string& 
     {
         STATE_EATING_SPACES,
         STATE_EATING_SPACES_IN_ARG,
+        STATE_EATING_SPACES_IN_BRACKETS,
         STATE_ARGUMENT,
         STATE_SINGLEQUOTED,
         STATE_DOUBLEQUOTED,
@@ -197,6 +198,7 @@ bool RPCExecutor::ExecuteCommandLine(std::string& strResult, const std::string& 
             }
             case STATE_ARGUMENT: // In or after argument
             case STATE_EATING_SPACES_IN_ARG:
+            case STATE_EATING_SPACES_IN_BRACKETS:
             case STATE_EATING_SPACES: // Handle runs of whitespace
                 switch(ch)
             {
@@ -204,6 +206,8 @@ bool RPCExecutor::ExecuteCommandLine(std::string& strResult, const std::string& 
                 case '\'': state = STATE_SINGLEQUOTED; break;
                 case '\\': state = STATE_ESCAPE_OUTER; break;
                 case '(': case ')': case '\n':
+                    if (state == STATE_EATING_SPACES_IN_ARG)
+                        throw std::runtime_error("Invalid Syntax");
                     if (state == STATE_ARGUMENT)
                     {
                         if (ch == '(' && stack.size() && stack.back().size() > 0)
@@ -215,7 +219,7 @@ bool RPCExecutor::ExecuteCommandLine(std::string& strResult, const std::string& 
 
                         stack.back().push_back(curarg);
                         curarg.clear();
-                        state = STATE_EATING_SPACES;
+                        state = STATE_EATING_SPACES_IN_BRACKETS;
                     }
                     if ((ch == ')' || ch == '\n') && stack.size() > 0)
                     {
@@ -239,12 +243,20 @@ bool RPCExecutor::ExecuteCommandLine(std::string& strResult, const std::string& 
                     }
                     break;
                 case ' ': case ',': case '\t':
-                    if(state == STATE_ARGUMENT || (state == STATE_EATING_SPACES_IN_ARG && ch == ',')) // Space ends argument
+                    if(state == STATE_EATING_SPACES_IN_ARG && curarg.empty() && ch == ',')
+                        throw std::runtime_error("Invalid Syntax");
+
+                    else if(state == STATE_ARGUMENT) // Space ends argument
                     {
                         stack.back().push_back(curarg);
                         curarg.clear();
                     }
-                    state = (ch == ',' ? STATE_EATING_SPACES_IN_ARG : STATE_EATING_SPACES);
+                    if ((state == STATE_EATING_SPACES_IN_BRACKETS || state == STATE_ARGUMENT) && ch == ',')
+                    {
+                        state = STATE_EATING_SPACES_IN_ARG;
+                        break;
+                    }
+                    state = STATE_EATING_SPACES;
                     break;
                 default: curarg += ch; state = STATE_ARGUMENT;
             }
