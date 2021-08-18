@@ -488,16 +488,25 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
             }
         }
 
-        if (mnKeyID == nullopt || !winner.CheckSignature(*mnKeyID)) {
-            if (masternodeSync.IsSynced()) {
-                LogPrintf("CMasternodePayments::ProcessMessageMasternodePayments() : mnw - invalid signature\n");
+        // Check not found MN
+        if (mnKeyID == nullopt) {
+            // If it's a DMN, the node is misbehaving.
+            if (fDeterministic) {
                 LOCK(cs_main);
                 Misbehaving(pfrom->GetId(), 20);
-            }
-            // it could just be a non-synced masternode
-            if (!fDeterministic) {
+            } else {
+                // If it's not a DMN, then it could be a non-synced MN.
+                // Let's try to request the MN to the node.
+                // (the AskForMN() will only broadcast it every 10 min).
                 mnodeman.AskForMN(pfrom, winner.vinMasternode);
             }
+            return;
+        }
+
+        if (!winner.CheckSignature(*mnKeyID)) {
+            LogPrint(BCLog::MASTERNODE, "%s : mnw - invalid signature\n", __func__);
+            LOCK(cs_main);
+            Misbehaving(pfrom->GetId(), 20);
             return;
         }
 
