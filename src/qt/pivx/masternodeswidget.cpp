@@ -18,7 +18,6 @@
 #include "masternode-sync.h"
 #include "masternodeconfig.h"
 #include "masternodeman.h"
-#include "wallet/wallet.h"
 #include "util/system.h"
 #include "qt/pivx/optionbutton.h"
 #include <fstream>
@@ -31,8 +30,6 @@
 class MNHolder : public FurListRow<QWidget*>
 {
 public:
-    MNHolder();
-
     explicit MNHolder(bool _isLightTheme) : FurListRow(), isLightTheme(_isLightTheme) {}
 
     MNRow* createHolder(int pos) override

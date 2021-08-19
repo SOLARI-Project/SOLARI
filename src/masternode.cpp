@@ -304,7 +304,7 @@ bool CMasternodeBroadcast::Create(const std::string& strService,
     // Check if the MN has a ADDRv2 and reject it if the new NU wasn't enforced.
     if (!_service.IsAddrV1Compatible() &&
         !Params().GetConsensus().NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3)) {
-        strErrorRet = "Cannot start MN with a v2 address before the v5.3 enforcement\n";
+        strErrorRet = "Cannot start MN with a v2 address before the v5.3 enforcement";
         return false;
     }
 
