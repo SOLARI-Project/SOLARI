@@ -993,6 +993,11 @@ static const CRPCCommand commands[] =
 
 void RegisterEvoRPCCommands(CRPCTable &tableRPC)
 {
+    if (!Params().IsRegTestNet()) {
+        // Disabled before PIVX v6.0
+        return;
+    }
+
     for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++) {
         tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
     }
