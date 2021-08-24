@@ -22,27 +22,27 @@ How to Upgrade
 
 If you are running an older version, shut it down. Wait until it has completely shut down (which might take a few minutes for older versions), then run the installer (on Windows) or just copy over /Applications/PIVX-Qt (on Mac) or pivxd/pivx-qt (on Linux).
 
-Important note for Masternodes running over Tor (v2 onion address):
+**Important note for Masternodes running over Tor (v2 onion address):**
 Before starting the node, copy the content of the `onion_private_key` file, located inside the data directory into a new `onion_v3_private_key` file inside the same directory.
 On linux: `cp -f onion_private_key onion_v3_private_key`.
 If the `onion_v3_private_key` file already exist, replace the content with the content of the `onion_private_key` file.
 
 This will allow you to bypass the v2 onion address deprecation and continue running the MN over Tor for now.
-Be aware that the Tor network is **completely** removing v2 onion addresses support starting from Oct 15th.
+Be aware that the Tor network is **completely** removing v2 onion addresses support starting from Oct 15th (see "P2P and network changes" section).
 After the v5.3 network upgrade enforcement, the MN will need to be migrated to run on a Tor v3 onion address (Update window Sept 15th - Oct 15th).
 If it's not done on time, the node will drop off the network.
 
 Sapling Parameters
 ==================
 
-In order to run, PIVX Core now requires two files, `sapling-output.params` and `sapling-spend.params` (with total size ~50 MB), to be saved in a specific location.
+In order to run, as all versions after 5.0.0, PIVX Core requires two files, `sapling-output.params` and `sapling-spend.params` (with total size ~50 MB), to be saved in a specific location.
 
 For the following packages, no action is required by the user:
 - macOS release `dmg` binaries will use the params that are bundled into the .app bundle.
 - Windows installer `.exe` will automatically copy the files in the proper location.
 - Linux `PPA/Snap` installs will automatically copy the files in the proper location.
 
-For the other packages, the user must save the param files in the proper location, before being able to run PIVX v5.0.0:
+For the other packages, the user must save the param files in the proper location:
 - macOS/Linux `tar.gz` tarballs include a bash script (`install-params.sh`) to copy the parameters in the appropriate location.
 - Windows `.zip` users need to manually copy the files from the `share/pivx` folder to the `%APPDATA%\PIVXParams` directory.
 - self compilers can run the script from the repository sources (`params/install-params.sh`), or copy the files directly from the `params` subdirectory.
@@ -58,13 +58,7 @@ From PIVX Core v5.3 onwards, macOS versions earlier than 10.12 are no longer sup
 
 PIVX Core should also work on most other Unix-like systems but is not frequently tested on them.
 
-The node's known peers are persisted to disk in a file called `peers.dat`. The
-format of this file has been changed in a backwards-incompatible way in order to
-accommodate the storage of Tor v3 and other BIP155 addresses. This means that if
-the file is modified by v5.3 or newer then older versions will not be able to
-read it. Those old versions, in the event of a downgrade, will log an error
-message "Incorrect keysize in addrman deserialization" and will continue normal
-operation as if the file was missing, creating a new empty one. (#2411)
+The node's known peers are persisted to disk in a file called `peers.dat`. The format of this file has been changed in a backwards-incompatible way in order to accommodate the storage of Tor v3 and other BIP155 addresses. This means that if the file is modified by v5.3 or newer then older versions will not be able to read it. Those old versions, in the event of a downgrade, will log an error message "Incorrect keysize in addrman deserialization" and will continue normal operation as if the file was missing, creating a new empty one. ([PR #2411](https://github.com/PIVX-Project/PIVX/pull/2411))
 
 Notable Changes
 ==============
@@ -72,21 +66,25 @@ Notable Changes
 GUI changes
 -----------------------
 
-- The launch-on-startup option is no longer available on macOS
+The launch-on-startup option is no longer available on macOS
 
 #### Subtract Fee From Amount Control
-- Allow the user to deduct the fee from one or more of the transaction recipient amounts.
+
+A new checkbox in the send widget allows the user to deduct the fee from the transaction recipient amount.
 The most common use-case is when sending the whole balance, or a selection of UTXOs, without getting any change back.
+If the transaction has multiple recipients, each recipient can be checked with a toggleable button in the context menu, and the fee will be split, and subtracted evenly from the outputs selected ([PR #2347](https://github.com/PIVX-Project/PIVX/pull/2347)).
 
 #### Settings
-- A new checkbox added to the wallet settings to enable or disable automatic port mapping with NAT-PMP.
+
+A new checkbox added to the wallet settings to enable or disable automatic port mapping with NAT-PMP.
 If both UPnP and NAT-PMP are enabled, a successful allocation from UPnP prevails over one from NAT-PMP.<br/>
-Note: Successful automatic port mapping requires a router that supports either UPnP or NAT-PMP.
+Note: Successful automatic port mapping requires a router that supports either UPnP or NAT-PMP ([PR #2338](https://github.com/PIVX-Project/PIVX/pull/2338)).
 
 #### RPC-Console
 
-- The GUI RPC-Console now accepts "parenthesized syntax", nested commands, and simple queries (see [PR #2282](https://github.com/PIVX-Project/PIVX/pull/2282).
+The GUI RPC-Console now accepts "parenthesized syntax", nested commands, and simple queries ([PR #2282](https://github.com/PIVX-Project/PIVX/pull/2282).
 A new command `help-console` (available only on the GUI console) documents how to use it:
+
 ```
 This console accepts RPC commands using the standard syntax.
     example:    getblockhash 0
@@ -111,51 +109,34 @@ Results without keys can be queried using an integer in brackets.
 P2P and network changes
 -----------------------
 
-- The Tor onion service that is automatically created by setting the
-  `-listenonion` configuration parameter will now be created as a Tor v3 service
-  instead of Tor v2. The private key that was used for Tor v2 (if any) will be
-  left untouched in the `onion_private_key` file in the data directory (see
-  `-datadir`) and can be removed if not needed. PIVX Core will no longer
-  attempt to read it. The private key for the Tor v3 service will be saved in a
-  file named `onion_v3_private_key`. To use the deprecated Tor v2 service (not
-  recommended), then `onion_private_key` can be copied over
-  `onion_v3_private_key`, e.g.
-  `cp -f onion_private_key onion_v3_private_key`.
+#### Tor v3 hidden services support - addrv2 message (BIP155)
+
+This release adds support for Tor version 3 hidden services, and rumoring them over the network to other peers using [BIP155](https://github.com/bitcoin/bips/blob/master/bip-0155.mediawiki). Version 2 hidden services are still supported by PIVX Core, but the Tor network has started [deprecating](https://blog.torproject.org/v2-deprecation-timeline) them, and will remove support soon. ([PR #2411](https://github.com/PIVX-Project/PIVX/pull/2411))
+
+The Tor onion service that is automatically created by setting the `-listenonion` configuration parameter will now be created as a Tor v3 service instead of Tor v2. The private key that was used for Tor v2 (if any) will be left untouched in the `onion_private_key` file in the data directory (see `-datadir`) and can be removed if not needed. PIVX Core will no longer attempt to read it. The private key for the Tor v3 service will be saved in a file named `onion_v3_private_key`. To use the deprecated Tor v2 service (not recommended), then `onion_private_key` can be copied over `onion_v3_private_key`, e.g.
+`cp -f onion_private_key onion_v3_private_key`.
 
 #### Removal of reject network messages from PIVX Core (BIP61)
 
-Nodes on the network can not generally be trusted to send valid ("reject")
-messages, so this should only ever be used when connected to a trusted node.
+Nodes on the network can not generally be trusted to send valid ("reject") messages, so this should only ever be used when connected to a trusted node.
 Please use the recommended alternatives if you rely on this feature:
 
-* Testing or debugging of implementations of the PIVX P2P network protocol
-  should be done by inspecting the log messages that are produced by a recent
-  version of PIVX Core. PIVX Core logs debug messages
-  (`-debug=<category>`) to a stream (`-printtoconsole`) or to a file
-  (`-debuglogfile=<debug.log>`).
+* Testing or debugging of implementations of the PIVX P2P network protocol should be done by inspecting the log messages that are produced by a recent version of PIVX Core. PIVX Core logs debug messages (`-debug=<category>`) to a stream (`-printtoconsole`) or to a file (`-debuglogfile=<debug.log>`).
 
-* Testing the validity of a block can be achieved by specific RPCs:
-  - `submitblock`
+* Testing the validity of a block can be achieved by specific RPCs (`submitblock`)
 
-* Testing the validity of a transaction can be achieved by specific RPCs:
-  - `sendrawtransaction`
+* Testing the validity of a transaction can be achieved by specific RPCs (`sendrawtransaction`)
 
-* Wallets should not use the absence of "reject" messages to indicate a
-  transaction has propagated the network, nor should wallets use "reject"
-  messages to set transaction fees. Wallets should rather use fee estimation
-  to determine transaction fees and set replace-by-fee if desired. Thus, they
-  could wait until the transaction has confirmed (taking into account the fee
-  target they set (compare the RPC `estimatesmartfee`)) or listen for the
-  transaction announcement by other network peers to check for propagation.
+* Wallets should not use the absence of "reject" messages to indicate a transaction has propagated the network, nor should wallets use "reject" messages to set transaction fees. Wallets should rather use fee estimation to determine transaction fees. Thus, they could wait until the transaction has confirmed (taking into account the fee target they set (compare the RPC `estimatesmartfee`) or listen for the transaction announcement by other network peers to check for propagation.
 
 Multi-wallet support
 --------------------
 
-PIVX Core now supports loading multiple, separate wallets (See [PR #2337](https://github.com/PIVX-Project/PIVX/pull/2337)). The wallets are completely separated, with individual balances, keys and received transactions.
+PIVX Core now supports loading multiple, separate wallets ([PR #2337](https://github.com/PIVX-Project/PIVX/pull/2337)) with individual balances, keys and received transactions.
 
-Multi-wallet is enabled by using more than one `-wallet` argument when starting PIVX client, either on the command line or in the pivx.conf config file.
+Multi-wallet is enabled by using more than one `-wallet` argument when starting PIVX client, either on the command line or in the `pivx.conf` config file.
 
-**In pivx-qt, only the first wallet will be displayed and accessible for creating and signing transactions.** GUI selectable multiple wallets will be supported in a future version. However, even in 5.3 other loaded wallets will remain synchronized to the node's current tip in the background.
+**In pivx-qt, only the first wallet will be displayed and accessible for creating and signing transactions.** GUI selectable multiple wallets will be supported in a future version. However, even in 5.3, other loaded wallets will remain synchronized to the node's current tip in the background.
 
 PIVX Core 5.3.0 contains the following changes to the RPC interface and pivx-cli for multi-wallet:
 
@@ -169,65 +150,11 @@ The `getwalletinfo` RPC method returns the name of the wallet used for the query
 
 Note that while multi-wallet is now fully supported, the RPC multi-wallet interface should be considered unstable for version 5.3.0, and there may backwards-incompatible changes in future versions.
 
-Wallets directory configuration (`-walletdir`)
-----------------------------------------------
-
-PIVX Core now has more flexibility in where the wallets directory can be
-located. Previously wallet database files were stored at the top level of the
-PIVX data directory. The behavior is now:
-
-- For new installations (where the data directory doesn't already exist),
-  wallets will now be stored in a new `wallets/` subdirectory inside the data
-  directory by default.
-- For existing nodes (where the data directory already exists), wallets will be
-  stored in the data directory root by default. If a `wallets/` subdirectory
-  already exists in the data directory root, then wallets will be stored in the
-  `wallets/` subdirectory by default.
-- The location of the wallets directory can be overridden by specifying a
-  `-walletdir=<path>` option where `<path>` can be an absolute path to a
-  directory or directory symlink.
-
-Care should be taken when choosing the wallets directory location, as if it
-becomes unavailable during operation, funds may be lost.
-
-External wallet files
----------------------
-
-A new `-wallet=<path>` option was added, accepting any system path instead of requiring wallets
-to be located in the -walletdir directory.
-
-Newly created wallet format
----------------------------
-
-If `-wallet=<path>` is specified with a path that does not exist, it will now
-create a wallet directory at the specified location (containing a wallet.dat
-data file, a db.log file, and database/log.?????????? files) instead of just
-creating a data file at the path and storing log files in the parent
-directory. This should make backing up wallets more straightforward than
-before because the specified wallet path can just be directly archived without
-having to look in the parent directory for transaction log files.
-
-For backwards compatibility, wallet paths that are names of existing data files
-in the `-walletdir` directory will continue to be accepted and interpreted the
-same as before.
-
-Database cache memory increased
---------------------------------
-
-As a result of growth of the UTXO set, performance with the prior default database cache of 100 MiB has suffered.
-For this reason the default was changed to 300 MiB in this release.
-For nodes on low-memory systems, the database cache can be changed back to 100 MiB (or to another value) by either:
-- Adding `dbcache=100` in pivx.conf
-- Adding `-dbcache=100` startup flag
-- Changing it in the GUI under `Settings → Options → Main → Size of database cache`
-
-Note that the database cache setting has the most performance impact during initial sync of a node, and when catching up after downtime.
-
 Reindexing changes
 ------------------
 
 It is now possible to only redo validation, without rebuilding the block index, using the command line option `-reindex-chainstate` (in addition to `-reindex` which does both).
-This new option is useful when the blocks on disk are assumed to be fine, but the chainstate is still corrupted. It is also useful for benchmarks.
+This new option is useful when the blocks on disk are assumed to be fine, but the chainstate is still corrupted. It is also useful for benchmarks ([PR #2391](https://github.com/PIVX-Project/PIVX/pull/2391)).
 
 Mining/Staking transaction selection ("Child Pays For Parent")
 --------------------------------------------------------------
@@ -239,7 +166,7 @@ Removal of Priority Estimation - Coin Age Priority
 --------------------------------------------------
 
 In previous versions of PIVX Core, a portion of each block could be reserved for transactions based on the age and value of UTXOs they spent. This concept (Coin Age Priority) is a policy choice by miners/stakers, and there are no consensus rules around the inclusion of Coin Age Priority transactions in blocks.
-PIVX Core v5.3.0 removes all remaining support for Coin Age Priority (See [PR #2378](https://github.com/PIVX-Project/PIVX/pull/2378)). This has the following implications:
+PIVX Core v5.3.0 removes all remaining support for Coin Age Priority ([PR #2378](https://github.com/PIVX-Project/PIVX/pull/2378)). This has the following implications:
 
 - The concept of *free transactions* has been removed. High Coin Age Priority transactions would previously be allowed to be relayed even if they didn't attach a miner fee. This is no longer possible since there is no concept of Coin Age Priority. The `-limitfreerelay` and `-relaypriority` options which controlled relay of free transactions have therefore been removed.
 - The `-blockprioritysize` option has been removed.
@@ -247,11 +174,67 @@ PIVX Core v5.3.0 removes all remaining support for Coin Age Priority (See [PR #2
 - `-minrelaytxfee` can now be set to 0. If `minrelaytxfee` is set, then fees smaller than `minrelaytxfee` (per kB) are rejected from relaying, mining and transaction creation. This defaults to 10000 satoshi/kB.
 - The `-printpriority` option has been updated to only output the fee rate and hash of transactions included in a block by the mining code.
 
-Support for JSON-RPC Named Arguments
-------------------------------------
+Configuration/Settings changes
+------------------------------
+
+#### Wallets directory configuration (`-walletdir`)
+
+PIVX Core now has more flexibility in where the wallets directory can be located. Previously wallet database files were stored at the top level of the PIVX data directory ([PR #2423](https://github.com/PIVX-Project/PIVX/pull/2423)). The behavior is now:
+
+- For new installations (where the data directory doesn't already exist), wallets will now be stored in a new `wallets/` subdirectory inside the data directory by default.
+
+- For existing nodes (where the data directory already exists), wallets will be stored in the data directory root by default. If a `wallets/` subdirectory already exists in the data directory root, then wallets will be stored in the `wallets/` subdirectory by default.
+
+- The location of the wallets directory can be overridden by specifying a `-walletdir=<path>` option where `<path>` can be an absolute path to a directory or directory symlink.
+
+Care should be taken when choosing the wallets directory location, as if it becomes unavailable during operation, funds may be lost.
+
+#### External wallet files
+
+A new `-wallet=<path>` option allows the user to specify the wallet db location. It accepts either absolute paths or paths relative to the `-walletdir` directory. Multiple `-wallet` paths can be configured at the same time in order to run PIVX Core with multiple wallets (see section "Multi-wallet support").
+
+If `-wallet=<path>` is specified with a path that does not exist, it will create a wallet directory at the specified location (containing a `wallet.dat` data file, a `db.log` file, and `database/log.??????????` files).
+If `-wallet=<path>` is specified with paths that are names of existing data files in the `-walletdir` directory, then log files are stored in the parent directory.
+
+#### Configuration sections for testnet and regtest
+
+It is now possible for a single configuration file to set different options for different networks ([PR #2324](https://github.com/PIVX-Project/PIVX/pull/2324)). This is done by using sections or by prefixing the option with the network, such as:
+```
+    main.uacomment=pivx
+    test.uacomment=pivx-testnet
+    regtest.uacomment=regtest
+    [main]
+    mempoolsize=300
+    [test]
+    mempoolsize=100
+    [regtest]
+    mempoolsize=20
+```
+The `addnode=`, `connect=`, `port=`, `bind=`, `rpcport=`, `rpcbind=`, and `wallet=` options will only apply to mainnet when specified in the configuration file, unless a network is specified.
+
+#### Custom directory for blocks storage
+
+A new initialization option flag `-blocksdir` allows the users to store block files outside of the data directory ([PR #2326](https://github.com/PIVX-Project/PIVX/pull/2326)).
+
+#### Enable NAT-PMP port mapping at startup
+
+The `-natpmp` option has been added to use NAT-PMP to map the listening port. If both UPnP and NAT-PMP are enabled, a successful allocation from UPnP prevails over one from NAT-PMP ([PR #2338](https://github.com/PIVX-Project/PIVX/pull/2338)).
+
+#### asmap feature
+
+A new `-asmap` configuration option has been added to diversify the node's network connections by mapping IP addresses Autonomous System Numbers (ASNs) and then limiting the number of connections made to any single ASN ([PR #2480](https://github.com/PIVX-Project/PIVX/pull/2480)).
+
+#### Removed startup options
+
+- `printstakemodifier`
+
+Low-level RPC changes
+---------------------
+
+#### Support for JSON-RPC Named Arguments
 
 Commands sent over the JSON-RPC interface and through the `pivx-cli` binary can now use named arguments. This follows the [JSON-RPC specification](http://www.jsonrpc.org/specification) for passing parameters by-name with an object.
-`pivx-cli` has been updated to support this by parsing `name=value` arguments when the `-named` option is given.
+`pivx-cli` has been updated to support this by parsing `name=value` arguments when the `-named` option is given. ([PR #2386](https://github.com/PIVX-Project/PIVX/pull/2386))
 
 Some examples:
 
@@ -265,159 +248,108 @@ Some examples:
 The order of arguments doesn't matter in this case. Named arguments are also useful to leave out arguments that should stay at their default value.
 The RPC server remains fully backwards compatible with positional arguments.
 
-### New RPC Commands
+#### Query options for `listunspent` RPC
 
-* `rescanblockchain`
-  ```
-  rescanblockchain (start_height) (stop_height)
-  Rescan the local blockchain for wallet related transactions.
-  Arguments:
-  1. start_height    (numeric, optional) block height where the rescan should start
-  2. stop_height     (numeric, optional) the last block height that should be scanned
-  Result:
-  {
-    start_height     (numeric) The block height where the rescan has started. If omitted, rescan started from the genesis block.
-    stop_height      (numeric) The height of the last rescanned block. If omitted, rescan stopped at the chain tip.
-  }
-  ```
-
-* `getnodeaddresses`
-    ```
-    getnodeaddresses ( count "network" )
-
-    Return known addresses which can potentially be used to find new nodes in the network
-
-    Arguments:
-    1. count      (numeric, optional) The maximum number of addresses to return. Specify 0 to return all known addresses.
-    2. "network"  (string, optional) Return only addresses of the specified network. Can be one of: ipv4, ipv6, onion.
-    Result:
-    [
-      {
-        "time": ttt,          (numeric) Timestamp in seconds since epoch (Jan 1 1970 GMT) when the node was last seen
-        "services": n,        (numeric) The services offered by the node
-        "address": "host",    (string) The address of the node
-        "port": n,            (numeric) The port number of the node
-        "network": "xxxx"     (string) The network (ipv4, ipv6, onion) the node connected through
-      }
-      ,...
-    ]
-    ```
-
-* `importmulti`
-  ```
-  importmulti "requests" ( "options" )
-  Import addresses/scripts (with private or public keys, redeem script (P2SH)), rescanning all addresses in one-shot-only (rescan can be disabled via options). Requires a new wallet backup.
-
-  Arguments:
-  1. requests     (array, required) Data to be imported
-    [     (array of json objects)
-      {
-        "scriptPubKey": "script" | { "address":"address" }, (string / JSON, required) Type of scriptPubKey (string for script, json for address)
-        "timestamp": timestamp | "now"                      (integer / string, required) Creation time of the key in seconds since epoch (Jan 1 1970 GMT),
-                                                                   or the string "now" to substitute the current synced blockchain time. The timestamp of the oldest
-                                                                   key will determine how far back blockchain rescans need to begin for missing wallet transactions.
-                                                                   "now" can be specified to bypass scanning, for keys which are known to never have been used, and
-                                                                   0 can be specified to scan the entire blockchain. Blocks up to 2 hours before the earliest key
-                                                                   creation time of all keys being imported by the importmulti call will be scanned.
-        "redeemscript": "script",                           (string, optional) Allowed only if the scriptPubKey is a P2SH address or a P2SH scriptPubKey
-        "pubkeys": ["pubKey", ... ],                        (array, optional) Array of strings giving pubkeys that must occur in the output or redeemscript
-        "keys": ["key", ... ],                              (array, optional) Array of strings giving private keys whose corresponding public keys must occur in the output or redeemscript
-        "internal": true|false,                               (boolean, optional, default: false) Stating whether matching outputs should be be treated as not incoming payments
-        "watchonly": true|false,                              (boolean, optional, default: false) Stating whether matching outputs should be considered watched even when they're not spendable, only allowed if keys are empty
-        "label": label,                                       (string, optional, default: '') Label to assign to the address, only allowed with internal=false
-      }
-    ,...
-    ]
-  2. options                 (JSON, optional)
-    {
-       "rescan": true|false,         (boolean, optional, default: true) Stating if should rescan the blockchain after all imports
-    }
-
-  Result:
-  [                               (Array) An array with the same size as the input that has the execution result
-    {
-      "success": true|false,    (boolean) True if import succeeded, otherwise false
-      "error": {                (JSON Object) Object containing error information. Only present when import fails
-        "code": n,              (numeric) The error code
-        "message": xxxx         (string) The error message
-      }
-    }
-    ,...
-  ]
-  Note: This call can take minutes to complete if rescan is true, during that time, other rpc calls
-  may report that the imported keys, addresses or scripts exists but related transactions are still missing.
-  ```
-
-Low-level RPC changes
----------------------
-
-- When PIVX is not started with any `-wallet=<path>` options, the name of
-  the default wallet returned by `getwalletinfo` and `listwallets` RPCs is
-  now the empty string `""` instead of `"wallet.dat"`. If PIVX is started
-  with any `-wallet=<path>` options, there is no change in behavior, and the
-  name of any wallet is just its `<path>` string.
-
-### Query options for listunspent RPC
-
-- The `listunspent` RPC now takes a `query_options` argument (see [PR #2317](https://github.com/PIVX-Project/PIVX/pull/2317)), which is a JSON object
-  containing one or more of the following members:
+The `listunspent` RPC now takes a `query_options` argument ([PR #2317](https://github.com/PIVX-Project/PIVX/pull/2317)), which is a JSON object containing one or more of the following members:
   - `minimumAmount` - a number specifying the minimum value of each UTXO
   - `maximumAmount` - a number specifying the maximum value of each UTXO
   - `maximumCount` - a number specifying the minimum number of UTXOs
   - `minimumSumAmount` - a number specifying the minimum sum value of all UTXOs
 
-- The `listunspent` RPC also takes an additional boolean argument `include_unsafe` (true by default) to optionally exclude "unsafe" utxos.
-  An unconfirmed output from outside keys is considered unsafe (see [PR #2351](https://github.com/PIVX-Project/PIVX/pull/2351)).
+The `listunspent` RPC also takes an additional boolean argument `include_unsafe` (true by default) to optionally exclude "unsafe" utxos.
+An unconfirmed output from outside keys is considered unsafe ([PR #2351](https://github.com/PIVX-Project/PIVX/pull/2351)).
 
-- The `listunspent` output also shows whether the utxo is considered safe to spend or not.
+The `listunspent` output also shows whether the utxo is considered safe to spend or not.
 
-- the `stop` RPC no longer accepts the (already deprecated, ignored, and undocumented) optional boolean argument `detach`.
+#### Wallet name returned by `getwalletinfo`
 
-### Subtract fee from recipient amount for RPC
+`walletinfo` return object includes a `"walletname"` field. When PIVX is not started with any `-wallet=<path>` options, the name of the default wallet returned by `getwalletinfo` (and `listwallets`) RPCs is the empty string `""`. If PIVX is started with any `-wallet=<path>` options, the name of any wallet is its `<path>` string.
 
-A new argument `subtract_fee_from` is added to `sendmany`/`shieldsendmany` RPC functions.
-It can be used to provide the list of recipent addresses paying the fee.
+#### Removal of 'detach' argument from `stop`
+
+The `stop` RPC no longer accepts the (already deprecated, ignored, and undocumented) optional boolean argument `detach`.
+
+#### Subtract fee from recipient amount for RPC
+
+- A new argument `subtract_fee_from` is added to `sendmany`/`shieldsendmany` RPC functions.
+  It can be used to provide the list of recipent addresses paying the fee.
+  ```
+  subtract_fee_from         (array, optional)
+  A json array with addresses.
+  The fee will be equally deducted from the amount of each selected address.
+    ["address"              (string) Subtract fee from this address
+     ,...
+    ]
+  ```
+  Examples:
+  ```
+  sendmany "" "{\"addr1\":10.04, \"addr2\":0.07, \"addr3\":100}" 1 "test" false "[\"addr1\", \"addr3\"]"
+
+  shieldsendmany "from_shield" "[{\"address\": \"saddr1\", \"amount\":10.04, \"memo\": \"test\"}, {\"address\": \"saddr2\", \"amount\":0.07}, {\"address\": \"saddr3\", \"amount\":100}" 1 0 "[\"saddr1\", \"saddr3\"]"
+  ```
+
+- For `fundrawtransaction` a new key (`subtractFeeFromOutputs`) is added to the `options` argument.
+  It can be used to specify a list of output indexes.
+  ```
+  subtractFeeFromOutputs    (array, optional)  A json array of integers.
+  The fee will be equally deducted from the amount of each specified output.
+  The outputs are specified by their zero-based index, before any change output is added.
+    [vout_index,...]
+  ```
+  Example:
+  ```
+  fundrawtransaction "rawtxhex" "{\"subtractFeeFromOutputs\":[0,2]}"
+  ```
+
+- For `sendtoaddress`, the new parameter is called `subtract_fee` and it is a simple boolean.
+  Example:
+  ```
+  sendtoaddress "addr1" 0.1 "test" "" true
+  ```
+
+In all cases the selected recipients will receive less PIV than their corresponding amount set.
+If no outputs/addresses are specified, the sender pays the fee as usual. ([PR #2341](https://github.com/PIVX-Project/PIVX/pull/2341))
+
+### New output fields in `getmempoolinfo`
+
+`getmempoolinfo` return object now includes these additional fields:
 ```
-subtract_fee_from         (array, optional)
-A json array with addresses.
-The fee will be equally deducted from the amount of each selected address.
-  [\"address\"          (string) Subtract fee from this address\n"
-   ,...
-  ]
+"loaded": true|false      (boolean) Whether the mempool is fully loaded
+"maxmempool": xxxxx       (numeric) Maximum memory usage for the mempool
+"mempoolminfee": xxxxx    (numeric) Minimum fee rate in PIVX/kB for tx to be
+                          accepted. Is the maximum of minrelaytxfee and
+                          minimum mempool fee
+"minrelaytxfee": xxxxx    (numeric) Current minimum relay fee for transactions
 ```
 
-For `fundrawtransaction` a new key (`subtractFeeFromOutputs`) is added to the `options` argument.
-It can be used to specify a list of output indexes.
-```
-subtractFeeFromOutputs    (array, optional)  A json array of integers.
-The fee will be equally deducted from the amount of each specified output.
-The outputs are specified by their zero-based index, before any change output is added.
-  [vout_index,...]
-```
+#### `ischange` added to `getaddressinfo` output
 
-For `sendtoaddress`, the new parameter is called `subtract_fee` and it is a simple boolean.
+Boolean value, to return whether the PIVX (transparent) address was used for change output.
 
-In all cases those recipients will receive less PIV than you enter in their corresponding amount field.
-If no outputs/addresses are specified, the sender pays the fee as usual.
+#### `mapped_as` added to `getpeerinfo` output
 
-### Show wallet's auto-combine settings in getwalletinfo
+The `getpeerinfo` RPC now includes a mapped_as field to indicate the mapped Autonomous System used for diversifying peer selection. See the `-asmap` configuration option described above, in section "Configuration/Settings changes".
 
-`getwalletinfo` now has two additional return fields. `autocombine_enabled` (boolean) and `autocombine_threshold` (numeric) that will show the auto-combine threshold and whether or not it is currently enabled.
+#### Show wallet's auto-combine settings in `getwalletinfo`
 
-### Deprecate the autocombine RPC command
+`getwalletinfo` now has two additional auto-combine related return fields. `autocombine_enabled` (boolean) and `autocombine_threshold` (numeric) that will show the auto-combine threshold and whether or not it is currently enabled ([PR #2248](https://github.com/PIVX-Project/PIVX/pull/2248)).
 
-The `autocombine` RPC command has been replaced with specific set/get commands (`setautocombinethreshold` and `getautocombinethreshold`, respectively) to bring this functionality further in-line with our RPC standards. Previously, the `autocombine` command gave no user-facing feedback when the setting was changed. This is now resolved with the introduction of the two new commands as detailed below:
+#### Deprecate the autocombine RPC command
+
+The `autocombine` RPC command has been replaced ([PR #2248](https://github.com/PIVX-Project/PIVX/pull/2248)) with specific set/get commands (`setautocombinethreshold` and `getautocombinethreshold`, respectively) to bring this functionality further in-line with our RPC standards. Previously, the `autocombine` command gave no user-facing feedback when the setting was changed. This is now resolved with the introduction of the two new commands as detailed below:
 
 * `setautocombinethreshold`
     ```
     setautocombinethreshold enable ( value )
     This will set the auto-combine threshold value.
-    Wallet will automatically monitor for any coins with value below the threshold amount, and combine them if they reside with the same PIVX address
-    When auto-combine runs it will create a transaction, and therefore will be subject to transaction fees.
+    Wallet will automatically monitor for any coins with value below the threshold amount,
+    and combine them if they reside with the same PIVX address.  When auto-combine runs,
+    it will create a transaction, and therefore will be subject to transaction fees.
 
     Arguments:
     1. enable          (boolean, required) Enable auto combine (true) or disable (false)
-    2. threshold       (numeric, optional. required if enable is true) Threshold amount. Must be greater than 1.
+    2. threshold       (numeric, optional. required if enable is true) Threshold amount.
+                       Must be greater than 1.
 
     Result:
     {
@@ -435,70 +367,198 @@ The `autocombine` RPC command has been replaced with specific set/get commands (
     Result:
     {
       "enabled": true|false,    (boolean) true if auto-combine is enabled, otherwise false
-      "threshold": n.nnn         (numeric) the auto-combine threshold amount in PIV
+      "threshold": n.nnn        (numeric) the auto-combine threshold amount in PIV
     }
     ```
+
+#### New RPC Commands
+
+* `listwallets`
+    ```
+    Returns a list of currently loaded wallets.
+    For full information on the wallet, use "getwalletinfo"
+    Result:
+    [                       (json array of strings)
+      "walletname"            (string) the wallet name
+       ...
+    ]
+    ```
+
+* `rescanblockchain`
+    ```
+    rescanblockchain (start_height) (stop_height)
+    Rescan the local blockchain for wallet related transactions.
+    Arguments:
+    1. start_height    (numeric, optional) block height where the rescan should start
+    2. stop_height     (numeric, optional) the last block height that should be scanned
+    Result:
+    {
+        start_height     (numeric) The block height where the rescan has started. If omitted,
+                         rescan  started from the genesis block.
+        stop_height      (numeric) The height of the last rescanned block. If omitted, rescan
+                         stopped at the chain tip.
+    }
+    ```
+
+* `getnodeaddresses`
+    ```
+    getnodeaddresses ( count "network" )
+
+    Return known addresses which can potentially be used to find new nodes in the network
+
+    Arguments:
+    1. count        (numeric, optional) The maximum number of addresses to return. Specify 0
+                       to return all known addresses.
+    2. "network"  (string, optional) Return only addresses of the specified network. Can be
+                       one of: "ipv4", "ipv6", "onion".
+    Result:
+    [
+      {
+        "time": ttt,          (numeric) Timestamp in seconds since epoch (Jan 1 1970 GMT)
+                              when the node was last seen
+        "services": n,        (numeric) The services offered by the node
+        "address": "host",    (string) The address of the node
+        "port": n,            (numeric) The port number of the node
+        "network": "xxxx"     (string) The network (ipv4, ipv6, onion) the node connected through
+      }
+      ,...
+    ]
+    ```
+
+* `importmulti`
+    ```
+    importmulti "requests" ( "options" )
+    Import addresses/scripts (with private or public keys, redeem script (P2SH)), rescanning all addresses in one-shot-only (rescan can be disabled via options). Requires a new wallet backup.
+
+    Arguments:
+    1. requests     (array, required) Data to be imported
+    [     (array of json objects)
+      {
+        "scriptPubKey": "script" | { "address":"address" }, (string / JSON, required) Type of
+                                  scriptPubKey (string for script, json for address)
+        "timestamp": timestamp | "now"                   (integer / string, required) Creation
+                                  time of the key in seconds since epoch (Jan 1 1970 GMT), or the
+                                  string "now" to substitute the current synced blockchain time.
+                                  The timestamp of the oldest key will determine how far back
+                                  blockchain rescans need to begin for missing wallet transactions.
+                                  "now" can be specified to bypass scanning, for keys which are
+                                  known to never have been used, and 0 can be specified to scan the
+                                  entire blockchain. Blocks up to 2 hours before the earliest key
+                                  creation time of all keys being imported by the importmulti call
+                                  will be scanned.
+        "redeemscript": "script",                        (string, optional) Allowed only if the
+                                  scriptPubKey is a P2SH address or a P2SH scriptPubKey
+        "pubkeys": ["pubKey", ... ],                     (array, optional) Array of strings giving
+                                  pubkeys that must occur in the output or redeemscript
+        "keys": ["key", ... ],                           (array, optional) Array of strings giving
+                                  private keys whose corresponding public keys must occur in
+                                  the output or redeemscript
+        "internal": true|false,                          (boolean, optional, default: false) Stating
+                                  whether matching outputs should be be treated as not incoming
+                                  payments
+        "watchonly": true|false,                         (boolean, optional, default: false) Stating
+                                  whether matching outputs should be considered watched even when
+                                  they're not spendable, only allowed if keys are empty
+        "label": label,                                  (string, optional, default: '') Label to
+                                  assign to the address, only allowed with internal=false
+      }
+    ,...
+    ]
+    2. options      (JSON, optional)
+    {
+       "rescan": true|false,         (boolean, optional, default: true) Stating if should rescan
+                                     the blockchain after all imports
+    }
+    Result:
+    [                                (Array) An array with the same size as the input that has the
+                                     execution result
+      {
+        "success": true|false,    (boolean) True if import succeeded, otherwise false
+        "error": {                (JSON Object) Object containing error information.
+                                  Only present when import fails
+          "code": n,              (numeric) The error code
+          "message": xxxx         (string) The error message
+        }
+      }
+      ,...
+    ]
+    Note: This call can take minutes to complete if rescan is true, during that time, other rpc calls
+    may report that the imported keys, addresses or scripts exists but related transactions are still missing.
+    ```
+
+* `getmemoryinfo`
+    ```
+    Returns an object containing information about memory usage.
+    Result:
+    {
+      "locked": {         (json object) Information about locked memory manager
+        "used": xxxxx,        (numeric) Number of bytes used
+        "free": xxxxx,        (numeric) Number of bytes available in current arenas
+        "total": xxxxxxx,     (numeric) Total number of bytes managed
+        "locked": xxxxxx,     (numeric) Amount of bytes that succeeded locking. If this number is
+                              smaller than total, locking pages failed at some point and key data
+                              could be swapped to disk.
+        "chunks_used": xxxx,  (numeric) Number allocated chunks
+        "chunks_free": xxxx,  (numeric) Number unused chunks
+       }
+    }
+    ```
+* `generatetoaddress`
+    ```
+    Mine blocks immediately to a specified address (before the RPC call returns)
+    Arguments:
+    1. nblocks          (numeric, required) How many blocks are generated immediately.
+    2. "address"        (string, required) The address to send the newly generated PIVs to.
+    Result:
+    [ blockhashes ]     (array) hashes of blocks generated
+    ```
+    *Note*: this command is available only for RegTest
+
+Database cache memory increased
+--------------------------------
+
+As a result of growth of the UTXO set, performance with the prior default database cache of 100 MiB has suffered.
+For this reason the default was changed to 300 MiB in this release.
+For nodes on low-memory systems, the database cache can be changed back to 100 MiB (or to another value) by either:
+- Adding `dbcache=100` in `pivx.conf`
+- Adding `-dbcache=100` startup flag
+- Changing it in the GUI under `Settings → Options → Main → Size of database cache`
+
+Note that the database cache setting has the most performance impact during initial sync of a node, and when catching up after downtime ([PR #2391](https://github.com/PIVX-Project/PIVX/pull/2391)).
 
 Updated settings
 ----------------
 
-- Netmasks that contain 1-bits after 0-bits (the 1-bits are not contiguous on
-  the left side, e.g. 255.0.255.255) are no longer accepted. They are invalid
-  according to RFC 4632.
+Netmasks that contain 1-bits after 0-bits (the 1-bits are not contiguous on the left side, e.g. 255.0.255.255) are no longer accepted. They are invalid according to RFC 4632.
 
 Build system changes
 --------------------
+
+#### C++14 standard
+
+PIVX Core now requires a C++14 compiler ([PR #2269](https://github.com/PIVX-Project/PIVX/pull/2269)).
+
+#### Bump miniUPnPc API version
 
 The minimum supported miniUPnPc API version is set to 10. This keeps compatibility with Ubuntu 16.04 LTS and Debian 8 `libminiupnpc-dev` packages. Please note, on Debian this package is still vulnerable to [CVE-2017-8798](https://security-tracker.debian.org/tracker/CVE-2017-8798) (in jessie only) and [CVE-2017-1000494](https://security-tracker.debian.org/tracker/CVE-2017-1000494) (both in jessie and in stretch).
 
 OpenSSL is no longer used by PIVX Core
 
+#### Disabled PoW mining RPC Commands
+
+A new configure flag has been introduced to allow more granular control over weather or not the PoW mining RPC commands are compiled into the wallet. By default they are not. This behavior can be overridden by passing `--enable-mining-rpc` to the `configure` script ([PR #2105](https://github.com/PIVX-Project/PIVX/pull/2105)).
+
 #### NAT-PMP Support
-- Added NAT-PMP port mapping support via [`libnatpmp`](https://miniupnp.tuxfamily.org/libnatpmp.html)
 
-Configuration changes
----------------------
+PIVX v5.3.0 added NAT-PMP port-mapping support via [`libnatpmp`](https://miniupnp.tuxfamily.org/libnatpmp.html). Similar to how UPnP is treated, NAT-PMP will be compiled if the library is found, but the functionality is disabled unless either using the `-natpmp` option at startup (see section "Configuration changes"), or selecting the relative checkbox in the graphical interface (see section "GUI changes").
 
-### Configuration sections for testnet and regtest
+Alternatively, PIVX Core can be compiled with the functionality enabled by default passing `--enable-natpmp-default` to the `configure` script.
 
-It is now possible for a single configuration file to set different options for different networks. This is done by using sections or by prefixing the option with the network, such as:
-
-    main.uacomment=pivx
-    test.uacomment=pivx-testnet
-    regtest.uacomment=regtest
-    [main]
-    mempoolsize=300
-    [test]
-    mempoolsize=100
-    [regtest]
-    mempoolsize=20
-
-The `addnode=`, `connect=`, `port=`, `bind=`, `rpcport=`, `rpcbind=`, and `wallet=` options will only apply to mainnet when specified in the configuration file, unless a network is specified.
-
-### Allow to optional specify the directory for the blocks storage
-
-A new init option flag '-blocksdir' will allow one to keep the blockfiles external from the data directory.
-
-### Disable PoW mining RPC Commands
-
-A new configure flag has been introduced to allow more granular control over weather or not the PoW mining RPC commands are compiled into the wallet. By default they are not. This behavior can be overridden by passing `--enable-mining-rpc` to the `configure` script.
-
-### Enable NAT-PMP port mapping at startup
-
-The `-natpmp` option has been added to use NAT-PMP to map the listening port. If both UPnP
-and NAT-PMP are enabled, a successful allocation from UPnP prevails over one from NAT-PMP.
-
-### Removed startup options
-
-- `printstakemodifier`
-
-### Logging
+ISO 8601 for timestamps in logs and backup file names
+-----------------------------------------------------
 
 The log timestamp format is now ISO 8601 (e.g. "2021-02-28T12:34:56Z").
-
-### Automatic Backup File Naming
-
-The file extension applied to automatic backups is now in ISO 8601 basic notation (e.g. "20210228T123456Z"). The basic notation is used to prevent illegal `:` characters from appearing in the filename.
+The file extension applied to automatic backups is now in ISO 8601 basic notation (e.g. "20210228T123456Z"). The basic notation is used to prevent illegal `:` characters from appearing in the filename ([PR #2300](https://github.com/PIVX-Project/PIVX/pull/2300)).
 
 
 v5.3.0 Change log
