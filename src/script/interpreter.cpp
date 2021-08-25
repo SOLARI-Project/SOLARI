@@ -957,14 +957,20 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                 case OP_CHECKCOLDSTAKEVERIFY:
                 {
-                    return checker.CheckColdStake(false, script, stack, flags, serror);
+                    if (!checker.CheckColdStake(false, script, stack, flags, serror)) {
+                        // serror set
+                        return false;
+                    }
                 }
                 break;
 
                 case OP_CHECKCOLDSTAKEVERIFY_LOF:
                 {
                     // Allow last output script "free"
-                    return checker.CheckColdStake(true, script, stack, flags, serror);
+                    if (!checker.CheckColdStake(true, script, stack, flags, serror)) {
+                        // serror set
+                        return false;
+                    }
                 }
                 break;
 
