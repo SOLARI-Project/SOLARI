@@ -71,7 +71,6 @@ MasterNodesWidget::MasterNodesWidget(PIVXGUI *parent) :
             new MNHolder(isLightTheme()),
             this
     );
-    mnModel = new MNModel(this, walletModel);
 
     this->setStyleSheet(parent->styleSheet());
 
@@ -142,6 +141,7 @@ void MasterNodesWidget::hideEvent(QHideEvent *event)
 void MasterNodesWidget::loadWalletModel()
 {
     if (walletModel) {
+        mnModel = new MNModel(this, walletModel);
         ui->listMn->setModel(mnModel);
         ui->listMn->setModelColumn(AddressTableModel::Label);
         updateListState();
@@ -216,12 +216,12 @@ void MasterNodesWidget::onEditMNClicked()
     }
 }
 
-void MasterNodesWidget::startAlias(QString strAlias)
+void MasterNodesWidget::startAlias(const QString& strAlias)
 {
     QString strStatusHtml;
     strStatusHtml += "Alias: " + strAlias + " ";
 
-    for (CMasternodeConfig::CMasternodeEntry mne : masternodeConfig.getEntries()) {
+    for (const auto& mne : masternodeConfig.getEntries()) {
         if (mne.getAlias() == strAlias.toStdString()) {
             std::string strError;
             strStatusHtml += (!startMN(mne, strError)) ? ("failed to start.\nError: " + QString::fromStdString(strError)) : "successfully started.";
@@ -232,7 +232,7 @@ void MasterNodesWidget::startAlias(QString strAlias)
     updateModelAndInform(strStatusHtml);
 }
 
-void MasterNodesWidget::updateModelAndInform(QString informText)
+void MasterNodesWidget::updateModelAndInform(const QString& informText)
 {
     mnModel->updateMNList();
     inform(informText);
@@ -276,7 +276,7 @@ bool MasterNodesWidget::startAll(QString& failText, bool onlyMissing)
 {
     int amountOfMnFailed = 0;
     int amountOfMnStarted = 0;
-    for (CMasternodeConfig::CMasternodeEntry mne : masternodeConfig.getEntries()) {
+    for (const auto& mne : masternodeConfig.getEntries()) {
         // Check for missing only
         QString mnAlias = QString::fromStdString(mne.getAlias());
         if (onlyMissing && !mnModel->isMNInactive(mnAlias)) {
