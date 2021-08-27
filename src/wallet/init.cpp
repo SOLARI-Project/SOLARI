@@ -174,26 +174,26 @@ bool WalletVerify()
         }
 
         std::string strError;
-        if (!CWalletDB::VerifyEnvironment(wallet_path, strError)) {
+        if (!WalletBatch::VerifyEnvironment(wallet_path, strError)) {
             return UIError(strError);
         }
 
         if (gArgs.GetBoolArg("-salvagewallet", false)) {
             // Recover readable keypairs:
-            CWallet dummyWallet("dummy", CWalletDBWrapper::CreateDummy());
+            CWallet dummyWallet("dummy", WalletDatabase::CreateDummy());
             std::string backup_filename;
             // Even if we don't use this lock in this function, we want to preserve
             // lock order in LoadToWallet if query of chain state is needed to know
             // tx status. If lock can't be taken, tx confirmation status may be not
             // reliable.
             LOCK(cs_main);
-            if (!CWalletDB::Recover(wallet_path, (void *)&dummyWallet, CWalletDB::RecoverKeysOnlyFilter, backup_filename)) {
+            if (!WalletBatch::Recover(wallet_path, (void *)&dummyWallet, WalletBatch::RecoverKeysOnlyFilter, backup_filename)) {
                 return false;
             }
         }
 
         std::string strWarning;
-        bool dbV = CWalletDB::VerifyDatabaseFile(wallet_path, strWarning, strError);
+        bool dbV = WalletBatch::VerifyDatabaseFile(wallet_path, strWarning, strError);
         if (!strWarning.empty()) {
             UIWarning(strWarning);
         }

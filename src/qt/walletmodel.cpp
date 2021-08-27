@@ -335,7 +335,7 @@ bool WalletModel::getWalletCustomFee(CAmount& nFeeRet)
 void WalletModel::setWalletCustomFee(bool fUseCustomFee, const CAmount nFee)
 {
     LOCK(wallet->cs_wallet);
-    CWalletDB db(wallet->GetDBHandle());
+    WalletBatch db(wallet->GetDBHandle());
     if (wallet->fUseCustomFee != fUseCustomFee) {
         wallet->fUseCustomFee = fUseCustomFee;
         db.WriteUseCustomFee(fUseCustomFee);

@@ -49,7 +49,7 @@ CWalletTx& AddShieldedBalanceToWallet(CAmount inputAmount,
 {
 
     // Dummy wallet, used to generate the dummy transparent input key and sign it in the transaction builder
-    CWallet dummyWallet("dummy", CWalletDBWrapper::CreateDummy());
+    CWallet dummyWallet("dummy", WalletDatabase::CreateDummy());
     dummyWallet.SetMinVersion(FEATURE_SAPLING);
     dummyWallet.SetupSPKM(false, true);
     LOCK(dummyWallet.cs_wallet);

@@ -599,7 +599,7 @@ private:
     std::string m_name;
 
     /** Internal database handle. */
-    std::unique_ptr<CWalletDBWrapper> dbw;
+    std::unique_ptr<WalletDatabase> database;
 
     /**
      * The following is used to keep track of how far behind the wallet is
@@ -710,7 +710,7 @@ public:
 
     bool fWalletUnlockStaking;
 
-    CWalletDB* pwalletdbEncryption;
+    WalletBatch* encrypted_batch;
 
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
 
@@ -736,18 +736,18 @@ public:
     /** Get database handle used by this wallet. Ideally this function would
      * not be necessary.
      */
-    CWalletDBWrapper* GetDBHandlePtr() const { return dbw.get(); }
-    CWalletDBWrapper& GetDBHandle() const { return *dbw; }
+    WalletDatabase* GetDBHandlePtr() const { return database.get(); }
+    WalletDatabase& GetDBHandle() const { return *database; }
 
     /** Get a name for this wallet for logging/debugging purposes.
      */
     const std::string& GetName() const { return m_name; }
 
     /** Get the path to the wallet's db file */
-    fs::path GetPathToDBFile() { return dbw->GetPathToFile(); }
+    fs::path GetPathToDBFile() { return database->GetPathToFile(); }
 
     /** Construct wallet with specified name and database implementation. */
-    CWallet(std::string name, std::unique_ptr<CWalletDBWrapper> dbw_in);
+    CWallet(std::string name, std::unique_ptr<WalletDatabase> dbw_in);
     ~CWallet();
     void SetNull();
 
@@ -989,7 +989,7 @@ public:
      * Increment the next transaction order id
      * @return next transaction order id
      */
-    int64_t IncOrderPosNext(CWalletDB* pwalletdb = NULL);
+    int64_t IncOrderPosNext(WalletBatch* batch = NULL);
 
     void MarkDirty();
     bool AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose = true);
@@ -1121,7 +1121,7 @@ public:
     CAmount GetChange(const CTransactionRef& tx) const;
 
     void SetBestChain(const CBlockLocator& loc) override;
-    void SetBestChainInternal(CWalletDB& walletdb, const CBlockLocator& loc); // only public for testing purposes, must never be called directly in any other situation
+    void SetBestChainInternal(WalletBatch& batch, const CBlockLocator& loc); // only public for testing purposes, must never be called directly in any other situation
     // Force balance recomputation if any transaction got conflicted
     void MarkAffectedTransactionsDirty(const CTransaction& tx); // only public for testing purposes, must never be called directly in any other situation
 
@@ -1148,7 +1148,7 @@ public:
     unsigned int GetStakingKeyPoolSize();
 
     //! signify that a particular wallet feature is now used. this may change nWalletVersion and nWalletMaxVersion if those are lower
-    bool SetMinVersion(enum WalletFeature, CWalletDB* pwalletdbIn = NULL, bool fExplicit = false);
+    bool SetMinVersion(enum WalletFeature, WalletBatch* batch_in = NULL, bool fExplicit = false);
 
     //! change which version we're allowed to upgrade to (note that this does not immediately imply upgrading to that format)
     bool SetMaxVersion(int nVersion);

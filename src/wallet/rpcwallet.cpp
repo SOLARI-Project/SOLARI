@@ -4475,7 +4475,7 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
             "\nExamples:\n" +
             HelpExampleCli("autocombinerewards", "true 500") + HelpExampleRpc("autocombinerewards", "true 500"));
 
-    CWalletDB walletdb(pwallet->GetDBHandle());
+    WalletBatch batch(pwallet->GetDBHandle());
     CAmount nThreshold = 0;
 
     if (fEnable && request.params.size() > 1) {
@@ -4487,7 +4487,7 @@ UniValue autocombinerewards(const JSONRPCRequest& request)
     pwallet->fCombineDust = fEnable;
     pwallet->nAutoCombineThreshold = nThreshold;
 
-    if (!walletdb.WriteAutoCombineSettings(fEnable, nThreshold))
+    if (!batch.WriteAutoCombineSettings(fEnable, nThreshold))
         throw std::runtime_error("Changed settings in wallet but failed to save to database\n");
 
     return NullUniValue;
@@ -4535,7 +4535,7 @@ UniValue setautocombinethreshold(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("The threshold value cannot be less than %s", FormatMoney(COIN)));
     }
 
-    CWalletDB walletdb(pwallet->GetDBHandle());
+    WalletBatch batch(pwallet->GetDBHandle());
 
     {
         LOCK(pwallet->cs_wallet);
@@ -4545,7 +4545,7 @@ UniValue setautocombinethreshold(const JSONRPCRequest& request)
         UniValue result(UniValue::VOBJ);
         result.pushKV("enabled", fEnable);
         result.pushKV("threshold", ValueFromAmount(pwallet->nAutoCombineThreshold));
-        if (walletdb.WriteAutoCombineSettings(fEnable, nThreshold)) {
+        if (batch.WriteAutoCombineSettings(fEnable, nThreshold)) {
             result.pushKV("saved", "true");
         } else {
             result.pushKV("saved", "false");
