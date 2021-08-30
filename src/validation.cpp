@@ -2076,9 +2076,7 @@ bool static ConnectTip(CValidationState& state, CBlockIndex* pindexNew, const st
     // Update chainActive & related variables.
     UpdateTip(pindexNew);
     // Update TierTwo managers
-    // !TODO: remove isV5_3 guard after v5.3 enforcement
-    bool isV5_3 = Params().GetConsensus().NetworkUpgradeActive(pindexNew->nHeight, Consensus::UPGRADE_V5_3);
-    if (!fLiteMode && isV5_3) {
+    if (!fLiteMode) {
         mnodeman.SetBestHeight(pindexNew->nHeight);
         g_budgetman.SetBestHeight(pindexNew->nHeight);
     }
@@ -2942,8 +2940,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
         }
     }
 
-    bool fActiveV5_3 = chainparams.GetConsensus().NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_3);
-    if (fActiveV5_3 && block.IsProofOfStake()) {
+    if (block.IsProofOfStake()) {
         CTransactionRef csTx = block.vtx[1];
         if (csTx->vin.size() > 1) {
             return state.DoS(100, false, REJECT_INVALID, "bad-cs-multi-inputs", false,
@@ -3368,15 +3365,6 @@ bool ProcessNewBlock(const std::shared_ptr<const CBlock>& pblock, const FlatFile
     CValidationState state; // Only used to report errors, not invalidity - ignore it
     if (!ActivateBestChain(state, pblock))
         return error("%s : ActivateBestChain failed", __func__);
-
-    // !TODO: remove after v5.3 enforcement
-    bool isV5_3 = Params().GetConsensus().NetworkUpgradeActive(
-                                    WITH_LOCK(cs_main, return chainActive.Height(); ),
-                                    Consensus::UPGRADE_V5_3);
-    if (!fLiteMode && !isV5_3) {
-        mnodeman.SetBestHeight(newHeight);
-        g_budgetman.SetBestHeight(newHeight);
-    }
 
     LogPrintf("%s : ACCEPTED Block %ld in %ld milliseconds with size=%d\n", __func__, newHeight, GetTimeMillis() - nStartTime,
               GetSerializeSize(*pblock, CLIENT_VERSION));
