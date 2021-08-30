@@ -593,3 +593,4 @@ target_link_libraries(pivxd ${sodium_LIBRARY_RELEASE} -ldl -lpthread)
 
 add_subdirectory(src/qt)
 add_subdirectory(src/test)
+add_subdirectory(src/bench)
