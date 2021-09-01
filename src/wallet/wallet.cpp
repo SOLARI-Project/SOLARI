@@ -259,7 +259,7 @@ bool CWallet::AddKeyPubKey(const CKey& secret, const CPubKey& pubkey)
     }
 
     if (!IsCrypted()) {
-        return CWalletDB(*dbw).WriteKey(
+        return WalletBatch(*database).WriteKey(
                 pubkey,
                 secret.GetPrivKey(),
                 mapKeyMetadata[pubkey.GetID()]);
@@ -274,12 +274,12 @@ bool CWallet::AddCryptedKey(const CPubKey& vchPubKey,
         return false;
     {
         LOCK(cs_wallet);
-        if (pwalletdbEncryption)
-            return pwalletdbEncryption->WriteCryptedKey(vchPubKey,
+        if (encrypted_batch)
+            return encrypted_batch->WriteCryptedKey(vchPubKey,
                 vchCryptedSecret,
                 mapKeyMetadata[vchPubKey.GetID()]);
         else
-            return CWalletDB(*dbw).WriteCryptedKey(vchPubKey, vchCryptedSecret, mapKeyMetadata[vchPubKey.GetID()]);
+            return WalletBatch(*database).WriteCryptedKey(vchPubKey, vchCryptedSecret, mapKeyMetadata[vchPubKey.GetID()]);
     }
     return false;
 }
@@ -319,7 +319,7 @@ bool CWallet::AddCScript(const CScript& redeemScript)
 {
     if (!CCryptoKeyStore::AddCScript(redeemScript))
         return false;
-    return CWalletDB(*dbw).WriteCScript(Hash160(redeemScript), redeemScript);
+    return WalletBatch(*database).WriteCScript(Hash160(redeemScript), redeemScript);
 }
 
 bool CWallet::LoadCScript(const CScript& redeemScript)
@@ -343,7 +343,7 @@ bool CWallet::AddWatchOnly(const CScript& dest)
         return false;
     nTimeFirstKey = 1; // No birthday information for watch-only keys.
     NotifyWatchonlyChanged(true);
-    return CWalletDB(*dbw).WriteWatchOnly(dest);
+    return WalletBatch(*database).WriteWatchOnly(dest);
 }
 
 bool CWallet::RemoveWatchOnly(const CScript& dest)
@@ -353,7 +353,7 @@ bool CWallet::RemoveWatchOnly(const CScript& dest)
         return false;
     if (!HaveWatchOnly())
         NotifyWatchonlyChanged(false);
-    if (!CWalletDB(*dbw).EraseWatchOnly(dest))
+    if (!WalletBatch(*database).EraseWatchOnly(dest))
         return false;
 
     return true;
@@ -489,7 +489,7 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
                     return false;
                 if (!crypter.Encrypt(vMasterKey, pMasterKey.second.vchCryptedKey))
                     return false;
-                CWalletDB(*dbw).WriteMasterKey(pMasterKey.first, pMasterKey.second);
+                WalletBatch(*database).WriteMasterKey(pMasterKey.first, pMasterKey.second);
                 if (fWasLocked)
                     Lock();
 
@@ -511,22 +511,22 @@ void CWallet::ChainTipAdded(const CBlockIndex *pindex,
 
 void CWallet::SetBestChain(const CBlockLocator& loc)
 {
-    CWalletDB walletdb(*dbw);
-    SetBestChainInternal(walletdb, loc);
+    WalletBatch batch(*database);
+    SetBestChainInternal(batch, loc);
 }
 
-void CWallet::SetBestChainInternal(CWalletDB& walletdb, const CBlockLocator& loc)
+void CWallet::SetBestChainInternal(WalletBatch& batch, const CBlockLocator& loc)
 {
-    if (!walletdb.TxnBegin()) {
+    if (!batch.TxnBegin()) {
         // This needs to be done atomically, so don't do it at all
         LogPrintf("%s: Couldn't start atomic write\n", __func__);
         return;
     }
 
     // Store the best block
-    if (!walletdb.WriteBestBlock(loc)) {
+    if (!batch.WriteBestBlock(loc)) {
         LogPrintf("SetBestChain(): Failed to write best block, aborting atomic write\n");
-        walletdb.TxnAbort();
+        batch.TxnAbort();
         return;
     }
 
@@ -541,7 +541,7 @@ void CWallet::SetBestChainInternal(CWalletDB& walletdb, const CBlockLocator& loc
             // Sanity check
             if (!wtx.tx->isSaplingVersion()) {
                 LogPrintf("SetBestChain(): ERROR, Invalid tx version found with sapling data\n");
-                walletdb.TxnAbort();
+                batch.TxnAbort();
                 uiInterface.ThreadSafeMessageBox(
                         _("A fatal internal error occurred, see debug.log for details"),
                         "Error", CClientUIInterface::MSG_ERROR);
@@ -549,9 +549,9 @@ void CWallet::SetBestChainInternal(CWalletDB& walletdb, const CBlockLocator& loc
                 return;
             }
 
-            if (!walletdb.WriteTx(wtx)) {
+            if (!batch.WriteTx(wtx)) {
                 LogPrintf("SetBestChain(): Failed to write CWalletTx, aborting atomic write\n");
-                walletdb.TxnAbort();
+                batch.TxnAbort();
                 return;
             }
         }
@@ -559,14 +559,14 @@ void CWallet::SetBestChainInternal(CWalletDB& walletdb, const CBlockLocator& loc
 
     // Store sapling witness cache size
     if (m_sspk_man->nWitnessCacheNeedsUpdate) {
-        if (!walletdb.WriteWitnessCacheSize(m_sspk_man->nWitnessCacheSize)) {
+        if (!batch.WriteWitnessCacheSize(m_sspk_man->nWitnessCacheSize)) {
             LogPrintf("%s: Failed to write nWitnessCacheSize\n", __func__);
-            walletdb.TxnAbort();
+            batch.TxnAbort();
             return;
         }
     }
 
-    if (!walletdb.TxnCommit()) {
+    if (!batch.TxnCommit()) {
         // Couldn't commit all to db, but in-memory state is fine
         LogPrintf("%s: Couldn't commit atomic write\n", __func__);
         return;
@@ -578,7 +578,7 @@ void CWallet::SetBestChainInternal(CWalletDB& walletdb, const CBlockLocator& loc
     }
 }
 
-bool CWallet::SetMinVersion(enum WalletFeature nVersion, CWalletDB* pwalletdbIn, bool fExplicit)
+bool CWallet::SetMinVersion(enum WalletFeature nVersion, WalletBatch* batch_in, bool fExplicit)
 {
     LOCK(cs_wallet); // nWalletVersion
     if (nWalletVersion >= nVersion)
@@ -594,11 +594,11 @@ bool CWallet::SetMinVersion(enum WalletFeature nVersion, CWalletDB* pwalletdbIn,
         nWalletMaxVersion = nVersion;
 
     {
-        CWalletDB* pwalletdb = pwalletdbIn ? pwalletdbIn : new CWalletDB(*dbw);
+        WalletBatch* batch = batch_in ? batch_in : new WalletBatch(*database);
         if (nWalletVersion > 40000)
-            pwalletdb->WriteMinVersion(nWalletVersion);
-        if (!pwalletdbIn)
-            delete pwalletdb;
+            batch->WriteMinVersion(nWalletVersion);
+        if (!batch_in)
+            delete batch;
     }
 
     return true;
@@ -830,36 +830,36 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
     {
         LOCK(cs_wallet);
         mapMasterKeys[++nMasterKeyMaxID] = kMasterKey;
-        assert(!pwalletdbEncryption);
-        pwalletdbEncryption = new CWalletDB(*dbw);
-        if (!pwalletdbEncryption->TxnBegin()) {
-            delete pwalletdbEncryption;
-            pwalletdbEncryption = NULL;
+        assert(!encrypted_batch);
+        encrypted_batch = new WalletBatch(*database);
+        if (!encrypted_batch->TxnBegin()) {
+            delete encrypted_batch;
+            encrypted_batch = NULL;
             return false;
         }
-        pwalletdbEncryption->WriteMasterKey(nMasterKeyMaxID, kMasterKey);
+        encrypted_batch->WriteMasterKey(nMasterKeyMaxID, kMasterKey);
 
 
         if (!EncryptKeys(vMasterKey) || (m_sspk_man->IsEnabled() && !m_sspk_man->EncryptSaplingKeys(vMasterKey))) {
-            pwalletdbEncryption->TxnAbort();
-            delete pwalletdbEncryption;
+            encrypted_batch->TxnAbort();
+            delete encrypted_batch;
             // We now probably have half of our keys encrypted in memory, and half not...
             // die and let the user reload their unencrypted wallet.
             assert(false);
         }
 
         // Encryption was introduced in version 0.4.0
-        SetMinVersion(FEATURE_WALLETCRYPT, pwalletdbEncryption, true);
+        SetMinVersion(FEATURE_WALLETCRYPT, encrypted_batch, true);
 
-        if (!pwalletdbEncryption->TxnCommit()) {
-            delete pwalletdbEncryption;
+        if (!encrypted_batch->TxnCommit()) {
+            delete encrypted_batch;
             // We now have keys encrypted in memory, but not on disk...
             // die to avoid confusion and let the user reload their unencrypted wallet.
             assert(false);
         }
 
-        delete pwalletdbEncryption;
-        pwalletdbEncryption = NULL;
+        delete encrypted_batch;
+        encrypted_batch = NULL;
 
         Lock();
         Unlock(strWalletPassphrase);
@@ -873,21 +873,21 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
 
         // Need to completely rewrite the wallet file; if we don't, bdb might keep
         // bits of the unencrypted private key in slack space in the database file.
-        dbw->Rewrite();
+        database->Rewrite();
     }
     NotifyStatusChanged(this);
 
     return true;
 }
 
-int64_t CWallet::IncOrderPosNext(CWalletDB* pwalletdb)
+int64_t CWallet::IncOrderPosNext(WalletBatch* batch)
 {
     AssertLockHeld(cs_wallet); // nOrderPosNext
     int64_t nRet = nOrderPosNext++;
-    if (pwalletdb) {
-        pwalletdb->WriteOrderPosNext(nOrderPosNext);
+    if (batch) {
+        batch->WriteOrderPosNext(nOrderPosNext);
     } else {
-        CWalletDB(*dbw).WriteOrderPosNext(nOrderPosNext);
+        WalletBatch(*database).WriteOrderPosNext(nOrderPosNext);
     }
     return nRet;
 }
@@ -918,7 +918,7 @@ void CWallet::MarkDirty()
 bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
 {
     LOCK(cs_wallet);
-    CWalletDB walletdb(*dbw, "r+", fFlushOnClose);
+    WalletBatch batch(*database, "r+", fFlushOnClose);
     const uint256& hash = wtxIn.GetHash();
 
     // Inserts only if not already there, returns tx inserted or tx found
@@ -930,7 +930,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
     bool fInsertedNew = ret.second;
     if (fInsertedNew) {
         wtx.nTimeReceived = GetAdjustedTime();
-        wtx.nOrderPos = IncOrderPosNext(&walletdb);
+        wtx.nOrderPos = IncOrderPosNext(&batch);
         wtxOrdered.emplace(wtx.nOrderPos, &wtx);
         wtx.UpdateTimeSmart();
         AddToSpends(hash);
@@ -964,7 +964,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
 
     // Write to disk
     if (fInsertedNew || fUpdated) {
-        if (!walletdb.WriteTx(wtx))
+        if (!batch.WriteTx(wtx))
             return false;
     }
 
@@ -1161,7 +1161,7 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
 {
     LOCK(cs_wallet);
 
-    CWalletDB walletdb(*dbw, "r+");
+    WalletBatch batch(*database, "r+");
 
     std::set<uint256> todo;
     std::set<uint256> done;
@@ -1192,7 +1192,7 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
             assert(!wtx.InMempool());
             wtx.setAbandoned();
             wtx.MarkDirty();
-            walletdb.WriteTx(wtx);
+            batch.WriteTx(wtx);
             NotifyTransactionChanged(this, wtx.GetHash(), CT_UPDATED);
             // Iterate over all its outputs, and mark transactions in the wallet that spend them abandoned too
             TxSpends::const_iterator iter = mapTxSpends.lower_bound(COutPoint(now, 0));
@@ -1229,7 +1229,7 @@ void CWallet::MarkConflicted(const uint256& hashBlock, int conflicting_height, c
         return;
 
     // Do not flush the wallet here for performance reasons
-    CWalletDB walletdb(*dbw, "r+", false);
+    WalletBatch batch(*database, "r+", false);
 
     std::set<uint256> todo;
     std::set<uint256> done;
@@ -1252,7 +1252,7 @@ void CWallet::MarkConflicted(const uint256& hashBlock, int conflicting_height, c
             wtx.m_confirm.block_height = conflicting_height;
             wtx.setConflicted();
             wtx.MarkDirty();
-            walletdb.WriteTx(wtx);
+            batch.WriteTx(wtx);
             // Iterate over all its outputs, and mark transactions in the wallet that spend them conflicted too
             TxSpends::const_iterator iter = mapTxSpends.lower_bound(COutPoint(now, 0));
             while (iter != mapTxSpends.end() && iter->first.hash == now) {
@@ -1455,7 +1455,7 @@ void CWallet::EraseFromWallet(const uint256& hash)
     {
         LOCK(cs_wallet);
         if (mapWallet.erase(hash))
-            CWalletDB(*dbw).EraseTx(hash);
+            WalletBatch(*database).EraseTx(hash);
         LogPrintf("%s: Erased wtx %s from wallet\n", __func__, hash.GetHex());
     }
     return;
@@ -1978,11 +1978,11 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
         // Sapling
         // After rescanning, persist Sapling note data that might have changed, e.g. nullifiers.
         // Do not flush the wallet here for performance reasons.
-        CWalletDB walletdb(*dbw, "r+", false);
+        WalletBatch batch(*database, "r+", false);
         for (const auto& hash : myTxHashes) {
             CWalletTx& wtx = mapWallet.at(hash);
             if (!wtx.mapSaplingNoteData.empty()) {
-                if (!walletdb.WriteTx(wtx)) {
+                if (!batch.WriteTx(wtx)) {
                     LogPrintf("Rescanning... WriteToDisk failed to update Sapling note data for: %s\n", hash.ToString());
                 }
             }
@@ -2061,7 +2061,7 @@ std::set<uint256> CWalletTx::GetConflicts() const
 
 void CWallet::Flush(bool shutdown)
 {
-    dbw->Flush(shutdown);
+    database->Flush(shutdown);
 }
 
 void CWallet::ResendWalletTransactions(CConnman* connman)
@@ -3460,9 +3460,9 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
 {
     LOCK2(cs_main, cs_wallet);
 
-    DBErrors nLoadWalletRet = CWalletDB(*dbw, "cr+").LoadWallet(this);
+    DBErrors nLoadWalletRet = WalletBatch(*database, "cr+").LoadWallet(this);
     if (nLoadWalletRet == DB_NEED_REWRITE) {
-        if (dbw->Rewrite( "\x04pool")) {
+        if (database->Rewrite( "\x04pool")) {
             // TODO: Implement spk_man->RewriteDB().
             m_spk_man->set_pre_split_keypool.clear();
             // Note: can't top-up keypool here, because wallet is locked.
@@ -3485,9 +3485,9 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
 
 DBErrors CWallet::ZapWalletTx(std::vector<CWalletTx>& vWtx)
 {
-    DBErrors nZapWalletTxRet = CWalletDB(*dbw, "cr+").ZapWalletTx(this, vWtx);
+    DBErrors nZapWalletTxRet = WalletBatch(*database, "cr+").ZapWalletTx(this, vWtx);
     if (nZapWalletTxRet == DB_NEED_REWRITE) {
-        if (dbw->Rewrite("\x04pool")) {
+        if (database->Rewrite("\x04pool")) {
             LOCK(cs_wallet);
             m_spk_man->set_pre_split_keypool.clear();
             // Note: can't top-up keypool here, because wallet is locked.
@@ -3521,9 +3521,9 @@ bool CWallet::SetAddressBook(const CWDestination& address, const std::string& st
     NotifyAddressBookChanged(this, address, strName, ::IsMine(*this, address) != ISMINE_NO,
             mapAddressBook.at(address).purpose, (fUpdated ? CT_UPDATED : CT_NEW));
     std::string addressStr = ParseIntoAddress(address, mapAddressBook.at(address).purpose);
-    if (!strPurpose.empty() && !CWalletDB(*dbw).WritePurpose(addressStr, strPurpose))
+    if (!strPurpose.empty() && !WalletBatch(*database).WritePurpose(addressStr, strPurpose))
         return false;
-    return CWalletDB(*dbw).WriteName(addressStr, strName);
+    return WalletBatch(*database).WriteName(addressStr, strName);
 }
 
 bool CWallet::DelAddressBook(const CWDestination& address, const CChainParams::Base58Type addrType)
@@ -3535,15 +3535,15 @@ bool CWallet::DelAddressBook(const CWDestination& address, const CChainParams::B
 
         // Delete destdata tuples associated with address
         for (const std::pair<std::string, std::string> & item : mapAddressBook[address].destdata) {
-            CWalletDB(*dbw).EraseDestData(strAddress, item.first);
+            WalletBatch(*database).EraseDestData(strAddress, item.first);
         }
         mapAddressBook.erase(address);
     }
 
     NotifyAddressBookChanged(this, address, "", ::IsMine(*this, address) != ISMINE_NO, purpose, CT_DELETED);
 
-    CWalletDB(*dbw).ErasePurpose(strAddress);
-    return CWalletDB(*dbw).EraseName(strAddress);
+    WalletBatch(*database).ErasePurpose(strAddress);
+    return WalletBatch(*database).EraseName(strAddress);
 }
 
 std::string CWallet::GetPurposeForAddressBookEntry(const CWDestination& address) const
@@ -3852,7 +3852,7 @@ bool CWallet::SetStakeSplitThreshold(const CAmount sst)
     LOCK(cs_wallet);
     if (nStakeSplitThreshold != sst) {
         nStakeSplitThreshold = sst;
-        if (!CWalletDB(*dbw).WriteStakeSplitThreshold(sst)) {
+        if (!WalletBatch(*database).WriteStakeSplitThreshold(sst)) {
             return false;
         }
         NotifySSTChanged(sst);
@@ -3922,14 +3922,14 @@ bool CWallet::AddDestData(const CTxDestination& dest, const std::string& key, co
         return false;
 
     mapAddressBook[dest].destdata.emplace(key, value);
-    return CWalletDB(*dbw).WriteDestData(EncodeDestination(dest), key, value);
+    return WalletBatch(*database).WriteDestData(EncodeDestination(dest), key, value);
 }
 
 bool CWallet::EraseDestData(const CTxDestination& dest, const std::string& key)
 {
     if (!mapAddressBook[dest].destdata.erase(key))
         return false;
-    return CWalletDB(*dbw).EraseDestData(EncodeDestination(dest), key);
+    return WalletBatch(*database).EraseDestData(EncodeDestination(dest), key);
 }
 
 bool CWallet::LoadDestData(const CTxDestination& dest, const std::string& key, const std::string& value)
@@ -4107,7 +4107,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string& name, const fs::path& 
     if (gArgs.GetBoolArg("-zapwallettxes", false)) {
         uiInterface.InitMessage(_("Zapping all transactions from wallet..."));
 
-        std::unique_ptr<CWallet> tempWallet = std::make_unique<CWallet>(name, CWalletDBWrapper::Create(path));
+        std::unique_ptr<CWallet> tempWallet = std::make_unique<CWallet>(name, WalletDatabase::Create(path));
         DBErrors nZapWalletRet = tempWallet->ZapWalletTx(vWtx);
         if (nZapWalletRet != DB_LOAD_OK) {
             UIError(strprintf(_("Error loading %s: Wallet corrupted"), walletFile));
@@ -4119,7 +4119,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string& name, const fs::path& 
 
     int64_t nStart = GetTimeMillis();
     bool fFirstRun = true;
-    CWallet *walletInstance = new CWallet(name, CWalletDBWrapper::Create(path));
+    CWallet *walletInstance = new CWallet(name, WalletDatabase::Create(path));
     DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
     if (nLoadWalletRet != DB_LOAD_OK) {
         if (nLoadWalletRet == DB_CORRUPT) {
@@ -4218,9 +4218,9 @@ CWallet* CWallet::CreateWalletFromFile(const std::string& name, const fs::path& 
     LOCK(cs_main);
     CBlockIndex* pindexRescan = chainActive.Genesis();
     if (!gArgs.GetBoolArg("-rescan", false)) {
-        CWalletDB walletdb(*walletInstance->dbw);
+        WalletBatch batch(*walletInstance->database);
         CBlockLocator locator;
-        if (walletdb.ReadBestBlock(locator))
+        if (batch.ReadBestBlock(locator))
             pindexRescan = FindForkInGlobalIndex(chainActive, locator);
     }
 
@@ -4259,11 +4259,11 @@ CWallet* CWallet::CreateWalletFromFile(const std::string& name, const fs::path& 
         }
         LogPrintf("Rescan completed in %15dms\n", GetTimeMillis() - nWalletRescanTime);
         walletInstance->SetBestChain(chainActive.GetLocator());
-        walletInstance->dbw->IncrementUpdateCounter();
+        walletInstance->database->IncrementUpdateCounter();
 
         // Restore wallet transaction metadata after -zapwallettxes=1
         if (gArgs.GetBoolArg("-zapwallettxes", false) && gArgs.GetArg("-zapwallettxes", "1") != "2") {
-            CWalletDB walletdb(*walletInstance->dbw);
+            WalletBatch batch(*walletInstance->database);
             for (const CWalletTx& wtxOld : vWtx) {
                 uint256 hash = wtxOld.GetHash();
                 std::map<uint256, CWalletTx>::iterator mi = walletInstance->mapWallet.find(hash);
@@ -4276,7 +4276,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string& name, const fs::path& 
                     copyTo->nTimeSmart = copyFrom->nTimeSmart;
                     copyTo->fFromMe = copyFrom->fFromMe;
                     copyTo->nOrderPos = copyFrom->nOrderPos;
-                    walletdb.WriteTx(*copyTo);
+                    batch.WriteTx(*copyTo);
                 }
             }
         }
@@ -4301,7 +4301,7 @@ void CWallet::postInitProcess(CScheduler& scheduler)
 
 bool CWallet::BackupWallet(const std::string& strDest)
 {
-    return dbw->Backup(strDest);
+    return database->Backup(strDest);
 }
 
 CKeyPool::CKeyPool()
@@ -4367,14 +4367,14 @@ std::string CWallet::GetUniqueWalletBackupName() const
     return strprintf("%s%s", (!m_name.empty() ? SanitizeString(m_name, SAFE_CHARS_FILENAME) : "null"), FormatISO8601DateTimeForBackup(GetTime()));
 }
 
-CWallet::CWallet(std::string name, std::unique_ptr<CWalletDBWrapper> dbw) : m_name(std::move(name)), dbw(std::move(dbw))
+CWallet::CWallet(std::string name, std::unique_ptr<WalletDatabase> database) : m_name(std::move(name)), database(std::move(database))
 {
     SetNull();
 }
 
 CWallet::~CWallet()
 {
-    delete pwalletdbEncryption;
+    delete encrypted_batch;
     delete pStakerStatus;
 }
 
@@ -4383,7 +4383,7 @@ void CWallet::SetNull()
     nWalletVersion = FEATURE_BASE;
     nWalletMaxVersion = FEATURE_BASE;
     nMasterKeyMaxID = 0;
-    pwalletdbEncryption = NULL;
+    encrypted_batch = NULL;
     nOrderPosNext = 0;
     nNextResend = 0;
     nLastResend = 0;

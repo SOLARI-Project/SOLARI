@@ -36,7 +36,7 @@ typedef std::set<std::pair<const CWalletTx*,unsigned int> > CoinSet;
 
 BOOST_FIXTURE_TEST_SUITE(wallet_tests, WalletTestingSetup)
 
-static const CWallet testWallet("dummy", CWalletDBWrapper::CreateDummy());
+static const CWallet testWallet("dummy", WalletDatabase::CreateDummy());
 static std::vector<COutput> vCoins;
 
 static void add_coin(const CAmount& nValue, int nAge = 6*24, bool fIsFromMe = false, int nInput=0)
@@ -338,7 +338,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // Verify ScanForWalletTransactions picks up transactions in both the old
     // and new block files.
     {
-        CWallet wallet("dummy", CWalletDBWrapper::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy());
         WITH_LOCK(wallet.cs_wallet, wallet.SetLastBlockProcessed(newTip); );
         AddKey(wallet, coinbaseKey);
         WalletRescanReserver reserver(&wallet);
@@ -355,7 +355,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // Verify ScanForWalletTransactions only picks transactions in the new block
     // file.
     {
-        CWallet wallet("dummy", CWalletDBWrapper::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy());
         AddKey(wallet, coinbaseKey);
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
@@ -368,7 +368,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // before the missing block, and success for a key whose creation time is
     // after.
     {
-        CWallet wallet("dummy", CWalletDBWrapper::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy());
         WITH_LOCK(wallet.cs_wallet, wallet.SetLastBlockProcessed(newTip); );
         vpwallets.insert(vpwallets.begin(), &wallet);
         UniValue keys;
@@ -419,7 +419,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 
     // Import key into wallet and call dumpwallet to create backup file.
     {
-        CWallet wallet("dummy", CWalletDBWrapper::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy());
         {
             LOCK(wallet.cs_wallet);
             wallet.mapKeyMetadata[coinbaseKey.GetPubKey().GetID()].nCreateTime = KEY_TIME;
@@ -436,7 +436,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     // Call importwallet RPC and verify all blocks with timestamps >= BLOCK_TIME
     // were scanned, and no prior blocks were scanned.
     {
-        CWallet wallet("dummy", CWalletDBWrapper::CreateDummy());
+        CWallet wallet("dummy", WalletDatabase::CreateDummy());
 
         JSONRPCRequest request;
         request.params.setArray();
@@ -568,7 +568,7 @@ BOOST_AUTO_TEST_CASE(cached_balances_tests)
     CAmount nCredit = 20 * COIN;
 
     // Setup wallet
-    CWallet wallet("testWallet1", CWalletDBWrapper::CreateMock());
+    CWallet wallet("testWallet1", WalletDatabase::CreateMock());
     bool fFirstRun;
     BOOST_CHECK_EQUAL(wallet.LoadWallet(fFirstRun), DB_LOAD_OK);
     LOCK2(cs_main, wallet.cs_wallet);
