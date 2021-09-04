@@ -242,8 +242,8 @@ void CreateProposalDialog::sendProposal()
 void CreateProposalDialog::onNextClicked()
 {
     int nextPos = pos + 1;
-    switch (pos){
-        case 0:{
+    switch (pos) {
+        case 0: {
             if (!validatePageOne()) return;
             ui->stackedWidget->setCurrentIndex(nextPos);
             ui->pushNumber2->setChecked(true);
@@ -254,7 +254,7 @@ void CreateProposalDialog::onNextClicked()
             ui->btnBack->setVisible(true);
             break;
         }
-        case 1:{
+        case 1: {
             if (!validatePageTwo()) return;
             loadSummary();
             ui->stackedWidget->setCurrentIndex(nextPos);
@@ -263,10 +263,10 @@ void CreateProposalDialog::onNextClicked()
             ui->pushName2->setChecked(true);
             ui->pushName1->setChecked(true);
             icConfirm2->setVisible(true);
-            ui->btnNext->setText("Send");
+            ui->btnNext->setText(tr("Send"));
             break;
         }
-        case 2:{
+        case 2: {
             sendProposal();
         }
     }
@@ -277,8 +277,8 @@ void CreateProposalDialog::onBackClicked()
 {
     if (pos == 0) return;
     pos--;
-    switch(pos){
-        case 0:{
+    switch(pos) {
+        case 0: {
             ui->stackedWidget->setCurrentIndex(pos);
             ui->pushNumber1->setChecked(true);
             ui->pushNumber3->setChecked(false);
@@ -290,7 +290,7 @@ void CreateProposalDialog::onBackClicked()
             ui->btnBack->setVisible(false);
             break;
         }
-        case 1:{
+        case 1: {
             ui->stackedWidget->setCurrentIndex(pos);
             ui->pushNumber2->setChecked(true);
             ui->pushNumber3->setChecked(false);
@@ -298,7 +298,7 @@ void CreateProposalDialog::onBackClicked()
             ui->pushName2->setChecked(true);
             ui->pushName1->setChecked(true);
             icConfirm2->setVisible(false);
-            ui->btnNext->setText("Next");
+            ui->btnNext->setText(tr("Next"));
             break;
         }
     }

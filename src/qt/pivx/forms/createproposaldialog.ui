@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string notr="true">Dialog</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -193,7 +193,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>1</string>
+                <string notr="true">1</string>
                </property>
                <property name="checkable">
                 <bool>true</bool>
@@ -297,7 +297,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>2</string>
+                <string notr="true">2</string>
                </property>
                <property name="checkable">
                 <bool>true</bool>
@@ -401,7 +401,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>3</string>
+                <string notr="true">3</string>
                </property>
                <property name="checkable">
                 <bool>true</bool>
@@ -790,7 +790,7 @@
                <item alignment="Qt::AlignBottom">
                 <widget class="QLabel" name="labelURL">
                  <property name="text">
-                  <string>Proposal Forum URL</string>
+                  <string>Proposal URL</string>
                  </property>
                 </widget>
                </item>
@@ -1137,7 +1137,7 @@
                     <item>
                      <widget class="QLabel" name="labelResultName">
                       <property name="text">
-                       <string>PIVX-MBD-JanJun2021</string>
+                       <string notr="true">PIVX-MBD-JanJun2021</string>
                       </property>
                      </widget>
                     </item>
@@ -1164,7 +1164,7 @@
                     <item>
                      <widget class="QLabel" name="labelResultAmount">
                       <property name="text">
-                       <string>5500 PIV</string>
+                       <string notr="true">5500 PIV</string>
                       </property>
                       <property name="alignment">
                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1192,7 +1192,7 @@
                     <item>
                      <widget class="QLabel" name="labelResultAddress">
                       <property name="text">
-                       <string>r7VFR83SQbiezrW72hjcWJtcfip5krte2Z</string>
+                       <string notr="true">N/A</string>
                       </property>
                      </widget>
                     </item>
@@ -1219,7 +1219,7 @@
                     <item>
                      <widget class="QLabel" name="labelResultMonths">
                       <property name="text">
-                       <string>2 Months</string>
+                       <string notr="true">2 Months</string>
                       </property>
                       <property name="alignment">
                        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1245,7 +1245,7 @@
                   <item alignment="Qt::AlignBottom">
                    <widget class="QLabel" name="labelResultUrl">
                     <property name="text">
-                     <string>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do</string>
+                     <string notr="true">N/A</string>
                     </property>
                    </widget>
                   </item>

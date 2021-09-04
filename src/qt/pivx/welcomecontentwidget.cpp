@@ -214,12 +214,12 @@ void WelcomeContentWidget::checkLanguage()
 
 void WelcomeContentWidget::onNextClicked()
 {
-    switch(pos){
+    switch(pos) {
         case 0:{
             ui->stackedWidget->setCurrentIndex(1);
             break;
         }
-        case 1:{
+        case 1: {
             backButton->setVisible(true);
             ui->stackedWidget->setCurrentIndex(2);
             ui->pushNumber2->setChecked(true);
@@ -230,7 +230,7 @@ void WelcomeContentWidget::onNextClicked()
             icConfirm1->setVisible(true);
             break;
         }
-        case 2:{
+        case 2: {
             ui->stackedWidget->setCurrentIndex(3);
             ui->pushNumber3->setChecked(true);
             ui->pushName4->setChecked(false);
@@ -264,12 +264,12 @@ void WelcomeContentWidget::onBackClicked()
 {
     if (pos == 0) return;
     pos--;
-    switch(pos){
+    switch(pos) {
         case 0:{
             ui->stackedWidget->setCurrentIndex(0);
             break;
         }
-        case 1:{
+        case 1: {
             ui->stackedWidget->setCurrentIndex(1);
             ui->pushNumber1->setChecked(true);
             ui->pushNumber4->setChecked(false);
@@ -284,7 +284,7 @@ void WelcomeContentWidget::onBackClicked()
 
             break;
         }
-        case 2:{
+        case 2: {
             ui->stackedWidget->setCurrentIndex(2);
             ui->pushNumber2->setChecked(true);
             ui->pushNumber4->setChecked(false);

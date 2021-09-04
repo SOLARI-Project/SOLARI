@@ -46,8 +46,8 @@ void ProposalCard::setProposal(const ProposalInfo& _proposalInfo)
     double percentageNo = (totalVotes == 0) ? 0 :  (_proposalInfo.votesNo / totalVotes) * 100;
     double percentageYes = (totalVotes == 0) ? 0 : (_proposalInfo.votesYes / totalVotes) * 100;
     ui->votesBar->setValue((int)percentageNo);
-    ui->labelNo->setText(QString::fromStdString(std::to_string((int)percentageNo) + "% No"));
-    ui->labelYes->setText(QString::fromStdString("Yes "+ std::to_string((int)percentageYes) + "%"));
+    ui->labelNo->setText(QString::number(percentageNo) + "% " + tr("No"));
+    ui->labelYes->setText(tr("Yes") + " " + QString::number(percentageYes) + "%");
 
     QString cssClassStatus;
     if (proposalInfo.status == ProposalInfo::WAITING_FOR_APPROVAL){

@@ -63,8 +63,8 @@ void VoteDialog::setProposal(const ProposalInfo& prop)
     double percentageYes = (totalVotes == 0) ? 0 : (prop.votesYes / totalVotes) * 100;
     progressBarNo->setValue((int)percentageNo);
     progressBarYes->setValue((int)percentageYes);
-    checkBoxNo->setText(tr("%1 / %2% No").arg(prop.votesNo).arg(percentageNo));
-    checkBoxYes->setText(tr("Yes %1 / %2%").arg(prop.votesYes).arg(percentageYes));
+    checkBoxNo->setText(QString::number(prop.votesNo) + " /  " + QString::number(percentageNo) + "% " + tr("No"));
+    checkBoxYes->setText(tr("Yes") + " " + QString::number(prop.votesYes) + " / " + QString::number(percentageYes) + "%");
     votes = govModel->getLocalMNsVotesForProposal(prop);
     updateMnSelectionNum();
 }

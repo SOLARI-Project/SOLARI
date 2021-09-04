@@ -28,9 +28,9 @@ GovernanceWidget::GovernanceWidget(PIVXGUI* parent) :
     setCssProperty(ui->scrollArea, "container");
 
     /* Title */
-    ui->labelTitle->setText("Governance");
+    ui->labelTitle->setText(tr("Governance"));
     setCssProperty(ui->labelTitle, "text-title-screen");
-    ui->labelSubtitle1->setText("View, follow, vote and submit network budget proposals.\nBe part of the DAO.");
+    ui->labelSubtitle1->setText(tr("View, follow, vote and submit network budget proposals.\nBe part of the DAO."));
     setCssProperty(ui->labelSubtitle1, "text-subtitle");
     setCssProperty(ui->pushImgEmpty, "img-empty-governance");
     setCssProperty(ui->labelEmpty, "text-empty");
@@ -100,7 +100,7 @@ GovernanceWidget::GovernanceWidget(PIVXGUI* parent) :
 
     // Create proposal
     ui->btnCreateProposal->setTitleClassAndText("btn-title-grey", "Create Proposal");
-    ui->btnCreateProposal->setSubTitleClassAndText("text-subtitle", "Prepare and submit a new proposal.");
+    ui->btnCreateProposal->setSubTitleClassAndText("text-subtitle", tr("Prepare and submit a new proposal."));
     connect(ui->btnCreateProposal, &OptionButton::clicked, this, &GovernanceWidget::onCreatePropClicked);
     ui->emptyContainer->setVisible(false);
 }

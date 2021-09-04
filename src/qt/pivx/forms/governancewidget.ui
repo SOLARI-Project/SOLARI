@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string notr="true">Form</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="2,1">
    <property name="spacing">
@@ -82,14 +82,14 @@
            <item>
             <widget class="QLabel" name="labelTitle">
              <property name="text">
-              <string>TextLabel</string>
+              <string notr="true">TextLabel</string>
              </property>
             </widget>
            </item>
            <item alignment="Qt::AlignTop">
             <widget class="QLabel" name="labelSubtitle1">
              <property name="text">
-              <string>TextLabel</string>
+              <string notr="true">TextLabel</string>
              </property>
             </widget>
            </item>
@@ -568,7 +568,7 @@
               <item>
                <widget class="QLabel" name="labelAvailableAmount">
                 <property name="text">
-                 <string>6,000 PIV</string>
+                 <string notr="true">6,000 PIV</string>
                 </property>
                </widget>
               </item>
@@ -654,7 +654,7 @@
               <item>
                <widget class="QLabel" name="labelAllocatedAmount">
                 <property name="text">
-                 <string>37,000 PIV</string>
+                 <string notr="true">37,000 PIV</string>
                 </property>
                </widget>
               </item>
@@ -755,8 +755,7 @@
               <item>
                <widget class="QLabel" name="labelNextSuperblock">
                 <property name="text">
-                 <string>Next superblock unknown.
-                  Wait until the node is fully sync.</string>
+                 <string notr="true">Next superblock unknown. Wait until the node is fully sync.</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>

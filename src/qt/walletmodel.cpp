@@ -580,7 +580,6 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction& tran
 
     {
         LOCK2(cs_main, wallet->cs_wallet);
-        QList<SendCoinsRecipient> recipients = transaction.getRecipients();
 
         CReserveKey* keyChange = transaction.getPossibleKeyChange();
         const CWallet::CommitResult& res = wallet->CommitTransaction(newTx, keyChange, g_connman.get());
@@ -664,7 +663,7 @@ OperationResult WalletModel::createAndSendProposalFeeTx(CBudgetProposal& proposa
     const uint256& nHash = proposal.GetHash();
     CReserveKey keyChange(wallet);
     if (!wallet->CreateBudgetFeeTX(wtx, nHash, keyChange, false)) { // 50 PIV collateral for proposal
-        return {false ,"Error making fee transaction for proposal. Please check your wallet balance."};
+        return {false , "Error making fee transaction for proposal. Please check your wallet balance."};
     }
 
     // send the tx to the network
