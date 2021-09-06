@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "test/test_pivx.h"
+#include "bls/bls_ies.h"
 #include "bls/bls_worker.h"
 #include "bls/bls_wrapper.h"
 #include "random.h"
@@ -179,6 +180,57 @@ BOOST_AUTO_TEST_CASE(dkg)
     BOOST_CHECK(!thresholdSig.VerifyInsecure(thresholdPk, msg));
 
     worker.Stop();
+}
+
+BOOST_AUTO_TEST_CASE(bls_ies_tests)
+{
+    // Test basic encryption and decryption of the BLS Integrated Encryption Scheme.
+    CBLSSecretKey aliceSk;
+    aliceSk.MakeNewKey();
+    const CBLSPublicKey alicePk = aliceSk.GetPublicKey();
+    BOOST_CHECK(aliceSk.IsValid());
+
+    CBLSSecretKey bobSk;
+    bobSk.MakeNewKey();
+    const CBLSPublicKey bobPk = bobSk.GetPublicKey();
+    BOOST_CHECK(bobSk.IsValid());
+    // Message (no pad allowed, message length must be a multiple of 16 - cypher block size)
+    std::string message = "Hello PIVX world";
+    std::string msgHex = HexStr(message);
+    std::vector<unsigned char> msg(msgHex.begin(), msgHex.end());
+
+    CBLSIESEncryptedBlob iesEnc;
+    BOOST_CHECK(iesEnc.Encrypt(bobPk, msg.data(), msg.size()));
+
+    // valid decryption.
+    CDataStream decMsg(SER_NETWORK, PROTOCOL_VERSION);
+    BOOST_CHECK(iesEnc.Decrypt(bobSk, decMsg));
+
+    std::vector<unsigned char> msg2 = ParseHex(decMsg.data());
+    std::string str(msg2.begin(), msg2.end());
+    BOOST_CHECK_EQUAL(str, message);
+
+    // Invalid decryption sk
+    iesEnc.Decrypt(aliceSk, decMsg);
+    msg2 = ParseHex(decMsg.data());
+    std::string str2(msg2.begin(), msg2.end());
+    BOOST_CHECK(str2 != message);
+
+    // Invalid ephemeral pubkey
+    auto iesEphemeralPk = iesEnc.ephemeralPubKey;
+    iesEnc.ephemeralPubKey = alicePk;
+    iesEnc.Decrypt(bobSk, decMsg);
+    msg2 = ParseHex(decMsg.data());
+    std::string str3(msg2.begin(), msg2.end());
+    BOOST_CHECK(str3 != message);
+    iesEnc.ephemeralPubKey = iesEphemeralPk;
+
+    // Invalid iv
+    GetRandBytes(iesEnc.iv, sizeof(iesEnc.iv));
+    iesEnc.Decrypt(bobSk, decMsg);
+    msg2 = ParseHex(decMsg.data());
+    std::string str4(msg2.begin(), msg2.end());
+    BOOST_CHECK(str4 != message);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
