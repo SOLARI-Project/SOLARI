@@ -2,6 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#if defined(HAVE_CONFIG_H)
+#include "config/pivx-config.h"
+#endif
+
 #include "qt/pivx/splash.h"
 #include "qt/pivx/forms/ui_splash.h"
 #include "QFile"
@@ -28,7 +32,7 @@ Splash::Splash(const NetworkStyle* networkStyle) :
     QWidget(nullptr), ui(new Ui::Splash)
 {
     ui->setupUi(this);
-    QString titleText = tr("PIVX Core");
+    QString titleText = PACKAGE_NAME;
     QString titleAddText = networkStyle->getTitleAddText();
     setWindowTitle(titleText + " " + titleAddText);
 

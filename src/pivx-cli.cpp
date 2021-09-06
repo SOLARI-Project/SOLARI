@@ -5,6 +5,10 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#if defined(HAVE_CONFIG_H)
+#include "config/pivx-config.h"
+#endif
+
 #include "chainparamsbase.h"
 #include "clientversion.h"
 #include "fs.h"
@@ -32,19 +36,19 @@ std::string HelpMessageCli()
     const auto defaultBaseParams = CreateBaseChainParams(CBaseChainParams::MAIN);
     const auto testnetBaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET);
     std::string strUsage;
-    strUsage += HelpMessageGroup(_("Options:"));
-    strUsage += HelpMessageOpt("-?", _("This help message"));
-    strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), PIVX_CONF_FILENAME));
-    strUsage += HelpMessageOpt("-datadir=<dir>", _("Specify data directory"));
+    strUsage += HelpMessageGroup("Options:");
+    strUsage += HelpMessageOpt("-?", "This help message");
+    strUsage += HelpMessageOpt("-conf=<file>", strprintf("Specify configuration file (default: %s)", PIVX_CONF_FILENAME));
+    strUsage += HelpMessageOpt("-datadir=<dir>", "Specify data directory");
     AppendParamsHelpMessages(strUsage);
-    strUsage += HelpMessageOpt("-named", strprintf(_("Pass named instead of positional arguments (default: %s)"), DEFAULT_NAMED));
-    strUsage += HelpMessageOpt("-rpcconnect=<ip>", strprintf(_("Send commands to node running on <ip> (default: %s)"), DEFAULT_RPCCONNECT));
-    strUsage += HelpMessageOpt("-rpcport=<port>", strprintf(_("Listen for JSON-RPC connections on <port> (default: %u or testnet: %u)"), defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort()));
-    strUsage += HelpMessageOpt("-rpcwait", _("Wait for RPC server to start"));
-    strUsage += HelpMessageOpt("-rpcuser=<user>", _("Username for JSON-RPC connections"));
-    strUsage += HelpMessageOpt("-rpcpassword=<pw>", _("Password for JSON-RPC connections"));
-    strUsage += HelpMessageOpt("-rpcclienttimeout=<n>", strprintf(_("Timeout in seconds during HTTP requests, or 0 for no timeout. (default: %d)"), DEFAULT_HTTP_CLIENT_TIMEOUT));
-    strUsage += HelpMessageOpt("-rpcwallet=<walletname>", _("Send RPC for non-default wallet on RPC server (needs to exactly match corresponding -wallet option passed to pivxd)"));
+    strUsage += HelpMessageOpt("-named", strprintf("Pass named instead of positional arguments (default: %s)", DEFAULT_NAMED));
+    strUsage += HelpMessageOpt("-rpcconnect=<ip>", strprintf("Send commands to node running on <ip> (default: %s)", DEFAULT_RPCCONNECT));
+    strUsage += HelpMessageOpt("-rpcport=<port>", strprintf("Listen for JSON-RPC connections on <port> (default: %u or testnet: %u)", defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort()));
+    strUsage += HelpMessageOpt("-rpcwait", "Wait for RPC server to start");
+    strUsage += HelpMessageOpt("-rpcuser=<user>", "Username for JSON-RPC connections");
+    strUsage += HelpMessageOpt("-rpcpassword=<pw>", "Password for JSON-RPC connections");
+    strUsage += HelpMessageOpt("-rpcclienttimeout=<n>", strprintf("Timeout in seconds during HTTP requests, or 0 for no timeout. (default: %d)", DEFAULT_HTTP_CLIENT_TIMEOUT));
+    strUsage += HelpMessageOpt("-rpcwallet=<walletname>", "Send RPC for non-default wallet on RPC server (needs to exactly match corresponding -wallet option passed to pivxd)");
 
     return strUsage;
 }
@@ -73,14 +77,13 @@ static bool AppInitRPC(int argc, char* argv[])
     //
     gArgs.ParseParameters(argc, argv);
     if (argc < 2 || gArgs.IsArgSet("-?") || gArgs.IsArgSet("-h") || gArgs.IsArgSet("-help") || gArgs.IsArgSet("-version")) {
-        std::string strUsage = _("PIVX Core RPC client version") + " " + FormatFullVersion() + "\n";
+        std::string strUsage = PACKAGE_NAME " RPC client version " + FormatFullVersion() + "\n";
         if (!gArgs.IsArgSet("-version")) {
-            strUsage += "\n" + _("Usage:") + "\n" +
-                        "  pivx-cli [options] <command> [params]  " + _("Send command to PIVX Core") + "\n" +
-                        "  pivx-cli [options] -named <command> [name=value] ... " + _("Send command to PIVX Core (with named arguments)") + "\n" +
-                        "  pivx-cli [options] help                " + _("List commands") + "\n" +
-                        "  pivx-cli [options] help <command>      " + _("Get help for a command") + "\n";
-
+            strUsage += "\n"
+                        "Usage:  pivx-cli [options] <command> [params]  Send command to " PACKAGE_NAME "\n"
+                        "or:     pivx-cli [options] -named <command> [name=value]... Send command to " PACKAGE_NAME " (with named arguments)\n"
+                        "or:     pivx-cli [options] help                List commands\n"
+                        "or:     pivx-cli [options] help <command>      Get help for a command\n";
             strUsage += "\n" + HelpMessageCli();
         }
 
