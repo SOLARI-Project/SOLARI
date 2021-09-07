@@ -78,10 +78,18 @@ struct Member
 {
     CBLSId id;
     BLSVerificationVectorPtr vecP;
-    BLSSecretKeyVector contributions;
+    CBLSIESMultiRecipientObjects<CBLSSecretKey> contributions;
     CBLSSecretKey skShare;
 
-    Member(const CBLSId& _id): id(_id) {}
+    // member (operator) keys for encryption/decryption of contributions
+    CBLSSecretKey sk;
+    CBLSPublicKey pk;
+
+    Member(const CBLSId& _id): id(_id)
+    {
+        sk.MakeNewKey();
+        pk = sk.GetPublicKey();
+    }
 };
 
 BOOST_AUTO_TEST_CASE(dkg)
@@ -92,28 +100,40 @@ BOOST_AUTO_TEST_CASE(dkg)
 
     worker.Start();
 
-    // Create N Members and send contributions
+    // Create N Members first
     const BLSIdVector& ids = GetRandomBLSIds(N);
     std::vector<Member> quorum;
     for (const auto& id : ids) {
-        Member m(id);
-        // Generate contributions
-        worker.GenerateContributions((int)M, ids, m.vecP, m.contributions);
+        quorum.emplace_back(Member(id));
+    }
+
+    // Then generate contributions for each one
+    for (Member& m : quorum) {
+        // Generate contributions (plain text)
+        BLSSecretKeyVector pt_contributions;
+        worker.GenerateContributions((int)M, ids, m.vecP, pt_contributions);
         BOOST_CHECK_EQUAL(m.vecP->size(), M);
-        BOOST_CHECK_EQUAL(m.contributions.size(), N);
-        // Verify contributions against verification vector
+        BOOST_CHECK_EQUAL(pt_contributions.size(), N);
+        // Init encrypted multi-recipient object
+        m.contributions.InitEncrypt(N);
         for (size_t j = 0; j < N; j++) {
-            BOOST_CHECK(worker.VerifyContributionShare(ids[j], m.vecP, m.contributions[j]));
+            const CBLSSecretKey& plaintext = pt_contributions[j];
+            // Verify contribution against verification vector
+            BOOST_CHECK(worker.VerifyContributionShare(ids[j], m.vecP, plaintext));
+            // Encrypt each contribution with the recipient pk
+            BOOST_CHECK(m.contributions.Encrypt(j, quorum[j].pk, plaintext, PROTOCOL_VERSION));
         }
-        quorum.emplace_back(std::move(m));
     }
 
     // Aggregate received contributions for each Member to produce key shares
     for (size_t i = 0; i < N; i++) {
         Member& m = quorum[i];
+        // Decrypt contributions received by m with m's secret key
         BLSSecretKeyVector rcvSkContributions;
         for (size_t j = 0; j < N; j++) {
-            rcvSkContributions.emplace_back(quorum[j].contributions[i]);
+            CBLSSecretKey contribution;
+            BOOST_CHECK(quorum[j].contributions.Decrypt(i, m.sk, contribution, PROTOCOL_VERSION));
+            rcvSkContributions.emplace_back(std::move(contribution));
         }
         m.skShare = worker.AggregateSecretKeys(rcvSkContributions);
         // Recover public key share for m, and check against the secret key share
