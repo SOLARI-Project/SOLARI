@@ -194,43 +194,40 @@ BOOST_AUTO_TEST_CASE(bls_ies_tests)
     bobSk.MakeNewKey();
     const CBLSPublicKey bobPk = bobSk.GetPublicKey();
     BOOST_CHECK(bobSk.IsValid());
-    // Message (no pad allowed, message length must be a multiple of 16 - cypher block size)
-    std::string message = "Hello PIVX world";
-    std::string msgHex = HexStr(message);
-    std::vector<unsigned char> msg(msgHex.begin(), msgHex.end());
 
-    CBLSIESEncryptedBlob iesEnc;
-    BOOST_CHECK(iesEnc.Encrypt(bobPk, msg.data(), msg.size()));
+    // Encrypt a std::string object
+    CBLSIESEncryptedObject<std::string> iesEnc;
+
+    // Since no pad is allowed, serialized length must be a multiple of AES_BLOCKSIZE (16)
+    BOOST_CHECK(!iesEnc.Encrypt(bobPk, "message of length 20", PROTOCOL_VERSION));
+
+    // Message of valid length (15 + 1 byte for the total len in serialization)
+    std::string message = ".mess of len 15";
+    BOOST_CHECK(iesEnc.Encrypt(bobPk, message, PROTOCOL_VERSION));
 
     // valid decryption.
-    CDataStream decMsg(SER_NETWORK, PROTOCOL_VERSION);
-    BOOST_CHECK(iesEnc.Decrypt(bobSk, decMsg));
-
-    std::vector<unsigned char> msg2 = ParseHex(decMsg.data());
-    std::string str(msg2.begin(), msg2.end());
-    BOOST_CHECK_EQUAL(str, message);
+    std::string decrypted_message;
+    BOOST_CHECK(iesEnc.Decrypt(bobSk, decrypted_message, PROTOCOL_VERSION));
+    BOOST_CHECK_EQUAL(decrypted_message, message);
 
     // Invalid decryption sk
-    iesEnc.Decrypt(aliceSk, decMsg);
-    msg2 = ParseHex(decMsg.data());
-    std::string str2(msg2.begin(), msg2.end());
-    BOOST_CHECK(str2 != message);
+    std::string decrypted_message2;
+    iesEnc.Decrypt(aliceSk, decrypted_message2, PROTOCOL_VERSION);
+    BOOST_CHECK(decrypted_message2 != message);
 
     // Invalid ephemeral pubkey
+    decrypted_message2.clear();
     auto iesEphemeralPk = iesEnc.ephemeralPubKey;
     iesEnc.ephemeralPubKey = alicePk;
-    iesEnc.Decrypt(bobSk, decMsg);
-    msg2 = ParseHex(decMsg.data());
-    std::string str3(msg2.begin(), msg2.end());
-    BOOST_CHECK(str3 != message);
+    iesEnc.Decrypt(bobSk, decrypted_message2, PROTOCOL_VERSION);
+    BOOST_CHECK(decrypted_message2 != message);
     iesEnc.ephemeralPubKey = iesEphemeralPk;
 
     // Invalid iv
+    decrypted_message2.clear();
     GetRandBytes(iesEnc.iv, sizeof(iesEnc.iv));
-    iesEnc.Decrypt(bobSk, decMsg);
-    msg2 = ParseHex(decMsg.data());
-    std::string str4(msg2.begin(), msg2.end());
-    BOOST_CHECK(str4 != message);
+    iesEnc.Decrypt(bobSk, decrypted_message2, PROTOCOL_VERSION);
+    BOOST_CHECK(decrypted_message2 != message);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
