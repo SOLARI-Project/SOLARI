@@ -148,8 +148,12 @@ void CreateProposalDialog::propUrlChanged(const QString& newText)
 
 void CreateProposalDialog::propAmountChanged(const QString& newText)
 {
-    CAmount amt = newText.toDouble() * COIN;
-    setCssEditLine(ui->lineEditAmount, govModel->validatePropAmount(amt).getRes(), true);
+    if (newText.isEmpty()) {
+        setCssEditLine(ui->lineEditAmount, true, true);
+        return;
+    }
+    auto amount = GUIUtil::parseValue(newText);
+    setCssEditLine(ui->lineEditAmount, govModel->validatePropAmount(amount).getRes(), true);
 }
 
 bool CreateProposalDialog::propaddressChanged(const QString& str)
@@ -190,7 +194,12 @@ bool CreateProposalDialog::validatePageOne()
 bool CreateProposalDialog::validatePageTwo()
 {
     // Amount validation
-    auto opRes = govModel->validatePropAmount(ui->lineEditAmount->text().toInt());
+    auto amount = GUIUtil::parseValue(ui->lineEditAmount->text());
+    if (amount <= 0) {
+        inform(tr("Invalid amount"));
+        return false;
+    }
+    auto opRes = govModel->validatePropAmount(amount);
     if (!opRes) {
         inform(QString::fromStdString(opRes.getError()));
         return false;
@@ -215,7 +224,7 @@ void CreateProposalDialog::loadSummary()
 {
     ui->labelResultName->setText(ui->lineEditPropName->text());
     ui->labelResultUrl->setText(ui->lineEditURL->text());
-    ui->labelResultAmount->setText(GUIUtil::formatBalance(ui->lineEditAmount->text().toInt() * COIN));
+    ui->labelResultAmount->setText(GUIUtil::formatBalance(GUIUtil::parseValue(ui->lineEditAmount->text())));
     ui->labelResultMonths->setText(QString::number(ui->lineEditMonths->value()));
     ui->labelResultAddress->setText(ui->lineEditAddress->text());
     ui->labelResultUrl->setText(ui->lineEditURL->text());
@@ -224,7 +233,7 @@ void CreateProposalDialog::loadSummary()
 void CreateProposalDialog::sendProposal()
 {
     int months = ui->lineEditMonths->value();
-    CAmount amount = ui->lineEditAmount->text().toInt() * COIN;
+    CAmount amount = GUIUtil::parseValue(ui->lineEditAmount->text());
     auto opRes = govModel->createProposal(
             ui->lineEditPropName->text().toStdString(),
             ui->lineEditURL->text().toStdString(),
