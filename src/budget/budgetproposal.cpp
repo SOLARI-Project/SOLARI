@@ -114,7 +114,7 @@ bool CBudgetProposal::CheckStartEnd()
 bool CBudgetProposal::CheckAmount(const CAmount& nTotalBudget)
 {
     // check minimum amount
-    if (nAmount < 10 * COIN) {
+    if (nAmount < PROPOSAL_MIN_AMOUNT) {
         strInvalid = "Invalid nAmount (too low)";
         return false;
     }

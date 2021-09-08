@@ -15,6 +15,9 @@ static const CAmount BUDGET_FEE_TX_OLD = (50 * COIN);
 static const CAmount BUDGET_FEE_TX = (5 * COIN);
 static const int64_t BUDGET_VOTE_UPDATE_MIN = 60 * 60;
 
+// Minimum value for a proposal to be considered valid
+static const CAmount PROPOSAL_MIN_AMOUNT = 10 * COIN;
+
 class CBudgetManager;
 
 //
