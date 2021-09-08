@@ -150,8 +150,16 @@ void SendCustomFeeDialog::clear()
 
 CFeeRate SendCustomFeeDialog::getFeeRate()
 {
-    return ui->checkBoxRecommended->isChecked() ?
-           feeRate : CFeeRate(GUIUtil::parseValue(ui->lineEditCustomFee->text(), walletModel->getOptionsModel()->getDisplayUnit()));
+    if (ui->checkBoxRecommended->isChecked()) {
+        return feeRate;
+    }
+
+    // Parse custom value
+    auto value = GUIUtil::parseValue(ui->lineEditCustomFee->text(), walletModel->getOptionsModel()->getDisplayUnit());
+    if (value <= 0) {
+        inform(tr("Invalid custom fee amount"));
+    }
+    return CFeeRate(value);
 }
 
 bool SendCustomFeeDialog::isCustomFeeChecked()

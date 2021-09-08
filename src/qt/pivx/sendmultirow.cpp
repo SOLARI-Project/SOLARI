@@ -65,11 +65,10 @@ SendMultiRow::SendMultiRow(PIVXGUI* _window, PWidget *parent) :
     connect(ui->btnAddMemo, &QPushButton::clicked, this, &SendMultiRow::onMemoClicked);
 }
 
-void SendMultiRow::amountChanged(const QString& amount)
+void SendMultiRow::amountChanged(const QString& amountStr)
 {
-    if (!amount.isEmpty()) {
-        QString amountStr = amount;
-        CAmount value = getAmountValue(amountStr);
+    if (!amountStr.isEmpty()) {
+        auto value = GUIUtil::parseValue(amountStr, displayUnit);
         if (value > 0) {
             GUIUtil::updateWidgetTextAndCursorPosition(ui->lineEditAmount, amountStr);
             setCssEditLine(ui->lineEditAmount, true, true);
@@ -104,16 +103,6 @@ bool SendMultiRow::launchMemoDialog()
     }
     dialog->deleteLater();
     return ret;
-}
-
-/**
- * Returns -1 if the value is invalid
- */
-CAmount SendMultiRow::getAmountValue(QString amount)
-{
-    bool isValid = false;
-    CAmount value = GUIUtil::parseValue(amount, displayUnit, &isValid);
-    return isValid ? value : -1;
 }
 
 bool SendMultiRow::addressChanged(const QString& str, bool fOnlyValidate)
@@ -203,7 +192,7 @@ bool SendMultiRow::validate()
     } else
         retval = addressChanged(address, true);
 
-    CAmount value = getAmountValue(ui->lineEditAmount->text());
+    CAmount value = getAmountValue();
 
     // Sending a zero amount is invalid
     if (value <= 0) {
@@ -238,7 +227,7 @@ QString SendMultiRow::getAddress()
 
 CAmount SendMultiRow::getAmountValue()
 {
-    return getAmountValue(ui->lineEditAmount->text());
+    return GUIUtil::parseValue(ui->lineEditAmount->text(), displayUnit);
 }
 
 QString SendMultiRow::getMemo()
