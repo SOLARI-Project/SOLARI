@@ -155,8 +155,12 @@ OperationResult GovernanceModel::validatePropURL(const QString& url) const
 
 OperationResult GovernanceModel::validatePropAmount(CAmount amount) const
 {
+    if (amount < PROPOSAL_MIN_AMOUNT) { // Future: move constant to a budget interface.
+        return {false, strprintf("Amount below the minimum of %s PIV", FormatMoney(PROPOSAL_MIN_AMOUNT))};
+    }
+
     if (amount > getMaxAvailableBudgetAmount()) {
-        return {false, strprintf("Amount exceeding the maximum available budget amount of %s PIV", FormatMoney(amount))};
+        return {false, strprintf("Amount exceeding the maximum available of %s PIV", FormatMoney(getMaxAvailableBudgetAmount()))};
     }
     return {true};
 }
