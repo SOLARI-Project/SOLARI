@@ -57,7 +57,7 @@ void VoteDialog::setProposal(const ProposalInfo& prop)
     proposal = std::make_unique<ProposalInfo>(prop);
     ui->labelTitleVote->setText(QString::fromStdString(prop.name));
     ui->labelAmount->setText(GUIUtil::formatBalance(prop.amount));
-    ui->labelTime->setText(tr("%1 months passed of %2").arg(prop.totalPayments - prop.remainingPayments).arg(prop.totalPayments));
+    ui->labelTime->setText(tr("%1 months remaining").arg(prop.remainingPayments));
     double totalVotes = prop.votesYes + prop.votesNo;
     double percentageNo = (totalVotes == 0) ? 0 :  (prop.votesNo / totalVotes) * 100;
     double percentageYes = (totalVotes == 0) ? 0 : (prop.votesYes / totalVotes) * 100;

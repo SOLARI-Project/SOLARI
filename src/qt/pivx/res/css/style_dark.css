@@ -2256,7 +2256,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     font-size:12px;
     border-radius:12px;
     background-color:rgba(176, 136, 255, 0.4);
-    padding:6px 12px;
+    padding:6px 6px;
 }
 
 *[cssClass="card-status-not-passing"] {
@@ -2264,7 +2264,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     font-size:12px;
     border-radius:12px;
     background-color:rgba(112, 112, 112, 0.3);
-    padding:6px 12px;
+    padding:6px 6px;
 }
 
 *[cssClass="card-status-no-votes"] {
@@ -2272,7 +2272,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     font-size:12px;
     border-radius:12px;
     background-color:rgba(186, 186, 186, 0.1);
-    padding:6px 12px;
+    padding:6px 6px;
 }
 
 *[cssClass="card-progress-box"] {

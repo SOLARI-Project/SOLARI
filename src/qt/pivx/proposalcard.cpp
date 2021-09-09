@@ -40,8 +40,8 @@ void ProposalCard::setProposal(const ProposalInfo& _proposalInfo)
     proposalInfo = _proposalInfo;
     ui->labelPropName->setText(QString::fromStdString(proposalInfo.name));
     ui->labelPropAmount->setText(GUIUtil::formatBalance(proposalInfo.amount));
-    ui->labelPropMonths->setText(tr("%1 months passed of %2")
-        .arg(proposalInfo.totalPayments - proposalInfo.remainingPayments).arg(proposalInfo.totalPayments));
+    ui->labelPropMonths->setText((proposalInfo.remainingPayments == 0) ? tr("Last month in course") :
+            tr("%1 of %2 months left").arg(proposalInfo.remainingPayments).arg(proposalInfo.totalPayments));
     double totalVotes = _proposalInfo.votesYes + _proposalInfo.votesNo;
     double percentageNo = (totalVotes == 0) ? 0 :  (_proposalInfo.votesNo / totalVotes) * 100;
     double percentageYes = (totalVotes == 0) ? 0 : (_proposalInfo.votesYes / totalVotes) * 100;
