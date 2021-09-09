@@ -159,6 +159,12 @@
                 <height>0</height>
                </size>
               </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QComboBox::AdjustToMinimumContentsLength</enum>
+              </property>
+              <property name="minimumContentsLength">
+               <number>15</number>
+              </property>
              </widget>
             </item>
            </layout>

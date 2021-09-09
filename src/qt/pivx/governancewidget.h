@@ -34,7 +34,7 @@ public:
             QStyledItemDelegate(parent) {}
 
     void setValues(QList<QString> _values) {
-        values = _values;
+        values = std::move(_values);
     }
 
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override {

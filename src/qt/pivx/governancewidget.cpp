@@ -11,8 +11,20 @@
 #include <QGraphicsDropShadowEffect>
 #include <QTimer>
 
-// Proposals filter
-const std::vector<std::string> propFilter = {"All", "Passing", "Not Passing", "Waiting"};
+void initComboView(PWidget* parent, QComboBox* comboBox, const QString& filterHint, const QList<QString>& values)
+{
+    auto* modelFilter = new QStandardItemModel(parent);
+    Delegate* delegateFilter = new Delegate(parent);
+    for (int i = 0; i < values.size(); ++i) {
+        auto item = new QStandardItem(QString(filterHint+": %1").arg(values.value(i)));
+        item->setData(i);
+        modelFilter->appendRow(item);
+    }
+    delegateFilter->setValues(values);
+    comboBox->setModel(modelFilter);
+    comboBox->setItemDelegate(delegateFilter);
+    comboBox->setCurrentIndex(0);
+}
 
 GovernanceWidget::GovernanceWidget(PIVXGUI* parent) :
         PWidget(parent),
@@ -44,45 +56,20 @@ GovernanceWidget::GovernanceWidget(PIVXGUI* parent) :
     lineEdit->setFont(font);
     lineEdit->setAlignment(Qt::AlignRight);
     initComboBox(ui->comboBoxSort, lineEdit, "btn-combo", false);
-
-    QStandardItemModel* model = new QStandardItemModel(this);
-    Delegate* delegate = new Delegate(this);
-    QList<QString> values; // todo: Add sort actions
-    values.append("Date");
-    values.append("Value");
-    values.append("Name");
-    for (const auto& value : values) {
-        model->appendRow(new QStandardItem(tr("Sort by: %1").arg(value)));
-    }
-    delegate->setValues(values);
-    ui->comboBoxSort->setModel(model);
-    ui->comboBoxSort->setItemDelegate(delegate);
-    ui->comboBoxSort->setVisible(false);
+    QList<QString> values{tr("Date"), tr("Amount"), tr("Name")};
+    initComboView(this, ui->comboBoxSort, tr("Sort by"), values);
+    ui->comboBoxSort->setVisible(false); // Future: add sort actions
 
     // Filter
     SortEdit* lineEditFilter = new SortEdit(ui->comboBoxFilter);
     lineEditFilter->setFont(font);
     initComboBox(ui->comboBoxFilter, lineEditFilter, "btn-filter", false);
-
-    QStandardItemModel* modelFilter = new QStandardItemModel(this);
-    Delegate* delegateFilter = new Delegate(this);
-    QList<QString> valuesFilter;
-    for (int i = 0; i < propFilter.size(); ++i) {
-        QString str = QString::fromStdString(propFilter[i]);
-        valuesFilter.append(str);
-        auto item = new QStandardItem(tr("Filter: %1").arg(str));
-        item->setData(i);
-        modelFilter->appendRow(item);
-    }
-    delegateFilter->setValues(valuesFilter);
-    ui->comboBoxFilter->setModel(modelFilter);
-    ui->comboBoxFilter->setItemDelegate(delegateFilter);
-    ui->comboBoxFilter->setCurrentIndex(0);
+    QList<QString> valuesFilter{tr("All"), tr("Passing"), tr("Not Passing"), tr("Waiting")};
+    initComboView(this, ui->comboBoxFilter, tr("Filter"), valuesFilter);
     connect(ui->comboBoxFilter, static_cast<void (QComboBox::*)(const QString&)>(&QComboBox::currentTextChanged),
             this, &GovernanceWidget::onFilterChanged);
 
     // Budget
-    ui->labelBudget->setText("Budget Distribution");
     setCssProperty(ui->labelBudget, "btn-title-grey");
     setCssProperty(ui->labelBudgetSubTitle, "text-subtitle");
     setCssProperty(ui->labelAvailableTitle, "label-budget-text");
