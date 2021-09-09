@@ -124,19 +124,19 @@ void SendCustomFeeDialog::accept()
     // Check insane fee
     const CAmount insaneFee = ::minRelayTxFee.GetFeePerK() * 10000;
     if (customFee >= insaneFee) {
-        ui->lineEditCustomFee->setText(BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), insaneFee - GetRequiredFee(1000)));
+        ui->lineEditCustomFee->setText(BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), insaneFee - walletModel->getNetMinFee()));
         inform(tr("Fee too high. Must be below: %1").arg(
                 BitcoinUnits::formatWithUnit(walletModel->getOptionsModel()->getDisplayUnit(), insaneFee)));
-    } else if (customFee < GetRequiredFee(1000)) {
+    } else if (customFee < walletModel->getNetMinFee()) {
         CAmount nFee = 0;
         if (walletModel->hasWalletCustomFee()) {
             walletModel->getWalletCustomFee(nFee);
         } else {
-            nFee = GetRequiredFee(1000);
+            nFee = walletModel->getNetMinFee();
         }
         ui->lineEditCustomFee->setText(BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), nFee));
         inform(tr("Fee too low. Must be at least: %1").arg(
-                BitcoinUnits::formatWithUnit(walletModel->getOptionsModel()->getDisplayUnit(), GetRequiredFee(1000))));
+                BitcoinUnits::formatWithUnit(walletModel->getOptionsModel()->getDisplayUnit(), walletModel->getNetMinFee())));
     } else {
         walletModel->setWalletCustomFee(fUseCustomFee, customFee);
         QDialog::accept();

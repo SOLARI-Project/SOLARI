@@ -13,6 +13,7 @@
 #include "sapling/sapling_operation.h"
 #include "sapling/transaction_builder.h"
 #include "spork.h"
+#include "wallet/fees.h"
 
 #include "qt/addresstablemodel.h"
 #include "qt/clientmodel.h"
@@ -1204,3 +1205,7 @@ int WalletModel::getLastBlockProcessedNum() const
     return m_client_model ? m_client_model->getLastBlockProcessedHeight() : 0;
 }
 
+CAmount WalletModel::getNetMinFee()
+{   // future: unify minimum required fee.
+    return GetRequiredFee(1000);
+}

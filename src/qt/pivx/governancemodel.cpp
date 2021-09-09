@@ -110,6 +110,11 @@ int GovernanceModel::getPropMaxPaymentsCount() const
     return Params().GetConsensus().nMaxProposalPayments;
 }
 
+CAmount GovernanceModel::getProposalFeeAmount() const
+{
+    return PROPOSAL_FEE_TX;
+}
+
 int GovernanceModel::getNextSuperblockHeight() const
 {
     const int nBlocksPerCycle = getNumBlocksPerBudgetCycle();

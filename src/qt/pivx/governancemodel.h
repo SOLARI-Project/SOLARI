@@ -100,6 +100,8 @@ public:
     CAmount getMaxAvailableBudgetAmount() const;
     // Return the proposal maximum payments count for the running chain
     int getPropMaxPaymentsCount() const;
+    // Return the required fee for proposals
+    CAmount getProposalFeeAmount() const;
     int getNextSuperblockHeight() const;
     // Returns the sum of all of the passing proposals
     CAmount getBudgetAllocatedAmount() const { return allocatedAmount; };

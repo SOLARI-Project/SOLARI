@@ -206,6 +206,7 @@ public:
     bool hasWalletCustomFee();
     bool getWalletCustomFee(CAmount& nFeeRet);
     void setWalletCustomFee(bool fUseCustomFee, const CAmount nFee = DEFAULT_TRANSACTION_FEE);
+    CAmount getNetMinFee();
 
     void setWalletStakeSplitThreshold(const CAmount nStakeSplitThreshold);
     CAmount getWalletStakeSplitThreshold() const;

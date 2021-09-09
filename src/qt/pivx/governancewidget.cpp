@@ -154,6 +154,21 @@ void GovernanceWidget::onVoteForPropClicked(const ProposalInfo& proposalInfo)
 
 void GovernanceWidget::onCreatePropClicked()
 {
+    if (!walletModel || !governanceModel) return;
+
+    auto ptrUnlockedContext = std::make_unique<WalletModel::UnlockContext>(walletModel->requestUnlock());
+    if (!ptrUnlockedContext->isValid()) {
+        inform(tr("Cannot create proposal, wallet locked"));
+        return;
+    }
+
+    auto balance = walletModel->GetWalletBalances();
+    if (balance.balance <= governanceModel->getProposalFeeAmount()) {
+        inform(tr("Cannot create proposal, need to have at least %1 to pay for the proposal fee").arg(
+                  GUIUtil::formatBalance(governanceModel->getProposalFeeAmount() + walletModel->getNetMinFee()).toStdString().c_str()));
+        return;
+    }
+
     window->showHide(true);
     CreateProposalDialog* dialog = new CreateProposalDialog(window, governanceModel, walletModel);
     if (openDialogWithOpaqueBackgroundY(dialog, window, 4.5, ui->left->height() < 700 ? 12 : 5)) {
