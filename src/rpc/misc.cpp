@@ -17,6 +17,7 @@
 #include "spork.h"
 #include "timedata.h"
 #include "util/system.h"
+#include "util/validation.h"
 #ifdef ENABLE_WALLET
 #include "wallet/rpcwallet.h"
 #include "wallet/wallet.h"

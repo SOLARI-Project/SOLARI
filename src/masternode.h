@@ -10,6 +10,7 @@
 #include "key.h"
 #include "messagesigner.h"
 #include "net.h"
+#include "primitives/transaction.h"
 #include "serialize.h"
 #include "sync.h"
 #include "timedata.h"

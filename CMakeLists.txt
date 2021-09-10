@@ -432,6 +432,7 @@ set(UTIL_SOURCES
         ./src/util/threadnames.cpp
         ./src/util/blockstatecatcher.h
         ./src/util/system.cpp
+        ./src/util/validation.cpp
         ./src/utilstrencodings.cpp
         ./src/utilmoneystr.cpp
         ./src/utiltime.cpp

@@ -297,6 +297,7 @@ BITCOIN_CORE_H = \
   util/macros.h \
   util/string.h \
   util/threadnames.h \
+  util/validation.h \
   utilstrencodings.h \
   utilmoneystr.h \
   utiltime.h \
@@ -569,6 +570,7 @@ libbitcoin_util_a_SOURCES = \
   util/threadnames.cpp \
   utilstrencodings.cpp \
   util/string.cpp \
+  util/validation.cpp \
   utiltime.cpp \
   $(BITCOIN_CORE_H) \
   $(LIBSAPLING_H)

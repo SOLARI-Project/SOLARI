@@ -21,7 +21,7 @@
 #include "spork.h"
 #include "timedata.h"
 #include "util/system.h"
-#include "validation.h"
+#include "util/validation.h"
 #include "validationinterface.h"
 
 #ifdef ENABLE_WALLET

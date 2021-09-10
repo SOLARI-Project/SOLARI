@@ -7,6 +7,7 @@
 #define FINALIZED_BUDGET_VOTE_H
 
 #include "messagesigner.h"
+#include "primitives/transaction.h"
 
 #include <univalue.h>
 
