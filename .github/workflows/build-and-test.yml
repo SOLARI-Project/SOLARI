@@ -307,7 +307,7 @@ jobs:
             unit_tests: true
             no_depends: 1
             goal: install
-            BITCOIN_CONFIG: "--enable-zmq --with-incompatible-bdb --with-gui=qt5 CPPFLAGS=-DDEBUG_LOCKORDER"
+            BITCOIN_CONFIG: "--enable-zmq --with-incompatible-bdb --with-gui=qt5 CPPFLAGS='-DARENA_DEBUG -DDEBUG_LOCKORDER'"
 
           - name: macOS 10.12  [GOAL:deploy] [no functional tests]
             os: ubuntu-18.04
