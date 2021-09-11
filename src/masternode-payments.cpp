@@ -164,8 +164,7 @@ std::string CMasternodePaymentWinner::GetStrMessage() const
 bool CMasternodePaymentWinner::IsValid(CNode* pnode, std::string& strError, int chainHeight)
 {
     int n = mnodeman.GetMasternodeRank(vinMasternode, nBlockHeight - 100);
-    bool guard = Params().GetConsensus().NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3);
-    if ((guard && n < 1) || n > MNPAYMENTS_SIGNATURES_TOTAL) {
+    if (n < 1 || n > MNPAYMENTS_SIGNATURES_TOTAL) {
         //It's common to have masternodes mistakenly think they are in the top 10
         // We don't want to print all of these messages, or punish them unless they're way off
         if (n > MNPAYMENTS_SIGNATURES_TOTAL * 2) {
@@ -177,7 +176,7 @@ bool CMasternodePaymentWinner::IsValid(CNode* pnode, std::string& strError, int 
     }
 
     // Must be a P2PKH
-    if (guard && !payee.IsPayToPublicKeyHash()) {
+    if (!payee.IsPayToPublicKeyHash()) {
         LogPrint(BCLog::MASTERNODE, "%s - payee must be a P2PKH\n", __func__);
         return false;
     }
@@ -225,9 +224,7 @@ bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CA
         }
     }
 
-    // !todo: remove after V5.3 enforcement and default it to true
-    const bool isUpgradeEnforced = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_3);
-    return (!isUpgradeEnforced || nMinted >= 0) && nMinted <= nExpectedValue;
+    return nMinted >= 0 && nMinted <= nExpectedValue;
 }
 
 bool IsBlockPayeeValid(const CBlock& block, const CBlockIndex* pindexPrev)
@@ -332,8 +329,7 @@ bool CMasternodePayments::GetLegacyMasternodeTxOut(int nHeight, std::vector<CTxO
     if (!GetBlockPayee(nHeight, payee)) {
         //no masternode detected
         const Consensus::Params& consensus = Params().GetConsensus();
-        const uint256& hash = consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_3) ?
-                              mnodeman.GetHashAtHeight(nHeight - 1) : consensus.hashGenesisBlock;
+        const uint256& hash = mnodeman.GetHashAtHeight(nHeight - 1);
         MasternodeRef winningNode = mnodeman.GetCurrentMasterNode(hash);
         if (winningNode) {
             payee = winningNode->GetPayeeScript();

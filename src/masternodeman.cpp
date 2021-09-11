@@ -243,9 +243,6 @@ int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
         return 0;
     }
 
-    // !TODO: can be removed after enforcement
-    bool reject_v0 = Params().GetConsensus().NetworkUpgradeActive(GetBestHeight(), Consensus::UPGRADE_V5_3);
-
     LOCK(cs);
 
     //remove inactive and outdated (or replaced by DMN)
@@ -256,8 +253,7 @@ int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
         if (activeState == CMasternode::MASTERNODE_REMOVE ||
             activeState == CMasternode::MASTERNODE_VIN_SPENT ||
             (forceExpiredRemoval && activeState == CMasternode::MASTERNODE_EXPIRED) ||
-            mn->protocolVersion < ActiveProtocol() ||
-            (reject_v0 && mn->nMessVersion != MessageVersion::MESS_VER_HASH)) {
+            mn->protocolVersion < ActiveProtocol()) {
             LogPrint(BCLog::MASTERNODE, "Removing inactive (legacy) Masternode %s\n", it->first.ToString());
             //erase all of the broadcasts we've seen from this vin
             // -- if we missed a few pings and the node was removed, this will allow is to get it back without them
@@ -728,16 +724,8 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     }
 
     int chainHeight = GetBestHeight();
-    const auto& consensus = Params().GetConsensus();
-    // Check if mnb contains a ADDRv2 and reject it if the new NU wasn't enforced.
-    if (!mnb.addr.IsAddrV1Compatible() &&
-        !consensus.NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3)) {
-        LogPrint(BCLog::MASTERNODE, "mnb - received a ADDRv2 before enforcement\n");
-        return 33;
-    }
-
     int nDoS = 0;
-    if (!mnb.CheckAndUpdate(nDoS, GetBestHeight())) {
+    if (!mnb.CheckAndUpdate(nDoS, chainHeight)) {
         return nDoS;
     }
 
@@ -880,10 +868,6 @@ int CMasternodeMan::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         return ProcessMNBroadcast(pfrom, mnb);
 
     } else if (strCommand == NetMsgType::MNBROADCAST2) {
-        if (!Params().GetConsensus().NetworkUpgradeActive(GetBestHeight(), Consensus::UPGRADE_V5_3)) {
-            LogPrint(BCLog::MASTERNODE, "%s: mnb2 not enabled pre-V5.3 enforcement\n", __func__);
-            return 30;
-        }
         CMasternodeBroadcast mnb;
         OverrideStream<CDataStream> s(&vRecv, vRecv.GetType(), vRecv.GetVersion() | ADDRV2_FORMAT);
         s >> mnb;

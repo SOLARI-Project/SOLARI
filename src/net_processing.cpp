@@ -910,11 +910,6 @@ bool static PushTierTwoGetDataRequest(const CInv& inv,
         if (it != mnodeman.mapSeenMasternodeBroadcast.end()) {
             const auto& mnb = it->second;
 
-            // Just to be double sure, do not broadcast BIP155 addresses pre-v5.3 enforcement
-            if (mnb.isBIP155Addr && !Params().GetConsensus().NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3)) {
-                return false;
-            }
-
             int version = mnb.isBIP155Addr ? PROTOCOL_VERSION | ADDRV2_FORMAT : PROTOCOL_VERSION;
             CDataStream ss(SER_NETWORK, version);
             ss.reserve(1000);

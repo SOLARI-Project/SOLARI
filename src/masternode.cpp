@@ -65,8 +65,7 @@ int MasternodeRemovalSeconds()
 // Used for sigTime < maxTimeWindow
 int64_t GetMaxTimeWindow(int chainHeight)
 {
-    bool isV5_3 = Params().GetConsensus().NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3);
-    return GetAdjustedTime() + (isV5_3 ? (60 * 2) : (60 * 60));
+    return GetAdjustedTime() + 60 * 2;
 }
 
 
@@ -301,13 +300,6 @@ bool CMasternodeBroadcast::Create(const std::string& strService,
     if (!CheckDefaultPort(_service, strErrorRet, "CMasternodeBroadcast::Create"))
         return false;
 
-    // Check if the MN has a ADDRv2 and reject it if the new NU wasn't enforced.
-    if (!_service.IsAddrV1Compatible() &&
-        !Params().GetConsensus().NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_V5_3)) {
-        strErrorRet = "Cannot start MN with a v2 address before the v5.3 enforcement";
-        return false;
-    }
-
     return Create(txin, _service, keyCollateralAddressNew, pubKeyCollateralAddressNew, keyMasternodeNew, pubKeyMasternodeNew, strErrorRet, mnbRet);
 }
 
@@ -412,9 +404,8 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
         return false;
     }
 
-    // reject old signature version after v5.3
-    if (nMessVersion != MessageVersion::MESS_VER_HASH &&
-        Params().GetConsensus().NetworkUpgradeActive(nChainHeight, Consensus::UPGRADE_V5_3)) {
+    // reject old signature version
+    if (nMessVersion != MessageVersion::MESS_VER_HASH) {
         LogPrint(BCLog::MASTERNODE, "mnb - rejecting old message version for mn %s\n", vin.prevout.hash.ToString());
         nDos = 30;
         return false;
@@ -619,9 +610,8 @@ bool CMasternodePing::CheckAndUpdate(int& nDos, int nChainHeight, bool fRequireA
         return false;
     }
 
-    // reject old signature version after v5.3
-    if (nMessVersion != MessageVersion::MESS_VER_HASH &&
-        Params().GetConsensus().NetworkUpgradeActive(nChainHeight, Consensus::UPGRADE_V5_3)) {
+    // reject old signature version
+    if (nMessVersion != MessageVersion::MESS_VER_HASH) {
         LogPrint(BCLog::MNPING, "mnp - rejecting old message version for mn %s\n", vin.prevout.hash.ToString());
         nDos = 30;
         return false;
