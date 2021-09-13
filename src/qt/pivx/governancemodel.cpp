@@ -37,13 +37,16 @@ ProposalInfo GovernanceModel::buildProposalInfo(const CBudgetProposal* prop, boo
     // Calculate status
     int votesYes = prop->GetYeas();
     int votesNo = prop->GetNays();
+    int remainingPayments = prop->GetRemainingPaymentCount(clientModel->getLastBlockProcessedHeight());
     ProposalInfo::Status status;
 
     if (isPending) {
         // Proposal waiting for confirmation to be broadcasted.
         status = ProposalInfo::WAITING_FOR_APPROVAL;
     } else {
-        if (isPassing) {
+        if (remainingPayments <= 0) {
+            status = ProposalInfo::FINISHED;
+        } if (isPassing) {
             status = ProposalInfo::PASSING;
         } else if (votesYes > votesNo) {
             status = ProposalInfo::PASSING_NOT_FUNDED;
@@ -51,7 +54,6 @@ ProposalInfo GovernanceModel::buildProposalInfo(const CBudgetProposal* prop, boo
             status = ProposalInfo::NOT_PASSING;
         }
     }
-
 
     return ProposalInfo(prop->GetHash(),
             prop->GetName(),
@@ -61,11 +63,11 @@ ProposalInfo GovernanceModel::buildProposalInfo(const CBudgetProposal* prop, boo
             Standard::EncodeDestination(recipient),
             prop->GetAmount(),
             prop->GetTotalPaymentCount(),
-            prop->GetRemainingPaymentCount(clientModel->getLastBlockProcessedHeight()),
+            remainingPayments,
             status);
 }
 
-std::list<ProposalInfo> GovernanceModel::getProposals(const ProposalInfo::Status* filterByStatus)
+std::list<ProposalInfo> GovernanceModel::getProposals(const ProposalInfo::Status* filterByStatus, bool filterFinished)
 {
     if (!clientModel) return {};
     std::list<ProposalInfo> ret;
@@ -74,6 +76,8 @@ std::list<ProposalInfo> GovernanceModel::getProposals(const ProposalInfo::Status
     for (const auto& prop : g_budgetman.GetAllProposalsOrdered()) {
         bool isPassing = std::find(budget.begin(), budget.end(), *prop) != budget.end();
         ProposalInfo propInfo = buildProposalInfo(prop, isPassing, false);
+
+        if (filterFinished && propInfo.isFinished()) continue;
         if (!filterByStatus || propInfo.status == *filterByStatus) {
             ret.emplace_back(propInfo);
         }

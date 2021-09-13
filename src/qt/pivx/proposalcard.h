@@ -41,6 +41,8 @@ private:
     Ui::ProposalCard *ui;
     ProposalInfo proposalInfo;
     bool needsUpdate{false};
+
+    void setStatusAndVotes(const QString& msg, int value);
 };
 
 #endif // PROPOSALCARD_H

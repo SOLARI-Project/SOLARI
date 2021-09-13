@@ -22,7 +22,8 @@ public:
         WAITING_FOR_APPROVAL,
         PASSING,
         PASSING_NOT_FUNDED,
-        NOT_PASSING
+        NOT_PASSING,
+        FINISHED
     };
 
     /** Proposal hash */
@@ -51,10 +52,8 @@ public:
             recipientAdd(std::move(_recipientAdd)), amount(_amount), totalPayments(_totalPayments),
             remainingPayments(_remainingPayments), status(_status) {}
 
-    bool operator==(const ProposalInfo& prop2) const
-    {
-        return id == prop2.id;
-    }
+    bool operator==(const ProposalInfo& prop2) const { return id == prop2.id; }
+    bool isFinished() { return status == Status::FINISHED; }
 };
 
 struct VoteInfo {
@@ -88,8 +87,9 @@ public:
     ~GovernanceModel() override;
     void setWalletModel(WalletModel* _walletModel);
 
-    // Return proposals ordered by net votes
-    std::list<ProposalInfo> getProposals(const ProposalInfo::Status* filterByStatus = nullptr);
+    // Return proposals ordered by net votes.
+    // By default, do not return zombie finished proposals that haven't been cleared yet (backend removal sources need a cleanup).
+    std::list<ProposalInfo> getProposals(const ProposalInfo::Status* filterByStatus = nullptr, bool filterFinished = true);
     // Returns true if there is at least one proposal cached
     bool hasProposals();
     // Whether a visual refresh is needed

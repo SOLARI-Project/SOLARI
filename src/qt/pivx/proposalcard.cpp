@@ -34,39 +34,45 @@ ProposalCard::ProposalCard(QWidget *parent) :
     connect(ui->btnLink, &QPushButton::clicked, this, &ProposalCard::onCopyUrlClicked);
 }
 
-
 void ProposalCard::setProposal(const ProposalInfo& _proposalInfo)
 {
     proposalInfo = _proposalInfo;
     ui->labelPropName->setText(QString::fromStdString(proposalInfo.name));
     ui->labelPropAmount->setText(GUIUtil::formatBalance(proposalInfo.amount));
-    ui->labelPropMonths->setText((proposalInfo.remainingPayments == 0) ? tr("Last month in course") :
+    ui->labelPropMonths->setText(proposalInfo.remainingPayments < 0 ? tr("Inactive proposal") :
+            proposalInfo.remainingPayments == 0 ? tr("Last month in course") :
             tr("%1 of %2 months left").arg(proposalInfo.remainingPayments).arg(proposalInfo.totalPayments));
     double totalVotes = _proposalInfo.votesYes + _proposalInfo.votesNo;
     double percentageNo = (totalVotes == 0) ? 0 :  (_proposalInfo.votesNo / totalVotes) * 100;
     double percentageYes = (totalVotes == 0) ? 0 : (_proposalInfo.votesYes / totalVotes) * 100;
-    ui->votesBar->setValue((int)percentageNo);
     ui->labelNo->setText(QString::number(percentageNo) + "% " + tr("No"));
     ui->labelYes->setText(tr("Yes") + " " + QString::number(percentageYes) + "%");
 
     QString cssClassStatus;
     if (proposalInfo.status == ProposalInfo::WAITING_FOR_APPROVAL){
         cssClassStatus = "card-status-no-votes";
-        ui->labelStatus->setText(tr("Waiting"));
-        ui->votesBar->setValue(50);
+        setStatusAndVotes(tr("Waiting"), 50);
+    } else if (proposalInfo.status == ProposalInfo::FINISHED) {
+        cssClassStatus = "card-status-no-votes";
+        setStatusAndVotes(tr("Finished"), 50);
     } else if (totalVotes == 0) {
         cssClassStatus = "card-status-no-votes";
-        ui->labelStatus->setText(tr("No Votes"));
-        ui->votesBar->setValue(50);
+        setStatusAndVotes(tr("No Votes"), 50);
     } else if (proposalInfo.status == ProposalInfo::NOT_PASSING ||
         proposalInfo.status == ProposalInfo::PASSING_NOT_FUNDED) {
         cssClassStatus = "card-status-not-passing";
-        ui->labelStatus->setText(tr("Not Passing"));
+        setStatusAndVotes(tr("Not Passing"), (int)percentageNo);
     } else if (proposalInfo.status == ProposalInfo::PASSING) {
         cssClassStatus = "card-status-passing";
-        ui->labelStatus->setText(tr("Passing"));
+        setStatusAndVotes(tr("Passing"), (int)percentageNo);
     }
     setCssProperty(ui->labelStatus, cssClassStatus, true);
+}
+
+void ProposalCard::setStatusAndVotes(const QString& msg, int value)
+{
+    ui->labelStatus->setText(msg);
+    ui->votesBar->setValue(value);
 }
 
 void ProposalCard::onCopyUrlClicked()
