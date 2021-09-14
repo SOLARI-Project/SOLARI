@@ -275,21 +275,19 @@ UniValue getmasternodecount (const JSONRPCRequest& request)
 
     UniValue obj(UniValue::VOBJ);
     int nCount = 0;
-    int ipv4 = 0, ipv6 = 0, onion = 0;
-
     const CBlockIndex* pChainTip = GetChainTip();
     if (!pChainTip) return "unknown";
 
     mnodeman.GetNextMasternodeInQueueForPayment(pChainTip->nHeight, true, nCount, pChainTip);
-    int total = mnodeman.CountNetworks(ipv4, ipv6, onion);
+    auto infoMNs = mnodeman.getMNsInfo();
 
-    obj.pushKV("total", total);
-    obj.pushKV("stable", mnodeman.stable_size());
-    obj.pushKV("enabled", mnodeman.CountEnabled());
+    obj.pushKV("total", infoMNs.total);
+    obj.pushKV("stable", infoMNs.stableSize);
+    obj.pushKV("enabled", infoMNs.enabledSize);
     obj.pushKV("inqueue", nCount);
-    obj.pushKV("ipv4", ipv4);
-    obj.pushKV("ipv6", ipv6);
-    obj.pushKV("onion", onion);
+    obj.pushKV("ipv4", infoMNs.ipv4);
+    obj.pushKV("ipv6", infoMNs.ipv6);
+    obj.pushKV("onion", infoMNs.onion);
 
     return obj;
 }

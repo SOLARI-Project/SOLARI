@@ -159,8 +159,22 @@ public:
     // Process GETMNLIST message, returning the banning score (if 0, no ban score increase is needed)
     int ProcessGetMNList(CNode* pfrom, CTxIn& vin);
 
-    /// Return the number of Masternodes older than (default) 8000 seconds
-    int stable_size() const;
+    struct MNsInfo {
+        // All the known MNs
+        int total;
+        // enabled MNs eligible for payments. Older than 8000 seconds.
+        int stableSize{0};
+        // MNs enabled.
+        int enabledSize{0};
+
+        // Networks
+        int ipv4{0};
+        int ipv6{0};
+        int onion{0};
+    };
+
+    // Return an overall status of the MNs list
+    CMasternodeMan::MNsInfo getMNsInfo() const;
 
     std::string ToString() const;
 

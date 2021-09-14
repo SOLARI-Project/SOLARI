@@ -352,29 +352,52 @@ void CMasternodeMan::Clear()
     nDsqCount = 0;
 }
 
-int CMasternodeMan::stable_size() const
+static void CountNetwork(const MasternodeRef& mn, int& ipv4, int& ipv6, int& onion)
 {
-    int nStable_size = 0;
+    std::string strHost;
+    int port;
+    SplitHostPort(mn->addr.ToString(), port, strHost);
+    CNetAddr node;
+    LookupHost(strHost, node, false);
+    switch(node.GetNetwork()) {
+        case NET_IPV4:
+            ipv4++;
+            break;
+        case NET_IPV6:
+            ipv6++;
+            break;
+        case NET_ONION:
+            onion++;
+            break;
+        default:
+            break;
+    }
+}
+
+CMasternodeMan::MNsInfo CMasternodeMan::getMNsInfo() const
+{
+    MNsInfo info;
     int nMinProtocol = ActiveProtocol();
 
+    LOCK(cs);
     for (const auto& it : mapMasternodes) {
         const MasternodeRef& mn = it.second;
-        if (mn->protocolVersion < nMinProtocol) {
-            continue; // Skip obsolete versions
+        info.total++;
+        CountNetwork(mn, info.ipv4, info.ipv6, info.onion);
+        if (mn->protocolVersion < nMinProtocol || !mn->IsEnabled()) {
+            continue;
         }
+        info.enabledSize++;
+        // Eligible for payments
         if (sporkManager.IsSporkActive (SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)) {
             if (GetAdjustedTime() - mn->sigTime < MN_WINNER_MINIMUM_AGE) {
                 continue; // Skip masternodes younger than (default) 8000 sec (MUST be > MASTERNODE_REMOVAL_SECONDS)
             }
         }
-
-        if (!mn->IsEnabled ())
-            continue; // Skip not-enabled masternodes
-
-        nStable_size++;
+        info.stableSize++;
     }
 
-    return nStable_size;
+    return info;
 }
 
 int CMasternodeMan::CountEnabled(int protocolVersion) const
@@ -396,25 +419,9 @@ int CMasternodeMan::CountNetworks(int& ipv4, int& ipv6, int& onion) const
     LOCK(cs);
     for (const auto& it : mapMasternodes) {
         const MasternodeRef& mn = it.second;
-        std::string strHost;
-        int port;
-        SplitHostPort(mn->addr.ToString(), port, strHost);
-        CNetAddr node;
-        LookupHost(strHost.c_str(), node, false);
-        int nNetwork = node.GetNetwork();
-        switch (nNetwork) {
-            case 1 :
-                ipv4++;
-                break;
-            case 2 :
-                ipv6++;
-                break;
-            case 3 :
-                onion++;
-                break;
-        }
+        CountNetwork(mn, ipv4, ipv6, onion);
     }
-    return mapMasternodes.size();
+    return (int) mapMasternodes.size();
 }
 
 void CMasternodeMan::DsegUpdate(CNode* pnode)
