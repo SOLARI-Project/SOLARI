@@ -359,7 +359,6 @@ public:
     CAmount GetShieldedValueIn() const;
 
     bool HasZerocoinSpendInputs() const;
-    bool HasZerocoinPublicSpendInputs() const;
 
     bool HasZerocoinMintOutputs() const;
 
