@@ -175,7 +175,7 @@ void AddressesWidget::loadWalletModel()
 
 void AddressesWidget::updateListView()
 {
-    bool empty = addressTablemodel->sizeSend() == 0;
+    bool empty = addressTablemodel->sizeSendAll() == 0;
     ui->emptyContainer->setVisible(empty);
     ui->listAddresses->setVisible(!empty);
 }
