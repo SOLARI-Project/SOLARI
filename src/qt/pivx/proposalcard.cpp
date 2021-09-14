@@ -20,7 +20,7 @@ ProposalCard::ProposalCard(QWidget *parent) :
     setCssProperty(ui->labelPropMonths, "card-time");
     setCssProperty(ui->labelStatus, "card-status-passing");
     setCssProperty(ui->btnVote, "card-btn-vote");
-    setCssProperty(ui->btnLink, "btn-link");
+    setCssProperty(ui->btnLink, "btn-menu");
     setCssProperty(ui->containerVotes, "card-progress-box");
     ui->containerVotes->setContentsMargins(1,1,1,1);
     ui->containerVotes->layout()->setMargin(0);
@@ -77,8 +77,7 @@ void ProposalCard::setStatusAndVotes(const QString& msg, int value)
 
 void ProposalCard::onCopyUrlClicked()
 {
-    GUIUtil::setClipboard(QString::fromStdString(proposalInfo.url));
-    Q_EMIT inform(tr("Proposal URL copied to clipboard"));
+    Q_EMIT onMenuClicked(this);
 }
 
 ProposalCard::~ProposalCard()

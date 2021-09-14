@@ -36,6 +36,7 @@ public Q_SLOTS:
 Q_SIGNALS:
     void voteClicked(const ProposalInfo& proposalInfo);
     void inform(const QString& text);
+    void onMenuClicked(ProposalCard* card);
 
 private:
     Ui::ProposalCard *ui;

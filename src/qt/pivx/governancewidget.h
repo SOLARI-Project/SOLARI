@@ -25,6 +25,7 @@ QT_END_NAMESPACE
 class MNModel;
 class PIVXGUI;
 class GovernanceModel;
+class TooltipMenu;
 
 class Delegate : public QStyledItemDelegate
 {
@@ -73,6 +74,11 @@ public Q_SLOTS:
     void chainHeightChanged(int height);
     void onVoteForPropClicked(const ProposalInfo& proposalInfo);
     void onCreatePropClicked();
+    void onMenuClicked(ProposalCard* card);
+    //
+    void onCopyUrl();
+    void onOpenClicked();
+    void onMoreInfoClicked();
 
 private:
     Ui::governancewidget *ui;
@@ -83,6 +89,9 @@ private:
     std::vector<ProposalCard*> cards;
     int propsPerRow = 0;
     QTimer* refreshTimer{nullptr};
+
+    TooltipMenu* propMenu{nullptr};
+    ProposalCard* menuCard{nullptr};
 
     // Proposals filter
     Optional<ProposalInfo::Status> statusFilter{nullopt};

@@ -7,7 +7,7 @@
 #include "qt/pivx/qtutils.h"
 #include "qt/pivx/votedialog.h"
 
-#include <map>
+#include <QDesktopServices>
 #include <QGraphicsDropShadowEffect>
 #include <QTimer>
 
@@ -166,6 +166,56 @@ void GovernanceWidget::onCreatePropClicked()
     dialog->deleteLater();
 }
 
+void GovernanceWidget::onMenuClicked(ProposalCard* card)
+{
+    if (!propMenu) {
+        propMenu = new TooltipMenu(window, this);
+        propMenu->setCopyBtnText(tr("Copy Url"));
+        propMenu->setEditBtnText(tr("Open Url"));
+        propMenu->setDeleteBtnText(tr("More Info"));
+        propMenu->setMaximumWidth(propMenu->maximumWidth() + 5);
+        propMenu->setFixedWidth(propMenu->width() + 5);
+        connect(propMenu, &TooltipMenu::message, this, &GovernanceWidget::message);
+        connect(propMenu, &TooltipMenu::onCopyClicked, this, &GovernanceWidget::onCopyUrl);
+        connect(propMenu, &TooltipMenu::onEditClicked, this, &GovernanceWidget::onOpenClicked);
+        connect(propMenu, &TooltipMenu::onDeleteClicked, this, &GovernanceWidget::onMoreInfoClicked);
+    } else {
+        propMenu->hide();
+    }
+    menuCard = card;
+    QRect rect = card->geometry();
+    QPoint pos = rect.topRight();
+    pos.setX(pos.x() - 22);
+    pos.setY(pos.y() + (isSync ? 100 : 140));
+    propMenu->move(pos);
+    propMenu->show();
+}
+
+void GovernanceWidget::onCopyUrl()
+{
+    if (!menuCard) return;
+    GUIUtil::setClipboard(QString::fromStdString(menuCard->getProposal().url));
+    inform(tr("Proposal URL copied to clipboard"));
+}
+
+void GovernanceWidget::onOpenClicked()
+{
+    if (!menuCard) return;
+    if (ask(tr("Open Proposal URL"),
+            tr("The following URL will be opened in the default browser") + "\n\n" +
+            QString::fromStdString(menuCard->getProposal().url) + "\n\n" +
+            tr("Are you sure?\n(Always verify the URL validity before opening it)\n"))) {
+        if (!QDesktopServices::openUrl(QUrl(QString::fromStdString(menuCard->getProposal().url)))) {
+            inform(tr("Failed to open proposal URL"));
+        }
+    }
+}
+
+void GovernanceWidget::onMoreInfoClicked()
+{
+    // add proposal info dialog.
+}
+
 void GovernanceWidget::loadClientModel()
 {
     connect(clientModel, &ClientModel::numBlocksChanged, this, &GovernanceWidget::chainHeightChanged);
@@ -246,6 +296,7 @@ ProposalCard* GovernanceWidget::newCard()
     ProposalCard* propCard = new ProposalCard(ui->scrollAreaWidgetContents);
     connect(propCard, &ProposalCard::voteClicked, this, &GovernanceWidget::onVoteForPropClicked);
     connect(propCard, &ProposalCard::inform, this, &GovernanceWidget::inform);
+    connect(propCard, &ProposalCard::onMenuClicked, this, &GovernanceWidget::onMenuClicked);
     setCardShadow(propCard);
     return propCard;
 }
@@ -318,6 +369,7 @@ void GovernanceWidget::refreshCardsGrid(bool forceRefresh)
         }
         gridLayout->takeAt(gridLayout->indexOf(card));
         it = cards.erase(it);
+        if (card == menuCard) menuCard = nullptr;
         delete card;
     }
 }
