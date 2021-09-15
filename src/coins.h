@@ -9,6 +9,7 @@
 
 #include "compressor.h"
 #include "consensus/consensus.h" // can be removed once policy/ established
+#include "crypto/siphash.h"
 #include "memusage.h"
 #include "sapling/incrementalmerkletree.h"
 #include "script/standard.h"

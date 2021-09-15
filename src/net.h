@@ -11,6 +11,7 @@
 #include "addrman.h"
 #include "bloom.h"
 #include "compat.h"
+#include "crypto/siphash.h"
 #include "fs.h"
 #include "hash.h"
 #include "limitedmap.h"

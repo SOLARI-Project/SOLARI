@@ -5,13 +5,12 @@ set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost COMPONENTS system filesystem thread unit_test_framework REQUIRED)
 
 set(JSON_TEST_FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/data/script_valid.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/data/script_tests.json
         ${CMAKE_CURRENT_SOURCE_DIR}/data/base58_keys_valid.json
         ${CMAKE_CURRENT_SOURCE_DIR}/data/sig_canonical.json
         ${CMAKE_CURRENT_SOURCE_DIR}/data/sig_noncanonical.json
         ${CMAKE_CURRENT_SOURCE_DIR}/data/base58_encode_decode.json
         ${CMAKE_CURRENT_SOURCE_DIR}/data/base58_keys_invalid.json
-        ${CMAKE_CURRENT_SOURCE_DIR}/data/script_invalid.json
         ${CMAKE_CURRENT_SOURCE_DIR}/data/tx_invalid.json
         ${CMAKE_CURRENT_SOURCE_DIR}/data/tx_valid.json
         ${CMAKE_CURRENT_SOURCE_DIR}/data/sighash.json
