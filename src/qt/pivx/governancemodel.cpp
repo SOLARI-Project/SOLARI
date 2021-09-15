@@ -109,6 +109,11 @@ int GovernanceModel::getNumBlocksPerBudgetCycle() const
     return Params().GetConsensus().nBudgetCycleBlocks;
 }
 
+int GovernanceModel::getProposalVoteUpdateMinTime() const
+{
+    return BUDGET_VOTE_UPDATE_MIN;
+}
+
 int GovernanceModel::getPropMaxPaymentsCount() const
 {
     return Params().GetConsensus().nMaxProposalPayments;
@@ -147,7 +152,7 @@ std::vector<VoteInfo> GovernanceModel::getLocalMNsVotesForProposal(const Proposa
         for (const auto& it : mapVotes) {
             for (const auto& mn : vecLocalMn) {
                 if (it.first == mn.first && it.second.IsValid()) {
-                    localVotes.emplace_back(mn.first, (VoteInfo::VoteDirection) it.second.GetDirection(), mn.second);
+                    localVotes.emplace_back(mn.first, (VoteInfo::VoteDirection) it.second.GetDirection(), mn.second, it.second.GetTime());
                     break;
                 }
             }

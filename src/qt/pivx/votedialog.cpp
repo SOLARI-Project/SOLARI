@@ -84,6 +84,17 @@ void VoteDialog::onAcceptClicked()
         return;
     }
 
+    // Check time between votes.
+    for (const auto& vote : votes) {
+        auto it = std::find(vecSelectedMn.begin(), vecSelectedMn.end(), vote.mnAlias);
+        if (it != vecSelectedMn.end()) {
+            if (vote.time + govModel->getProposalVoteUpdateMinTime() > GetAdjustedTime()) {
+                inform(tr("Time between votes is too soon, have to wait %1 minutes").arg(govModel->getProposalVoteUpdateMinTime()/60));
+                return;
+            }
+        }
+    }
+
     // Craft and broadcast vote
     auto res = govModel->voteForProposal(*proposal, isPositive, vecSelectedMn);
     if (!res) {

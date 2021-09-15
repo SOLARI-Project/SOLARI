@@ -63,10 +63,12 @@ struct VoteInfo {
         NO=2
     };
 
-    explicit VoteInfo(const COutPoint _mnId, VoteDirection _vote, std::string _mnAlias) : mnVoter(_mnId), vote(_vote), mnAlias(_mnAlias) {}
+    explicit VoteInfo(const COutPoint _mnId, VoteDirection _vote, std::string _mnAlias, int64_t _time) :
+        mnVoter(_mnId), vote(_vote), mnAlias(_mnAlias), time(_time) {}
     COutPoint mnVoter;
     VoteDirection vote;
     std::string mnAlias;
+    int64_t time;
 };
 
 class CBudgetProposal;
@@ -96,6 +98,8 @@ public:
     bool isRefreshNeeded() { return refreshNeeded; }
     // Return the number of blocks per budget cycle
     int getNumBlocksPerBudgetCycle() const;
+    // Return the minimum time when an MN can update a vote for a proposal
+    int getProposalVoteUpdateMinTime() const;
     // Return the budget maximum available amount for the running chain
     CAmount getMaxAvailableBudgetAmount() const;
     // Return the proposal maximum payments count for the running chain
