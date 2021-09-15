@@ -61,9 +61,6 @@ BOOST_FIXTURE_TEST_CASE(block_value, TestnetSetup)
     CAmount nExpectedRet = nBlockReward;
     CAmount nBudgetAmtRet = 0;
 
-    // under-minting
-    BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, -1, nBudgetAmtRet));
-
     // regular block
     BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, 0, nBudgetAmtRet));
     BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, nBlockReward-1, nBudgetAmtRet));
@@ -130,6 +127,17 @@ BOOST_FIXTURE_TEST_CASE(block_value, TestnetSetup)
     BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, nBlockReward+propAmt+1, nBudgetAmtRet));
     BOOST_CHECK_EQUAL(nExpectedRet, nBlockReward);
     BOOST_CHECK_EQUAL(nBudgetAmtRet, 0);
+}
+
+BOOST_FIXTURE_TEST_CASE(block_value_undermint, RegTestingSetup)
+{
+    int nHeight = 100;
+    CAmount nExpectedRet = GetBlockValue(nHeight);
+    CAmount nBudgetAmtRet = 0;
+    // under-minting blocks are invalid after v5.3
+    BOOST_CHECK(IsBlockValueValid(nHeight, nExpectedRet, -1, nBudgetAmtRet));
+    UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V5_3, Consensus::NetworkUpgrade::ALWAYS_ACTIVE);
+    BOOST_CHECK(!IsBlockValueValid(nHeight, nExpectedRet, -1, nBudgetAmtRet));
 }
 
 /**

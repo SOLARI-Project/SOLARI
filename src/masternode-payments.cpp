@@ -224,7 +224,11 @@ bool IsBlockValueValid(int nHeight, CAmount& nExpectedValue, CAmount nMinted, CA
         }
     }
 
-    return nMinted >= 0 && nMinted <= nExpectedValue;
+    if (nMinted < 0 && consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V5_3)) {
+        return false;
+    }
+
+    return nMinted <= nExpectedValue;
 }
 
 bool IsBlockPayeeValid(const CBlock& block, const CBlockIndex* pindexPrev)
@@ -328,7 +332,6 @@ bool CMasternodePayments::GetLegacyMasternodeTxOut(int nHeight, std::vector<CTxO
     CScript payee;
     if (!GetBlockPayee(nHeight, payee)) {
         //no masternode detected
-        const Consensus::Params& consensus = Params().GetConsensus();
         const uint256& hash = mnodeman.GetHashAtHeight(nHeight - 1);
         MasternodeRef winningNode = mnodeman.GetCurrentMasterNode(hash);
         if (winningNode) {
