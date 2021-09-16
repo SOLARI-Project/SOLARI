@@ -93,11 +93,11 @@ void CreateProposalDialog::setupPageTwo()
     setCssProperty(ui->labelTitleDest, "text-title-dialog");
     setCssProperty(ui->labelMessageDest, "dialog-proposal-message");
     setEditBoxStyle(ui->labelAmount, ui->lineEditAmount, "e.g 500 PIV");
-
+    setCssProperty(ui->labelMonths, "text-title");
     setEditBoxStyle(ui->labelAddress, ui->lineEditAddress, "e.g D...something..");
     setCssProperty(ui->lineEditAddress, "edit-primary-multi-book");
     actAddrList = ui->lineEditAddress->addAction(QIcon("://ic-contact-arrow-down"), QLineEdit::TrailingPosition);
-    ui->lineEditAmount->setValidator(new QIntValidator(1, govModel->getMaxAvailableBudgetAmount() / 100000000, this));
+    GUIUtil::setupAmountWidget(ui->lineEditAmount, this);
     setCssProperty(ui->lineEditMonths, "btn-spin-box");
     setShadow(ui->lineEditMonths);
     ui->lineEditMonths->setAttribute(Qt::WA_MacShowFocusRect, false);
@@ -153,6 +153,10 @@ void CreateProposalDialog::propAmountChanged(const QString& newText)
         return;
     }
     auto amount = GUIUtil::parseValue(newText);
+    if (amount > govModel->getMaxAvailableBudgetAmount()) {
+        ui->lineEditAmount->setText(newText.left(newText.size() - 1));
+        return;
+    }
     setCssEditLine(ui->lineEditAmount, govModel->validatePropAmount(amount).getRes(), true);
 }
 
@@ -337,7 +341,7 @@ void CreateProposalDialog::onAddrListClicked()
                 this
         );
         menuContacts->setWalletModel(walletModel, {AddressTableModel::Send, AddressTableModel::Receive});
-        connect(menuContacts, &ContactsDropdown::contactSelected, [this](QString address, QString label) {
+        connect(menuContacts, &ContactsDropdown::contactSelected, [this](const QString& address, const QString& label) {
             ui->lineEditAddress->setText(address);
         });
 
