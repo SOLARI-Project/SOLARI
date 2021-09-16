@@ -28,9 +28,9 @@ CreateProposalDialog::CreateProposalDialog(PIVXGUI* parent, GovernanceModel* _go
     ui(new Ui::CreateProposalDialog),
     govModel(_govModel),
     walletModel(_walletModel),
-    icConfirm1(new QPushButton()),
-    icConfirm2(new QPushButton()),
-    icConfirm3(new QPushButton())
+    icConfirm1(new QPushButton(this)),
+    icConfirm2(new QPushButton(this)),
+    icConfirm3(new QPushButton(this))
 {
     ui->setupUi(this);
     this->setStyleSheet(parent->styleSheet());
@@ -337,7 +337,7 @@ void CreateProposalDialog::onAddrListClicked()
         menuContacts = new ContactsDropdown(
                 width,
                 height,
-                static_cast<PIVXGUI*>(parent()),
+                dynamic_cast<PIVXGUI*>(parent()),
                 this
         );
         menuContacts->setWalletModel(walletModel, {AddressTableModel::Send, AddressTableModel::Receive});
@@ -356,11 +356,37 @@ void CreateProposalDialog::onAddrListClicked()
     menuContacts->setStyleSheet(this->styleSheet());
     menuContacts->adjustSize();
 
-    QPoint pos = ui->containerPage2->rect().bottomLeft();
-    pos.setY(pos.y() + rowHeight * 2 - 20);
-    pos.setX(pos.x() + 74); // Add widget's fixed padding manually
-    menuContacts->move(pos);
+    QPoint position = ui->containerPage2->rect().bottomLeft();
+    position.setY(position.y() + rowHeight * 2 - 20);
+    position.setX(position.x() + 74); // Add widget's fixed padding manually
+    menuContacts->move(position);
     menuContacts->show();
+}
+
+void CreateProposalDialog::keyPressEvent(QKeyEvent *e)
+{
+    if (e->type() == QEvent::KeyPress) {
+        QKeyEvent* ke = static_cast<QKeyEvent*>(e);
+        if (ke->key() == Qt::Key_Enter || ke->key() == Qt::Key_Return) onNextClicked();
+        if (ke->key() == Qt::Key_Escape) reject();
+    }
+}
+
+void CreateProposalDialog::showEvent(QShowEvent *event)
+{
+    switch (pos) {
+        case 0:
+            if (ui->lineEditPropName) ui->lineEditPropName->setFocus();
+            break;
+        case 1:
+            if (ui->lineEditAddress) ui->lineEditAddress->setFocus();
+            break;
+        case 2:
+            if (ui->btnNext) ui->btnNext->setFocus();
+            break;
+        default:
+            return;
+    }
 }
 
 void CreateProposalDialog::inform(const QString& text)

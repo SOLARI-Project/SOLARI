@@ -25,7 +25,9 @@ class CreateProposalDialog : public QDialog
 public:
     explicit CreateProposalDialog(PIVXGUI* parent, GovernanceModel* _govModel, WalletModel* _walletModel);
     ~CreateProposalDialog() override;
-
+protected:
+    void keyPressEvent(QKeyEvent* e) override;
+    void showEvent(QShowEvent* e) override;
 public Q_SLOTS:
     void onNextClicked();
     void onBackClicked();
