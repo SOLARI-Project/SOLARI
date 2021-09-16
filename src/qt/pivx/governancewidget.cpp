@@ -4,6 +4,7 @@
 #include "qt/pivx/createproposaldialog.h"
 #include "qt/pivx/governancemodel.h"
 #include "qt/pivx/mnmodel.h"
+#include "qt/pivx/proposalinfodialog.h"
 #include "qt/pivx/qtutils.h"
 #include "qt/pivx/votedialog.h"
 
@@ -213,7 +214,11 @@ void GovernanceWidget::onOpenClicked()
 
 void GovernanceWidget::onMoreInfoClicked()
 {
-    // add proposal info dialog.
+    window->showHide(true);
+    ProposalInfoDialog* dialog = new ProposalInfoDialog(window);
+    dialog->setProposal(menuCard->getProposal());
+    openDialogWithOpaqueBackgroundY(dialog, window, 4.5, ui->left->height() < 700 ? 12 : 5);
+    dialog->deleteLater();
 }
 
 void GovernanceWidget::loadClientModel()
@@ -259,6 +264,13 @@ void GovernanceWidget::showEvent(QShowEvent *event)
 void GovernanceWidget::hideEvent(QHideEvent *event)
 {
     refreshTimer->stop();
+}
+
+void GovernanceWidget::wheelEvent(QWheelEvent* event)
+{
+    if (propMenu && propMenu->isVisible()) {
+        propMenu->hide();
+    }
 }
 
 void GovernanceWidget::resizeEvent(QResizeEvent *event)

@@ -42,18 +42,24 @@ public:
     int remainingPayments;
     /** Proposal state */
     Status status;
+    /** Start superblock height */
+    int startBlock;
+    /** End superblock height */
+    int endBlock;
 
     ProposalInfo() {}
     explicit ProposalInfo(const uint256& _id, std::string  _name, std::string  _url,
                           int _votesYes, int _votesNo, std::string  _recipientAdd,
                           CAmount _amount, int _totalPayments, int _remainingPayments,
-                          Status _status) :
+                          Status _status, int _startBlock, int _endBlock) :
             id(_id), name(std::move(_name)), url(std::move(_url)), votesYes(_votesYes), votesNo(_votesNo),
             recipientAdd(std::move(_recipientAdd)), amount(_amount), totalPayments(_totalPayments),
-            remainingPayments(_remainingPayments), status(_status) {}
+            remainingPayments(_remainingPayments), status(_status), startBlock(_startBlock),
+            endBlock(_endBlock) {}
 
     bool operator==(const ProposalInfo& prop2) const { return id == prop2.id; }
     bool isFinished() { return status == Status::FINISHED; }
+    std::string statusToStr() const;
 };
 
 struct VoteInfo {

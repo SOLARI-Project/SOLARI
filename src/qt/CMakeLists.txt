@@ -149,6 +149,7 @@ SET(QT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/proposalcard.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/votedialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/createproposaldialog.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/pivx/proposalinfodialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/governancewidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingsbackupwallet.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/settings/settingsbittoolwidget.cpp

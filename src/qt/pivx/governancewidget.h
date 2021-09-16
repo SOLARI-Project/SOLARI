@@ -62,6 +62,7 @@ public:
 
     void showEvent(QShowEvent *event) override;
     void hideEvent(QHideEvent *event) override;
+    void wheelEvent(QWheelEvent* event) override;
     void resizeEvent(QResizeEvent *event) override;
     void loadClientModel() override;
     void loadWalletModel() override;

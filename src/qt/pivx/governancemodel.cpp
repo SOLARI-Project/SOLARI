@@ -20,6 +20,23 @@
 #include <algorithm>
 #include <QTimer>
 
+std::string ProposalInfo::statusToStr() const
+{
+    switch(status) {
+        case WAITING_FOR_APPROVAL:
+            return _("Waiting");
+        case PASSING:
+            return _("Passing");
+        case PASSING_NOT_FUNDED:
+            return _("Passing not funded");
+        case NOT_PASSING:
+            return _("Not Passing");
+        case FINISHED:
+            return _("Finished");
+    }
+    return "";
+}
+
 GovernanceModel::GovernanceModel(ClientModel* _clientModel, MNModel* _mnModel) : clientModel(_clientModel), mnModel(_mnModel) {}
 GovernanceModel::~GovernanceModel() {}
 
@@ -46,7 +63,7 @@ ProposalInfo GovernanceModel::buildProposalInfo(const CBudgetProposal* prop, boo
     } else {
         if (remainingPayments <= 0) {
             status = ProposalInfo::FINISHED;
-        } if (isPassing) {
+        } else if (isPassing) {
             status = ProposalInfo::PASSING;
         } else if (votesYes > votesNo) {
             status = ProposalInfo::PASSING_NOT_FUNDED;
@@ -64,7 +81,9 @@ ProposalInfo GovernanceModel::buildProposalInfo(const CBudgetProposal* prop, boo
             prop->GetAmount(),
             prop->GetTotalPaymentCount(),
             remainingPayments,
-            status);
+            status,
+            prop->GetBlockStart(),
+            prop->GetBlockEnd());
 }
 
 std::list<ProposalInfo> GovernanceModel::getProposals(const ProposalInfo::Status* filterByStatus, bool filterFinished)
