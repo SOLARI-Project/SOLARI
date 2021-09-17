@@ -185,11 +185,13 @@ int CMasternodeSync::GetNextAsset(int currentAsset)
 
 void CMasternodeSync::SwitchToNextAsset()
 {
+    if (RequestedMasternodeAssets == MASTERNODE_SYNC_INITIAL ||
+            RequestedMasternodeAssets == MASTERNODE_SYNC_FAILED) {
+        ClearFulfilledRequest();
+    }
     const int nextAsset = GetNextAsset(RequestedMasternodeAssets);
     if (nextAsset == MASTERNODE_SYNC_FINISHED) {
         LogPrintf("%s - Sync has finished\n", __func__);
-    } else if (nextAsset == MASTERNODE_SYNC_FAILED) {
-        ClearFulfilledRequest();
     }
     RequestedMasternodeAssets = nextAsset;
     RequestedMasternodeAttempt = 0;
