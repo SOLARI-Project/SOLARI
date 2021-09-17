@@ -162,6 +162,9 @@ BITCOIN_CORE_H = \
   bip38.h \
   bloom.h \
   blocksignature.h \
+  bls/bls_ies.h \
+  bls/bls_worker.h \
+  bls/bls_wrapper.h \
   chain.h \
   chainparams.h \
   chainparamsbase.h \
@@ -189,6 +192,7 @@ BITCOIN_CORE_H = \
   core_io.h \
   cuckoocache.h \
   crypter.h \
+  ctpl.h \
   cyclingvector.h \
   evo/deterministicmns.h \
   evo/evodb.h \
@@ -275,6 +279,8 @@ BITCOIN_CORE_H = \
   stakeinput.h \
   script/ismine.h \
   streams.h \
+  support/allocators/mt_pooled_secure.h \
+  support/allocators/pooled_secure.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
   support/cleanse.h \
@@ -335,6 +341,9 @@ libbitcoin_server_a_SOURCES = \
   addrman.cpp \
   bloom.cpp \
   blocksignature.cpp \
+  bls/bls_ies.cpp \
+  bls/bls_worker.cpp \
+  bls/bls_wrapper.cpp \
   chain.cpp \
   checkpoints.cpp \
   consensus/params.cpp \

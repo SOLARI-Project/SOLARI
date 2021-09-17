@@ -98,6 +98,7 @@ BITCOIN_TESTS =\
   test/base64_tests.cpp \
   test/bech32_tests.cpp \
   test/bip32_tests.cpp \
+  test/bls_tests.cpp \
   test/budget_tests.cpp \
   test/checkblock_tests.cpp \
   test/Checkpoints_tests.cpp \
