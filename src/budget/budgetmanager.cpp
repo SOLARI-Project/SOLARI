@@ -1110,7 +1110,7 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
     if (dmn) {
         const std::string& mn_protx_id = dmn->proTxHash.ToString();
 
-        if (!vote.CheckSignature(dmn->pdmnState->keyIDOperator)) {
+        if (!vote.CheckSignature(dmn->pdmnState->pubKeyOperator)) {
             err = strprintf("invalid fbvote sig from dmn: %s", mn_protx_id);
             return state.DoS(100, false, REJECT_INVALID, "bad-fbvote-sig", false, err);
         }

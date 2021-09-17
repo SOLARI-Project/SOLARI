@@ -28,7 +28,7 @@ extern CActiveDeterministicMasternodeManager* activeMasternodeManager;
 struct CActiveMasternodeInfo
 {
     // Keys for the active Masternode
-    CKeyID keyIDOperator;
+    CKeyID pubKeyOperator;
     CKey keyOperator;
     // Initialized while registering Masternode
     uint256 proTxHash{UINT256_ZERO};

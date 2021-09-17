@@ -29,7 +29,7 @@ public:
     COutPoint collateralOutpoint{UINT256_ZERO, (uint32_t)-1};   // if hash is null, we refer to a ProRegTx output
     CService addr;
     CKeyID keyIDOwner;
-    CKeyID keyIDOperator;
+    CKeyID pubKeyOperator;
     CKeyID keyIDVoting;
     CScript scriptPayout;
     uint16_t nOperatorReward{0};
@@ -47,7 +47,7 @@ public:
         READWRITE(obj.collateralOutpoint);
         READWRITE(obj.addr);
         READWRITE(obj.keyIDOwner);
-        READWRITE(obj.keyIDOperator);
+        READWRITE(obj.pubKeyOperator);
         READWRITE(obj.keyIDVoting);
         READWRITE(obj.scriptPayout);
         READWRITE(obj.nOperatorReward);
@@ -105,7 +105,7 @@ public:
     uint16_t nVersion{CURRENT_VERSION}; // message version
     uint256 proTxHash;
     uint16_t nMode{0}; // only 0 supported for now
-    CKeyID keyIDOperator;
+    CKeyID pubKeyOperator;
     CKeyID keyIDVoting;
     CScript scriptPayout;
     uint256 inputsHash; // replay protection
@@ -114,7 +114,7 @@ public:
 public:
     SERIALIZE_METHODS(ProUpRegPL, obj)
     {
-        READWRITE(obj.nVersion, obj.proTxHash, obj.nMode, obj.keyIDOperator, obj.keyIDVoting, obj.scriptPayout, obj.inputsHash);
+        READWRITE(obj.nVersion, obj.proTxHash, obj.nMode, obj.pubKeyOperator, obj.keyIDVoting, obj.scriptPayout, obj.inputsHash);
         if (!(s.GetType() & SER_GETHASH)) {
             READWRITE(obj.vchSig);
         }

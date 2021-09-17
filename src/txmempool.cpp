@@ -378,7 +378,7 @@ void CTxMemPool::addUncheckedSpecialTx(const CTransaction& tx)
             }
             mapProTxAddresses.emplace(pl.addr, txid);
             mapProTxPubKeyIDs.emplace(pl.keyIDOwner, txid);
-            mapProTxPubKeyIDs.emplace(pl.keyIDOperator, txid);
+            mapProTxPubKeyIDs.emplace(pl.pubKeyOperator, txid);
             break;
         }
 
@@ -396,7 +396,7 @@ void CTxMemPool::addUncheckedSpecialTx(const CTransaction& tx)
             bool ok = GetTxPayload(tx, pl);
             assert(ok);
             mapProTxRefs.emplace(pl.proTxHash, txid);
-            mapProTxPubKeyIDs.emplace(pl.keyIDOperator, tx.GetHash());
+            mapProTxPubKeyIDs.emplace(pl.pubKeyOperator, tx.GetHash());
             break;
         }
 
@@ -503,7 +503,7 @@ void CTxMemPool::removeUncheckedSpecialTx(const CTransaction& tx)
             mapProTxCollaterals.erase(pl.collateralOutpoint);
             mapProTxAddresses.erase(pl.addr);
             mapProTxPubKeyIDs.erase(pl.keyIDOwner);
-            mapProTxPubKeyIDs.erase(pl.keyIDOperator);
+            mapProTxPubKeyIDs.erase(pl.pubKeyOperator);
             break;
         }
 
@@ -521,7 +521,7 @@ void CTxMemPool::removeUncheckedSpecialTx(const CTransaction& tx)
             bool ok = GetTxPayload(tx, pl);
             assert(ok);
             eraseProTxRef(pl.proTxHash, txid);
-            mapProTxPubKeyIDs.erase(pl.keyIDOperator);
+            mapProTxPubKeyIDs.erase(pl.pubKeyOperator);
             break;
         }
 
@@ -792,7 +792,7 @@ void CTxMemPool::removeProTxConflicts(const CTransaction &tx)
                 }
             }
             removeProTxPubKeyConflicts(tx, pl.keyIDOwner);
-            removeProTxPubKeyConflicts(tx, pl.keyIDOperator);
+            removeProTxPubKeyConflicts(tx, pl.pubKeyOperator);
             if (!pl.collateralOutpoint.hash.IsNull()) {
                 removeProTxCollateralConflicts(tx, pl.collateralOutpoint);
             }
@@ -820,7 +820,7 @@ void CTxMemPool::removeProTxConflicts(const CTransaction &tx)
                 LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
                 return;
             }
-            removeProTxPubKeyConflicts(tx, pl.keyIDOperator);
+            removeProTxPubKeyConflicts(tx, pl.pubKeyOperator);
             break;
         }
 
@@ -1153,7 +1153,7 @@ bool CTxMemPool::existsProviderTxConflict(const CTransaction &tx) const
                 LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
                 return true; // i.e. can't decode payload == conflict
             }
-            if (mapProTxAddresses.count(pl.addr) || mapProTxPubKeyIDs.count(pl.keyIDOwner) || mapProTxPubKeyIDs.count(pl.keyIDOperator)) {
+            if (mapProTxAddresses.count(pl.addr) || mapProTxPubKeyIDs.count(pl.keyIDOwner) || mapProTxPubKeyIDs.count(pl.pubKeyOperator)) {
                 return true;
             }
             if (!pl.collateralOutpoint.hash.IsNull()) {
@@ -1185,7 +1185,7 @@ bool CTxMemPool::existsProviderTxConflict(const CTransaction &tx) const
                 LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
                 return true; // i.e. can't decode payload == conflict
             }
-            auto it = mapProTxPubKeyIDs.find(pl.keyIDOperator);
+            auto it = mapProTxPubKeyIDs.find(pl.pubKeyOperator);
             return it != mapProTxPubKeyIDs.end() && it->second != pl.proTxHash;
         }
 

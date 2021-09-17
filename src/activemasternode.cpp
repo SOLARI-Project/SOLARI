@@ -60,7 +60,7 @@ OperationResult CActiveDeterministicMasternodeManager::SetOperatorKey(const std:
     if (strMNOperatorPrivKey.empty()) {
         return errorOut("ERROR: Masternode operator priv key cannot be empty.");
     }
-    if (!CMessageSigner::GetKeysFromSecret(strMNOperatorPrivKey, info.keyOperator, info.keyIDOperator)) {
+    if (!CMessageSigner::GetKeysFromSecret(strMNOperatorPrivKey, info.keyOperator, info.pubKeyOperator)) {
         return errorOut(_("Invalid mnoperatorprivatekey. Please see the documentation."));
     }
     return OperationResult(true);
@@ -75,12 +75,12 @@ OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CKey& key,
     if (!dmn) {
         return errorOut(strprintf("Active masternode %s not registered or PoSe banned", info.proTxHash.ToString()));
     }
-    if (info.keyIDOperator != dmn->pdmnState->keyIDOperator) {
+    if (info.pubKeyOperator != dmn->pdmnState->pubKeyOperator) {
         return errorOut("Active masternode operator key changed or revoked");
     }
     // return keys
     key = info.keyOperator;
-    keyID = info.keyIDOperator;
+    keyID = info.pubKeyOperator;
     return OperationResult(true);
 }
 
@@ -119,7 +119,7 @@ void CActiveDeterministicMasternodeManager::Init()
 
     CDeterministicMNList mnList = deterministicMNManager->GetListAtChainTip();
 
-    CDeterministicMNCPtr dmn = mnList.GetMNByOperatorKey(info.keyIDOperator);
+    CDeterministicMNCPtr dmn = mnList.GetMNByOperatorKey(info.pubKeyOperator);
     if (!dmn) {
         // MN not appeared on the chain yet
         return;
@@ -192,7 +192,7 @@ void CActiveDeterministicMasternodeManager::UpdatedBlockTip(const CBlockIndex* p
             return;
         }
 
-        if (newDmn->pdmnState->keyIDOperator != oldDmn->pdmnState->keyIDOperator) {
+        if (newDmn->pdmnState->pubKeyOperator != oldDmn->pdmnState->pubKeyOperator) {
             // MN operator key changed or revoked
             Reset(MASTERNODE_OPERATOR_KEY_CHANGED);
             return;

@@ -114,7 +114,7 @@ static CMutableTransaction CreateProRegTx(Optional<COutPoint> optCollateralOut, 
     pl.collateralOutpoint = (optCollateralOut ? *optCollateralOut : COutPoint(UINT256_ZERO, 0));
     pl.addr = LookupNumeric("1.1.1.1", port);
     pl.keyIDOwner = ownerKey.GetPubKey().GetID();
-    pl.keyIDOperator = operatorKey.GetPubKey().GetID();
+    pl.pubKeyOperator = operatorKey.GetPubKey().GetID();
     pl.keyIDVoting = ownerKey.GetPubKey().GetID();
     pl.scriptPayout = scriptPayout;
     pl.nOperatorReward = operatorReward;
@@ -163,7 +163,7 @@ static CMutableTransaction CreateProUpRegTx(SimpleUTXOMap& utxos, const uint256&
 
     ProUpRegPL pl;
     pl.proTxHash = proTxHash;
-    pl.keyIDOperator = operatorKey.GetPubKey().GetID();
+    pl.pubKeyOperator = operatorKey.GetPubKey().GetID();
     pl.keyIDVoting = votingKey.GetPubKey().GetID();
     pl.scriptPayout = scriptPayout;
 
@@ -641,7 +641,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         SyncWithValidationInterfaceQueue();
         auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
         BOOST_ASSERT(dmn != nullptr);
-        BOOST_CHECK_MESSAGE(dmn->pdmnState->keyIDOperator == new_operatorKey.GetPubKey().GetID(), "mn operator key not changed");
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->pubKeyOperator == new_operatorKey.GetPubKey().GetID(), "mn operator key not changed");
         BOOST_CHECK_MESSAGE(dmn->pdmnState->keyIDVoting == new_votingKey.GetPubKey().GetID(), "mn voting key not changed");
         BOOST_CHECK_MESSAGE(dmn->pdmnState->scriptPayout == new_payee, "mn script payout not changed");
 
@@ -778,7 +778,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         SyncWithValidationInterfaceQueue();
         auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
         BOOST_ASSERT(dmn != nullptr);
-        BOOST_CHECK_MESSAGE(dmn->pdmnState->keyIDOperator == CKeyID(), "mn operator key not removed");
+        BOOST_CHECK_MESSAGE(dmn->pdmnState->pubKeyOperator == CKeyID(), "mn operator key not removed");
         BOOST_CHECK_MESSAGE(dmn->pdmnState->addr == CService(), "mn IP address not removed");
         BOOST_CHECK_MESSAGE(dmn->pdmnState->scriptOperatorPayout.empty(), "mn operator payout not removed");
         BOOST_CHECK_EQUAL(dmn->pdmnState->nRevocationReason, reason);

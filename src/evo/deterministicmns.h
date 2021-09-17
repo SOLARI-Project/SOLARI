@@ -39,7 +39,7 @@ public:
     uint256 confirmedHashWithProRegTxHash;
 
     CKeyID keyIDOwner;
-    CKeyID keyIDOperator;
+    CKeyID pubKeyOperator;
     CKeyID keyIDVoting;
     CService addr;
     CScript scriptPayout;
@@ -50,7 +50,7 @@ public:
     explicit CDeterministicMNState(const ProRegPL& pl)
     {
         keyIDOwner = pl.keyIDOwner;
-        keyIDOperator = pl.keyIDOperator;
+        pubKeyOperator = pl.pubKeyOperator;
         keyIDVoting = pl.keyIDVoting;
         addr = pl.addr;
         scriptPayout = pl.scriptPayout;
@@ -70,7 +70,7 @@ public:
         READWRITE(obj.confirmedHash);
         READWRITE(obj.confirmedHashWithProRegTxHash);
         READWRITE(obj.keyIDOwner);
-        READWRITE(obj.keyIDOperator);
+        READWRITE(obj.pubKeyOperator);
         READWRITE(obj.keyIDVoting);
         READWRITE(obj.addr);
         READWRITE(obj.scriptPayout);
@@ -79,7 +79,7 @@ public:
 
     void ResetOperatorFields()
     {
-        keyIDOperator = CKeyID();
+        pubKeyOperator = CKeyID();
         addr = CService();
         scriptOperatorPayout = CScript();
         nRevocationReason = ProUpRevPL::REASON_NOT_SPECIFIED;
@@ -119,7 +119,7 @@ public:
         Field_confirmedHash                     = 0x0040,
         Field_confirmedHashWithProRegTxHash     = 0x0080,
         Field_keyIDOwner                        = 0x0100,
-        Field_keyIDOperator                     = 0x0200,
+        Field_pubKeyOperator                     = 0x0200,
         Field_keyIDVoting                       = 0x0400,
         Field_addr                              = 0x0800,
         Field_scriptPayout                      = 0x1000,
@@ -136,7 +136,7 @@ public:
     DMN_STATE_DIFF_LINE(confirmedHash) \
     DMN_STATE_DIFF_LINE(confirmedHashWithProRegTxHash) \
     DMN_STATE_DIFF_LINE(keyIDOwner) \
-    DMN_STATE_DIFF_LINE(keyIDOperator) \
+    DMN_STATE_DIFF_LINE(pubKeyOperator) \
     DMN_STATE_DIFF_LINE(keyIDVoting) \
     DMN_STATE_DIFF_LINE(addr) \
     DMN_STATE_DIFF_LINE(scriptPayout) \

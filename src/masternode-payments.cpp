@@ -479,7 +479,7 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
         auto dmn = mnList.GetMNByCollateral(winner.vinMasternode.prevout);
         if (dmn) {
             fDeterministic = true;
-            mnKeyID = Optional<CKeyID>(dmn->pdmnState->keyIDOperator);
+            mnKeyID = Optional<CKeyID>(dmn->pdmnState->pubKeyOperator);
         } else {
             const CMasternode* pmn = mnodeman.Find(winner.vinMasternode.prevout);
             if (pmn) {

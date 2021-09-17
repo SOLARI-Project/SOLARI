@@ -379,7 +379,7 @@ static mnKeyList getDMNKeys(CWallet* const pwallet, const Optional<std::string>&
     mnList.ForEachMN(true, [&](const CDeterministicMNCPtr& dmn) {
         bool filtered = mnFilter && dmn->proTxHash == mnFilter->proTxHash;
         if (!mnFilter || filtered) {
-            const CKeyID& mnKeyID = fFinal ? dmn->pdmnState->keyIDOperator : dmn->pdmnState->keyIDVoting;
+            const CKeyID& mnKeyID = fFinal ? dmn->pdmnState->pubKeyOperator : dmn->pdmnState->keyIDVoting;
             CKey mnKey;
             if (pwallet->GetKey(mnKeyID, mnKey)) {
                 mnKeys.emplace_back(dmn->proTxHash.ToString(), &dmn->collateralOutpoint, mnKey);
