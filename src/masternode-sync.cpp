@@ -343,9 +343,6 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
                 return false;
             }
 
-            if (pnode->HasFulfilledRequest("mnsync")) return true;
-            pnode->FulfilledRequest("mnsync");
-
             // timeout
             if (lastMasternodeList == 0 &&
                 (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 3 || GetTime() - nAssetSyncStarted > MASTERNODE_SYNC_TIMEOUT * 5)) {
@@ -363,6 +360,10 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
 
             if (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 3) return false;
 
+            // Request mnb sync if we haven't requested it yet.
+            if (pnode->HasFulfilledRequest("mnsync")) return true;
+            pnode->FulfilledRequest("mnsync");
+
             mnodeman.DsegUpdate(pnode);
             RequestedMasternodeAttempt++;
             return false;
@@ -378,9 +379,6 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
                 SwitchToNextAsset();
                 return false;
             }
-
-            if (pnode->HasFulfilledRequest("mnwsync")) return true;
-            pnode->FulfilledRequest("mnwsync");
 
             // timeout
             if (lastMasternodeWinner == 0 &&
@@ -398,6 +396,10 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
             }
 
             if (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 3) return false;
+
+            // Request mnw sync if we haven't requested it yet.
+            if (pnode->HasFulfilledRequest("mnwsync")) return true;
+            pnode->FulfilledRequest("mnwsync");
 
             int nMnCount = mnodeman.CountEnabled();
             g_connman->PushMessage(pnode, msgMaker.Make(NetMsgType::GETMNWINNERS, nMnCount)); //sync payees
@@ -425,10 +427,11 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
                 return false;
             }
 
+            if (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 3) return false;
+
+            // Request bud sync if we haven't requested it yet.
             if (pnode->HasFulfilledRequest("busync")) return true;
             pnode->FulfilledRequest("busync");
-
-            if (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 3) return false;
 
             uint256 n;
             g_connman->PushMessage(pnode, msgMaker.Make(NetMsgType::BUDGETVOTESYNC, n)); //sync masternode votes
