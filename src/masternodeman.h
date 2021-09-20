@@ -86,6 +86,9 @@ private:
     // Relay a MN
     void BroadcastInvMN(CMasternode* mn, CNode* pfrom);
 
+    // Validation
+    bool CheckInputs(CMasternodeBroadcast& mnb, int nChainHeight, int& nDoS);
+
 public:
     // Keep track of all broadcasts I've seen
     std::map<uint256, CMasternodeBroadcast> mapSeenMasternodeBroadcast;

@@ -253,8 +253,7 @@ public:
     CMasternodeBroadcast(const CMasternode& mn);
 
     bool CheckAndUpdate(int& nDoS, int nChainHeight);
-    bool CheckInputs(int nChainHeight, int& nDoS);
-    bool CheckInputsAndAdd(int chainHeight, int& nDos);
+    bool AddAndRelayMNB(int& nDos);
 
     uint256 GetHash() const;
 

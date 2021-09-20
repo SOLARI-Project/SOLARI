@@ -731,6 +731,53 @@ std::vector<std::pair<int64_t, MasternodeRef>> CMasternodeMan::GetMasternodeRank
     return vecMasternodeScores;
 }
 
+bool CMasternodeMan::CheckInputs(CMasternodeBroadcast& mnb, int nChainHeight, int& nDoS)
+{
+    // incorrect ping or its sigTime
+    if(mnb.lastPing.IsNull() || !mnb.lastPing.CheckAndUpdate(nDoS, nChainHeight, false, true)) {
+        return false;
+    }
+
+    // search existing Masternode list
+    CMasternode* pmn = Find(mnb.vin.prevout);
+    if (pmn != nullptr) {
+        // nothing to do here if we already know about this masternode and it's enabled
+        if (pmn->IsEnabled()) return true;
+        // if it's not enabled, remove old MN first and continue
+        else
+            mnodeman.Remove(pmn->vin.prevout);
+    }
+
+    const Coin& collateralUtxo = pcoinsTip->AccessCoin(mnb.vin.prevout);
+    if (collateralUtxo.IsSpent()) {
+        LogPrint(BCLog::MASTERNODE,"mnb - vin %s spent\n", mnb.vin.prevout.ToString());
+        return false;
+    }
+
+    LogPrint(BCLog::MASTERNODE, "mnb - Accepted Masternode entry\n");
+    const int utxoHeight = (int) collateralUtxo.nHeight;
+    int collateralUtxoDepth = nChainHeight - utxoHeight + 1;
+    if (collateralUtxoDepth < MasternodeCollateralMinConf()) {
+        LogPrint(BCLog::MASTERNODE,"mnb - Input must have at least %d confirmations\n", MasternodeCollateralMinConf());
+        // maybe we miss few blocks, let this mnb to be checked again later
+        mapSeenMasternodeBroadcast.erase(mnb.GetHash());
+        masternodeSync.mapSeenSyncMNB.erase(mnb.GetHash());
+        return false;
+    }
+
+    // verify that sig time is legit in past
+    // should be at least not earlier than block when 1000 PIV tx got MASTERNODE_MIN_CONFIRMATIONS
+    CBlockIndex* pConfIndex = WITH_LOCK(cs_main, return chainActive[utxoHeight + MasternodeCollateralMinConf() - 1]); // block where tx got MASTERNODE_MIN_CONFIRMATIONS
+    if (pConfIndex->GetBlockTime() > mnb.sigTime) {
+        LogPrint(BCLog::MASTERNODE,"mnb - Bad sigTime %d for Masternode %s (%i conf block is at %d)\n",
+                 mnb.sigTime, mnb.vin.prevout.hash.ToString(), MasternodeCollateralMinConf(), pConfIndex->GetBlockTime());
+        return false;
+    }
+
+    // Good input
+    return true;
+}
+
 int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
 {
     const uint256& mnbHash = mnb.GetHash();
@@ -765,8 +812,12 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     }
 
     // make sure it's still unspent
-    //  - this is checked later by .check() in many places and by ThreadCheckObfuScationPool()
-    if (mnb.CheckInputsAndAdd(chainHeight, nDoS)) {
+    if (!CheckInputs(mnb, chainHeight, nDoS)) {
+        return nDoS; // error set internally
+    }
+
+    // Add
+    if (mnb.AddAndRelayMNB(nDoS)) {
         // use this as a peer
         g_connman->AddNewAddress(CAddress(mnb.addr, NODE_NETWORK), pfrom->addr, 2 * 60 * 60);
         masternodeSync.AddedMasternodeList(mnbHash);

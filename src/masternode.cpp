@@ -485,59 +485,8 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
     return true;
 }
 
-bool CMasternodeBroadcast::CheckInputs(int nChainHeight, int& nDoS)
+bool CMasternodeBroadcast::AddAndRelayMNB(int& nDoS)
 {
-    // incorrect ping or its sigTime
-    if(lastPing.IsNull() || !lastPing.CheckAndUpdate(nDoS, nChainHeight, false, true)) {
-        return false;
-    }
-
-    // search existing Masternode list
-    CMasternode* pmn = mnodeman.Find(vin.prevout);
-    if (pmn != NULL) {
-        // nothing to do here if we already know about this masternode and it's enabled
-        if (pmn->IsEnabled()) return true;
-        // if it's not enabled, remove old MN first and continue
-        else
-            mnodeman.Remove(pmn->vin.prevout);
-    }
-
-    const Coin& collateralUtxo = pcoinsTip->AccessCoin(vin.prevout);
-    if (collateralUtxo.IsSpent()) {
-        LogPrint(BCLog::MASTERNODE,"mnb - vin %s spent\n", vin.prevout.ToString());
-        return false;
-    }
-
-    LogPrint(BCLog::MASTERNODE, "mnb - Accepted Masternode entry\n");
-    const int utxoHeight = collateralUtxo.nHeight;
-    int collateralUtxoDepth = nChainHeight - utxoHeight + 1;
-    if (collateralUtxoDepth < MasternodeCollateralMinConf()) {
-        LogPrint(BCLog::MASTERNODE,"mnb - Input must have at least %d confirmations\n", MasternodeCollateralMinConf());
-        // maybe we miss few blocks, let this mnb to be checked again later
-        mnodeman.mapSeenMasternodeBroadcast.erase(GetHash());
-        masternodeSync.mapSeenSyncMNB.erase(GetHash());
-        return false;
-    }
-
-    // verify that sig time is legit in past
-    // should be at least not earlier than block when 1000 PIV tx got MASTERNODE_MIN_CONFIRMATIONS
-    CBlockIndex* pConfIndex = WITH_LOCK(cs_main, return chainActive[utxoHeight + MasternodeCollateralMinConf() - 1]); // block where tx got MASTERNODE_MIN_CONFIRMATIONS
-    if (pConfIndex->GetBlockTime() > sigTime) {
-        LogPrint(BCLog::MASTERNODE,"mnb - Bad sigTime %d for Masternode %s (%i conf block is at %d)\n",
-            sigTime, vin.prevout.hash.ToString(), MasternodeCollateralMinConf(), pConfIndex->GetBlockTime());
-        return false;
-    }
-
-    // Good input
-    return true;
-}
-
-bool CMasternodeBroadcast::CheckInputsAndAdd(int nChainHeight, int& nDoS)
-{
-    if (!CheckInputs(nChainHeight, nDoS)) {
-        return false; // error set internally
-    }
-
     LogPrint(BCLog::MASTERNODE,"mnb - Got NEW Masternode entry - %s - %lli \n", vin.prevout.hash.ToString(), sigTime);
     CMasternode mn(*this);
     mnodeman.Add(mn);
