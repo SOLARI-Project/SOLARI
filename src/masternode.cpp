@@ -485,17 +485,8 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
     return true;
 }
 
-bool CMasternodeBroadcast::CheckInputsAndAdd(int nChainHeight, int& nDoS)
+bool CMasternodeBroadcast::CheckInputs(int nChainHeight, int& nDoS)
 {
-    // we are a masternode with the same vin (i.e. already activated) and this mnb is ours (matches our Masternode privkey)
-    // so nothing to do here for us
-    if (fMasterNode && activeMasternode.vin != nullopt &&
-            vin.prevout == activeMasternode.vin->prevout &&
-            pubKeyMasternode == activeMasternode.pubKeyMasternode &&
-            activeMasternode.GetStatus() == ACTIVE_MASTERNODE_STARTED) {
-        return true;
-    }
-
     // incorrect ping or its sigTime
     if(lastPing.IsNull() || !lastPing.CheckAndUpdate(nDoS, nChainHeight, false, true)) {
         return false;
@@ -535,6 +526,25 @@ bool CMasternodeBroadcast::CheckInputsAndAdd(int nChainHeight, int& nDoS)
         LogPrint(BCLog::MASTERNODE,"mnb - Bad sigTime %d for Masternode %s (%i conf block is at %d)\n",
             sigTime, vin.prevout.hash.ToString(), MasternodeCollateralMinConf(), pConfIndex->GetBlockTime());
         return false;
+    }
+
+    // Good input
+    return true;
+}
+
+bool CMasternodeBroadcast::CheckInputsAndAdd(int nChainHeight, int& nDoS)
+{
+    // we are a masternode with the same vin (i.e. already activated) and this mnb is ours (matches our Masternode privkey)
+    // so nothing to do here for us
+    if (fMasterNode && activeMasternode.vin != nullopt &&
+            vin.prevout == activeMasternode.vin->prevout &&
+            pubKeyMasternode == activeMasternode.pubKeyMasternode &&
+            activeMasternode.GetStatus() == ACTIVE_MASTERNODE_STARTED) {
+        return true;
+    }
+
+    if (!CheckInputs(nChainHeight, nDoS)) {
+        return false; // error set internally
     }
 
     LogPrint(BCLog::MASTERNODE,"mnb - Got NEW Masternode entry - %s - %lli \n", vin.prevout.hash.ToString(), sigTime);
