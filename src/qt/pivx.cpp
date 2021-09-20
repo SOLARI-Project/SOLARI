@@ -43,8 +43,9 @@
 #include "wallet/wallet.h"
 #endif
 
+#include <atomic>
+
 #include <QApplication>
-#include <QDebug>
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QMessageBox>
@@ -163,7 +164,7 @@ public:
 public Q_SLOTS:
     void initialize();
     void shutdown();
-    void restart(QStringList args);
+    void restart(const QStringList& args);
 
 Q_SIGNALS:
     void initializeResult(int retval);
@@ -171,9 +172,6 @@ Q_SIGNALS:
     void runawayException(const QString& message);
 
 private:
-    /// Flag indicating a restart
-    bool execute_restart{false};
-
     /// Pass fatal exception message to UI thread
     void handleRunawayException(const std::exception* e);
 };
@@ -259,8 +257,6 @@ void BitcoinCore::handleRunawayException(const std::exception* e)
 
 void BitcoinCore::initialize()
 {
-    execute_restart = true;
-
     try {
         qDebug() << __func__ << ": Running AppInit2 in thread";
         if (!AppInitBasicSetup()) {
@@ -284,10 +280,10 @@ void BitcoinCore::initialize()
     }
 }
 
-void BitcoinCore::restart(QStringList args)
+void BitcoinCore::restart(const QStringList& args)
 {
-    if (execute_restart) { // Only restart 1x, no matter how often a user clicks on a restart-button
-        execute_restart = false;
+    static std::atomic<bool> restartAvailable{true};
+    if (restartAvailable.exchange(false)) {
         try {
             qDebug() << __func__ << ": Running Restart in thread";
             Interrupt();
