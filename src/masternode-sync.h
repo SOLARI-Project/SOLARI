@@ -123,6 +123,9 @@ private:
 
     // Check if an update is needed
     void CheckAndUpdateSyncStatus();
+
+    // Mark sync timeout
+    void syncTimeout(const std::string& reason);
 };
 
 #endif
