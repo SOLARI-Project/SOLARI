@@ -816,15 +816,30 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
         return nDoS; // error set internally
     }
 
-    // Add
-    if (mnb.AddAndRelayMNB(nDoS)) {
-        // use this as a peer
-        g_connman->AddNewAddress(CAddress(mnb.addr, NODE_NETWORK), pfrom->addr, 2 * 60 * 60);
-        masternodeSync.AddedMasternodeList(mnbHash);
-    } else {
-        LogPrint(BCLog::MASTERNODE,"mnb - Rejected Masternode entry %s\n", mnb.vin.prevout.hash.ToString());
-        return nDoS;
+    // All checks performed, add it
+    LogPrint(BCLog::MASTERNODE,"%s - Got NEW Masternode entry - %s - %lli \n", __func__,
+             mnb.vin.prevout.hash.ToString(), mnb.sigTime);
+    CMasternode mn(mnb);
+    if (!Add(mn)) {
+        LogPrint(BCLog::MASTERNODE, "%s - Rejected Masternode entry %s\n", __func__,
+                 mnb.vin.prevout.hash.ToString());
+        return 0;
     }
+
+    // if it matches our MN pubkey, then we've been remotely activated
+    if (mnb.pubKeyMasternode == activeMasternode.pubKeyMasternode && mnb.protocolVersion == PROTOCOL_VERSION) {
+        activeMasternode.EnableHotColdMasterNode(mnb.vin, mnb.addr);
+    }
+    //  Relay
+    bool isLocal = (mnb.addr.IsRFC1918() || mnb.addr.IsLocal()) && !Params().IsRegTestNet();
+    if (!isLocal) mnb.Relay();
+
+    // Add it as a peer
+    g_connman->AddNewAddress(CAddress(mnb.addr, NODE_NETWORK), pfrom->addr, 2 * 60 * 60);
+
+    // Update sync status
+    masternodeSync.AddedMasternodeList(mnbHash);
+
     // All good
     return 0;
 }

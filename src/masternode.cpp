@@ -485,26 +485,6 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
     return true;
 }
 
-bool CMasternodeBroadcast::AddAndRelayMNB(int& nDoS)
-{
-    LogPrint(BCLog::MASTERNODE,"mnb - Got NEW Masternode entry - %s - %lli \n", vin.prevout.hash.ToString(), sigTime);
-    CMasternode mn(*this);
-    if (!mnodeman.Add(mn)) {
-        return false;
-    }
-
-    // if it matches our Masternode privkey, then we've been remotely activated
-    if (pubKeyMasternode == activeMasternode.pubKeyMasternode && protocolVersion == PROTOCOL_VERSION) {
-        activeMasternode.EnableHotColdMasterNode(vin, addr);
-    }
-
-    bool isLocal = (addr.IsRFC1918() || addr.IsLocal()) && !Params().IsRegTestNet();
-
-    if (!isLocal) Relay();
-
-    return true;
-}
-
 void CMasternodeBroadcast::Relay()
 {
     CInv inv(MSG_MASTERNODE_ANNOUNCE, GetHash());

@@ -253,7 +253,6 @@ public:
     CMasternodeBroadcast(const CMasternode& mn);
 
     bool CheckAndUpdate(int& nDoS, int nChainHeight);
-    bool AddAndRelayMNB(int& nDos);
 
     uint256 GetHash() const;
 
