@@ -489,7 +489,9 @@ bool CMasternodeBroadcast::AddAndRelayMNB(int& nDoS)
 {
     LogPrint(BCLog::MASTERNODE,"mnb - Got NEW Masternode entry - %s - %lli \n", vin.prevout.hash.ToString(), sigTime);
     CMasternode mn(*this);
-    mnodeman.Add(mn);
+    if (!mnodeman.Add(mn)) {
+        return false;
+    }
 
     // if it matches our Masternode privkey, then we've been remotely activated
     if (pubKeyMasternode == activeMasternode.pubKeyMasternode && protocolVersion == PROTOCOL_VERSION) {
