@@ -277,7 +277,7 @@ void CMasternodeSync::Process()
         /*
             Resync if we lose all masternodes from sleep/wake or failure to sync originally
         */
-        if (mnodeman.CountEnabled() == 0 && !isRegTestNet) {
+        if (mnodeman.CountEnabled(true /* only_legacy */) == 0 && !isRegTestNet) {
             Reset();
         } else
             return;
@@ -401,7 +401,7 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
             if (pnode->HasFulfilledRequest("mnwsync")) return true;
             pnode->FulfilledRequest("mnwsync");
 
-            int nMnCount = mnodeman.CountEnabled();
+            int nMnCount = mnodeman.CountEnabled(true /* only_legacy */);
             g_connman->PushMessage(pnode, msgMaker.Make(NetMsgType::GETMNWINNERS, nMnCount)); //sync payees
             RequestedMasternodeAttempt++;
             return false;

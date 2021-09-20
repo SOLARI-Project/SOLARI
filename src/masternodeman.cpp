@@ -352,11 +352,11 @@ void CMasternodeMan::Clear()
     nDsqCount = 0;
 }
 
-static void CountNetwork(const MasternodeRef& mn, int& ipv4, int& ipv6, int& onion)
+static void CountNetwork(const CService& addr, int& ipv4, int& ipv6, int& onion)
 {
     std::string strHost;
     int port;
-    SplitHostPort(mn->addr.ToString(), port, strHost);
+    SplitHostPort(addr.ToString(), port, strHost);
     CNetAddr node;
     LookupHost(strHost, node, false);
     switch(node.GetNetwork()) {
@@ -378,29 +378,44 @@ CMasternodeMan::MNsInfo CMasternodeMan::getMNsInfo() const
 {
     MNsInfo info;
     int nMinProtocol = ActiveProtocol();
+    bool spork_8_active = sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT);
 
-    LOCK(cs);
-    for (const auto& it : mapMasternodes) {
-        const MasternodeRef& mn = it.second;
-        info.total++;
-        CountNetwork(mn, info.ipv4, info.ipv6, info.onion);
-        if (mn->protocolVersion < nMinProtocol || !mn->IsEnabled()) {
-            continue;
-        }
-        info.enabledSize++;
-        // Eligible for payments
-        if (sporkManager.IsSporkActive (SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)) {
-            if (GetAdjustedTime() - mn->sigTime < MN_WINNER_MINIMUM_AGE) {
+    // legacy masternodes
+    {
+        LOCK(cs);
+        for (const auto& it : mapMasternodes) {
+            const MasternodeRef& mn = it.second;
+            info.total++;
+            CountNetwork(mn->addr, info.ipv4, info.ipv6, info.onion);
+            if (mn->protocolVersion < nMinProtocol || !mn->IsEnabled()) {
+                continue;
+            }
+            info.enabledSize++;
+            // Eligible for payments
+            if (spork_8_active && (GetAdjustedTime() - mn->sigTime < MN_WINNER_MINIMUM_AGE)) {
                 continue; // Skip masternodes younger than (default) 8000 sec (MUST be > MASTERNODE_REMOVAL_SECONDS)
             }
+            info.stableSize++;
         }
-        info.stableSize++;
+    }
+
+    // deterministic masternodes
+    if (deterministicMNManager->IsDIP3Enforced()) {
+        auto mnList = deterministicMNManager->GetListAtChainTip();
+        mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
+            info.total++;
+            CountNetwork(dmn->pdmnState->addr, info.ipv4, info.ipv6, info.onion);
+            if (mnList.IsMNValid(dmn)) {
+                info.enabledSize++;
+                info.stableSize++;
+            }
+        });
     }
 
     return info;
 }
 
-int CMasternodeMan::CountEnabled() const
+int CMasternodeMan::CountEnabled(bool only_legacy) const
 {
     int i = 0;
     int protocolVersion = ActiveProtocol();
@@ -411,17 +426,11 @@ int CMasternodeMan::CountEnabled() const
         i++;
     }
 
-    return i;
-}
-
-int CMasternodeMan::CountNetworks(int& ipv4, int& ipv6, int& onion) const
-{
-    LOCK(cs);
-    for (const auto& it : mapMasternodes) {
-        const MasternodeRef& mn = it.second;
-        CountNetwork(mn, ipv4, ipv6, onion);
+    if (!only_legacy && deterministicMNManager->IsDIP3Enforced()) {
+        i += deterministicMNManager->GetListAtChainTip().GetValidMNsCount();
     }
-    return (int) mapMasternodes.size();
+
+    return i;
 }
 
 void CMasternodeMan::DsegUpdate(CNode* pnode)
@@ -530,19 +539,13 @@ MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeigh
     MasternodeRef pBestMasternode = nullptr;
     std::vector<std::pair<int64_t, MasternodeRef> > vecMasternodeLastPaid;
 
-    CDeterministicMNList mnList;
-    if (deterministicMNManager->IsDIP3Enforced()) {
-        mnList = deterministicMNManager->GetListAtChainTip();
-    }
-
     /*
         Make a vector with all of the last paid times
     */
     int minProtocol = ActiveProtocol();
-    int nMnCount = mnList.GetValidMNsCount();
+    int nMnCount = CountEnabled();
     {
         LOCK(cs);
-        nMnCount += CountEnabled();
         for (const auto& it : mapMasternodes) {
             if (!it.second->IsEnabled()) continue;
             if (canScheduleMN(fFilterSigTime, it.second, minProtocol, nMnCount, nBlockHeight)) {
@@ -551,12 +554,15 @@ MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeigh
         }
     }
     // Add deterministic masternodes to the vector
-    mnList.ForEachMN(true, [&](const CDeterministicMNCPtr& dmn) {
-        const MasternodeRef mn = MakeMasternodeRefForDMN(dmn);
-        if (canScheduleMN(fFilterSigTime, mn, minProtocol, nMnCount, nBlockHeight)) {
-            vecMasternodeLastPaid.emplace_back(SecondsSincePayment(mn, BlockReading), mn);
-        }
-    });
+    if (deterministicMNManager->IsDIP3Enforced()) {
+        CDeterministicMNList mnList = deterministicMNManager->GetListAtChainTip();
+        mnList.ForEachMN(true, [&](const CDeterministicMNCPtr& dmn) {
+            const MasternodeRef mn = MakeMasternodeRefForDMN(dmn);
+            if (canScheduleMN(fFilterSigTime, mn, minProtocol, nMnCount, nBlockHeight)) {
+                vecMasternodeLastPaid.emplace_back(SecondsSincePayment(mn, BlockReading), mn);
+            }
+        });
+    }
 
     nCount = (int)vecMasternodeLastPaid.size();
 
