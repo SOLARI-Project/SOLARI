@@ -48,6 +48,12 @@ class DIP3Test(PivxTestFramework):
             self.check_mn_list_on_node(i, mns)
         self.log.info("Deterministic list contains %d masternodes for all peers." % len(mns))
 
+    def check_mn_enabled_count(self, enabled, total):
+        for node in self.nodes:
+            node_count = node.getmasternodecount()
+            assert_equal(node_count['enabled'], enabled)
+            assert_equal(node_count['total'], total)
+
     def get_addr_balance(self, node, addr):
         rcv = node.listreceivedbyaddress(0, False, False, addr)
         return rcv[0]['amount'] if len(rcv) > 0 else 0
@@ -131,6 +137,9 @@ class DIP3Test(PivxTestFramework):
         # -- DIP3 enforced and SPORK_21 active here --
         self.wait_until_mnsync_completed()
 
+        # enabled/total masternodes: 0/0
+        self.check_mn_enabled_count(0, 0)
+
         # Create 3 DMNs and init the remote nodes
         self.log.info("Initializing masternodes...")
         self.add_new_dmn(mns, "internal")
@@ -141,6 +150,9 @@ class DIP3Test(PivxTestFramework):
             time.sleep(1)
         miner.generate(1)
         self.sync_blocks()
+
+        # enabled/total masternodes: 3/3
+        self.check_mn_enabled_count(3, 3)
 
         # Init the other 3 remote nodes before creating the ProReg tx
         self.log.info("Initializing more masternodes...")
@@ -162,6 +174,9 @@ class DIP3Test(PivxTestFramework):
         self.sync_blocks()
         time.sleep(1)
         self.log.info("Masternodes started.")
+
+        # enabled/total masternodes: 6/6
+        self.check_mn_enabled_count(6, 6)
         self.check_mn_list(mns)
 
         # Check status from remote nodes
@@ -188,6 +203,9 @@ class DIP3Test(PivxTestFramework):
         miner.generate(1)
         self.sync_blocks()
         assert_greater_than(miner.getrawtransaction(spend_txid, True)["confirmations"], 0)
+
+        # enabled/total masternodes: 5/5
+        self.check_mn_enabled_count(5, 5)
         self.check_mn_list(mns)
 
         # Register dmn again, with the collateral of dmn2
@@ -200,6 +218,9 @@ class DIP3Test(PivxTestFramework):
                                          outpoint=dmn2.collateral, op_addr_and_key=dmn_keys))
         miner.generate(1)
         self.sync_blocks()
+
+        # enabled/total masternodes: 5/5
+        self.check_mn_enabled_count(5, 5)
         self.check_mn_list(mns)
 
         # Now try to register dmn2 again with an already-used IP
@@ -235,6 +256,9 @@ class DIP3Test(PivxTestFramework):
         json_tx = self.nodes[dmn2c.idx].getrawtransaction(dmn2c.proTx, True)
         assert_greater_than(json_tx['confirmations'], 0)
         self.check_proreg_payload(dmn2c, json_tx)
+
+        # enabled/total masternodes: 6/6
+        self.check_mn_enabled_count(6, 6)
         self.check_mn_list(mns)     # 6 masternodes again
 
         # Test payments.
@@ -317,9 +341,13 @@ class DIP3Test(PivxTestFramework):
         self.sync_mempools([miner, controller])
         miner.generate(1)
         self.sync_blocks()
-        # Updating the operator address, clears the IP (and puts the mn in PoSe banned state)
+
+        # enabled/total masternodes: 5/6
+        # Updating the operator key, clears the IP (and puts the mn in PoSe banned state)
+        self.check_mn_enabled_count(5, 6)
         mns[0].ipport = "[::]:0"
         self.check_mn_list(mns)
+
         old_mn0_balance = self.get_addr_balance(controller, mns[0].payee)
         self.log.info("Update operator address (with external key)...")
         mns[0].operator = self.nodes[mns[0].idx].getnewaddress()
@@ -328,6 +356,7 @@ class DIP3Test(PivxTestFramework):
         miner.protx_update_registrar(mns[0].proTx, mns[0].operator, "", "", ownerKey)
         miner.generate(1)
         self.sync_blocks()
+        self.check_mn_enabled_count(5, 6) # stil not valid until new operator sends proUpServ
         self.check_mn_list(mns)
         self.log.info("Update voting address...")
         mns[1].voting = controller.getnewaddress()
@@ -335,6 +364,7 @@ class DIP3Test(PivxTestFramework):
         self.sync_mempools([miner, controller])
         miner.generate(1)
         self.sync_blocks()
+        self.check_mn_enabled_count(5, 6)
         self.check_mn_list(mns)
         self.log.info("Update payout address...")
         old_payee = mns[2].payee
@@ -346,6 +376,7 @@ class DIP3Test(PivxTestFramework):
         old_mn2_bal = self.get_addr_balance(controller, old_payee)
         miner.generate(len(mns)-1)
         self.sync_blocks()
+        self.check_mn_enabled_count(5, 6)
         self.check_mn_list(mns)
         # Check payment to new address
         self.log.info("Checking payments...")
@@ -367,6 +398,7 @@ class DIP3Test(PivxTestFramework):
         self.sync_mempools([miner, controller])
         miner.generate(1)
         self.sync_blocks()
+        self.check_mn_enabled_count(4, 6)   # mn3 has been revoked
         self.check_mn_list(mns)
         old_mn3_bal = self.get_addr_balance(controller, mns[3].payee)
         self.log.info("Revoke masternode (with external key)...")
@@ -378,7 +410,11 @@ class DIP3Test(PivxTestFramework):
         old_mn4_bal = self.get_addr_balance(controller, mns[4].payee)
         miner.generate(len(mns) + 1)
         self.sync_blocks()
+
+        # enabled/total masternodes: 3/6 (mn0 banned, mn3 and mn4 revoked)
+        self.check_mn_enabled_count(3, 6)
         self.check_mn_list(mns)
+
         # Check (no) payments
         self.log.info("Checking payments...")
         assert_equal(self.get_addr_balance(controller, mns[3].payee), old_mn3_bal)
@@ -394,7 +430,11 @@ class DIP3Test(PivxTestFramework):
         miner.protx_update_service(mns[3].proTx, mns[3].ipport, "", mns[3].operator_key)
         miner.generate(len(mns))
         self.sync_blocks()
+
+        # enabled/total masternodes: 4/6 (mn3 is back)
+        self.check_mn_enabled_count(4, 6)
         self.check_mn_list(mns)
+
         self.log.info("Checking payments...")
         assert_equal(self.get_addr_balance(controller, mns[3].payee), old_mn3_bal + Decimal('3'))
 
