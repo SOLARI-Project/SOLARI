@@ -755,6 +755,15 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     // now that did the basic mnb checks, can add it.
     mapSeenMasternodeBroadcast.emplace(mnbHash, mnb);
 
+    // If we are a masternode with the same vin (i.e. already activated) and this mnb is ours (matches our Masternode pubkey)
+    // nothing to do here for us
+    if (fMasterNode && activeMasternode.vin != nullopt &&
+        mnb.vin.prevout == activeMasternode.vin->prevout &&
+        mnb.pubKeyMasternode == activeMasternode.pubKeyMasternode &&
+        activeMasternode.GetStatus() == ACTIVE_MASTERNODE_STARTED) {
+        return 0;
+    }
+
     // make sure it's still unspent
     //  - this is checked later by .check() in many places and by ThreadCheckObfuScationPool()
     if (mnb.CheckInputsAndAdd(chainHeight, nDoS)) {
@@ -970,7 +979,7 @@ int64_t CMasternodeMan::GetLastPaid(const MasternodeRef& mn, int count_enabled, 
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     ss << mn->vin;
     ss << mn->sigTime;
-    uint256 hash = ss.GetHash();
+    const uint256& hash = ss.GetHash();
 
     // use a deterministic offset to break a tie -- 2.5 minutes
     int64_t nOffset = UintToArith256(hash).GetCompact(false) % 150;
