@@ -619,7 +619,7 @@ bool CBudgetManager::GetFinalizedBudget(const uint256& nHash, CFinalizedBudget& 
 bool CBudgetManager::IsBudgetPaymentBlock(int nBlockHeight, int& nCountThreshold) const
 {
     int nHighestCount = GetHighestVoteCount(nBlockHeight);
-    int nCountEnabled = mnodeman.CountEnabled(ActiveProtocol());
+    int nCountEnabled = mnodeman.CountEnabled();
     int nFivePercent = nCountEnabled / 20;
     // threshold for highest finalized budgets (highest vote count - 10% of active masternodes)
     nCountThreshold = nHighestCount - (nCountEnabled / 10);
@@ -712,7 +712,7 @@ std::vector<CBudgetProposal> CBudgetManager::GetBudget()
     const int nBlocksPerCycle = Params().GetConsensus().nBudgetCycleBlocks;
     int nBlockStart = nHeight - nHeight % nBlocksPerCycle + nBlocksPerCycle;
     int nBlockEnd = nBlockStart + nBlocksPerCycle - 1;
-    int mnCount = mnodeman.CountEnabled(ActiveProtocol());
+    int mnCount = mnodeman.CountEnabled();
     CAmount nTotalBudget = GetTotalBudget(nBlockStart);
 
     for (CBudgetProposal* pbudgetProposal: vBudgetPorposalsSort) {
@@ -736,7 +736,7 @@ std::vector<CBudgetProposal> CBudgetManager::GetBudget()
         } else {
             LogPrint(BCLog::MNBUDGET,"%s:  -   Check 1 failed: valid=%d | %ld <= %ld | %ld >= %ld | Yeas=%d Nays=%d Count=%d | established=%d\n",
                     __func__, pbudgetProposal->IsValid(), pbudgetProposal->GetBlockStart(), nBlockStart, pbudgetProposal->GetBlockEnd(),
-                    nBlockEnd, pbudgetProposal->GetYeas(), pbudgetProposal->GetNays(), mnodeman.CountEnabled(ActiveProtocol()) / 10,
+                    nBlockEnd, pbudgetProposal->GetYeas(), pbudgetProposal->GetNays(), mnodeman.CountEnabled() / 10,
                     pbudgetProposal->IsEstablished());
         }
 

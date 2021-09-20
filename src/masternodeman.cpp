@@ -400,10 +400,10 @@ CMasternodeMan::MNsInfo CMasternodeMan::getMNsInfo() const
     return info;
 }
 
-int CMasternodeMan::CountEnabled(int protocolVersion) const
+int CMasternodeMan::CountEnabled() const
 {
     int i = 0;
-    protocolVersion = protocolVersion == -1 ? ActiveProtocol() : protocolVersion;
+    int protocolVersion = ActiveProtocol();
 
     for (const auto& it : mapMasternodes) {
         const MasternodeRef& mn = it.second;
