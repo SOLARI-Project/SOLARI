@@ -216,17 +216,16 @@ bool CMasternode::IsValidNetAddr() const
 
 bool CMasternode::IsInputAssociatedWithPubkey() const
 {
-    CScript payee;
-    payee = GetScriptForDestination(pubKeyCollateralAddress.GetID());
+    CScript payee = GetScriptForDestination(pubKeyCollateralAddress.GetID());
+    const Coin& collateralUtxo = pcoinsTip->AccessCoin(vin.prevout);
+    if (collateralUtxo.IsSpent()) {
+        LogPrint(BCLog::MASTERNODE,"%s mnb - vin %s spent\n", __func__, vin.prevout.ToString());
+        return false;
+    }
 
-    CTransactionRef txVin;
-    uint256 hash;
-    if(GetTransaction(vin.prevout.hash, txVin, hash, true)) {
-        for (const CTxOut& out : txVin->vout) {
-            if (out.nValue == Params().GetConsensus().nMNCollateralAmt &&
-                out.scriptPubKey == payee)
-                return true;
-        }
+    if (collateralUtxo.out.nValue == Params().GetConsensus().nMNCollateralAmt &&
+        collateralUtxo.out.scriptPubKey == payee) {
+        return true;
     }
 
     return false;
