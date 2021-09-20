@@ -164,6 +164,7 @@ public:
 public Q_SLOTS:
     void initialize();
     void shutdown();
+    bool shutdownFromThread(const QString& type = "Shutdown");
     void restart(const QStringList& args);
 
 Q_SIGNALS:
@@ -276,7 +277,7 @@ void BitcoinCore::initialize()
     } catch (const std::exception& e) {
         handleRunawayException(&e);
     } catch (...) {
-        handleRunawayException(NULL);
+        handleRunawayException(nullptr);
     }
 }
 
@@ -284,37 +285,37 @@ void BitcoinCore::restart(const QStringList& args)
 {
     static std::atomic<bool> restartAvailable{true};
     if (restartAvailable.exchange(false)) {
-        try {
-            qDebug() << __func__ << ": Running Restart in thread";
-            Interrupt();
-            PrepareShutdown();
-            qDebug() << __func__ << ": Shutdown finished";
-            Q_EMIT shutdownResult(1);
-            CExplicitNetCleanup::callCleanup();
-            QProcess::startDetached(QApplication::applicationFilePath(), args);
-            qDebug() << __func__ << ": Restart initiated...";
-            QApplication::quit();
-        } catch (const std::exception& e) {
-            handleRunawayException(&e);
-        } catch (...) {
-            handleRunawayException(NULL);
+        if (!shutdownFromThread("restart")) {
+            qDebug() << __func__ << ": Restart failed...";
+            return;
         }
+        CExplicitNetCleanup::callCleanup();
+        QProcess::startDetached(QApplication::applicationFilePath(), args);
+        qDebug() << __func__ << ": Restart initiated...";
+        QApplication::quit();
     }
 }
 
 void BitcoinCore::shutdown()
 {
+    shutdownFromThread("Shutdown");
+}
+
+bool BitcoinCore::shutdownFromThread(const QString& type)
+{
     try {
-        qDebug() << __func__ << ": Running Shutdown in thread";
+        qDebug() << __func__ << ": Running "+type+" in thread";
         Interrupt();
         Shutdown();
-        qDebug() << __func__ << ": Shutdown finished";
+        qDebug() << __func__ << ": "+type+" finished";
         Q_EMIT shutdownResult(1);
+        return true;
     } catch (const std::exception& e) {
         handleRunawayException(&e);
     } catch (...) {
-        handleRunawayException(NULL);
+        handleRunawayException(nullptr);
     }
+    return false;
 }
 
 BitcoinApplication::BitcoinApplication(int& argc, char** argv) : QApplication(argc, argv),
