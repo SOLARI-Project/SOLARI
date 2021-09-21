@@ -799,15 +799,13 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
         return 33;
     }
 
-    // now that did the basic mnb checks, can add it.
-    mapSeenMasternodeBroadcast.emplace(mnbHash, mnb);
-
     // If we are a masternode with the same vin (i.e. already activated) and this mnb is ours (matches our Masternode pubkey)
     // nothing to do here for us
     if (fMasterNode && activeMasternode.vin != nullopt &&
         mnb.vin.prevout == activeMasternode.vin->prevout &&
         mnb.pubKeyMasternode == activeMasternode.pubKeyMasternode &&
         activeMasternode.GetStatus() == ACTIVE_MASTERNODE_STARTED) {
+        mapSeenMasternodeBroadcast.emplace(mnbHash, mnb);
         return 0;
     }
 
@@ -815,6 +813,9 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     if (!CheckInputs(mnb, chainHeight, nDoS)) {
         return nDoS; // error set internally
     }
+
+    // now that did the mnb checks, can add it.
+    mapSeenMasternodeBroadcast.emplace(mnbHash, mnb);
 
     // All checks performed, add it
     LogPrint(BCLog::MASTERNODE,"%s - Got NEW Masternode entry - %s - %lli \n", __func__,
