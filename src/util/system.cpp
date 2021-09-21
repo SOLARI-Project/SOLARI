@@ -92,7 +92,6 @@ std::string strBudgetMode = "";
 
 ArgsManager gArgs;
 
-bool fDaemon = false;
 CTranslationInterface translationInterface;
 
 bool CheckDiskSpace(const fs::path& dir, uint64_t additional_bytes)
