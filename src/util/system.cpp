@@ -87,8 +87,6 @@ const char * const PIVX_MASTERNODE_CONF_FILENAME = "masternode.conf";
 // Masternode
 std::atomic<bool> fMasterNode{false};
 bool fLiteMode = false;
-// budget finalization
-std::string strBudgetMode = "";
 
 ArgsManager gArgs;
 

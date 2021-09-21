@@ -55,7 +55,6 @@ extern const char * const DEFAULT_DEBUGLOGFILE;
 
 extern std::atomic<bool> fMasterNode;
 extern bool fLiteMode;
-extern std::string strBudgetMode;
 
 extern CTranslationInterface translationInterface;
 
