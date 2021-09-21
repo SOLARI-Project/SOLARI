@@ -550,9 +550,6 @@ TotalAmounts CoinControlDialog::getTotals() const
             t.nBytes += (GetCompactSize(nShieldIns) + GetCompactSize(nShieldOuts));
         }
 
-        // !TODO: ExtraPayload size for special txes. For now 1 byte for nullopt.
-        t.nBytes += 1;
-
         // nVersion, nType, nLockTime
         t.nBytes += 8;
 
