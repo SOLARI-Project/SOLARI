@@ -137,6 +137,8 @@ public:
     // Only initialized masternodes: sign and submit votes on valid finalized budgets
     void VoteOnFinalizedBudgets();
 
+    int CountProposals() { LOCK(cs_proposals); return mapProposals.size(); }
+
     void CheckOrphanVotes();
     void Clear()
     {
