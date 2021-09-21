@@ -754,6 +754,21 @@ bool CMasternodeMan::CheckInputs(CMasternodeBroadcast& mnb, int nChainHeight, in
         return false;
     }
 
+    // Check collateral value
+    if (collateralUtxo.out.nValue != Params().GetConsensus().nMNCollateralAmt) {
+        LogPrint(BCLog::MASTERNODE,"mnb - invalid amount for mnb collateral %s\n", mnb.vin.prevout.ToString());
+        nDoS = 33;
+        return false;
+    }
+
+    // Check collateral association with mnb pubkey
+    CScript payee = GetScriptForDestination(mnb.pubKeyCollateralAddress.GetID());
+    if (collateralUtxo.out.scriptPubKey != payee) {
+        LogPrint(BCLog::MASTERNODE,"mnb - collateral %s not associated with mnb pubkey\n", mnb.vin.prevout.ToString());
+        nDoS = 33;
+        return false;
+    }
+
     LogPrint(BCLog::MASTERNODE, "mnb - Accepted Masternode entry\n");
     const int utxoHeight = (int) collateralUtxo.nHeight;
     int collateralUtxoDepth = nChainHeight - utxoHeight + 1;
@@ -790,13 +805,6 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     int nDoS = 0;
     if (!mnb.CheckAndUpdate(nDoS, chainHeight)) {
         return nDoS;
-    }
-
-    // make sure the vout that was signed is related to the transaction that spawned the Masternode
-    //  - this is expensive, so it's only done once per Masternode
-    if (!mnb.IsInputAssociatedWithPubkey()) {
-        LogPrint(BCLog::MASTERNODE, "%s : mnb - Got mismatched pubkey and vin\n", __func__);
-        return 33;
     }
 
     // If we are a masternode with the same vin (i.e. already activated) and this mnb is ours (matches our Masternode pubkey)

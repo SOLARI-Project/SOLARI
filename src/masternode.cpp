@@ -214,23 +214,6 @@ bool CMasternode::IsValidNetAddr() const
            (IsReachable(addr) && addr.IsRoutable());
 }
 
-bool CMasternode::IsInputAssociatedWithPubkey() const
-{
-    CScript payee = GetScriptForDestination(pubKeyCollateralAddress.GetID());
-    const Coin& collateralUtxo = pcoinsTip->AccessCoin(vin.prevout);
-    if (collateralUtxo.IsSpent()) {
-        LogPrint(BCLog::MASTERNODE,"%s mnb - vin %s spent\n", __func__, vin.prevout.ToString());
-        return false;
-    }
-
-    if (collateralUtxo.out.nValue == Params().GetConsensus().nMNCollateralAmt &&
-        collateralUtxo.out.scriptPubKey == payee) {
-        return true;
-    }
-
-    return false;
-}
-
 CMasternodeBroadcast::CMasternodeBroadcast() :
         CMasternode()
 { }
