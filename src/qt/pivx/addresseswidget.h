@@ -7,13 +7,11 @@
 
 #include "qt/pivx/pwidget.h"
 #include "addresstablemodel.h"
-#include "qt/pivx/tooltipmenu.h"
 #include "furabstractlistitemdelegate.h"
-#include "qt/pivx/addressfilterproxymodel.h"
 
 #include <QWidget>
 
-class AddressViewDelegate;
+class AddressFilterProxyModel;
 class TooltipMenu;
 class PIVXGUI;
 class WalletModel;
@@ -35,7 +33,6 @@ public:
     ~AddressesWidget();
 
     void loadWalletModel() override;
-    void onNewContactClicked();
 
 private Q_SLOTS:
     void handleAddressClicked(const QModelIndex &index);
@@ -55,7 +52,6 @@ private:
     AddressTableModel* addressTablemodel = nullptr;
     AddressFilterProxyModel *filter = nullptr;
 
-    bool isOnMyAddresses = true;
     TooltipMenu* menu = nullptr;
 
     // Cached index

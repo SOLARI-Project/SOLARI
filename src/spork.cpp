@@ -167,11 +167,9 @@ int CSporkManager::ProcessSporkMsg(CSporkMessage& spork)
     LogPrintf("%s : got %s spork %d (%s) with value %d (signed at %d)\n", __func__,
               strStatus, spork.nSporkID, sporkName, spork.nValue, spork.nTimeSigned);
 
-    AddOrUpdateSporkMessage(spork);
+    AddOrUpdateSporkMessage(spork, true);
     spork.Relay();
 
-    // PIVX: add to spork database.
-    pSporkDB->WriteSpork(spork.nSporkID, spork);
     // All good.
     return 0;
 }
@@ -201,18 +199,24 @@ bool CSporkManager::UpdateSpork(SporkId nSporkID, int64_t nValue)
 
     if (spork.Sign(strMasterPrivKey)) {
         spork.Relay();
-        AddOrUpdateSporkMessage(spork);
+        AddOrUpdateSporkMessage(spork, true);
         return true;
     }
 
     return false;
 }
 
-void CSporkManager::AddOrUpdateSporkMessage(const CSporkMessage& spork)
+void CSporkManager::AddOrUpdateSporkMessage(const CSporkMessage& spork, bool flush)
 {
-    LOCK(cs);
-    mapSporks[spork.GetHash()] = spork;
-    mapSporksActive[spork.nSporkID] = spork;
+    {
+        LOCK(cs);
+        mapSporks[spork.GetHash()] = spork;
+        mapSporksActive[spork.nSporkID] = spork;
+    }
+    if (flush) {
+        // add to spork database.
+        pSporkDB->WriteSpork(spork.nSporkID, spork);
+    }
 }
 
 // grab the spork value, and see if it's off
