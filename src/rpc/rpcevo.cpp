@@ -229,6 +229,19 @@ static CBLSSecretKey ParseBLSSecretKey(const std::string& hexKey)
     return secKey;
 }
 
+static CBLSSecretKey GetBLSSecretKey(const std::string& hexKey)
+{
+    if (!hexKey.empty()) {
+        return ParseBLSSecretKey(hexKey);
+    }
+    // If empty, get the active masternode key
+    CBLSSecretKey sk; CBLSPublicKey pk; CTxIn vin;
+    if (!GetActiveDMNKeys(sk, pk, vin)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Active masternode key not found. Insert DMN operator private key.");
+    }
+    return sk;
+}
+
 #ifdef ENABLE_WALLET
 
 template<typename SpecialTxPayload>
@@ -847,15 +860,7 @@ UniValue protx_update_service(const JSONRPCRequest& request)
     }
 
     const std::string& strOpKey = request.params.size() > 3 ? request.params[3].get_str() : "";
-    CBLSSecretKey operatorKey;
-    if (strOpKey.empty()) {
-        CBLSPublicKey pk; CTxIn vin;
-        if (!GetActiveDMNKeys(operatorKey, pk, vin)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Active masternode key not found. Insert DMN operator private key.");
-        }
-    } else {
-        operatorKey = ParseBLSSecretKey(strOpKey);
-    }
+    const CBLSSecretKey& operatorKey = GetBLSSecretKey(strOpKey);
 
     CMutableTransaction tx;
     tx.nVersion = CTransaction::TxVersion::SAPLING;
@@ -983,15 +988,7 @@ UniValue protx_revoke(const JSONRPCRequest& request)
     }
 
     const std::string& strOpKey = request.params.size() > 1 ? request.params[1].get_str() : "";
-    CBLSSecretKey operatorKey;
-    if (strOpKey.empty()) {
-        CBLSPublicKey pk; CTxIn vin;
-        if (!GetActiveDMNKeys(operatorKey, pk, vin)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Active masternode key not found. Insert DMN operator private key.");
-        }
-    } else {
-        operatorKey = ParseBLSSecretKey(strOpKey);
-    }
+    const CBLSSecretKey& operatorKey = GetBLSSecretKey(strOpKey);
 
     pl.nReason = ProUpRevPL::RevocationReason::REASON_NOT_SPECIFIED;
     if (request.params.size() > 2) {
