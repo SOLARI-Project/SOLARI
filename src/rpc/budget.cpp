@@ -425,8 +425,8 @@ static mnKeyList getDMNKeysForActiveMasternode(UniValue& resultsObj)
         throw JSONRPCError(RPC_MISC_ERROR, _("This is not a deterministic masternode. 'local' option disabled."));
     }
 
-    CBLSSecretKey sk; CBLSPublicKey pk; CDeterministicMNCPtr dmn;
-    auto res = activeMasternodeManager->GetOperatorKey(sk, pk, dmn);
+    CBLSSecretKey sk; CDeterministicMNCPtr dmn;
+    auto res = activeMasternodeManager->GetOperatorKey(sk, dmn);
     if (!res) {
         resultsObj.push_back(packErrorRetStatus("local", res.getError()));
         return {};

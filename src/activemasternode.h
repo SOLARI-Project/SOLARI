@@ -65,7 +65,7 @@ public:
     OperationResult SetOperatorKey(const std::string& strMNOperatorPrivKey);
     // If the active masternode is ready, and the keyID matches with the registered one,
     // return private key, keyID, and pointer to dmn.
-    OperationResult GetOperatorKey(CBLSSecretKey& key, CBLSPublicKey& pubkey, CDeterministicMNCPtr& dmn) const;
+    OperationResult GetOperatorKey(CBLSSecretKey& key, CDeterministicMNCPtr& dmn) const;
     void SetNullProTx() { info.proTxHash = UINT256_ZERO; }
 
     const CActiveMasternodeInfo* GetInfo() const { return &info; }
@@ -121,6 +121,6 @@ public:
 // Compatibility code: get vin and keys for either legacy or deterministic masternode
 bool GetActiveMasternodeKeys(CTxIn& vin, Optional<CKey>& key, CBLSSecretKey& blsKey);
 // Get active masternode BLS operator keys for DMN
-bool GetActiveDMNKeys(CBLSSecretKey& key, CBLSPublicKey& pubkey, CTxIn& vin);
+bool GetActiveDMNKeys(CBLSSecretKey& key, CTxIn& vin);
 
 #endif

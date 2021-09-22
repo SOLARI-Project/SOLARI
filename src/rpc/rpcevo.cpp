@@ -235,8 +235,8 @@ static CBLSSecretKey GetBLSSecretKey(const std::string& hexKey)
         return ParseBLSSecretKey(hexKey);
     }
     // If empty, get the active masternode key
-    CBLSSecretKey sk; CBLSPublicKey pk; CTxIn vin;
-    if (!GetActiveDMNKeys(sk, pk, vin)) {
+    CBLSSecretKey sk; CTxIn vin;
+    if (!GetActiveDMNKeys(sk, vin)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Active masternode key not found. Insert DMN operator private key.");
     }
     return sk;
