@@ -30,9 +30,9 @@ static inline QString formatHtmlContent(const QString& str) {
 MasterNodeWizardDialog::MasterNodeWizardDialog(WalletModel* model, ClientModel* _clientModel, QWidget *parent) :
     FocusedDialog(parent),
     ui(new Ui::MasterNodeWizardDialog),
-    icConfirm1(new QPushButton()),
-    icConfirm3(new QPushButton()),
-    icConfirm4(new QPushButton()),
+    icConfirm1(new QPushButton(this)),
+    icConfirm3(new QPushButton(this)),
+    icConfirm4(new QPushButton(this)),
     walletModel(model),
     clientModel(_clientModel)
 {
