@@ -6,6 +6,7 @@
 #define MN_SELECTION_DEFAULTDIALOG_H
 
 #include <QDialog>
+#include <map>
 
 namespace Ui {
     class MnSelectionDialog;
@@ -27,7 +28,7 @@ public:
     void setModel(MNModel* _mnModel);
     void updateView();
     // Sets the MNs who already voted for this proposal
-    void setMnVoters(const std::vector<VoteInfo>& votes);
+    void setMnVoters(const std::vector<VoteInfo>& _votes);
     // Return the MNs who are going to vote for this proposal
     std::vector<std::string> getSelectedMnAlias();
 
@@ -41,17 +42,21 @@ private:
     int colCheckBoxWidth_treeMode{50};
     // selected MNs alias
     std::vector<std::string> selectedMnList;
+    // MN alias -> VoteInfo for a certain proposal
+    std::map<std::string, VoteInfo> votes;
 
     enum {
         COLUMN_CHECKBOX,
         COLUMN_NAME,
+        COLUMN_VOTE,
         COLUMN_STATUS
     };
 
     void appendItem(QFlags<Qt::ItemFlag> flgCheckbox,
                     QFlags<Qt::ItemFlag> flgTristate,
                     const QString& mnName,
-                    const QString& mnStats);
+                    const QString& mnStats,
+                    VoteInfo* ptrVoteInfo);
 };
 
 #endif // MN_SELECTION_DEFAULTDIALOG_H

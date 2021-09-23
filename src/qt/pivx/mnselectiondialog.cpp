@@ -26,11 +26,15 @@ MnSelectionDialog::MnSelectionDialog(QWidget *parent) :
 
     ui->treeWidget->setColumnWidth(COLUMN_CHECKBOX, colCheckBoxWidth_treeMode);
     ui->treeWidget->setColumnWidth(COLUMN_NAME, 110);
+    ui->treeWidget->setColumnWidth(COLUMN_VOTE, 50);
     ui->treeWidget->setColumnWidth(COLUMN_STATUS, 60);
     ui->treeWidget->header()->setStretchLastSection(true);
     ui->treeWidget->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     ui->treeWidget->setRootIsDecorated(false);
     ui->treeWidget->setFocusPolicy(Qt::NoFocus);
+    ui->treeWidget->model()->setHeaderData(COLUMN_NAME, Qt::Horizontal, Qt::AlignLeft , Qt::TextAlignmentRole);
+    ui->treeWidget->model()->setHeaderData(COLUMN_VOTE, Qt::Horizontal, Qt::AlignHCenter , Qt::TextAlignmentRole);
+    ui->treeWidget->model()->setHeaderData(COLUMN_STATUS, Qt::Horizontal, Qt::AlignHCenter , Qt::TextAlignmentRole);
 
     connect(ui->btnEsc, &QPushButton::clicked, this, &MnSelectionDialog::close);
     connect(ui->btnCancel, &QPushButton::clicked, this, &MnSelectionDialog::close);
@@ -44,10 +48,10 @@ void MnSelectionDialog::setModel(MNModel* _mnModel)
     mnModel = _mnModel;
 }
 
-void MnSelectionDialog::setMnVoters(const std::vector<VoteInfo>& votes)
+void MnSelectionDialog::setMnVoters(const std::vector<VoteInfo>& _votes)
 {
-    for (const auto& voter : votes) {
-        selectedMnList.emplace_back(voter.mnAlias);
+    for (const auto& vote : _votes) {
+        votes.emplace(vote.mnAlias, vote);
     }
 }
 
@@ -102,14 +106,17 @@ void MnSelectionDialog::selectAll()
 void MnSelectionDialog::updateView()
 {
     ui->treeWidget->clear();
-    ui->treeWidget->setEnabled(false); // performance, otherwise updateLabels would be called for every checked checkbox
+    ui->treeWidget->setEnabled(false); // performance, otherwise the labels update would be called for every checked checkbox
     QFlags<Qt::ItemFlag> flgCheckbox = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
     QFlags<Qt::ItemFlag> flgTristate = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable | Qt::ItemIsTristate;
 
     for (int i = 0; i < mnModel->rowCount(); ++i) {
         QString alias = mnModel->index(i, MNModel::ALIAS, QModelIndex()).data().toString();
         QString status = mnModel->index(i, MNModel::STATUS, QModelIndex()).data().toString();
-        appendItem(flgCheckbox, flgTristate, alias, status);
+        VoteInfo* ptrVoteInfo{nullptr};
+        auto it = votes.find(alias.toStdString());
+        if (it != votes.end()) { ptrVoteInfo = &it->second; }
+        appendItem(flgCheckbox, flgTristate, alias, status, ptrVoteInfo);
     }
 
     // save COLUMN_CHECKBOX width for tree-mode
@@ -123,7 +130,8 @@ void MnSelectionDialog::updateView()
 void MnSelectionDialog::appendItem(QFlags<Qt::ItemFlag> flgCheckbox,
                                    QFlags<Qt::ItemFlag> flgTristate,
                                    const QString& mnName,
-                                   const QString& mnStatus)
+                                   const QString& mnStatus,
+                                   VoteInfo* ptrVoteInfo)
 {
     QTreeWidgetItem* itemOutput = new QTreeWidgetItem(ui->treeWidget);
     itemOutput->setFlags(flgCheckbox);
@@ -131,7 +139,16 @@ void MnSelectionDialog::appendItem(QFlags<Qt::ItemFlag> flgCheckbox,
     itemOutput->setText(COLUMN_NAME, mnName);
     itemOutput->setToolTip(COLUMN_NAME, "Masternode name");
     itemOutput->setText(COLUMN_STATUS, mnStatus);
-    itemOutput->setToolTip(COLUMN_STATUS, "Masternode status");
+    itemOutput->setToolTip(COLUMN_STATUS, "Masternode status"); // future: add status description
+    itemOutput->setTextAlignment(COLUMN_STATUS, Qt::AlignHCenter);
+    itemOutput->setTextAlignment(COLUMN_VOTE, Qt::AlignHCenter);
+    if (ptrVoteInfo) {
+        itemOutput->setText(COLUMN_VOTE, ptrVoteInfo->vote == VoteInfo::YES ? tr("Yes") : tr("No"));
+        itemOutput->setToolTip(COLUMN_VOTE, tr("The direction of the already broadcasted vote"));
+    } else {
+        itemOutput->setText(COLUMN_VOTE, "-");
+        itemOutput->setToolTip(COLUMN_VOTE, tr("No vote has been emitted from this Masternode"));
+    }
 
     if (std::find(selectedMnList.begin(), selectedMnList.end(), mnName.toStdString()) != selectedMnList.end()) {
         itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
