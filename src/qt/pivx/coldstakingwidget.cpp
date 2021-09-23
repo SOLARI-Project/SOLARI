@@ -168,6 +168,10 @@ ColdStakingWidget::ColdStakingWidget(PIVXGUI* parent) :
     ui->btnMyStakingAddresses->setChecked(true);
     ui->listViewStakingAddress->setVisible(false);
 
+    // My ColdStaking Addresses search filter
+    initCssEditLine(ui->lineEditFilter, true);
+    ui->lineEditFilter->setStyleSheet("font: 14px;");
+
     ui->btnMyStakingAddresses->setTitleClassAndText("btn-title-grey", tr("My Cold Staking Addresses"));
     ui->btnMyStakingAddresses->setSubTitleClassAndText("text-subtitle", tr("List your own cold staking addresses."));
     ui->btnMyStakingAddresses->layout()->setMargin(0);
@@ -197,6 +201,7 @@ ColdStakingWidget::ColdStakingWidget(PIVXGUI* parent) :
     connect(ui->listView, &QListView::clicked, this, &ColdStakingWidget::handleAddressClicked);
     connect(ui->listViewStakingAddress, &QListView::clicked, this, &ColdStakingWidget::handleMyColdAddressClicked);
     connect(ui->btnMyStakingAddresses, &OptionButton::clicked, this, &ColdStakingWidget::onMyStakingAddressesClicked);
+    connect(ui->lineEditFilter, &QLineEdit::textChanged, this, &ColdStakingWidget::filterChanged);
 
     coinControlDialog = new CoinControlDialog(nullptr, true);
 }
@@ -813,6 +818,11 @@ void ColdStakingWidget::onSortOrderChanged(int idx)
 {
     sortOrder = (Qt::SortOrder) ui->comboBoxSortOrder->itemData(idx).toInt();
     sortAddresses();
+}
+
+void ColdStakingWidget::filterChanged(const QString& str)
+{
+    this->addressesFilter->setFilterRegExp(str);
 }
 
 void ColdStakingWidget::sortAddresses()

@@ -78,6 +78,7 @@ private Q_SLOTS:
     void onDelegationsRefreshed();
     void onSortChanged(int idx);
     void onSortOrderChanged(int idx);
+    void filterChanged(const QString& str);
 
 private:
     Ui::ColdStakingWidget *ui = nullptr;
