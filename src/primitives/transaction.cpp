@@ -149,16 +149,6 @@ bool CTransaction::HasZerocoinMintOutputs() const
     return false;
 }
 
-bool CTransaction::HasZerocoinPublicSpendInputs() const
-{
-    // The wallet only allows publicSpend inputs in the same tx and not a combination between piv and zpiv
-    for(const CTxIn& txin : vin) {
-        if (txin.IsZerocoinPublicSpend())
-            return true;
-    }
-    return false;
-}
-
 bool CTransaction::IsCoinStake() const
 {
     if (vin.empty())
@@ -183,15 +173,15 @@ bool CTransaction::HasP2CSOutputs() const
 CAmount CTransaction::GetValueOut() const
 {
     CAmount nValueOut = 0;
-    for (std::vector<CTxOut>::const_iterator it(vout.begin()); it != vout.end(); ++it) {
+    for (const CTxOut& out : vout) {
         // PIVX: previously MoneyRange() was called here. This has been replaced with negative check and boundary wrap check.
-        if (it->nValue < 0)
+        if (out.nValue < 0)
             throw std::runtime_error("CTransaction::GetValueOut() : value out of range : less than 0");
 
-        if ((nValueOut + it->nValue) < nValueOut)
+        if (nValueOut + out.nValue < nValueOut)
             throw std::runtime_error("CTransaction::GetValueOut() : value out of range : wraps the int64_t boundary");
 
-        nValueOut += it->nValue;
+        nValueOut += out.nValue;
     }
 
     // Sapling
@@ -246,9 +236,9 @@ std::string CTransaction::ToString() const
         ss << ", extraPayload.size=" << extraPayload->size();
     }
     ss << ")\n";
-    for (unsigned int i = 0; i < vin.size(); i++)
-        ss << "    " << vin[i].ToString() << "\n";
-    for (unsigned int i = 0; i < vout.size(); i++)
-        ss << "    " << vout[i].ToString() << "\n";
+    for (const auto& in : vin)
+        ss << "    " << in.ToString() << "\n";
+    for (const auto& out : vout)
+        ss << "    " << out.ToString() << "\n";
     return ss.str();
 }
