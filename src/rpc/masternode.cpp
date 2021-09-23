@@ -177,8 +177,7 @@ UniValue listmasternodes(const JSONRPCRequest& request)
         mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
             UniValue obj(UniValue::VOBJ);
             dmn->ToJson(obj);
-            bool fEnabled = dmn->pdmnState->nPoSeBanHeight == -1;
-            if (filterMasternode(obj, strFilter, fEnabled)) {
+            if (filterMasternode(obj, strFilter, !dmn->IsPoSeBanned())) {
                 ret.push_back(obj);
             }
         });
@@ -204,7 +203,7 @@ UniValue listmasternodes(const JSONRPCRequest& request)
             if (dmn) {
                 UniValue obj(UniValue::VOBJ);
                 dmn->ToJson(obj);
-                bool fEnabled = dmn->pdmnState->nPoSeBanHeight == -1;
+                bool fEnabled = !dmn->IsPoSeBanned();
                 if (filterMasternode(obj, strFilter, fEnabled)) {
                     // Added for backward compatibility with legacy masternodes
                     obj.pushKV("type", "deterministic");

@@ -821,7 +821,7 @@ void CBudgetManager::RemoveStaleVotesOnProposal(CBudgetProposal* prop)
         auto mnList = deterministicMNManager->GetListAtChainTip();
         auto dmn = mnList.GetMNByCollateral(it->first);
         if (dmn) {
-            (*it).second.SetValid(mnList.IsMNValid(dmn));
+            (*it).second.SetValid(!dmn->IsPoSeBanned());
         } else {
             // -- Legacy System (!TODO: remove after enforcement) --
             CMasternode* pmn = mnodeman.Find(it->first);
@@ -845,7 +845,7 @@ void CBudgetManager::RemoveStaleVotesOnFinalBudget(CFinalizedBudget* fbud)
         auto mnList = deterministicMNManager->GetListAtChainTip();
         auto dmn = mnList.GetMNByCollateral(it->first);
         if (dmn) {
-            (*it).second.SetValid(mnList.IsMNValid(dmn));
+            (*it).second.SetValid(!dmn->IsPoSeBanned());
         } else {
             // -- Legacy System (!TODO: remove after enforcement) --
             CMasternode* pmn = mnodeman.Find(it->first);
@@ -1020,7 +1020,7 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
 
         AddSeenProposalVote(vote);
 
-        if (!mnList.IsMNValid(dmn)) {
+        if (dmn->IsPoSeBanned()) {
             err = strprintf("masternode (%s) not valid or PoSe banned", mn_protx_id);
             return state.DoS(0, false, REJECT_INVALID, "bad-mvote", false, err);
         }
@@ -1116,7 +1116,7 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
 
         AddSeenFinalizedBudgetVote(vote);
 
-        if (!mnList.IsMNValid(dmn)) {
+        if (dmn->IsPoSeBanned()) {
             err = strprintf("masternode (%s) not valid or PoSe banned", mn_protx_id);
             return state.DoS(0, false, REJECT_INVALID, "bad-fbvote", false, err);
         }

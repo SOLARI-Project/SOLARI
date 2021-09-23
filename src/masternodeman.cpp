@@ -405,7 +405,7 @@ CMasternodeMan::MNsInfo CMasternodeMan::getMNsInfo() const
         mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
             info.total++;
             CountNetwork(dmn->pdmnState->addr, info.ipv4, info.ipv6, info.onion);
-            if (mnList.IsMNValid(dmn)) {
+            if (!dmn->IsPoSeBanned()) {
                 info.enabledSize++;
                 info.stableSize++;
             }
@@ -722,7 +722,7 @@ std::vector<std::pair<int64_t, MasternodeRef>> CMasternodeMan::GetMasternodeRank
         auto mnList = deterministicMNManager->GetListAtChainTip();
         mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
             const MasternodeRef mn = MakeMasternodeRefForDMN(dmn);
-            const uint32_t score = mnList.IsMNValid(dmn) ? mn->CalculateScore(hash).GetCompact(false) : 9999;
+            const uint32_t score = dmn->IsPoSeBanned() ? 9999 : mn->CalculateScore(hash).GetCompact(false);
 
             vecMasternodeScores.emplace_back(score, mn);
         });
