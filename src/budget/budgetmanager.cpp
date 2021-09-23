@@ -366,7 +366,8 @@ void CBudgetManager::RemoveByFeeTxId(const uint256& feeTxId)
                 {
                     // Erase seen/orhpan votes
                     LOCK(cs_votes);
-                    for (const uint256& hash: p->GetVotesHashes()) {
+                    for (const auto& vote: p->GetVotes()) {
+                        const uint256& hash{vote.second.GetHash()};
                         mapSeenProposalVotes.erase(hash);
                         mapOrphanProposalVotes.erase(hash);
                     }
@@ -532,7 +533,7 @@ void CBudgetManager::VoteOnFinalizedBudgets()
             pfb->SetAutoChecked(true);
             //only vote for exact matches
             if (strBudgetMode == "auto") {
-                // compare budget payements with winning proposals
+                // compare budget payments with winning proposals
                 if (!pfb->CheckProposals(mapWinningProposals)) {
                     continue;
                 }
@@ -572,11 +573,8 @@ void CBudgetManager::VoteOnFinalizedBudgets()
 CFinalizedBudget* CBudgetManager::FindFinalizedBudget(const uint256& nHash)
 {
     AssertLockHeld(cs_budgets);
-
-    if (mapFinalizedBudgets.count(nHash))
-        return &mapFinalizedBudgets[nHash];
-
-    return NULL;
+    auto it = mapFinalizedBudgets.find(nHash);
+    return it != mapFinalizedBudgets.end() ? &(it->second) : nullptr;
 }
 
 const CBudgetProposal* CBudgetManager::FindProposalByName(const std::string& strProposalName) const
@@ -601,31 +599,26 @@ const CBudgetProposal* CBudgetManager::FindProposalByName(const std::string& str
 CBudgetProposal* CBudgetManager::FindProposal(const uint256& nHash)
 {
     AssertLockHeld(cs_proposals);
-
-    if (mapProposals.count(nHash))
-        return &mapProposals[nHash];
-
-    return nullptr;
+    auto it = mapProposals.find(nHash);
+    return it != mapProposals.end() ? &(it->second) : nullptr;
 }
 
 bool CBudgetManager::GetProposal(const uint256& nHash, CBudgetProposal& bp) const
 {
     LOCK(cs_proposals);
-    if (mapProposals.count(nHash)) {
-        bp = mapProposals.at(nHash);
-        return true;
-    }
-    return false;
+    auto it = mapProposals.find(nHash);
+    if (it == mapProposals.end()) return false;
+    bp = it->second;
+    return true;
 }
 
 bool CBudgetManager::GetFinalizedBudget(const uint256& nHash, CFinalizedBudget& fb) const
 {
     LOCK(cs_budgets);
-    if (mapFinalizedBudgets.count(nHash)) {
-        fb = mapFinalizedBudgets.at(nHash);
-        return true;
-    }
-    return false;
+    auto it = mapFinalizedBudgets.find(nHash);
+    if (it == mapFinalizedBudgets.end()) return false;
+    fb = it->second;
+    return true;
 }
 
 bool CBudgetManager::IsBudgetPaymentBlock(int nBlockHeight, int& nCountThreshold) const

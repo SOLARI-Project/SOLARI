@@ -293,15 +293,6 @@ int CBudgetProposal::GetVoteCount(CBudgetVote::VoteDirection vd) const
     return ret;
 }
 
-std::vector<uint256> CBudgetProposal::GetVotesHashes() const
-{
-    std::vector<uint256> vRet;
-    for (const auto& it: mapVotes) {
-        vRet.push_back(it.second.GetHash());
-    }
-    return vRet;
-}
-
 int CBudgetProposal::GetBlockStartCycle() const
 {
     //end block is half way through the next cycle (so the proposal will be removed much after the payment is sent)

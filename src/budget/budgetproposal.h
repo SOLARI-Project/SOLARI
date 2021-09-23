@@ -89,7 +89,7 @@ public:
     const uint256& GetFeeTXHash() const { return nFeeTXHash;  }
     double GetRatio() const;
     int GetVoteCount(CBudgetVote::VoteDirection vd) const;
-    std::vector<uint256> GetVotesHashes() const;
+    std::map<COutPoint, CBudgetVote> GetVotes() const { return mapVotes; }
     int GetYeas() const { return GetVoteCount(CBudgetVote::VOTE_YES); }
     int GetNays() const { return GetVoteCount(CBudgetVote::VOTE_NO); }
     int GetAbstains() const { return GetVoteCount(CBudgetVote::VOTE_ABSTAIN); };
