@@ -43,9 +43,10 @@ MnSelectionDialog::MnSelectionDialog(QWidget *parent) :
     connect(ui->treeWidget, &QTreeWidget::itemChanged, this, &MnSelectionDialog::viewItemChanged);
 }
 
-void MnSelectionDialog::setModel(MNModel* _mnModel)
+void MnSelectionDialog::setModel(MNModel* _mnModel, int _minVoteUpdateTimeInSecs)
 {
     mnModel = _mnModel;
+    minVoteUpdateTimeInSecs = _minVoteUpdateTimeInSecs;
 }
 
 void MnSelectionDialog::setMnVoters(const std::vector<VoteInfo>& _votes)
@@ -137,7 +138,6 @@ void MnSelectionDialog::appendItem(QFlags<Qt::ItemFlag> flgCheckbox,
     itemOutput->setFlags(flgCheckbox);
     itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
     itemOutput->setText(COLUMN_NAME, mnName);
-    itemOutput->setToolTip(COLUMN_NAME, "Masternode name");
     itemOutput->setText(COLUMN_STATUS, mnStatus);
     itemOutput->setToolTip(COLUMN_STATUS, "Masternode status"); // future: add status description
     itemOutput->setTextAlignment(COLUMN_STATUS, Qt::AlignHCenter);
@@ -158,6 +158,14 @@ void MnSelectionDialog::appendItem(QFlags<Qt::ItemFlag> flgCheckbox,
 
     if (mnStatus != "ENABLED") {
         itemOutput->setDisabled(true);
+    }
+
+    // Disable MNs that will not be able to vote for the proposal until the minimum vote time passes.
+    if (ptrVoteInfo && ptrVoteInfo->time + minVoteUpdateTimeInSecs > GetAdjustedTime()) {
+        itemOutput->setDisabled(true);
+        QString disabledTooltip{tr("Time between votes is too soon, have to wait %1 minutes to change your vote").arg(minVoteUpdateTimeInSecs/60)};
+        itemOutput->setToolTip(COLUMN_CHECKBOX, disabledTooltip);
+        itemOutput->setToolTip(COLUMN_NAME, disabledTooltip);
     }
 }
 

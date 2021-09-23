@@ -25,7 +25,7 @@ public:
     explicit MnSelectionDialog(QWidget *parent);
     ~MnSelectionDialog();
 
-    void setModel(MNModel* _mnModel);
+    void setModel(MNModel* _mnModel, int minVoteUpdateTimeInSecs);
     void updateView();
     // Sets the MNs who already voted for this proposal
     void setMnVoters(const std::vector<VoteInfo>& _votes);
@@ -39,6 +39,9 @@ public Q_SLOTS:
 private:
     Ui::MnSelectionDialog *ui;
     MNModel* mnModel{nullptr};
+    // Consensus param, the minimum time that need to pass
+    // to be able to broadcast another vote with the same MN.
+    int minVoteUpdateTimeInSecs{0};
     int colCheckBoxWidth_treeMode{50};
     // selected MNs alias
     std::vector<std::string> selectedMnList;
