@@ -5,7 +5,7 @@
 #ifndef PIVX_BLOCKSTATECATCHER_H
 #define PIVX_BLOCKSTATECATCHER_H
 
-#include "validation.h"
+#include "consensus/validation.h"
 #include "validationinterface.h"
 
 /**

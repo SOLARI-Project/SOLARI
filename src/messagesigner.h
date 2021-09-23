@@ -7,9 +7,6 @@
 #define MESSAGESIGNER_H
 
 #include "key.h"
-#include "primitives/transaction.h" // for CTxIn
-
-extern const std::string strMessageMagic;
 
 enum MessageVersion {
         MESS_VER_STRMESS    = 0, // old format

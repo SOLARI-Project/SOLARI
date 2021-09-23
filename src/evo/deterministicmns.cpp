@@ -16,7 +16,6 @@
 #include "script/standard.h"
 #include "spork.h"
 #include "sync.h"
-#include "validation.h"
 #include "validationinterface.h"
 
 #include <univalue.h>

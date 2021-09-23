@@ -19,6 +19,7 @@
 #include "primitives/transaction.h"
 #include "sporkdb.h"
 #include "streams.h"
+#include "util/validation.h"
 
 int64_t nTimeBestReceived = 0;  // Used only to inform the wallet of when we last received a block
 

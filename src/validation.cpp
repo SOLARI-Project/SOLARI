@@ -43,6 +43,7 @@
 #include "txdb.h"
 #include "undo.h"
 #include "util/system.h"
+#include "util/validation.h"
 #include "utilmoneystr.h"
 #include "validationinterface.h"
 #include "warnings.h"
@@ -310,15 +311,6 @@ CAmount GetShieldedTxMinFee(const CTransaction& tx)
     if (!Params().GetConsensus().MoneyRange(nMinFee))
         nMinFee = Params().GetConsensus().nMaxMoneyOut;
     return nMinFee;
-}
-
-/** Convert CValidationState to a human-readable message for logging */
-std::string FormatStateMessage(const CValidationState &state)
-{
-    return strprintf("%s%s (code %i)",
-        state.GetRejectReason(),
-        (state.GetDebugMessage().empty() ? "" : ", " + state.GetDebugMessage()),
-        state.GetRejectCode());
 }
 
 /* Make mempool consistent after a reorg, by re-adding or recursively erasing

@@ -16,6 +16,7 @@
 #include "masternodeman.h"
 #include "messagesigner.h"
 #include "rpc/server.h"
+#include "util/validation.h"
 #include "utilmoneystr.h"
 #ifdef ENABLE_WALLET
 #include "wallet/rpcwallet.h"

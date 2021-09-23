@@ -17,8 +17,8 @@
 #include "pubkey.h" // COMPACT_SIGNATURE_SIZE
 #include "rpc/server.h"
 #include "script/sign.h"
+#include "util/validation.h"
 #include "utilmoneystr.h"
-#include "validation.h"
 
 #ifdef ENABLE_WALLET
 #include "coincontrol.h"

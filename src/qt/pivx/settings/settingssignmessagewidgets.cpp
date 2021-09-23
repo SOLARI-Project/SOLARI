@@ -3,16 +3,17 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "qt/pivx/settings/settingssignmessagewidgets.h"
+
+#include "init.h"
+#include "key_io.h"
+#include "qt/askpassphrasedialog.h"
+#include "qt/addressbookpage.h"
+#include "qt/guiutil.h"
 #include "qt/pivx/settings/forms/ui_settingssignmessagewidgets.h"
 #include "qt/pivx/qtutils.h"
-#include "guiutil.h"
-#include "walletmodel.h"
-
-#include "key_io.h"
-#include "init.h"
+#include "qt/walletmodel.h"
+#include "util/validation.h"
 #include "wallet/wallet.h"
-#include "askpassphrasedialog.h"
-#include "addressbookpage.h"
 
 #include <string>
 #include <vector>

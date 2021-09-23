@@ -11,6 +11,7 @@
 #include "masternodeman.h"
 #include "net_processing.h"
 #include "netmessagemaker.h"
+#include "util/validation.h"
 #include "validation.h"   // GetTransaction, cs_main
 
 

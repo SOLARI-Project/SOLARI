@@ -23,6 +23,7 @@
 #include "spork.h"
 #include "timedata.h"
 #include "utilmoneystr.h"
+#include "util/validation.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
 #include "wallet/walletutil.h"
