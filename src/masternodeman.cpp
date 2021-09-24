@@ -417,7 +417,7 @@ CMasternodeMan::MNsInfo CMasternodeMan::getMNsInfo() const
 
 int CMasternodeMan::CountEnabled(bool only_legacy) const
 {
-    int i = 0;
+    int count_enabled = 0;
     int protocolVersion = ActiveProtocol();
 
     {
@@ -425,15 +425,15 @@ int CMasternodeMan::CountEnabled(bool only_legacy) const
         for (const auto& it : mapMasternodes) {
             const MasternodeRef& mn = it.second;
             if (mn->protocolVersion < protocolVersion || !mn->IsEnabled()) continue;
-            i++;
+            count_enabled++;
         }
     }
 
     if (!only_legacy && deterministicMNManager->IsDIP3Enforced()) {
-        i += deterministicMNManager->GetListAtChainTip().GetValidMNsCount();
+        count_enabled += deterministicMNManager->GetListAtChainTip().GetValidMNsCount();
     }
 
-    return i;
+    return count_enabled;
 }
 
 void CMasternodeMan::DsegUpdate(CNode* pnode)
