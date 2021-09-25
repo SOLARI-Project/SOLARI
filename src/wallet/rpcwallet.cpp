@@ -15,6 +15,7 @@
 #include "httpserver.h"
 #include "key_io.h"
 #include "masternode-sync.h"
+#include "messagesigner.h"
 #include "net.h"
 #include "policy/feerate.h"
 #include "rpc/server.h"
@@ -23,7 +24,6 @@
 #include "spork.h"
 #include "timedata.h"
 #include "utilmoneystr.h"
-#include "util/validation.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
 #include "wallet/walletutil.h"
@@ -2019,13 +2019,10 @@ UniValue signmessage(const JSONRPCRequest& request)
     if (!pwallet->GetKey(*keyID, key))
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key not available");
 
-    CHashWriter ss(SER_GETHASH, 0);
-    ss << strMessageMagic;
-    ss << strMessage;
-
     std::vector<unsigned char> vchSig;
-    if (!key.SignCompact(ss.GetHash(), vchSig))
+    if (!CMessageSigner::SignMessage(strMessage, vchSig, key)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Sign failed");
+    }
 
     return EncodeBase64(vchSig);
 }

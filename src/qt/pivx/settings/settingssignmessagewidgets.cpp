@@ -6,13 +6,13 @@
 
 #include "init.h"
 #include "key_io.h"
+#include "messagesigner.h"
 #include "qt/askpassphrasedialog.h"
 #include "qt/addressbookpage.h"
 #include "qt/guiutil.h"
 #include "qt/pivx/settings/forms/ui_settingssignmessagewidgets.h"
 #include "qt/pivx/qtutils.h"
 #include "qt/walletmodel.h"
-#include "util/validation.h"
 #include "wallet/wallet.h"
 
 #include <string>
@@ -188,12 +188,10 @@ void SettingsSignMessageWidgets::onSignMessageButtonSMClicked()
         return;
     }
 
-    CDataStream ss(SER_GETHASH, 0);
-    ss << strMessageMagic;
-    ss << ui->messageIn_SM->document()->toPlainText().toStdString();
+    const std::string& message = ui->messageIn_SM->document()->toPlainText().toStdString();
 
     std::vector<unsigned char> vchSig;
-    if (!key.SignCompact(Hash(ss.begin(), ss.end()), vchSig)) {
+    if (!CMessageSigner::SignMessage(message, vchSig, key)) {
         ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel_SM->setText(QString("<nobr>") + tr("Message signing failed.") + QString("</nobr>"));
         return;
@@ -201,7 +199,6 @@ void SettingsSignMessageWidgets::onSignMessageButtonSMClicked()
 
     ui->statusLabel_SM->setStyleSheet("QLabel { color: green; }");
     ui->statusLabel_SM->setText(QString("<nobr>") + tr("Message signed.") + QString("</nobr>"));
-
     ui->signatureOut_SM->setText(QString::fromStdString(EncodeBase64(vchSig)));
 }
 
@@ -238,19 +235,10 @@ void SettingsSignMessageWidgets::onVerifyMessage()
         return;
     }
 
-    CDataStream ss(SER_GETHASH, 0);
-    ss << strMessageMagic;
-    ss << ui->messageIn_SM->document()->toPlainText().toStdString();
+    const std::string& message = ui->messageIn_SM->document()->toPlainText().toStdString();
 
-    CPubKey pubkey;
-    if (!pubkey.RecoverCompact(Hash(ss.begin(), ss.end()), vchSig)) {
-        //ui->signatureOut_SM->setValid(false);
-        ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
-        ui->statusLabel_SM->setText(tr("The signature did not match the message digest.") + QString(" ") + tr("Please check the signature and try again."));
-        return;
-    }
-
-    if (!(pubkey.GetID() == *keyID)) {
+    std::string err_log;
+    if (!CMessageSigner::VerifyMessage(*keyID, vchSig, message, err_log)) {
         ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel_SM->setText(QString("<nobr>") + tr("Message verification failed.") + QString("</nobr>"));
         return;
