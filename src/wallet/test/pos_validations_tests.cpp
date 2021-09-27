@@ -162,9 +162,12 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
 
     // Tests:
     // 1) coins created in D1 and spent in E1. --> should pass
-    // 2) coins created and spent in E2, being double spent in F2. --> should pass
-    // 3) coins created in D and spent in E'. --> should fail
-    // 4) coins create in D, spent in F and then double spent in F3. --> should fail
+    // 2) coins created in E, being spent in D4 --> should fail.
+    // 3) coins created and spent in E2, being double spent in F2. --> should fail
+    // 4) coins created in D and spent in E3. --> should fail
+    // 5) coins create in D, spent in F and then double spent in F3. --> should fail
+    // 6) coins created in G and G3, being spent in H and H3 --> should pass.
+    // 7) use coinstake on different chains --> should pass.
 
     // Let's create block C with a valid cTx
     auto cTx = CreateAndCommitTx(pwalletMain.get(), *pwalletMain->getNewAddress("").getObjResult(), 249 * COIN);
@@ -194,10 +197,13 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     BOOST_CHECK(utxo.out.IsNull());
 
     // Create valid block E
-    std::shared_ptr<CBlock> pblockE = CreateBlockInternal(pwalletMain.get());
+    auto eTx = CreateAndCommitTx(pwalletMain.get(), *dest, 200 * COIN);
+    std::shared_ptr<CBlock> pblockE = CreateBlockInternal(pwalletMain.get(), {eTx});
     BOOST_CHECK(ProcessNewBlock(pblockE, nullptr));
 
-    // ### Check (1) -> coins created in D' and spent in E' ###
+    // #################################################
+    // ### 1) -> coins created in D' and spent in E' ###
+    // #################################################
 
     // Create tx spending the previously created tx on the forked chain
     CCoinControl coinControl;
@@ -209,7 +215,20 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     std::shared_ptr<CBlock> pblockE1 = CreateBlockInternal(pwalletMain.get(), {e1Tx}, pindexPrev);
     BOOST_CHECK(ProcessNewBlock(pblockE1, nullptr));
 
-    // ### Check (2) -> coins created and spent in E2, being double spent in F2 ###
+    // #################################################################
+    // ### 2) coins created in E, being spent in D4 --> should fail. ###
+    // #################################################################
+
+    coinControl.UnSelectAll();
+    coinControl.Select(GetOutpointWithAmount(eTx, 200 * COIN), 200 * COIN);
+    coinControl.fAllowOtherInputs = false;
+    auto D4_tx1 = CreateAndCommitTx(pwalletMain.get(), *dest, 199 * COIN, &coinControl);
+    std::shared_ptr<CBlock> pblockD4 = CreateBlockInternal(pwalletMain.get(), {D4_tx1}, mapBlockIndex.at(pblockC->GetHash()));
+    BOOST_CHECK(!ProcessNewBlock(pblockD4, nullptr));
+
+    // #####################################################################
+    // ### 3) -> coins created and spent in E2, being double spent in F2 ###
+    // #####################################################################
 
     // Create block E2 with E2_tx1 and E2_tx2. Where E2_tx2 is spending the outputs of E2_tx1
     CCoinControl coinControlE2;
@@ -236,7 +255,9 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     BOOST_CHECK(!stateCatcher.state.IsValid());
     BOOST_CHECK_EQUAL(stateCatcher.state.GetRejectReason(), "bad-txns-inputs-spent-fork-post-split");
 
-    // ### 3) coins created in D and spent in E3 ###
+    // #############################################
+    // ### 4) coins created in D and spent in E3 ###
+    // #############################################
 
     // First create D3
     pindexPrev = mapBlockIndex.at(pblockC->GetHash());
@@ -258,7 +279,9 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     BOOST_CHECK(!stateCatcher.state.IsValid());
     BOOST_CHECK_EQUAL(stateCatcher.state.GetRejectReason(), "bad-txns-inputs-created-post-split");
 
-    // ### 4) coins create in D, spent in F and then double spent in F3
+    // ####################################################################
+    // ### 5) coins create in D, spent in F and then double spent in F3 ###
+    // ####################################################################
 
     // Create valid block F spending the coins created in D
     const auto& F_tx1 = E3_tx1;
@@ -277,6 +300,77 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     // Accepted on disk but not connected.
     BOOST_CHECK(ProcessNewBlock(pblockF3, nullptr));
     BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash();) != pblockF3->GetHash());
+
+    // ##############################################################################
+    // ### 6) coins created in G and G3, being spent in H and H3 --> should pass. ###
+    // ##############################################################################
+
+    // First create new coins in G
+    std::vector<COutput> availableCoins;
+    CWallet::AvailableCoinsFilter coinsFilter;
+    coinsFilter.nMaximumCount = 3;
+    coinsFilter.minDepth = 20;
+    BOOST_CHECK(pwalletMain->AvailableCoins(&availableCoins, nullptr, coinsFilter));
+    COutput input = availableCoins.at(0);
+    coinControl.UnSelectAll();
+    coinControl.Select(COutPoint(input.tx->GetHash(), input.i), input.Value());
+    coinControl.fAllowOtherInputs = false;
+
+    dest = pwalletMain->getNewAddress("").getObjResult();
+    auto gTx = CreateAndCommitTx(pwalletMain.get(), *dest, 200 * COIN, &coinControl);
+    auto gOut = GetOutpointWithAmount(gTx, 200 * COIN);
+    std::shared_ptr<CBlock> pblockG = CreateBlockInternal(pwalletMain.get(), {gTx});
+    BOOST_CHECK(ProcessNewBlock(pblockG, nullptr));
+
+    // Now create the same coin in G3
+    pblockF3 = CreateBlockInternal(pwalletMain.get(), {}, mapBlockIndex.at(pblockE3->GetHash()));
+    BOOST_CHECK(ProcessNewBlock(pblockF3, nullptr));
+    auto pblockG3 = CreateBlockInternal(pwalletMain.get(), {gTx}, mapBlockIndex.at(pblockF3->GetHash()));
+    BOOST_CHECK(ProcessNewBlock(pblockG3, nullptr));
+    FlushStateToDisk();
+
+    // Now spend the coin in both, H and H3
+    coinControl.UnSelectAll();
+    coinControl.Select(gOut, 200 * COIN);
+    coinControl.fAllowOtherInputs = false;
+    auto hTx = CreateAndCommitTx(pwalletMain.get(), *dest, 199 * COIN, &coinControl);
+    std::shared_ptr<CBlock> pblockH = CreateBlockInternal(pwalletMain.get(), {hTx});
+    BOOST_CHECK(ProcessNewBlock(pblockH, nullptr));
+    BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash() ==  pblockH->GetHash()));
+    FlushStateToDisk();
+
+    // H3 now..
+    std::shared_ptr<CBlock> pblockH3 = CreateBlockInternal(pwalletMain.get(),
+                                                           {hTx},
+                                                           mapBlockIndex.at(pblockG3->GetHash()));
+    BOOST_CHECK(ProcessNewBlock(pblockH3, nullptr));
+
+    // Try to read the forking point manually
+    CBlock bl;
+    BOOST_CHECK(ReadBlockFromDisk(bl, mapBlockIndex.at(pblockC->GetHash())));
+
+    // Make I3 the tip now.
+    std::shared_ptr<CBlock> pblockI3 = CreateBlockInternal(pwalletMain.get(), {}, mapBlockIndex.at(pblockH3->GetHash()));
+    BOOST_CHECK(ProcessNewBlock(pblockI3, nullptr));
+    BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash() ==  pblockI3->GetHash()));
+
+    // And rescan the wallet on top of the new chain
+    WalletRescanReserver reserver(pwalletMain.get());
+    BOOST_CHECK(reserver.reserve());
+    pwalletMain->RescanFromTime(0, reserver, true /* update */);
+
+    // #################################################################################
+    // ### 7) Now try to use the same coinstake on different chains --> should pass. ###
+    // #################################################################################
+
+    // Take I3 coinstake and use it for block I, changing its hash adding a new tx
+    std::shared_ptr<CBlock> pblockI = std::make_shared<CBlock>(*pblockI3);
+    auto iTx = CreateAndCommitTx(pwalletMain.get(), *dest, 1 * COIN);
+    pblockI->vtx.emplace_back(MakeTransactionRef(iTx));
+    pblockI->hashMerkleRoot = BlockMerkleRoot(*pblockI);
+    assert(SignBlock(*pblockI, *pwalletMain));
+    BOOST_CHECK(pblockI3->GetHash() != pblockI->GetHash());
+    BOOST_CHECK(ProcessNewBlock(pblockI, nullptr));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
