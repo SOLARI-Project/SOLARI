@@ -223,7 +223,8 @@ class PIVX_ColdStakingTest(PivxTestFramework):
         assert_raises_rpc_error(-26, "mandatory-script-verify-flag-failed (Script failed an OP_CHECKCOLDSTAKEVERIFY operation",
                                 self.spendUTXOwithNode, u, 1)
         self.log.info("Good. Cold staker was NOT able to spend (failed OP_CHECKCOLDSTAKEVERIFY)")
-        self.mocktime = self.generate_pos(2, self.mocktime)
+        for _ in range(20): # Staking min depth
+            self.mocktime = self.generate_pos(2, self.mocktime)
         self.sync_blocks()
 
         # 9) check that the staker can use the coins to stake a block with internal miner.
