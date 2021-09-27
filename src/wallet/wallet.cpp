@@ -2995,6 +2995,23 @@ bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, bool ov
     return true;
 }
 
+std::vector<COutput> CWallet::GetOutputsFromCoinControl(const CCoinControl* coinControl)
+{
+    assert(coinControl);
+    LOCK(cs_wallet);
+    std::vector<COutput> vCoinsRet;
+    std::vector<OutPointWrapper> vPresetInputs;
+    coinControl->ListSelected(vPresetInputs);
+    for (const auto& out : vPresetInputs) {
+        auto it = mapWallet.find(out.outPoint.hash);
+        if (it != mapWallet.end()) {
+            assert(it->second.tx->vout.size() > out.outPoint.n);
+            vCoinsRet.emplace_back(COutput(&(it->second), out.outPoint.n, 0, true, true, true));
+        }
+    }
+    return vCoinsRet;
+}
+
 bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
     CTransactionRef& txRet,
     CReserveKey& reservekey,
@@ -3037,7 +3054,13 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
         LOCK2(cs_main, cs_wallet);
         {
             std::vector<COutput> vAvailableCoins;
-            AvailableCoins(&vAvailableCoins, coinControl, coinFilter);
+            if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs) {
+                // Select only the outputs that the caller pre-selected.
+                vAvailableCoins = GetOutputsFromCoinControl(coinControl);
+            } else {
+                // Regular selection
+                AvailableCoins(&vAvailableCoins, coinControl, coinFilter);
+            }
 
             nFeeRet = 0;
             if (nFeePay > 0) nFeeRet = nFeePay;

@@ -662,6 +662,9 @@ private:
                                                      const bool fIncludeDelegated,
                                                      const bool fIncludeLocked) const;
 
+    /** Return the selected known outputs */
+    std::vector<COutput> GetOutputsFromCoinControl(const CCoinControl* coinControl);
+
     //! Destination --> label/purpose mapping.
     std::map<CWDestination, AddressBook::CAddressBookData> mapAddressBook;
 
