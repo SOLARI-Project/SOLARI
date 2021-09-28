@@ -3289,6 +3289,11 @@ bool CWallet::CreateCoinStake(
         std::vector<CStakeableOutput>* availableCoins,
         bool stopOnNewBlock) const
 {
+    // shuffle coins
+    if (availableCoins && Params().IsRegTestNet()) {
+        Shuffle(availableCoins->begin(), availableCoins->end(), FastRandomContext());
+    }
+
     // Mark coin stake transaction
     txNew.vin.clear();
     txNew.vout.clear();
