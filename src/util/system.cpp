@@ -86,14 +86,10 @@ const char * const PIVX_MASTERNODE_CONF_FILENAME = "masternode.conf";
 // PIVX only features
 // Masternode
 std::atomic<bool> fMasterNode{false};
-std::string strMasterNodeAddr = "";
 bool fLiteMode = false;
-// budget finalization
-std::string strBudgetMode = "";
 
 ArgsManager gArgs;
 
-bool fDaemon = false;
 CTranslationInterface translationInterface;
 
 bool CheckDiskSpace(const fs::path& dir, uint64_t additional_bytes)

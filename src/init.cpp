@@ -1906,7 +1906,7 @@ bool AppInitMain()
     }
 
     //get the mode of budget voting for this masternode
-    strBudgetMode = gArgs.GetArg("-budgetvotemode", "auto");
+    g_budgetman.strBudgetMode = gArgs.GetArg("-budgetvotemode", "auto");
 
 #ifdef ENABLE_WALLET
     // !TODO: remove after complete transition to DMN
@@ -1940,7 +1940,7 @@ bool AppInitMain()
     }
 
     LogPrintf("fLiteMode %d\n", fLiteMode);
-    LogPrintf("Budget Mode %s\n", strBudgetMode.c_str());
+    LogPrintf("Budget Mode %s\n", g_budgetman.strBudgetMode.c_str());
 
     threadGroup.create_thread(std::bind(&ThreadCheckMasternodes));
 

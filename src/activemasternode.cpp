@@ -235,15 +235,12 @@ OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const s
         return errorOut("ERROR: Empty masternodeaddr");
     }
 
-    // Global params set
-    strMasterNodeAddr = _strMasterNodeAddr;
-
     // Address parsing.
     const CChainParams& params = Params();
     int nPort = 0;
     int nDefaultPort = params.GetDefaultPort();
     std::string strHost;
-    SplitHostPort(strMasterNodeAddr, nPort, strHost);
+    SplitHostPort(_strMasterNodeAddr, nPort, strHost);
 
     // Allow for the port number to be omitted here and just double check
     // that if a port is supplied, it matches the required default port.
@@ -254,7 +251,7 @@ OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const s
     }
     CService addrTest(LookupNumeric(strHost.c_str(), nPort));
     if (!addrTest.IsValid()) {
-        return errorOut(strprintf(_("Invalid -masternodeaddr address: %s"), strMasterNodeAddr));
+        return errorOut(strprintf(_("Invalid -masternodeaddr address: %s"), _strMasterNodeAddr));
     }
 
     // Peer port needs to match the masternode public one for IPv4 and IPv6.

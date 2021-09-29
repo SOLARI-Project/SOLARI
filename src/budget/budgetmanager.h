@@ -53,6 +53,9 @@ public:
     mutable RecursiveMutex cs_finalizedvotes;
     mutable RecursiveMutex cs_votes;
 
+    // budget finalization
+    std::string strBudgetMode = "";
+
     CBudgetManager() {}
 
     void ClearSeen()
