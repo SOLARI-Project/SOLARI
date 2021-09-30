@@ -119,17 +119,40 @@ static bool AppInitRPC(int argc, char* argv[])
 /** Reply structure for request_done to fill in */
 struct HTTPReply
 {
+    HTTPReply(): status(0), error(-1) {}
+
     int status;
+    int error;
     std::string body;
 };
+
+const char *http_errorstring(int code)
+{
+    switch(code) {
+        case EVREQ_HTTP_TIMEOUT:
+            return "timeout reached";
+        case EVREQ_HTTP_EOF:
+            return "EOF reached";
+        case EVREQ_HTTP_INVALID_HEADER:
+            return "error while reading header, or invalid header";
+        case EVREQ_HTTP_BUFFER_ERROR:
+            return "error encountered while reading or writing";
+        case EVREQ_HTTP_REQUEST_CANCEL:
+            return "request was canceled";
+        case EVREQ_HTTP_DATA_TOO_LONG:
+            return "response body is larger than allowed";
+        default:
+            return "unknown";
+    }
+}
 
 static void http_request_done(struct evhttp_request *req, void *ctx)
 {
     HTTPReply *reply = static_cast<HTTPReply*>(ctx);
 
     if (req == NULL) {
-        /* If req is NULL, it means an error occurred while connecting, but
-         * I'm not sure how to find out which one. We also don't really care.
+        /* If req is NULL, it means an error occurred while connecting: the
+         * error code will have been passed to http_error_cb.
          */
         reply->status = 0;
         return;
@@ -146,6 +169,12 @@ static void http_request_done(struct evhttp_request *req, void *ctx)
             reply->body = std::string(data, size);
         evbuffer_drain(buf, size);
     }
+}
+
+static void http_error_cb(enum evhttp_request_error err, void *ctx)
+{
+    HTTPReply *reply = static_cast<HTTPReply*>(ctx);
+    reply->error = err;
 }
 
 UniValue CallRPC(const std::string& strMethod, const UniValue& params)
@@ -168,6 +197,7 @@ UniValue CallRPC(const std::string& strMethod, const UniValue& params)
     struct evhttp_request *req = evhttp_request_new(http_request_done, (void*)&response); // TODO RAII
     if (req == NULL)
         throw std::runtime_error("create http request failed");
+    evhttp_request_set_error_cb(req, http_error_cb);
 
     // Get credentials
     std::string strRPCUserColonPass;
@@ -219,7 +249,7 @@ UniValue CallRPC(const std::string& strMethod, const UniValue& params)
     event_base_free(base);
 
     if (response.status == 0)
-        throw CConnectionFailed("couldn't connect to server");
+        throw CConnectionFailed(strprintf("couldn't connect to server (%d %s)", response.error, http_errorstring(response.error)));
     else if (response.status == HTTP_UNAUTHORIZED)
         throw std::runtime_error("incorrect rpcuser or rpcpassword (authorization failed)");
     else if (response.status >= 400 && response.status != HTTP_BAD_REQUEST && response.status != HTTP_NOT_FOUND && response.status != HTTP_INTERNAL_SERVER_ERROR)
