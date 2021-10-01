@@ -104,36 +104,6 @@ void CDeterministicMN::ToJson(UniValue& obj) const
     obj.pushKV("dmnstate", stateObj);
 }
 
-bool CDeterministicMNList::IsMNValid(const uint256& proTxHash) const
-{
-    auto p = mnMap.find(proTxHash);
-    if (p == nullptr) {
-        return false;
-    }
-    return IsMNValid(*p);
-}
-
-bool CDeterministicMNList::IsMNPoSeBanned(const uint256& proTxHash) const
-{
-    auto p = mnMap.find(proTxHash);
-    if (p == nullptr) {
-        return false;
-    }
-    return IsMNPoSeBanned(*p);
-}
-
-bool CDeterministicMNList::IsMNValid(const CDeterministicMNCPtr& dmn) const
-{
-    return !IsMNPoSeBanned(dmn);
-}
-
-bool CDeterministicMNList::IsMNPoSeBanned(const CDeterministicMNCPtr& dmn) const
-{
-    assert(dmn);
-    const CDeterministicMNState& state = *dmn->pdmnState;
-    return state.nPoSeBanHeight != -1;
-}
-
 CDeterministicMNCPtr CDeterministicMNList::GetMN(const uint256& proTxHash) const
 {
     auto p = mnMap.find(proTxHash);
@@ -146,7 +116,7 @@ CDeterministicMNCPtr CDeterministicMNList::GetMN(const uint256& proTxHash) const
 CDeterministicMNCPtr CDeterministicMNList::GetValidMN(const uint256& proTxHash) const
 {
     auto dmn = GetMN(proTxHash);
-    if (dmn && !IsMNValid(dmn)) {
+    if (dmn && dmn->IsPoSeBanned()) {
         return nullptr;
     }
     return dmn;
@@ -170,7 +140,7 @@ CDeterministicMNCPtr CDeterministicMNList::GetMNByCollateral(const COutPoint& co
 CDeterministicMNCPtr CDeterministicMNList::GetValidMNByCollateral(const COutPoint& collateralOutpoint) const
 {
     auto dmn = GetMNByCollateral(collateralOutpoint);
-    if (dmn && !IsMNValid(dmn)) {
+    if (dmn && dmn->IsPoSeBanned()) {
         return nullptr;
     }
     return dmn;

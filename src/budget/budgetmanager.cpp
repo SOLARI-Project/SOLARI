@@ -620,7 +620,7 @@ bool CBudgetManager::GetFinalizedBudget(const uint256& nHash, CFinalizedBudget& 
 bool CBudgetManager::IsBudgetPaymentBlock(int nBlockHeight, int& nCountThreshold) const
 {
     int nHighestCount = GetHighestVoteCount(nBlockHeight);
-    int nCountEnabled = mnodeman.CountEnabled(ActiveProtocol());
+    int nCountEnabled = mnodeman.CountEnabled();
     int nFivePercent = nCountEnabled / 20;
     // threshold for highest finalized budgets (highest vote count - 10% of active masternodes)
     nCountThreshold = nHighestCount - (nCountEnabled / 10);
@@ -713,7 +713,7 @@ std::vector<CBudgetProposal> CBudgetManager::GetBudget()
     const int nBlocksPerCycle = Params().GetConsensus().nBudgetCycleBlocks;
     int nBlockStart = nHeight - nHeight % nBlocksPerCycle + nBlocksPerCycle;
     int nBlockEnd = nBlockStart + nBlocksPerCycle - 1;
-    int mnCount = mnodeman.CountEnabled(ActiveProtocol());
+    int mnCount = mnodeman.CountEnabled();
     CAmount nTotalBudget = GetTotalBudget(nBlockStart);
 
     for (CBudgetProposal* pbudgetProposal: vBudgetPorposalsSort) {
@@ -737,7 +737,7 @@ std::vector<CBudgetProposal> CBudgetManager::GetBudget()
         } else {
             LogPrint(BCLog::MNBUDGET,"%s:  -   Check 1 failed: valid=%d | %ld <= %ld | %ld >= %ld | Yeas=%d Nays=%d Count=%d | established=%d\n",
                     __func__, pbudgetProposal->IsValid(), pbudgetProposal->GetBlockStart(), nBlockStart, pbudgetProposal->GetBlockEnd(),
-                    nBlockEnd, pbudgetProposal->GetYeas(), pbudgetProposal->GetNays(), mnodeman.CountEnabled(ActiveProtocol()) / 10,
+                    nBlockEnd, pbudgetProposal->GetYeas(), pbudgetProposal->GetNays(), mnodeman.CountEnabled() / 10,
                     pbudgetProposal->IsEstablished());
         }
 
@@ -822,7 +822,7 @@ void CBudgetManager::RemoveStaleVotesOnProposal(CBudgetProposal* prop)
         auto mnList = deterministicMNManager->GetListAtChainTip();
         auto dmn = mnList.GetMNByCollateral(it->first);
         if (dmn) {
-            (*it).second.SetValid(mnList.IsMNValid(dmn));
+            (*it).second.SetValid(!dmn->IsPoSeBanned());
         } else {
             // -- Legacy System (!TODO: remove after enforcement) --
             CMasternode* pmn = mnodeman.Find(it->first);
@@ -846,7 +846,7 @@ void CBudgetManager::RemoveStaleVotesOnFinalBudget(CFinalizedBudget* fbud)
         auto mnList = deterministicMNManager->GetListAtChainTip();
         auto dmn = mnList.GetMNByCollateral(it->first);
         if (dmn) {
-            (*it).second.SetValid(mnList.IsMNValid(dmn));
+            (*it).second.SetValid(!dmn->IsPoSeBanned());
         } else {
             // -- Legacy System (!TODO: remove after enforcement) --
             CMasternode* pmn = mnodeman.Find(it->first);
@@ -1021,7 +1021,7 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
 
         AddSeenProposalVote(vote);
 
-        if (!mnList.IsMNValid(dmn)) {
+        if (dmn->IsPoSeBanned()) {
             err = strprintf("masternode (%s) not valid or PoSe banned", mn_protx_id);
             return state.DoS(0, false, REJECT_INVALID, "bad-mvote", false, err);
         }
@@ -1117,7 +1117,7 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
 
         AddSeenFinalizedBudgetVote(vote);
 
-        if (!mnList.IsMNValid(dmn)) {
+        if (dmn->IsPoSeBanned()) {
             err = strprintf("masternode (%s) not valid or PoSe banned", mn_protx_id);
             return state.DoS(0, false, REJECT_INVALID, "bad-fbvote", false, err);
         }

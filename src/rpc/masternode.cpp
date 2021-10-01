@@ -177,8 +177,7 @@ UniValue listmasternodes(const JSONRPCRequest& request)
         mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
             UniValue obj(UniValue::VOBJ);
             dmn->ToJson(obj);
-            bool fEnabled = dmn->pdmnState->nPoSeBanHeight == -1;
-            if (filterMasternode(obj, strFilter, fEnabled)) {
+            if (filterMasternode(obj, strFilter, !dmn->IsPoSeBanned())) {
                 ret.push_back(obj);
             }
         });
@@ -191,6 +190,7 @@ UniValue listmasternodes(const JSONRPCRequest& request)
     int nHeight = chainTip->nHeight;
     auto mnList = deterministicMNManager->GetListAtChainTip();
 
+    int count_enabled = mnodeman.CountEnabled();
     std::vector<std::pair<int64_t, MasternodeRef>> vMasternodeRanks = mnodeman.GetMasternodeRanks(nHeight);
     for (int pos=0; pos < (int) vMasternodeRanks.size(); pos++) {
         const auto& s = vMasternodeRanks[pos];
@@ -203,7 +203,7 @@ UniValue listmasternodes(const JSONRPCRequest& request)
             if (dmn) {
                 UniValue obj(UniValue::VOBJ);
                 dmn->ToJson(obj);
-                bool fEnabled = dmn->pdmnState->nPoSeBanHeight == -1;
+                bool fEnabled = !dmn->IsPoSeBanned();
                 if (filterMasternode(obj, strFilter, fEnabled)) {
                     // Added for backward compatibility with legacy masternodes
                     obj.pushKV("type", "deterministic");
@@ -244,7 +244,7 @@ UniValue listmasternodes(const JSONRPCRequest& request)
         obj.pushKV("version", mn.protocolVersion);
         obj.pushKV("lastseen", (int64_t)mn.lastPing.sigTime);
         obj.pushKV("activetime", (int64_t)(mn.lastPing.sigTime - mn.sigTime));
-        obj.pushKV("lastpaid", (int64_t)mnodeman.GetLastPaid(s.second, chainTip));
+        obj.pushKV("lastpaid", (int64_t)mnodeman.GetLastPaid(s.second, count_enabled, chainTip));
 
         ret.push_back(obj);
     }

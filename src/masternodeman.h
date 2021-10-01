@@ -126,10 +126,7 @@ public:
     void SetBestHeight(int height) { nBestHeight.store(height, std::memory_order_release); };
     int GetBestHeight() const { return nBestHeight.load(std::memory_order_acquire); }
 
-    int CountEnabled(int protocolVersion = -1) const;
-
-    /// Count the number of nodes with a specific proto version for each network. Return the total.
-    int CountNetworks(int& ipv4, int& ipv6, int& onion) const;
+    int CountEnabled(bool only_legacy = false) const;
 
     void DsegUpdate(CNode* pnode);
 
@@ -161,7 +158,7 @@ public:
 
     struct MNsInfo {
         // All the known MNs
-        int total;
+        int total{0};
         // enabled MNs eligible for payments. Older than 8000 seconds.
         int stableSize{0};
         // MNs enabled.
@@ -184,8 +181,8 @@ public:
     void UpdateMasternodeList(CMasternodeBroadcast& mnb);
 
     /// Get the time a masternode was last paid
-    int64_t GetLastPaid(const MasternodeRef& mn, const CBlockIndex* BlockReading) const;
-    int64_t SecondsSincePayment(const MasternodeRef& mn, const CBlockIndex* BlockReading) const;
+    int64_t GetLastPaid(const MasternodeRef& mn, int count_enabled, const CBlockIndex* BlockReading) const;
+    int64_t SecondsSincePayment(const MasternodeRef& mn, int count_enabled, const CBlockIndex* BlockReading) const;
 
     // Block hashes cycling vector management
     void CacheBlockHash(const CBlockIndex* pindex);

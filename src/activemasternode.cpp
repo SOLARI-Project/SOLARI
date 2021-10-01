@@ -125,12 +125,8 @@ void CActiveDeterministicMasternodeManager::Init()
         return;
     }
 
-    if (!mnList.IsMNValid(dmn->proTxHash)) {
-        if (mnList.IsMNPoSeBanned(dmn->proTxHash)) {
-            state = MASTERNODE_POSE_BANNED;
-        } else {
-            state = MASTERNODE_REMOVED;
-        }
+    if (dmn->IsPoSeBanned()) {
+        state = MASTERNODE_POSE_BANNED;
         return;
     }
 
@@ -181,16 +177,21 @@ void CActiveDeterministicMasternodeManager::UpdatedBlockTip(const CBlockIndex* p
         return;
 
     if (state == MASTERNODE_READY) {
-        auto oldMNList = deterministicMNManager->GetListForBlock(pindexNew->pprev);
-        auto newMNList = deterministicMNManager->GetListForBlock(pindexNew);
-        if (!newMNList.IsMNValid(info.proTxHash)) {
+        auto newDmn = deterministicMNManager->GetListForBlock(pindexNew).GetValidMN(info.proTxHash);
+        if (newDmn == nullptr) {
             // MN disappeared from MN list
             Reset(MASTERNODE_REMOVED);
             return;
         }
 
-        auto oldDmn = oldMNList.GetMN(info.proTxHash);
-        auto newDmn = newMNList.GetMN(info.proTxHash);
+        auto oldDmn = deterministicMNManager->GetListForBlock(pindexNew->pprev).GetMN(info.proTxHash);
+        if (oldDmn == nullptr) {
+            // should never happen if state is MASTERNODE_READY
+            LogPrintf("%s: WARNING: unable to find active mn %s in prev block list %s\n",
+                      __func__, info.proTxHash.ToString(), pindexNew->pprev->GetBlockHash().ToString());
+            return;
+        }
+
         if (newDmn->pdmnState->keyIDOperator != oldDmn->pdmnState->keyIDOperator) {
             // MN operator key changed or revoked
             Reset(MASTERNODE_OPERATOR_KEY_CHANGED);

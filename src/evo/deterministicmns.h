@@ -213,6 +213,7 @@ public:
     }
 
     uint64_t GetInternalId() const;
+    bool IsPoSeBanned() const { return pdmnState->nPoSeBanHeight != -1; }
 
     std::string ToString() const;
     void ToJson(UniValue& obj) const;
@@ -321,7 +322,7 @@ public:
     {
         size_t count = 0;
         for (const auto& p : mnMap) {
-            if (IsMNValid(p.second)) {
+            if (!p.second->IsPoSeBanned()) {
                 count++;
             }
         }
@@ -332,7 +333,7 @@ public:
     void ForEachMN(bool onlyValid, Callback&& cb) const
     {
         for (const auto& p : mnMap) {
-            if (!onlyValid || IsMNValid(p.second)) {
+            if (!onlyValid || !p.second->IsPoSeBanned()) {
                 cb(p.second);
             }
         }
@@ -344,11 +345,6 @@ public:
     uint32_t GetTotalRegisteredCount() const { return nTotalRegisteredCount; }
     void SetHeight(int _height)                  { nHeight = _height; }
     void SetBlockHash(const uint256& _blockHash) { blockHash = _blockHash; }
-
-    bool IsMNValid(const uint256& proTxHash) const;
-    bool IsMNPoSeBanned(const uint256& proTxHash) const;
-    bool IsMNValid(const CDeterministicMNCPtr& dmn) const;
-    bool IsMNPoSeBanned(const CDeterministicMNCPtr& dmn) const;
 
     bool HasMN(const uint256& proTxHash) const
     {

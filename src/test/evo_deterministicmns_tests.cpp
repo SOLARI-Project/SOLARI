@@ -650,6 +650,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         // check that changing the operator key puts the MN in PoSe banned state
         BOOST_CHECK_MESSAGE(dmn->pdmnState->addr == CService(), "IP address not cleared after changing operator");
         BOOST_CHECK_MESSAGE(dmn->pdmnState->scriptOperatorPayout.empty(), "operator payee not empty after changing operator");
+        BOOST_CHECK(dmn->IsPoSeBanned());
         BOOST_CHECK_EQUAL(dmn->pdmnState->nPoSeBanHeight, nHeight);
 
         // revive the MN
@@ -663,6 +664,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         // check updated dmn state
         BOOST_CHECK_EQUAL(dmn->pdmnState->addr.GetPort(), 2000);
         BOOST_CHECK_EQUAL(dmn->pdmnState->nPoSeBanHeight, -1);
+        BOOST_CHECK(!dmn->IsPoSeBanned());
         BOOST_CHECK_EQUAL(dmn->pdmnState->nPoSeRevivedHeight, nHeight);
 
         // Mine 32 blocks, checking MN reward payments
@@ -780,6 +782,7 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         BOOST_CHECK_MESSAGE(dmn->pdmnState->addr == CService(), "mn IP address not removed");
         BOOST_CHECK_MESSAGE(dmn->pdmnState->scriptOperatorPayout.empty(), "mn operator payout not removed");
         BOOST_CHECK_EQUAL(dmn->pdmnState->nRevocationReason, reason);
+        BOOST_CHECK(dmn->IsPoSeBanned());
         BOOST_CHECK_EQUAL(dmn->pdmnState->nPoSeBanHeight, nHeight);
     }
 

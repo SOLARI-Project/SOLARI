@@ -274,13 +274,18 @@ void CMasternodeSync::Process()
     if (tick++ % MASTERNODE_SYNC_TIMEOUT != 0) return;
 
     if (IsSynced()) {
-        /*
-            Resync if we lose all masternodes from sleep/wake or failure to sync originally
-        */
-        if (mnodeman.CountEnabled() == 0 && !isRegTestNet) {
-            Reset();
-        } else
+        if (isRegTestNet) {
             return;
+        }
+        bool legacy_obsolete = deterministicMNManager->LegacyMNObsolete();
+        // Check if we lost all masternodes from sleep/wake or failure to sync originally (after
+        // spork 21, check if we lost all proposals instead). If we did, resync from scratch.
+        if ((!legacy_obsolete && mnodeman.CountEnabled(true /* only_legacy */) == 0) ||
+            (legacy_obsolete && g_budgetman.CountProposals() == 0)) {
+            Reset();
+        } else {
+            return;
+        }
     }
 
     //try syncing again
@@ -401,7 +406,7 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
             if (pnode->HasFulfilledRequest("mnwsync")) return true;
             pnode->FulfilledRequest("mnwsync");
 
-            int nMnCount = mnodeman.CountEnabled();
+            int nMnCount = mnodeman.CountEnabled(true /* only_legacy */);
             g_connman->PushMessage(pnode, msgMaker.Make(NetMsgType::GETMNWINNERS, nMnCount)); //sync payees
             RequestedMasternodeAttempt++;
             return false;
