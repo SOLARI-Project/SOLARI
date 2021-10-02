@@ -677,20 +677,16 @@ TrxValidationStatus CBudgetManager::IsTransactionValid(const CTransaction& txNew
     return fThreshold ? TrxValidationStatus::InValid : TrxValidationStatus::VoteThreshold;
 }
 
-std::vector<CBudgetProposal*> CBudgetManager::GetAllProposals()
+std::vector<CBudgetProposal*> CBudgetManager::GetAllProposalsOrdered()
 {
     LOCK(cs_proposals);
-
     std::vector<CBudgetProposal*> vBudgetProposalRet;
-
     for (auto& it: mapProposals) {
         CBudgetProposal* pbudgetProposal = &(it.second);
         RemoveStaleVotesOnProposal(pbudgetProposal);
         vBudgetProposalRet.push_back(pbudgetProposal);
     }
-
     std::sort(vBudgetProposalRet.begin(), vBudgetProposalRet.end(), CBudgetProposal::PtrHigherYes);
-
     return vBudgetProposalRet;
 }
 
@@ -702,13 +698,8 @@ std::vector<CBudgetProposal> CBudgetManager::GetBudget()
     if (nHeight <= 0)
         return {};
 
-    // ------- Sort budgets by net Yes Count
-    std::vector<CBudgetProposal*> vBudgetPorposalsSort;
-    for (auto& it: mapProposals) {
-        RemoveStaleVotesOnProposal(&it.second);
-        vBudgetPorposalsSort.push_back(&it.second);
-    }
-    std::sort(vBudgetPorposalsSort.begin(), vBudgetPorposalsSort.end(), CBudgetProposal::PtrHigherYes);
+    // ------- Get proposals ordered by votes (highest to lowest)
+    std::vector<CBudgetProposal*> vProposalsOrdered = GetAllProposalsOrdered();
 
     // ------- Grab The Budgets In Order
     std::vector<CBudgetProposal> vBudgetProposalsRet;
@@ -720,7 +711,7 @@ std::vector<CBudgetProposal> CBudgetManager::GetBudget()
     int mnCount = mnodeman.CountEnabled();
     CAmount nTotalBudget = GetTotalBudget(nBlockStart);
 
-    for (CBudgetProposal* pbudgetProposal: vBudgetPorposalsSort) {
+    for (CBudgetProposal* pbudgetProposal: vProposalsOrdered) {
         LogPrint(BCLog::MNBUDGET,"%s: Processing Budget %s\n", __func__, pbudgetProposal->GetName());
         //prop start/end should be inside this period
         if (pbudgetProposal->IsPassing(nBlockStart, nBlockEnd, mnCount)) {

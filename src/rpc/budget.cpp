@@ -461,7 +461,7 @@ UniValue getbudgetinfo(const JSONRPCRequest& request)
         return ret;
     }
 
-    std::vector<CBudgetProposal*> winningProps = g_budgetman.GetAllProposals();
+    std::vector<CBudgetProposal*> winningProps = g_budgetman.GetAllProposalsOrdered();
     for (CBudgetProposal* pbudgetProposal : winningProps) {
         if (!pbudgetProposal->IsValid()) continue;
 
