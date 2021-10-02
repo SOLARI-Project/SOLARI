@@ -84,16 +84,11 @@ OperationResult initMasternode(const std::string& strMasterNodePrivKey, const st
 class CActiveMasternode
 {
 private:
-    int status;
+    int status{ACTIVE_MASTERNODE_INITIAL};
     std::string notCapableReason;
 
 public:
-
-    CActiveMasternode()
-    {
-        vin = nullopt;
-        status = ACTIVE_MASTERNODE_INITIAL;
-    }
+    CActiveMasternode() = default;
 
     // Initialized by init.cpp
     // Keys for the main Masternode
