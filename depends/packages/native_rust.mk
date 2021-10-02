@@ -11,6 +11,8 @@ $(package)_file_name_aarch64_linux=rust-$($(package)_version)-aarch64-unknown-li
 $(package)_sha256_hash_aarch64_linux=604f537eae89f96c2377e12df609a70e26ebea7169e1bb8b2fec20f1ee288c0a
 $(package)_file_name_x86_64_darwin=rust-$($(package)_version)-x86_64-apple-darwin.tar.xz
 $(package)_sha256_hash_x86_64_darwin=5be9bfc9b3d4f170bc9fd44815179ca58fd8614a41e5be2e2369970b4286f004
+$(package)_file_name_aarch64_darwin=rust-$($(package)_version)-aarch64-apple-darwin.tar.xz
+$(package)_sha256_hash_aarch64_darwin=e52314376d5258f3fb3ec6b9e0164bfca1c15ed276bd0d772e5392ea8531afe4
 $(package)_file_name_x86_64_freebsd=rust-$($(package)_version)-x86_64-unknown-freebsd.tar.xz
 $(package)_sha256_hash_x86_64_freebsd=b5a96a9eb960bbfe527dba5549067102849fa80daabf524d367455c7b80232e1
 
@@ -32,10 +34,11 @@ $(package)_rust_std_sha256_hash_i686-unknown-linux-gnu=259c2a184a169742362fa46de
 $(package)_rust_std_sha256_hash_x86_64-unknown-linux-gnu=feac42bfc2e1ea699b192dee33cc65cdfb26da91a923c07e2720afff2ac29a19
 $(package)_rust_std_sha256_hash_riscv64gc-unknown-linux-gnu=980946800fb970613d555e67634b9c4e605bc18f3a4d0b42ffb4fbe46ce79387
 $(package)_rust_std_sha256_hash_x86_64-apple-darwin=d6533d147e5844feb3af26a02c71c78332462334b554af577f68898aeb7a6d3d
+$(package)_rust_std_sha256_hash_aarch64-apple-darwin=f6c87ba69889f4efdba616990b1dadbed5fe76746bf5f1c07ccc618a96b78e99
 $(package)_rust_std_sha256_hash_x86_64-pc-windows-gnu=afbe72d6b6afa41acfa98a228b06ed047d7f8208c93f3d2e4a56a54196e03373
 
 define rust_target
-$(if $($(1)_rust_target_$(2)),$($(1)_rust_target_$(2)),$(if $(findstring darwin,$(3)),x86_64-apple-darwin,$(2)))
+$(if $($(1)_rust_target_$(2)),$($(1)_rust_target_$(2)),$(if $(findstring darwin,$(3)),$(if $(findstring aarch64,$(host_arch)),aarch64-apple-darwin,x86_64-apple-darwin),$(2)))
 endef
 
 ifneq ($(canonical_host),$(build))
