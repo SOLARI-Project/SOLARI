@@ -6,7 +6,7 @@
 #include "budget/finalizedbudget.h"
 
 #include "masternodeman.h"
-
+#include "validation.h"
 
 CFinalizedBudget::CFinalizedBudget() :
         fAutoChecked(false),

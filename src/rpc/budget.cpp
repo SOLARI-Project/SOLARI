@@ -3,7 +3,6 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "activemasternode.h"
 #include "chainparams.h"
 #include "budget/budgetmanager.h"
 #include "budget/budgetutil.h"
@@ -19,6 +18,7 @@
 #include "rpc/server.h"
 #include "utilmoneystr.h"
 #ifdef ENABLE_WALLET
+#include "wallet/wallet.h"
 #include "wallet/rpcwallet.h"
 #endif
 

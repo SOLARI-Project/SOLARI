@@ -21,6 +21,7 @@
 #include "netbase.h"
 #include "guiinterface.h"
 #include "util/system.h"
+#include "validation.h"
 #include "warnings.h"
 
 #include <stdint.h>

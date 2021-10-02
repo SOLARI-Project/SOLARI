@@ -15,6 +15,7 @@
 #include "messagesigner.h"
 #include "netbase.h"
 #include "protocol.h"
+#include "validation.h"
 
 // Keep track of the active Masternode
 CActiveDeterministicMasternodeManager* activeMasternodeManager{nullptr};

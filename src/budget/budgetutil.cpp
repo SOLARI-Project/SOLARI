@@ -9,6 +9,10 @@
 #include "masternodeconfig.h"
 #include "util/validation.h"
 
+#ifdef ENABLE_WALLET
+#include "wallet/wallet.h" // future: use interface instead.
+#endif
+
 
 static UniValue packRetStatus(const std::string& nodeType, const std::string& result, const std::string& error)
 {

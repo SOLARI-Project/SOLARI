@@ -14,6 +14,9 @@
 #include "util/validation.h"
 #include "validation.h"   // GetTransaction, cs_main
 
+#ifdef ENABLE_WALLET
+#include "wallet/wallet.h" // future: use interface instead.
+#endif
 
 CBudgetManager g_budgetman;
 

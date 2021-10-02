@@ -6,15 +6,12 @@
 #ifndef ACTIVEMASTERNODE_H
 #define ACTIVEMASTERNODE_H
 
-#include "init.h"
 #include "key.h"
 #include "evo/deterministicmns.h"
-#include "masternode.h"
 #include "net.h"
 #include "operationresult.h"
 #include "sync.h"
 #include "validationinterface.h"
-#include "wallet/wallet.h"
 
 class CActiveDeterministicMasternodeManager;
 class CBLSPublicKey;
