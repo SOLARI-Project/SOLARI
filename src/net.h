@@ -577,7 +577,6 @@ public:
     bool fOneShot;
     bool fClient;
     const bool fInbound;
-    bool fNetworkNode;
     /**
      * Whether the peer has signaled support for receiving ADDRv2 (BIP155)
      * messages, implying a preference to receive ADDRv2 instead of ADDR ones.
