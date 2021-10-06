@@ -3253,12 +3253,18 @@ bool CWallet::CreateTransaction(CScript scriptPubKey, const CAmount& nValue, CTr
     return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet, nChangePosInOut, strFailReason, coinControl, true, nFeePay, fIncludeDelegated);
 }
 
+int CWallet::GetLastBlockHeightLockWallet() const
+{
+    return WITH_LOCK(cs_wallet, return m_last_block_processed_height;);
+}
+
 bool CWallet::CreateCoinStake(
         const CBlockIndex* pindexPrev,
         unsigned int nBits,
         CMutableTransaction& txNew,
         int64_t& nTxNewTime,
-        std::vector<CStakeableOutput>* availableCoins) const
+        std::vector<CStakeableOutput>* availableCoins,
+        bool stopOnNewBlock) const
 {
     // Mark coin stake transaction
     txNew.vin.clear();
@@ -3281,7 +3287,7 @@ bool CWallet::CreateCoinStake(
                              it->pindex);
 
         // New block came in, move on
-        if (WITH_LOCK(cs_wallet, return m_last_block_processed_height) != pindexPrev->nHeight) return false;
+        if (stopOnNewBlock && GetLastBlockHeightLockWallet() != pindexPrev->nHeight) return false;
 
         // Make sure the wallet is unlocked and shutdown hasn't been requested
         if (IsLocked() || ShutdownRequested()) return false;

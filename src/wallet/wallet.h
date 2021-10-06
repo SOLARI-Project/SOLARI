@@ -683,6 +683,8 @@ public:
         assert(m_last_block_processed_height >= 0);
         return m_last_block_processed_height;
     };
+    /** Get last block processed height locking the wallet */
+    int GetLastBlockHeightLockWallet() const;
     /** Set last block processed height, currently only use in unit test */
     void SetLastBlockProcessed(const CBlockIndex* pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
     {
@@ -1080,7 +1082,8 @@ public:
                          unsigned int nBits,
                          CMutableTransaction& txNew,
                          int64_t& nTxNewTime,
-                         std::vector<CStakeableOutput>* availableCoins) const;
+                         std::vector<CStakeableOutput>* availableCoins,
+                         bool stopOnNewBlock = true) const;
     bool SignCoinStake(CMutableTransaction& txNew) const;
     void AutoCombineDust(CConnman* connman);
 
