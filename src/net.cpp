@@ -1507,6 +1507,11 @@ void CConnman::ThreadOpenConnections()
             LOCK(cs_vNodes);
             for (const CNode* pnode : vNodes) {
                 if (!pnode->fInbound && !pnode->fAddnode) {
+                    // Netgroups for inbound and addnode peers are not excluded because our goal here
+                    // is to not use multiple of our limited outbound slots on a single netgroup
+                    // but inbound and addnode peers do not use our outbound slots. Inbound peers
+                    // also have the added issue that they're attacker controlled and could be used
+                    // to prevent us from connecting to particular hosts if we used them here.
                     setConnected.insert(pnode->addr.GetGroup(addrman.m_asmap));
                     nOutbound++;
                 }
