@@ -7,6 +7,7 @@
 #include "txmempool.h"
 
 #include "clientversion.h"
+#include "bls/bls_wrapper.h"
 #include "evo/deterministicmns.h"
 #include "evo/specialtx.h"
 #include "evo/providertx.h"
@@ -378,7 +379,7 @@ void CTxMemPool::addUncheckedSpecialTx(const CTransaction& tx)
             }
             mapProTxAddresses.emplace(pl.addr, txid);
             mapProTxPubKeyIDs.emplace(pl.keyIDOwner, txid);
-            mapProTxPubKeyIDs.emplace(pl.keyIDOperator, txid);
+            mapProTxBlsPubKeyHashes.emplace(pl.pubKeyOperator.GetHash(), txid);
             break;
         }
 
@@ -396,7 +397,7 @@ void CTxMemPool::addUncheckedSpecialTx(const CTransaction& tx)
             bool ok = GetTxPayload(tx, pl);
             assert(ok);
             mapProTxRefs.emplace(pl.proTxHash, txid);
-            mapProTxPubKeyIDs.emplace(pl.keyIDOperator, tx.GetHash());
+            mapProTxBlsPubKeyHashes.emplace(pl.pubKeyOperator.GetHash(), txid);
             break;
         }
 
@@ -503,7 +504,7 @@ void CTxMemPool::removeUncheckedSpecialTx(const CTransaction& tx)
             mapProTxCollaterals.erase(pl.collateralOutpoint);
             mapProTxAddresses.erase(pl.addr);
             mapProTxPubKeyIDs.erase(pl.keyIDOwner);
-            mapProTxPubKeyIDs.erase(pl.keyIDOperator);
+            mapProTxBlsPubKeyHashes.erase(pl.pubKeyOperator.GetHash());
             break;
         }
 
@@ -521,7 +522,7 @@ void CTxMemPool::removeUncheckedSpecialTx(const CTransaction& tx)
             bool ok = GetTxPayload(tx, pl);
             assert(ok);
             eraseProTxRef(pl.proTxHash, txid);
-            mapProTxPubKeyIDs.erase(pl.keyIDOperator);
+            mapProTxBlsPubKeyHashes.erase(pl.pubKeyOperator.GetHash());
             break;
         }
 
@@ -724,6 +725,16 @@ void CTxMemPool::removeProTxPubKeyConflicts(const CTransaction& tx, const CKeyID
     }
 }
 
+void CTxMemPool::removeProTxPubKeyConflicts(const CTransaction& tx, const CBLSPublicKey& pubKey)
+{
+    if (mapProTxBlsPubKeyHashes.count(pubKey.GetHash())) {
+        const uint256& conflictHash = mapProTxBlsPubKeyHashes.at(pubKey.GetHash());
+        if (conflictHash != tx.GetHash() && mapTx.count(conflictHash)) {
+            removeRecursive(mapTx.find(conflictHash)->GetTx(), MemPoolRemovalReason::CONFLICT);
+        }
+    }
+}
+
 void CTxMemPool::removeProTxCollateralConflicts(const CTransaction &tx, const COutPoint &collateralOutpoint)
 {
     if (mapProTxCollaterals.count(collateralOutpoint)) {
@@ -792,7 +803,7 @@ void CTxMemPool::removeProTxConflicts(const CTransaction &tx)
                 }
             }
             removeProTxPubKeyConflicts(tx, pl.keyIDOwner);
-            removeProTxPubKeyConflicts(tx, pl.keyIDOperator);
+            removeProTxPubKeyConflicts(tx, pl.pubKeyOperator);
             if (!pl.collateralOutpoint.hash.IsNull()) {
                 removeProTxCollateralConflicts(tx, pl.collateralOutpoint);
             }
@@ -820,7 +831,7 @@ void CTxMemPool::removeProTxConflicts(const CTransaction &tx)
                 LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
                 return;
             }
-            removeProTxPubKeyConflicts(tx, pl.keyIDOperator);
+            removeProTxPubKeyConflicts(tx, pl.pubKeyOperator);
             break;
         }
 
@@ -1153,7 +1164,8 @@ bool CTxMemPool::existsProviderTxConflict(const CTransaction &tx) const
                 LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
                 return true; // i.e. can't decode payload == conflict
             }
-            if (mapProTxAddresses.count(pl.addr) || mapProTxPubKeyIDs.count(pl.keyIDOwner) || mapProTxPubKeyIDs.count(pl.keyIDOperator)) {
+            if (mapProTxAddresses.count(pl.addr) || mapProTxPubKeyIDs.count(pl.keyIDOwner) ||
+                    mapProTxBlsPubKeyHashes.count(pl.pubKeyOperator.GetHash())) {
                 return true;
             }
             if (!pl.collateralOutpoint.hash.IsNull()) {
@@ -1185,8 +1197,8 @@ bool CTxMemPool::existsProviderTxConflict(const CTransaction &tx) const
                 LogPrint(BCLog::MEMPOOL, "%s: ERROR: Invalid transaction payload, tx: %s", __func__, tx.ToString());
                 return true; // i.e. can't decode payload == conflict
             }
-            auto it = mapProTxPubKeyIDs.find(pl.keyIDOperator);
-            return it != mapProTxPubKeyIDs.end() && it->second != pl.proTxHash;
+            auto it = mapProTxBlsPubKeyHashes.find(pl.pubKeyOperator.GetHash());
+            return it != mapProTxBlsPubKeyHashes.end() && it->second != pl.proTxHash;
         }
 
     }

@@ -504,8 +504,10 @@ void CBudgetManager::VoteOnFinalizedBudgets()
     }
 
     // Get the active masternode (operator) key
-    CKey mnKey; CKeyID mnKeyID; CTxIn mnVin;
-    if (!GetActiveMasternodeKeys(mnKey, mnKeyID, mnVin)) {
+    CTxIn mnVin;
+    Optional<CKey> mnKey{nullopt};
+    CBLSSecretKey blsKey;
+    if (!GetActiveMasternodeKeys(mnVin, mnKey, blsKey)) {
         return;
     }
 
@@ -543,9 +545,18 @@ void CBudgetManager::VoteOnFinalizedBudgets()
     // Sign finalized budgets
     for (const uint256& budgetHash: vBudgetHashes) {
         CFinalizedBudgetVote vote(mnVin, budgetHash);
-        if (!vote.Sign(mnKey, mnKeyID)) {
-            LogPrintf("%s: Failure to sign budget %s", __func__, budgetHash.ToString());
-            continue;
+        if (mnKey != nullopt) {
+            // Legacy MN
+            if (!vote.Sign(*mnKey, mnKey->GetPubKey().GetID())) {
+                LogPrintf("%s: Failure to sign budget %s\n", __func__, budgetHash.ToString());
+                continue;
+            }
+        } else {
+            // DMN
+            if (!vote.Sign(blsKey)) {
+                LogPrintf("%s: Failure to sign budget %s with DMN\n", __func__, budgetHash.ToString());
+                continue;
+            }
         }
         std::string strError = "";
         if (!UpdateFinalizedBudget(vote, NULL, strError)) {
@@ -1110,7 +1121,7 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
     if (dmn) {
         const std::string& mn_protx_id = dmn->proTxHash.ToString();
 
-        if (!vote.CheckSignature(dmn->pdmnState->keyIDOperator)) {
+        if (!vote.CheckSignature(dmn->pdmnState->pubKeyOperator.Get())) {
             err = strprintf("invalid fbvote sig from dmn: %s", mn_protx_id);
             return state.DoS(100, false, REJECT_INVALID, "bad-fbvote-sig", false, err);
         }
