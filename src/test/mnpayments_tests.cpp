@@ -162,7 +162,6 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
     // Voter MN2, fail because MN2 is not enabled
     pSecondMN->SetSpent();
     BOOST_CHECK(!pSecondMN->IsEnabled());
-    mnVinVoter = CTxIn(pSecondMN->vin);
     CValidationState state3;
     BOOST_CHECK(!CreateMNWinnerPayment(mnVinVoter, paymentBlockHeight, payeeScript,
                                        secondMn.data.mnPrivKey, secondMn.data.mnPubKey, state3));
