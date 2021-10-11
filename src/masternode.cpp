@@ -214,24 +214,6 @@ bool CMasternode::IsValidNetAddr() const
            (IsReachable(addr) && addr.IsRoutable());
 }
 
-bool CMasternode::IsInputAssociatedWithPubkey() const
-{
-    CScript payee;
-    payee = GetScriptForDestination(pubKeyCollateralAddress.GetID());
-
-    CTransactionRef txVin;
-    uint256 hash;
-    if(GetTransaction(vin.prevout.hash, txVin, hash, true)) {
-        for (const CTxOut& out : txVin->vout) {
-            if (out.nValue == Params().GetConsensus().nMNCollateralAmt &&
-                out.scriptPubKey == payee)
-                return true;
-        }
-    }
-
-    return false;
-}
-
 CMasternodeBroadcast::CMasternodeBroadcast() :
         CMasternode()
 { }
@@ -482,74 +464,6 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
         }
         masternodeSync.AddedMasternodeList(GetHash());
     }
-
-    return true;
-}
-
-bool CMasternodeBroadcast::CheckInputsAndAdd(int nChainHeight, int& nDoS)
-{
-    // we are a masternode with the same vin (i.e. already activated) and this mnb is ours (matches our Masternode privkey)
-    // so nothing to do here for us
-    if (fMasterNode && activeMasternode.vin != nullopt &&
-            vin.prevout == activeMasternode.vin->prevout &&
-            pubKeyMasternode == activeMasternode.pubKeyMasternode &&
-            activeMasternode.GetStatus() == ACTIVE_MASTERNODE_STARTED) {
-        return true;
-    }
-
-    // incorrect ping or its sigTime
-    if(lastPing.IsNull() || !lastPing.CheckAndUpdate(nDoS, nChainHeight, false, true)) {
-        return false;
-    }
-
-    // search existing Masternode list
-    CMasternode* pmn = mnodeman.Find(vin.prevout);
-    if (pmn != NULL) {
-        // nothing to do here if we already know about this masternode and it's enabled
-        if (pmn->IsEnabled()) return true;
-        // if it's not enabled, remove old MN first and continue
-        else
-            mnodeman.Remove(pmn->vin.prevout);
-    }
-
-    const Coin& collateralUtxo = pcoinsTip->AccessCoin(vin.prevout);
-    if (collateralUtxo.IsSpent()) {
-        LogPrint(BCLog::MASTERNODE,"mnb - vin %s spent\n", vin.prevout.ToString());
-        return false;
-    }
-
-    LogPrint(BCLog::MASTERNODE, "mnb - Accepted Masternode entry\n");
-    const int utxoHeight = collateralUtxo.nHeight;
-    int collateralUtxoDepth = nChainHeight - utxoHeight + 1;
-    if (collateralUtxoDepth < MasternodeCollateralMinConf()) {
-        LogPrint(BCLog::MASTERNODE,"mnb - Input must have at least %d confirmations\n", MasternodeCollateralMinConf());
-        // maybe we miss few blocks, let this mnb to be checked again later
-        mnodeman.mapSeenMasternodeBroadcast.erase(GetHash());
-        masternodeSync.mapSeenSyncMNB.erase(GetHash());
-        return false;
-    }
-
-    // verify that sig time is legit in past
-    // should be at least not earlier than block when 1000 PIV tx got MASTERNODE_MIN_CONFIRMATIONS
-    CBlockIndex* pConfIndex = WITH_LOCK(cs_main, return chainActive[utxoHeight + MasternodeCollateralMinConf() - 1]); // block where tx got MASTERNODE_MIN_CONFIRMATIONS
-    if (pConfIndex->GetBlockTime() > sigTime) {
-        LogPrint(BCLog::MASTERNODE,"mnb - Bad sigTime %d for Masternode %s (%i conf block is at %d)\n",
-            sigTime, vin.prevout.hash.ToString(), MasternodeCollateralMinConf(), pConfIndex->GetBlockTime());
-        return false;
-    }
-
-    LogPrint(BCLog::MASTERNODE,"mnb - Got NEW Masternode entry - %s - %lli \n", vin.prevout.hash.ToString(), sigTime);
-    CMasternode mn(*this);
-    mnodeman.Add(mn);
-
-    // if it matches our Masternode privkey, then we've been remotely activated
-    if (pubKeyMasternode == activeMasternode.pubKeyMasternode && protocolVersion == PROTOCOL_VERSION) {
-        activeMasternode.EnableHotColdMasterNode(vin, addr);
-    }
-
-    bool isLocal = (addr.IsRFC1918() || addr.IsLocal()) && !Params().IsRegTestNet();
-
-    if (!isLocal) Relay();
 
     return true;
 }
