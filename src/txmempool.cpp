@@ -920,7 +920,6 @@ void CTxMemPool::check(const CCoinsViewCache* pcoins) const
         setEntries setParentCheck;
         int64_t parentSizes = 0;
         unsigned int parentSigOpCount = 0;
-        bool fHasZerocoinSpends = false;
         for (const CTxIn& txin : tx.vin) {
             // Check that every mempool transaction's inputs refer to available coins, or other mempool tx's.
             indexed_transaction_set::const_iterator it2 = mapTx.find(txin.prevout.hash);
@@ -932,20 +931,14 @@ void CTxMemPool::check(const CCoinsViewCache* pcoins) const
                     parentSizes += it2->GetTxSize();
                     parentSigOpCount += it2->GetSigOpCount();
                 }
-            } else if(!txin.IsZerocoinSpend() && !txin.IsZerocoinPublicSpend()) {
-                assert(pcoins->HaveCoin(txin.prevout));
             } else {
-                fHasZerocoinSpends = true;
+                assert(pcoins->HaveCoin(txin.prevout));
             }
             // Check whether its inputs are marked in mapNextTx.
-            if(!fHasZerocoinSpends) {
-                auto it3 = mapNextTx.find(txin.prevout);
-                assert(it3 != mapNextTx.end());
-                assert(it3->first == &txin.prevout);
-                assert(*it3->second == tx);
-            } else {
-                fDependsWait=false;
-            }
+            auto it3 = mapNextTx.find(txin.prevout);
+            assert(it3 != mapNextTx.end());
+            assert(it3->first == &txin.prevout);
+            assert(*it3->second == tx);
             i++;
         }
         // sapling txes
@@ -979,22 +972,21 @@ void CTxMemPool::check(const CCoinsViewCache* pcoins) const
         assert(it->GetModFeesWithAncestors() == nFeesCheck);
 
         // Check children against mapNextTx
-        if (!fHasZerocoinSpends) {
-            CTxMemPool::setEntries setChildrenCheck;
-            auto iter = mapNextTx.lower_bound(COutPoint(it->GetTx().GetHash(), 0));
-            int64_t childSizes = 0;
-            for (; iter != mapNextTx.end() && iter->first->hash == tx.GetHash(); ++iter) {
-                txiter childit = mapTx.find(iter->second->GetHash());
-                assert(childit != mapTx.end()); // mapNextTx points to in-mempool transactions
-                if (setChildrenCheck.insert(childit).second) {
-                    childSizes += childit->GetTxSize();
-                }
+        CTxMemPool::setEntries setChildrenCheck;
+        auto iter = mapNextTx.lower_bound(COutPoint(it->GetTx().GetHash(), 0));
+        int64_t childSizes = 0;
+        for (; iter != mapNextTx.end() && iter->first->hash == tx.GetHash(); ++iter) {
+            txiter childit = mapTx.find(iter->second->GetHash());
+            assert(childit != mapTx.end()); // mapNextTx points to in-mempool transactions
+            if (setChildrenCheck.insert(childit).second) {
+                childSizes += childit->GetTxSize();
             }
-            assert(setChildrenCheck == GetMemPoolChildren(it));
-            // Also check to make sure size is greater than sum with immediate children.
-            // just a sanity check, not definitive that this calc is correct...
-            assert(it->GetSizeWithDescendants() >= (uint64_t)(childSizes + it->GetTxSize()));
         }
+        assert(setChildrenCheck == GetMemPoolChildren(it));
+        // Also check to make sure size is greater than sum with immediate children.
+        // just a sanity check, not definitive that this calc is correct...
+        assert(it->GetSizeWithDescendants() >= (uint64_t)(childSizes + it->GetTxSize()));
+
 
         if (fDependsWait)
             waitingOnDependants.push_back(&(*it));
