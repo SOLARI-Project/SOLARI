@@ -53,6 +53,7 @@ bool Lookup(const std::string& name, CService& addr, int portDefault, bool fAllo
 bool Lookup(const std::string& name, std::vector<CService>& vAddr, int portDefault, bool fAllowLookup, unsigned int nMaxSolutions);
 CService LookupNumeric(const std::string& name, int portDefault = 0);
 bool LookupSubNet(const std::string& name, CSubNet& subnet);
+SOCKET CreateSocket(const CService &addrConnect);
 bool ConnectSocketDirectly(const CService& addrConnect, SOCKET& hSocketRet, int nTimeout);
 bool ConnectThroughProxy(const proxyType& proxy, const std::string& strDest, int port, SOCKET& hSocketRet, int nTimeout, bool* outProxyConnectionFailed);
 /** Return readable error string for a network error code */
