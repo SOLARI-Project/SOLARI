@@ -355,12 +355,11 @@ static std::string Socks5ErrorString(uint8_t err)
 }
 
 /** Connect using SOCKS5 (as described in RFC1928) */
-bool static Socks5(std::string strDest, int port, const ProxyCredentials *auth, SOCKET& hSocket)
+bool static Socks5(std::string strDest, int port, const ProxyCredentials *auth, const SOCKET& hSocket)
 {
     IntrRecvError recvr;
     LogPrint(BCLog::NET, "SOCKS5 connecting %s\n", strDest);
     if (strDest.size() > 255) {
-        CloseSocket(hSocket);
         return error("Hostname too long");
     }
     // Accepted authentication methods
@@ -376,17 +375,14 @@ bool static Socks5(std::string strDest, int port, const ProxyCredentials *auth, 
     }
     ssize_t ret = send(hSocket, (const char*)vSocks5Init.data(), vSocks5Init.size(), MSG_NOSIGNAL);
     if (ret != (ssize_t)vSocks5Init.size()) {
-        CloseSocket(hSocket);
         return error("Error sending to proxy");
     }
     uint8_t pchRet1[2];
     if ((recvr = InterruptibleRecv(pchRet1, 2, SOCKS5_RECV_TIMEOUT, hSocket)) != IntrRecvError::OK) {
-        CloseSocket(hSocket);
         LogPrintf("Socks5() connect to %s:%d failed: InterruptibleRecv() timeout or other failure\n", strDest, port);
         return false;
     }
     if (pchRet1[0] != SOCKSVersion::SOCKS5) {
-        CloseSocket(hSocket);
         return error("Proxy failed to initialize");
     }
     if (pchRet1[1] == SOCKS5Method::USER_PASS && auth) {
@@ -401,23 +397,19 @@ bool static Socks5(std::string strDest, int port, const ProxyCredentials *auth, 
         vAuth.insert(vAuth.end(), auth->password.begin(), auth->password.end());
         ret = send(hSocket, (const char*)vAuth.data(), vAuth.size(), MSG_NOSIGNAL);
         if (ret != (ssize_t)vAuth.size()) {
-            CloseSocket(hSocket);
             return error("Error sending authentication to proxy");
         }
         LogPrint(BCLog::PROXY, "SOCKS5 sending proxy authentication %s:%s\n", auth->username, auth->password);
         uint8_t pchRetA[2];
         if ((recvr = InterruptibleRecv(pchRetA, 2, SOCKS5_RECV_TIMEOUT, hSocket)) != IntrRecvError::OK) {
-            CloseSocket(hSocket);
             return error("Error reading proxy authentication response");
         }
         if (pchRetA[0] != 0x01 || pchRetA[1] != 0x00) {
-            CloseSocket(hSocket);
             return error("Proxy authentication unsuccesful");
         }
     } else if (pchRet1[1] == SOCKS5Method::NOAUTH) {
         // Perform no authentication
     } else {
-        CloseSocket(hSocket);
         return error("Proxy requested wrong authentication method %02x", pchRet1[1]);
     }
     std::vector<uint8_t> vSocks5;
@@ -431,12 +423,10 @@ bool static Socks5(std::string strDest, int port, const ProxyCredentials *auth, 
     vSocks5.push_back((port >> 0) & 0xFF);
     ret = send(hSocket, (const char*)vSocks5.data(), vSocks5.size(), MSG_NOSIGNAL);
     if (ret != (ssize_t)vSocks5.size()) {
-        CloseSocket(hSocket);
         return error("Error sending to proxy");
     }
     uint8_t pchRet2[4];
     if ((recvr = InterruptibleRecv(pchRet2, 4, SOCKS5_RECV_TIMEOUT, hSocket)) != IntrRecvError::OK) {
-        CloseSocket(hSocket);
         if (recvr == IntrRecvError::Timeout) {
             /* If a timeout happens here, this effectively means we timed out while connecting
              * to the remote node. This is very common for Tor, so do not print an
@@ -447,17 +437,14 @@ bool static Socks5(std::string strDest, int port, const ProxyCredentials *auth, 
         }
     }
     if (pchRet2[0] != SOCKSVersion::SOCKS5) {
-        CloseSocket(hSocket);
         return error("Proxy failed to accept request");
     }
     if (pchRet2[1] != SOCKS5Reply::SUCCEEDED) {
         // Failures to connect to a peer that are not proxy errors
-        CloseSocket(hSocket);
         LogPrintf("Socks5() connect to %s:%d failed: %s\n", strDest, port, Socks5ErrorString(pchRet2[1]));
         return false;
     }
     if (pchRet2[2] != 0x00) { // Reserved field must be 0
-        CloseSocket(hSocket);
         return error("Error: malformed proxy response");
     }
     uint8_t pchRet3[256];
@@ -469,21 +456,18 @@ bool static Socks5(std::string strDest, int port, const ProxyCredentials *auth, 
         {
             recvr = InterruptibleRecv(pchRet3, 1, SOCKS5_RECV_TIMEOUT, hSocket);
             if (recvr != IntrRecvError::OK) {
-                CloseSocket(hSocket);
                 return error("Error reading from proxy");
             }
             int nRecv = pchRet3[0];
             recvr = InterruptibleRecv(pchRet3, nRecv, SOCKS5_RECV_TIMEOUT, hSocket);
             break;
         }
-        default: CloseSocket(hSocket); return error("Error: malformed proxy response");
+        default: return error("Error: malformed proxy response");
     }
     if (recvr != IntrRecvError::OK) {
-        CloseSocket(hSocket);
         return error("Error reading from proxy");
     }
     if ((recvr = InterruptibleRecv(pchRet3, 2, SOCKS5_RECV_TIMEOUT, hSocket)) != IntrRecvError::OK) {
-        CloseSocket(hSocket);
         return error("Error reading from proxy");
     }
     LogPrint(BCLog::NET, "SOCKS5 connected %s\n", strDest);
@@ -523,7 +507,7 @@ SOCKET CreateSocket(const CService& addrConnect)
     return hSocket;
 }
 
-bool ConnectSocketDirectly(const CService& addrConnect, SOCKET& hSocket, int nTimeout)
+bool ConnectSocketDirectly(const CService& addrConnect, const SOCKET& hSocket, int nTimeout)
 {
     struct sockaddr_storage sockaddr;
     socklen_t len = sizeof(sockaddr);
@@ -533,7 +517,6 @@ bool ConnectSocketDirectly(const CService& addrConnect, SOCKET& hSocket, int nTi
     }
     if (!addrConnect.GetSockAddr((struct sockaddr*)&sockaddr, &len)) {
         LogPrintf("Cannot connect to %s: unsupported network\n", addrConnect.ToString());
-        CloseSocket(hSocket);
         return false;
     }
     if (connect(hSocket, (struct sockaddr*)&sockaddr, len) == SOCKET_ERROR) {
@@ -547,24 +530,20 @@ bool ConnectSocketDirectly(const CService& addrConnect, SOCKET& hSocket, int nTi
             int nRet = select(hSocket + 1, NULL, &fdset, NULL, &timeout);
             if (nRet == 0) {
                 LogPrint(BCLog::NET, "connection to %s timeout\n", addrConnect.ToString());
-                CloseSocket(hSocket);
                 return false;
             }
             if (nRet == SOCKET_ERROR) {
                 LogPrintf("select() for %s failed: %s\n", addrConnect.ToString(), NetworkErrorString(WSAGetLastError()));
-                CloseSocket(hSocket);
                 return false;
             }
             socklen_t nRetSize = sizeof(nRet);
             if (getsockopt(hSocket, SOL_SOCKET, SO_ERROR, (sockopt_arg_type)&nRet, &nRetSize) == SOCKET_ERROR)
             {
                 LogPrintf("getsockopt() for %s failed: %s\n", addrConnect.ToString(), NetworkErrorString(WSAGetLastError()));
-                CloseSocket(hSocket);
                 return false;
             }
             if (nRet != 0) {
                 LogPrintf("connect() to %s failed after select(): %s\n", addrConnect.ToString(), NetworkErrorString(nRet));
-                CloseSocket(hSocket);
                 return false;
             }
         }
@@ -575,7 +554,6 @@ bool ConnectSocketDirectly(const CService& addrConnect, SOCKET& hSocket, int nTi
 #endif
         {
             LogPrintf("connect() to %s failed: %s\n", addrConnect.ToString(), NetworkErrorString(WSAGetLastError()));
-            CloseSocket(hSocket);
             return false;
         }
     }
@@ -636,7 +614,7 @@ bool IsProxy(const CNetAddr& addr)
     return false;
 }
 
-bool ConnectThroughProxy(const proxyType &proxy, const std::string& strDest, int port, SOCKET& hSocket, int nTimeout, bool *outProxyConnectionFailed)
+bool ConnectThroughProxy(const proxyType &proxy, const std::string& strDest, int port, const SOCKET& hSocket, int nTimeout, bool *outProxyConnectionFailed)
 {
     // first connect to proxy server
     if (!ConnectSocketDirectly(proxy.proxy, hSocket, nTimeout)) {
@@ -650,12 +628,10 @@ bool ConnectThroughProxy(const proxyType &proxy, const std::string& strDest, int
         static std::atomic_int counter;
         random_auth.username = random_auth.password = strprintf("%i", counter++);
         if (!Socks5(strDest, (uint16_t)port, &random_auth, hSocket)) {
-            CloseSocket(hSocket);
             return false;
         }
     } else {
         if (!Socks5(strDest, (uint16_t)port, 0, hSocket)) {
-            CloseSocket(hSocket);
             return false;
         }
     }
