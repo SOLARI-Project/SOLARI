@@ -135,6 +135,7 @@ set(BITCOIN_TESTS
         ${CMAKE_CURRENT_SOURCE_DIR}/key_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dbwrapper_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/main_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/mnpayments_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/mempool_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/merkle_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/miner_tests.cpp

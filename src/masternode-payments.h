@@ -177,7 +177,7 @@ public:
     std::string GetStrMessage() const override;
     CTxIn GetVin() const { return vinMasternode; };
 
-    bool IsValid(CNode* pnode, std::string& strError, int chainHeight);
+    bool IsValid(CNode* pnode, CValidationState& state, int chainHeight);
     void Relay();
 
     void AddPayee(const CScript& payeeIn)
@@ -258,6 +258,7 @@ public:
         return true;
     }
 
+    bool ProcessMNWinner(CMasternodePaymentWinner& winner, CNode* pfrom, CValidationState& state);
     void ProcessMessageMasternodePayments(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
     std::string GetRequiredPaymentsString(int nBlockHeight);
     void FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const CBlockIndex* pindexPrev, bool fProofOfStake) const;
