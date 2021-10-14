@@ -3274,6 +3274,20 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend,
         // Embed the constructed transaction data in wtxNew.
         txRet = MakeTransactionRef(std::move(txNew));
     }
+
+    // Lastly, ensure this tx will pass the mempool's chain limits
+    CTxMemPoolEntry entry(txRet, 0, 0, 0, false, 0);
+    CTxMemPool::setEntries setAncestors;
+    size_t nLimitAncestors = gArgs.GetArg("-limitancestorcount", DEFAULT_ANCESTOR_LIMIT);
+    size_t nLimitAncestorSize = gArgs.GetArg("-limitancestorsize", DEFAULT_ANCESTOR_SIZE_LIMIT)*1000;
+    size_t nLimitDescendants = gArgs.GetArg("-limitdescendantcount", DEFAULT_DESCENDANT_LIMIT);
+    size_t nLimitDescendantSize = gArgs.GetArg("-limitdescendantsize", DEFAULT_DESCENDANT_SIZE_LIMIT)*1000;
+    std::string errString;
+    if (!mempool.CalculateMemPoolAncestors(entry, setAncestors, nLimitAncestors, nLimitAncestorSize, nLimitDescendants, nLimitDescendantSize, errString)) {
+        strFailReason = _("Transaction has too long of a mempool chain");
+        return false;
+    }
+
     return true;
 }
 
