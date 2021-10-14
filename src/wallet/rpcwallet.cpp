@@ -555,11 +555,16 @@ UniValue getnewshieldaddress(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || !request.params.empty())
+    if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-                "getnewshieldaddress\n"
+                "getnewshieldaddress ( \"label\" )\n"
                 "\nReturns a new shield address for receiving payments.\n"
+                "If 'label' is specified, it is added to the address book \n"
+                "so payments received with the shield address will be associated with 'label'.\n"
                 + HelpRequiringPassphrase(pwallet) + "\n"
+
+                "\nArguments:\n"
+                "1. \"label\"        (string, optional) The label name for the address to be linked to. if not provided, the default label \"\" is used. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name.\n"
 
                 "\nResult:\n"
                 "\"address\"    (string) The new shield address.\n"
@@ -569,11 +574,16 @@ UniValue getnewshieldaddress(const JSONRPCRequest& request)
                 + HelpExampleRpc("getnewshieldaddress", "")
         );
 
+    std::string label;
+    if (!request.params.empty()) {
+        label = LabelFromValue(request.params[0]);
+    }
+
     LOCK2(cs_main, pwallet->cs_wallet);
 
     EnsureWalletIsUnlocked(pwallet);
 
-    return KeyIO::EncodePaymentAddress(pwallet->GenerateNewSaplingZKey());
+    return KeyIO::EncodePaymentAddress(pwallet->GenerateNewSaplingZKey(label));
 }
 
 static inline std::string HexStrTrimmed(std::array<unsigned char, ZC_MEMO_SIZE> vch)
@@ -4777,7 +4787,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "bip38decrypt",             &bip38decrypt,             true,  {"encrypted_key","passphrase"} },
 
     /** Sapling functions */
-    { "wallet",             "getnewshieldaddress",           &getnewshieldaddress,            true,  {} },
+    { "wallet",             "getnewshieldaddress",           &getnewshieldaddress,            true,  {"label"} },
     { "wallet",             "listshieldaddresses",           &listshieldaddresses,            false, {"include_watchonly"} },
     { "wallet",             "exportsaplingkey",              &exportsaplingkey,               true,  {"shield_addr"} },
     { "wallet",             "importsaplingkey",              &importsaplingkey,               true,  {"key","rescan","height"} },
