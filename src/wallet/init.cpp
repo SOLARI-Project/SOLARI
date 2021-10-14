@@ -133,7 +133,7 @@ bool WalletParameterInteraction()
         else
             return UIError(AmountErrMsg("minstakesplit", gArgs.GetArg("-minstakesplit", "")));
     }
-    nTxConfirmTarget = gArgs.GetArg("-txconfirmtarget", 1);
+    nTxConfirmTarget = gArgs.GetArg("-txconfirmtarget", DEFAULT_TX_CONFIRM_TARGET);
     bSpendZeroConfChange = gArgs.GetBoolArg("-spendzeroconfchange", DEFAULT_SPEND_ZEROCONF_CHANGE);
     bdisableSystemnotifications = gArgs.GetBoolArg("-disablesystemnotifications", false);
 

@@ -66,6 +66,8 @@ static const CAmount DEFAULT_TRANSACTION_MINFEE = 10000;
 static const CAmount DEFAULT_TRANSACTION_MAXFEE = 1 * COIN;
 //! minimum change amount
 static const CAmount MIN_CHANGE = CENT;
+//! -txconfirmtarget default
+static const unsigned int DEFAULT_TX_CONFIRM_TARGET = 1;
 //! -maxtxfee will warn if called with a higher fee than this amount (in satoshis)
 static const CAmount nHighTransactionMaxFeeWarning = 100 * nHighTransactionFeeWarning;
 //! -minstakesplit default
