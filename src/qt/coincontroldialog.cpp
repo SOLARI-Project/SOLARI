@@ -478,6 +478,7 @@ void CoinControlDialog::updateLabelLocked()
         } else
             ui->labelLocked->setVisible(false);
     } else {
+        ui->labelLocked->setVisible(false);
         // TODO: implement locked notes functionality inside the wallet..
     }
 }
