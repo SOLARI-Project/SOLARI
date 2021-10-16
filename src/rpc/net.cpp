@@ -381,6 +381,7 @@ UniValue getnetworkinfo(const JSONRPCRequest& request)
             "  \"localservices\": \"xxxxxxxxxxxxxxxx\", (string) the services we offer to the network\n"
             "  \"timeoffset\": xxxxx,                   (numeric) the time offset\n"
             "  \"connections\": xxxxx,                  (numeric) the number of connections\n"
+            "  \"networkactive\": true|false,           (boolean) the network activity status\n"
             "  \"networks\": [                          (array) information per network\n"
             "  {\n"
             "    \"name\": \"xxx\",                     (string) network (ipv4, ipv6 or onion)\n"
@@ -414,8 +415,10 @@ UniValue getnetworkinfo(const JSONRPCRequest& request)
     if (g_connman)
         obj.pushKV("localservices", strprintf("%016x", g_connman->GetLocalServices()));
     obj.pushKV("timeoffset", GetTimeOffset());
-    if(g_connman)
+    if (g_connman) {
+        obj.pushKV("networkactive", g_connman->GetNetworkActive());
         obj.pushKV("connections",   (int)g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL));
+    }
     obj.pushKV("networks", GetNetworksInfo());
     obj.pushKV("relayfee", ValueFromAmount(::minRelayTxFee.GetFeePerK()));
     UniValue localAddresses(UniValue::VARR);
@@ -667,6 +670,25 @@ static UniValue addpeeraddress(const JSONRPCRequest& request)
     return obj;
 }
 
+UniValue setnetworkactive(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+                "setnetworkactive \"true|false\"\n"
+                "Disable/enable all p2p network activity.\n"
+
+                "\nResult:\n"
+                "status    (boolean) The final network activity status\n"
+                "\nExamples:\n" +
+                HelpExampleCli("setnetworkactive", "true") + HelpExampleRpc("setnetworkactive", "true"));
+    }
+    if (!g_connman) {
+        throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
+    }
+    g_connman->SetNetworkActive(request.params[0].get_bool());
+    return g_connman->GetNetworkActive();
+}
+
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafe argNames
   //  --------------------- ------------------------  -----------------------  ------ --------
@@ -682,6 +704,7 @@ static const CRPCCommand commands[] =
     { "network",            "listbanned",             &listbanned,             true,  {} },
     { "network",            "ping",                   &ping,                   true,  {} },
     { "network",            "setban",                 &setban,                 true,  {"subnet", "command", "bantime", "absolute"} },
+    { "network",            "setnetworkactive",       &setnetworkactive,       true,  {"active"}},
 
     // Hidden, for testing only
     { "hidden",             "addpeeraddress",         &addpeeraddress,         true,  {"address", "port"} },

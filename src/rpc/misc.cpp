@@ -125,8 +125,9 @@ UniValue getinfo(const JSONRPCRequest& request)
 #endif
     obj.pushKV("blocks", (int)chainActive.Height());
     obj.pushKV("timeoffset", GetTimeOffset());
-    if(g_connman)
+    if(g_connman) {
         obj.pushKV("connections", (int)g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL));
+    }
     obj.pushKV("proxy", (proxy.IsValid() ? proxy.proxy.ToStringIPPort() : std::string()));
     obj.pushKV("difficulty", (double)GetDifficulty());
     obj.pushKV("testnet", Params().IsTestnet());
