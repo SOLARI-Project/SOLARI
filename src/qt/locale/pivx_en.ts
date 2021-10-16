@@ -217,7 +217,7 @@
 <context>
     <name>AddressTableModel</name>
     <message>
-        <location filename="../addresstablemodel.cpp" line="+316"/>
+        <location filename="../addresstablemodel.cpp" line="+317"/>
         <source>Label</source>
         <translation>Label</translation>
     </message>
@@ -237,7 +237,7 @@
         <translation type="unfinished">Type</translation>
     </message>
     <message>
-        <location line="+39"/>
+        <location line="+40"/>
         <source>(no label)</source>
         <translation>(no label)</translation>
     </message>
@@ -280,7 +280,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/addresseswidget.cpp" line="+90"/>
+        <location filename="../pivx/addresseswidget.cpp" line="+89"/>
         <source>Add new contact</source>
         <translation type="unfinished"></translation>
     </message>
@@ -330,7 +330,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+1"/>
         <source>You are just about to remove the contact:
 
 %1
@@ -1755,7 +1755,7 @@ and vote on the treasury system receiving a periodic reward.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/masternodeswidget.cpp" line="+171"/>
+        <location filename="../pivx/masternodeswidget.cpp" line="+168"/>
         <source>Start</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1842,7 +1842,7 @@ Please wait few more minutes (masternode collaterals require %1 confirmations).<
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-249"/>
+        <location line="-250"/>
         <source>What is a Masternode?</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1862,7 +1862,7 @@ Please wait few more minutes (masternode collaterals require %1 confirmations).<
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+247"/>
+        <location line="+248"/>
         <source>You are just about to export the required data to run a Masternode
 on a remote server to your clipboard.
 
@@ -1965,7 +1965,7 @@ Are you sure?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/mninfodialog.cpp" line="+27"/>
+        <location filename="../pivx/mninfodialog.cpp" line="+25"/>
         <source>Masternode public key copied</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2306,7 +2306,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../addresstablemodel.cpp" line="-246"/>
+        <location filename="../addresstablemodel.cpp" line="-248"/>
         <source>Contact</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2559,12 +2559,12 @@ Address: %4
         <translation>General</translation>
     </message>
     <message>
-        <location line="+152"/>
+        <location line="+129"/>
         <source>Name</source>
         <translation>Name</translation>
     </message>
     <message>
-        <location line="-145"/>
+        <location line="-122"/>
         <source>Client name</source>
         <translation>Client name</translation>
     </message>
@@ -2572,7 +2572,6 @@ Address: %4
         <location line="+10"/>
         <location line="+23"/>
         <location line="+26"/>
-        <location line="+23"/>
         <location line="+23"/>
         <location line="+20"/>
         <location line="+30"/>
@@ -2633,17 +2632,12 @@ Address: %4
         <translation>Debug log file</translation>
     </message>
     <message>
-        <location line="-234"/>
-        <source>Build date</source>
-        <translation>Build date</translation>
-    </message>
-    <message>
-        <location line="+155"/>
+        <location line="-79"/>
         <source>Current number of blocks</source>
         <translation>Current number of blocks</translation>
     </message>
     <message>
-        <location line="-204"/>
+        <location line="-181"/>
         <source>Client version</source>
         <translation>Client version</translation>
     </message>
@@ -2653,7 +2647,7 @@ Address: %4
         <translation>Using BerkeleyDB version</translation>
     </message>
     <message>
-        <location line="+174"/>
+        <location line="+151"/>
         <source>Block chain</source>
         <translation>Block chain</translation>
     </message>
@@ -2725,7 +2719,7 @@ Address: %4
     <message>
         <location line="+59"/>
         <location filename="../rpcconsole.cpp" line="+109"/>
-        <location line="+718"/>
+        <location line="+717"/>
         <source>Select a peer to view detailed information.</source>
         <translation>Select a peer to view detailed information.</translation>
     </message>
@@ -2930,7 +2924,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-204"/>
+        <location line="-203"/>
         <source>&amp;Disconnect Node</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2968,7 +2962,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+91"/>
+        <location line="+90"/>
         <source>This will delete your local blockchain folders and the wallet will synchronize the complete Blockchain from scratch.&lt;br /&gt;&lt;br /&gt;</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3127,7 +3121,7 @@ Address: %4
     </message>
     <message>
         <location line="+179"/>
-        <location filename="../pivx/receivewidget.cpp" line="+187"/>
+        <location filename="../pivx/receivewidget.cpp" line="+185"/>
         <source>Add Label</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3152,7 +3146,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/receivewidget.cpp" line="-128"/>
+        <location filename="../pivx/receivewidget.cpp" line="-127"/>
         <source>My Addresses</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3172,7 +3166,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+90"/>
+        <location line="+89"/>
         <location line="+16"/>
         <source>No available address
 try unlocking the wallet</source>
@@ -3190,7 +3184,7 @@ try unlocking the wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+37"/>
+        <location line="+36"/>
         <source>Edit Address Label</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3205,7 +3199,7 @@ try unlocking the wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+14"/>
         <source>Cannot create new address, wallet locked</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5771,7 +5765,7 @@ backup will be created.
 <context>
     <name>TransactionTableModel</name>
     <message>
-        <location filename="../transactiontablemodel.cpp" line="+296"/>
+        <location filename="../transactiontablemodel.cpp" line="+298"/>
         <source>Date</source>
         <translation>Date</translation>
     </message>
@@ -6345,7 +6339,7 @@ Select fewer inputs with coin control.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="+3"/>
         <source>Copyright (C) 2009-%i The Bitcoin Core Developers</source>
         <translation type="unfinished">Copyright (C) 2009-%i The Bitcoin Core Developers</translation>
     </message>
@@ -6460,17 +6454,17 @@ Select fewer inputs with coin control.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-93"/>
+        <location line="-94"/>
         <source>This is a pre-release test build - use at your own risk - do not use for staking or merchant applications!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+76"/>
+        <location line="+77"/>
         <source>Error: A fatal internal error occurred, see debug.log for details</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-129"/>
+        <location line="-130"/>
         <source>Cannot find the Sapling parameters in the following directory:
 %s
 Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos; and then restart.</source>
@@ -6522,7 +6516,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+22"/>
         <source>Error loading %s: Wallet corrupted</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6643,7 +6637,12 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+35"/>
+        <location line="+10"/>
+        <source>Specified blocks directory &quot;%s&quot; does not exist.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+25"/>
         <source>Unknown network specified in %s: &apos;%s&apos;</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6668,7 +6667,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-172"/>
+        <location line="-173"/>
         <source>Cannot obtain a lock on data directory %s. %s is probably already running.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6734,6 +6733,11 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
     </message>
     <message>
         <location line="+3"/>
+        <source>Cannot write to data directory &apos;%s&apos;; check permissions.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Change index out of range</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6874,13 +6878,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished">Signing transaction failed</translation>
     </message>
     <message>
-        <location line="+4"/>
-        <source>Specified blocks directory &quot;%s&quot; does not exist.
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+5"/>
         <source>Synchronization failed</source>
         <translation type="unfinished">Synchronization failed</translation>
     </message>
@@ -6940,7 +6938,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-170"/>
+        <location line="-171"/>
         <source>Invalid -wallet path &apos;%s&apos;. -wallet path should point to a directory where wallet.dat and database/log.?????????? files can be stored, a location where such a directory could be created or (for backwards compatibility) the name of an existing data file in -walletdir (%s)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6955,7 +6953,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+35"/>
+        <location line="+36"/>
         <source>Copyright (C) 2015-%i The %s Developers</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7140,7 +7138,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
     </message>
     <message>
         <location line="+53"/>
-        <source>PIVX address or contact label</source>
+        <source>Recipient address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
