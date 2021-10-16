@@ -1058,6 +1058,12 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
         return;
     }
 
+    if (!fNetworkActive) {
+        LogPrintf("connection from %s dropped: not accepting new connections\n", addr.ToString());
+        CloseSocket(hSocket);
+        return;
+    }
+
     if (!IsSelectableSocket(hSocket)) {
         LogPrintf("connection from %s dropped: non-selectable socket\n", addr.ToString());
         CloseSocket(hSocket);
@@ -1724,7 +1730,7 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
     //
     // Initiate outbound network connection
     //
-    if (interruptNet) {
+    if (interruptNet || !fNetworkActive) {
         return;
     }
     if (!pszDest) {
@@ -1912,6 +1918,22 @@ void Discover()
         freeifaddrs(myaddrs);
     }
 #endif
+}
+
+void CConnman::SetNetworkActive(bool active)
+{
+    LogPrint(BCLog::NET, "SetNetworkActive: %s\n", active);
+    if (!active) {
+        fNetworkActive = false;
+
+        LOCK(cs_vNodes);
+        // Close sockets to all nodes
+        for(CNode* pnode : vNodes) {
+            pnode->CloseSocketDisconnect();
+        }
+    } else {
+        fNetworkActive = true;
+    }
 }
 
 CConnman::CConnman(uint64_t nSeed0In, uint64_t nSeed1In) : nSeed0(nSeed0In), nSeed1(nSeed1In)
