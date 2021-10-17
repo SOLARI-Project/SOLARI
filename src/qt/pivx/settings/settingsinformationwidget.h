@@ -28,6 +28,7 @@ public:
 
 private Q_SLOTS:
     void setNumConnections(int count);
+    void networkActiveChanged(bool active);
     void setNumBlocks(int count);
     void showEvent(QShowEvent* event) override;
     void hideEvent(QHideEvent* event) override;
@@ -39,6 +40,9 @@ public Q_SLOTS:
 private:
     Ui::SettingsInformationWidget *ui;
     RPCConsole *rpcConsole = nullptr;
+
+    // Update connections and network activity state.
+    void updateNetworkState(int numConnections);
 };
 
 #endif // SETTINGSINFORMATIONWIDGET_H
