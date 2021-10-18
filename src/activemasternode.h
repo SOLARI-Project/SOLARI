@@ -6,15 +6,12 @@
 #ifndef ACTIVEMASTERNODE_H
 #define ACTIVEMASTERNODE_H
 
-#include "init.h"
 #include "key.h"
 #include "evo/deterministicmns.h"
-#include "masternode.h"
 #include "net.h"
 #include "operationresult.h"
 #include "sync.h"
 #include "validationinterface.h"
-#include "wallet/wallet.h"
 
 class CActiveDeterministicMasternodeManager;
 class CBLSPublicKey;
@@ -84,16 +81,11 @@ OperationResult initMasternode(const std::string& strMasterNodePrivKey, const st
 class CActiveMasternode
 {
 private:
-    int status;
+    int status{ACTIVE_MASTERNODE_INITIAL};
     std::string notCapableReason;
 
 public:
-
-    CActiveMasternode()
-    {
-        vin = nullopt;
-        status = ACTIVE_MASTERNODE_INITIAL;
-    }
+    CActiveMasternode() = default;
 
     // Initialized by init.cpp
     // Keys for the main Masternode

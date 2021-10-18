@@ -121,7 +121,8 @@ public:
 
     static CAmount GetTotalBudget(int nHeight);
     std::vector<CBudgetProposal> GetBudget();
-    std::vector<CBudgetProposal*> GetAllProposals();
+    // Get all the budget proposals sorted by votes (highest to lowest)
+    std::vector<CBudgetProposal*> GetAllProposalsOrdered();
     std::vector<CFinalizedBudget*> GetFinalizedBudgets();
     bool GetExpectedPayeeAmount(int chainHeight, CAmount& nAmountRet) const;
     bool IsBudgetPaymentBlock(int nBlockHeight) const;

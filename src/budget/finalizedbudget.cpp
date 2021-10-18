@@ -6,7 +6,7 @@
 #include "budget/finalizedbudget.h"
 
 #include "masternodeman.h"
-
+#include "validation.h"
 
 CFinalizedBudget::CFinalizedBudget() :
         fAutoChecked(false),
@@ -241,7 +241,7 @@ bool CFinalizedBudget::CheckName()
     return true;
 }
 
-bool CFinalizedBudget::IsExpired(int nCurrentHeight)
+bool CFinalizedBudget::updateExpired(int nCurrentHeight)
 {
     // Remove budgets after their last payment block
     const int nBlockEnd = GetBlockEnd();
@@ -264,7 +264,7 @@ bool CFinalizedBudget::UpdateValid(int nCurrentHeight)
 {
     fValid = false;
 
-    if (IsExpired(nCurrentHeight)) {
+    if (updateExpired(nCurrentHeight)) {
         return false;
     }
 

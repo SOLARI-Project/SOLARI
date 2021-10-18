@@ -15,6 +15,9 @@ static const CAmount BUDGET_FEE_TX_OLD = (50 * COIN);
 static const CAmount BUDGET_FEE_TX = (5 * COIN);
 static const int64_t BUDGET_VOTE_UPDATE_MIN = 60 * 60;
 
+// Minimum value for a proposal to be considered valid
+static const CAmount PROPOSAL_MIN_AMOUNT = 10 * COIN;
+
 class CBudgetManager;
 
 //
@@ -31,7 +34,7 @@ private:
 
     // Functions used inside UpdateValid()/IsWellFormed - setting strInvalid
     bool IsHeavilyDownvoted(bool fNewRules);
-    bool IsExpired(int nCurrentHeight);
+    bool updateExpired(int nCurrentHeight);
     bool CheckStartEnd();
     bool CheckAmount(const CAmount& nTotalBudget);
     bool CheckAddress();
@@ -71,6 +74,7 @@ public:
 
     bool IsEstablished() const;
     bool IsPassing(int nBlockStartBudget, int nBlockEndBudget, int mnCount) const;
+    bool IsExpired(int nCurrentHeight) const;
 
     std::string GetName() const { return strProposalName; }
     std::string GetURL() const { return strURL; }
@@ -85,7 +89,7 @@ public:
     const uint256& GetFeeTXHash() const { return nFeeTXHash;  }
     double GetRatio() const;
     int GetVoteCount(CBudgetVote::VoteDirection vd) const;
-    std::vector<uint256> GetVotesHashes() const;
+    std::map<COutPoint, CBudgetVote> GetVotes() const { return mapVotes; }
     int GetYeas() const { return GetVoteCount(CBudgetVote::VOTE_YES); }
     int GetNays() const { return GetVoteCount(CBudgetVote::VOTE_NO); }
     int GetAbstains() const { return GetVoteCount(CBudgetVote::VOTE_ABSTAIN); };

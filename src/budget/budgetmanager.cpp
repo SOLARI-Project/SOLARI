@@ -14,6 +14,9 @@
 #include "util/validation.h"
 #include "validation.h"   // GetTransaction, cs_main
 
+#ifdef ENABLE_WALLET
+#include "wallet/wallet.h" // future: use interface instead.
+#endif
 
 CBudgetManager g_budgetman;
 
@@ -366,7 +369,8 @@ void CBudgetManager::RemoveByFeeTxId(const uint256& feeTxId)
                 {
                     // Erase seen/orhpan votes
                     LOCK(cs_votes);
-                    for (const uint256& hash: p->GetVotesHashes()) {
+                    for (const auto& vote: p->GetVotes()) {
+                        const uint256& hash{vote.second.GetHash()};
                         mapSeenProposalVotes.erase(hash);
                         mapOrphanProposalVotes.erase(hash);
                     }
@@ -532,7 +536,7 @@ void CBudgetManager::VoteOnFinalizedBudgets()
             pfb->SetAutoChecked(true);
             //only vote for exact matches
             if (strBudgetMode == "auto") {
-                // compare budget payements with winning proposals
+                // compare budget payments with winning proposals
                 if (!pfb->CheckProposals(mapWinningProposals)) {
                     continue;
                 }
@@ -572,11 +576,8 @@ void CBudgetManager::VoteOnFinalizedBudgets()
 CFinalizedBudget* CBudgetManager::FindFinalizedBudget(const uint256& nHash)
 {
     AssertLockHeld(cs_budgets);
-
-    if (mapFinalizedBudgets.count(nHash))
-        return &mapFinalizedBudgets[nHash];
-
-    return NULL;
+    auto it = mapFinalizedBudgets.find(nHash);
+    return it != mapFinalizedBudgets.end() ? &(it->second) : nullptr;
 }
 
 const CBudgetProposal* CBudgetManager::FindProposalByName(const std::string& strProposalName) const
@@ -601,31 +602,26 @@ const CBudgetProposal* CBudgetManager::FindProposalByName(const std::string& str
 CBudgetProposal* CBudgetManager::FindProposal(const uint256& nHash)
 {
     AssertLockHeld(cs_proposals);
-
-    if (mapProposals.count(nHash))
-        return &mapProposals[nHash];
-
-    return nullptr;
+    auto it = mapProposals.find(nHash);
+    return it != mapProposals.end() ? &(it->second) : nullptr;
 }
 
 bool CBudgetManager::GetProposal(const uint256& nHash, CBudgetProposal& bp) const
 {
     LOCK(cs_proposals);
-    if (mapProposals.count(nHash)) {
-        bp = mapProposals.at(nHash);
-        return true;
-    }
-    return false;
+    auto it = mapProposals.find(nHash);
+    if (it == mapProposals.end()) return false;
+    bp = it->second;
+    return true;
 }
 
 bool CBudgetManager::GetFinalizedBudget(const uint256& nHash, CFinalizedBudget& fb) const
 {
     LOCK(cs_budgets);
-    if (mapFinalizedBudgets.count(nHash)) {
-        fb = mapFinalizedBudgets.at(nHash);
-        return true;
-    }
-    return false;
+    auto it = mapFinalizedBudgets.find(nHash);
+    if (it == mapFinalizedBudgets.end()) return false;
+    fb = it->second;
+    return true;
 }
 
 bool CBudgetManager::IsBudgetPaymentBlock(int nBlockHeight, int& nCountThreshold) const
@@ -684,20 +680,16 @@ TrxValidationStatus CBudgetManager::IsTransactionValid(const CTransaction& txNew
     return fThreshold ? TrxValidationStatus::InValid : TrxValidationStatus::VoteThreshold;
 }
 
-std::vector<CBudgetProposal*> CBudgetManager::GetAllProposals()
+std::vector<CBudgetProposal*> CBudgetManager::GetAllProposalsOrdered()
 {
     LOCK(cs_proposals);
-
     std::vector<CBudgetProposal*> vBudgetProposalRet;
-
     for (auto& it: mapProposals) {
         CBudgetProposal* pbudgetProposal = &(it.second);
         RemoveStaleVotesOnProposal(pbudgetProposal);
         vBudgetProposalRet.push_back(pbudgetProposal);
     }
-
     std::sort(vBudgetProposalRet.begin(), vBudgetProposalRet.end(), CBudgetProposal::PtrHigherYes);
-
     return vBudgetProposalRet;
 }
 
@@ -709,13 +701,8 @@ std::vector<CBudgetProposal> CBudgetManager::GetBudget()
     if (nHeight <= 0)
         return {};
 
-    // ------- Sort budgets by net Yes Count
-    std::vector<CBudgetProposal*> vBudgetPorposalsSort;
-    for (auto& it: mapProposals) {
-        RemoveStaleVotesOnProposal(&it.second);
-        vBudgetPorposalsSort.push_back(&it.second);
-    }
-    std::sort(vBudgetPorposalsSort.begin(), vBudgetPorposalsSort.end(), CBudgetProposal::PtrHigherYes);
+    // ------- Get proposals ordered by votes (highest to lowest)
+    std::vector<CBudgetProposal*> vProposalsOrdered = GetAllProposalsOrdered();
 
     // ------- Grab The Budgets In Order
     std::vector<CBudgetProposal> vBudgetProposalsRet;
@@ -727,7 +714,7 @@ std::vector<CBudgetProposal> CBudgetManager::GetBudget()
     int mnCount = mnodeman.CountEnabled();
     CAmount nTotalBudget = GetTotalBudget(nBlockStart);
 
-    for (CBudgetProposal* pbudgetProposal: vBudgetPorposalsSort) {
+    for (CBudgetProposal* pbudgetProposal: vProposalsOrdered) {
         LogPrint(BCLog::MNBUDGET,"%s: Processing Budget %s\n", __func__, pbudgetProposal->GetName());
         //prop start/end should be inside this period
         if (pbudgetProposal->IsPassing(nBlockStart, nBlockEnd, mnCount)) {

@@ -17,6 +17,7 @@
 #include "sync.h"
 #include "util/system.h"
 #include "utilmoneystr.h"
+#include "validation.h"
 
 
 /** Object for who's going to get paid on which blocks */

@@ -114,7 +114,7 @@ bool CBudgetProposal::CheckStartEnd()
 bool CBudgetProposal::CheckAmount(const CAmount& nTotalBudget)
 {
     // check minimum amount
-    if (nAmount < 10 * COIN) {
+    if (nAmount < PROPOSAL_MIN_AMOUNT) {
         strInvalid = "Invalid nAmount (too low)";
         return false;
     }
@@ -157,9 +157,9 @@ bool CBudgetProposal::IsWellFormed(const CAmount& nTotalBudget)
     return CheckStartEnd() && CheckAmount(nTotalBudget) && CheckAddress();
 }
 
-bool CBudgetProposal::IsExpired(int nCurrentHeight)
+bool CBudgetProposal::updateExpired(int nCurrentHeight)
 {
-    if (nBlockEnd < nCurrentHeight) {
+    if (IsExpired(nCurrentHeight)) {
         strInvalid = "Proposal expired";
         return true;
     }
@@ -178,7 +178,7 @@ bool CBudgetProposal::UpdateValid(int nCurrentHeight)
         if (IsHeavilyDownvoted(fNewRules)) return false;
     }
 
-    if (IsExpired(nCurrentHeight)) {
+    if (updateExpired(nCurrentHeight)) {
         return false;
     }
 
@@ -210,6 +210,11 @@ bool CBudgetProposal::IsPassing(int nBlockStartBudget, int nBlockEndBudget, int 
         return false;
 
     return true;
+}
+
+bool CBudgetProposal::IsExpired(int nCurrentHeight) const
+{
+    return nBlockEnd < nCurrentHeight;
 }
 
 bool CBudgetProposal::AddOrUpdateVote(const CBudgetVote& vote, std::string& strError)
@@ -286,15 +291,6 @@ int CBudgetProposal::GetVoteCount(CBudgetVote::VoteDirection vd) const
             ret++;
     }
     return ret;
-}
-
-std::vector<uint256> CBudgetProposal::GetVotesHashes() const
-{
-    std::vector<uint256> vRet;
-    for (const auto& it: mapVotes) {
-        vRet.push_back(it.second.GetHash());
-    }
-    return vRet;
 }
 
 int CBudgetProposal::GetBlockStartCycle() const

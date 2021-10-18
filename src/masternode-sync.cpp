@@ -5,6 +5,7 @@
 
 // clang-format off
 #include "activemasternode.h"
+#include "addrman.h"
 #include "budget/budgetmanager.h"
 #include "evo/deterministicmns.h"
 #include "masternode-sync.h"
@@ -14,7 +15,7 @@
 #include "netmessagemaker.h"
 #include "spork.h"
 #include "util/system.h"
-#include "addrman.h"
+#include "validation.h"
 // clang-format on
 
 class CMasternodeSync;
