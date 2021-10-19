@@ -479,7 +479,7 @@ bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNod
             // Only ask for missing items after the initial syncing process is complete
             //   otherwise will think a full sync succeeded when they return a result
             if (pfrom && masternodeSync.IsSynced()) mnodeman.AskForMN(pfrom, winner.vinMasternode);
-            return state.Error("Invalid voter or voter mnwinner signature");
+            return state.Error("Non-existent mnwinner voter");
         }
     }
     // either deterministic or legacy. not both

@@ -127,6 +127,16 @@ BOOST_FIXTURE_TEST_CASE(mnwinner_test, TestChain100Setup)
     std::vector<FakeMasternode> mnList = buildMNList(tipBlock.GetHash(), tipBlock.GetBlockTime(), 40);
     std::vector<std::pair<int64_t, MasternodeRef>> mnRank = mnodeman.GetMasternodeRanks(nextBlockHeight - 100);
 
+    // Test mnwinner failure for non-existent MN voter.
+    CTxIn dummyVoter;
+    CScript dummyPayeeScript;
+    CKey dummyKey;
+    dummyKey.MakeNewKey(true);
+    CValidationState state0;
+    BOOST_CHECK(!CreateMNWinnerPayment(dummyVoter, nextBlockHeight, dummyPayeeScript,
+                                       dummyKey, dummyKey.GetPubKey(), state0));
+    BOOST_CHECK_MESSAGE(findStrError(state0, "Non-existent mnwinner voter"), state0.GetRejectReason());
+
     // Take the first MN
     auto firstMN = findMNData(mnList, mnRank[0].second);
     CTxIn mnVinVoter(firstMN.mn.vin);
