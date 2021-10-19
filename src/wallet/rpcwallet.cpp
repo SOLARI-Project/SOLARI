@@ -4455,6 +4455,13 @@ UniValue getstakesplitthreshold(const JSONRPCRequest& request)
 
 UniValue autocombinerewards(const JSONRPCRequest& request)
 {
+    if (!IsDeprecatedRPCEnabled("autocombinerewards")) {
+        if (request.fHelp) {
+            throw std::runtime_error("autocombinerewards (Deprecated, will be removed in v6.0. To use this command, start pivxd with -deprecatedrpc=autocombinerewards)");
+        }
+        throw JSONRPCError(RPC_METHOD_DEPRECATED, "autocombinerewards is deprecated and will be removed in v6.0. To use this command, start pivxd with -deprecatedrpc=autocombinerewards");
+    }
+
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
 
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
