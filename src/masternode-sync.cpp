@@ -316,7 +316,7 @@ void CMasternodeSync::Process()
     }
 
     // Mainnet sync
-    g_connman->ForEachNodeContinueIf([sync, fLegacyMnObsolete](CNode* pnode){
+    g_connman->ForEachNodeInRandomOrderContinueIf([sync, fLegacyMnObsolete](CNode* pnode){
         return sync->SyncWithNode(pnode, fLegacyMnObsolete);
     });
 }
