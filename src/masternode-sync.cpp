@@ -362,10 +362,14 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
 
             // Request mnb sync if we haven't requested it yet.
             if (pnode->HasFulfilledRequest("mnsync")) return true;
-            pnode->FulfilledRequest("mnsync");
 
-            mnodeman.DsegUpdate(pnode);
-            RequestedMasternodeAttempt++;
+            // Try to request MN list sync.
+            if (mnodeman.DsegUpdate(pnode)) {
+                // Mark sync requested.
+                pnode->FulfilledRequest("mnsync");
+                // Increase the sync attempt count
+                RequestedMasternodeAttempt++;
+            }
             return false;
         }
 
