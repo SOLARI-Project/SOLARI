@@ -165,6 +165,21 @@ public:
     };
 
     template<typename Callable>
+    bool ForEachNodeInRandomOrderContinueIf(Callable&& func)
+    {
+        FastRandomContext ctx;
+        LOCK(cs_vNodes);
+        std::vector<CNode*> nodesCopy = vNodes;
+        std::shuffle(nodesCopy.begin(), nodesCopy.end(), ctx);
+        for (auto&& node : nodesCopy)
+            if (NodeFullyConnected(node)) {
+                if (!func(node))
+                    return false;
+            }
+        return true;
+    };
+
+    template<typename Callable>
     void ForEachNode(Callable&& func)
     {
         LOCK(cs_vNodes);
