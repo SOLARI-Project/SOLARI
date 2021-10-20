@@ -232,13 +232,20 @@ bool CBudgetManager::AddFinalizedBudget(CFinalizedBudget& finalizedBudget, CNode
     if (!finalizedBudget.CheckProposals(mapWinningProposals)) {
         finalizedBudget.SetStrInvalid("Invalid proposals");
         LogPrint(BCLog::MNBUDGET,"%s: Budget finalization does not match with winning proposals\n", __func__);
-        // just for now (until v6), request proposals sync in case we are missing one of them.
+        // just for now (until v6), request proposals and budget sync in case we are missing them
         if (pfrom) {
+            // First single inv requests for single proposals that we don't have.
             for (const auto& propId : finalizedBudget.GetProposalsHashes()) {
                 if (!g_budgetman.HaveProposal(propId)) {
                     pfrom->PushInventory(CInv(MSG_BUDGET_PROPOSAL, propId));
                 }
             }
+
+            // Second a full budget sync for missing votes and the budget finalization that we are rejecting here.
+            // Note: this will not make any effect on peers with version <= 70923 as they, invalidly, are blocking
+            // follow-up budget sync request for the entire node life cycle.
+            uint256 n;
+            g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, n));
         }
         return false;
     }
