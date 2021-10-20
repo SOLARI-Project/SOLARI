@@ -14,6 +14,9 @@
 #include "validation.h"   // GetTransaction, cs_main
 
 
+// Peers can only request complete budget sync once per hour.
+#define BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS (60 * 60) // One hour.
+
 CBudgetManager g_budgetman;
 
 std::map<uint256, int64_t> askedForSourceProposalOrBudget;
@@ -956,18 +959,37 @@ void CBudgetManager::NewBlock()
             RemoveStaleVotesOnFinalBudget(&it.second);
         }
     }
+
+    {
+        // Clean peers who asked for budget votes sync after an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS)
+        LOCK2(cs_budgets, cs_proposals);
+        int64_t currentTime = GetTime();
+        auto itAskedBudSync = mAskedUsForBudgetSync.begin();
+        while (itAskedBudSync != mAskedUsForBudgetSync.end()) {
+            if ((*itAskedBudSync).second < currentTime) {
+                itAskedBudSync = mAskedUsForBudgetSync.erase(itAskedBudSync);
+            } else {
+                ++itAskedBudSync;
+            }
+        }
+    }
+
     LogPrint(BCLog::MNBUDGET,"%s:  PASSED\n", __func__);
 }
 
 int CBudgetManager::ProcessBudgetVoteSync(const uint256& nProp, CNode* pfrom)
 {
-    if (Params().NetworkIDString() == CBaseChainParams::MAIN) {
-        if (nProp.IsNull()) {
-            if (pfrom->HasFulfilledRequest("budgetvotesync")) {
-                LogPrint(BCLog::MNBUDGET, "mnvs - peer already asked me for the list\n");
-                return 20;
+    if (nProp.IsNull()) {
+        LOCK2(cs_budgets, cs_proposals);
+        if (!(pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal())) {
+            auto itLastRequest = mAskedUsForBudgetSync.find(pfrom->addr);
+            if (itLastRequest != mAskedUsForBudgetSync.end() && GetTime() < (*itLastRequest).second) {
+                LogPrint(BCLog::MASTERNODE, "budgetsync - peer %i already asked for budget sync\n", pfrom->GetId());
+                // The peers sync requests information is not stored on disk (for now), so
+                // the budget sync could be re-requested in less than the allowed time (due a node restart for example).
+                // So, for now, let's not be so hard with the node.
+                return 10;
             }
-            pfrom->FulfilledRequest("budgetvotesync");
         }
     }
 
@@ -1295,6 +1317,14 @@ void CBudgetManager::Sync(CNode* pfrom, const uint256& nProp, bool fPartial)
     }
     g_connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SYNCSTATUSCOUNT, MASTERNODE_SYNC_BUDGET_FIN, nInvCount));
     LogPrint(BCLog::MNBUDGET, "%s: sent %d items\n", __func__, nInvCount);
+
+    {
+        // Now that budget full sync request was handled, mark it as completed.
+        // We are not going to answer full budget sync requests for an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS).
+        // The remote peer can still do single prop and mnv sync requests if needed.
+        LOCK2(cs_budgets, cs_proposals);
+        mAskedUsForBudgetSync[pfrom->addr] = GetTime() + BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS;
+    }
 }
 
 bool CBudgetManager::UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::string& strError)
