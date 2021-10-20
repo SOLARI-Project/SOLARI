@@ -736,7 +736,7 @@ std::vector<std::pair<int64_t, MasternodeRef>> CMasternodeMan::GetMasternodeRank
 bool CMasternodeMan::CheckInputs(CMasternodeBroadcast& mnb, int nChainHeight, int& nDoS)
 {
     // incorrect ping or its sigTime
-    if(mnb.lastPing.IsNull() || !mnb.lastPing.CheckAndUpdate(nDoS, nChainHeight, false, true)) {
+    if(mnb.lastPing.IsNull() || !mnb.lastPing.CheckAndUpdate(nDoS, false, true)) {
         return false;
     }
 
@@ -805,7 +805,7 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
 
     int chainHeight = GetBestHeight();
     int nDoS = 0;
-    if (!mnb.CheckAndUpdate(nDoS, chainHeight)) {
+    if (!mnb.CheckAndUpdate(nDoS)) {
         return nDoS;
     }
 
@@ -861,7 +861,7 @@ int CMasternodeMan::ProcessMNPing(CNode* pfrom, CMasternodePing& mnp)
     if (mapSeenMasternodePing.count(mnpHash)) return 0; //seen
 
     int nDoS = 0;
-    if (mnp.CheckAndUpdate(nDoS, GetBestHeight())) return 0;
+    if (mnp.CheckAndUpdate(nDoS)) return 0;
 
     if (nDoS > 0) {
         // if anything significant failed, mark that node
@@ -1028,7 +1028,7 @@ void CMasternodeMan::UpdateMasternodeList(CMasternodeBroadcast& mnb)
         CMasternode mn(mnb);
         Add(mn);
     } else {
-        pmn->UpdateFromNewBroadcast(mnb, GetBestHeight());
+        pmn->UpdateFromNewBroadcast(mnb);
     }
 }
 

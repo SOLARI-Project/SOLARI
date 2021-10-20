@@ -63,7 +63,7 @@ int MasternodeRemovalSeconds()
 }
 
 // Used for sigTime < maxTimeWindow
-int64_t GetMaxTimeWindow(int chainHeight)
+int64_t GetMaxTimeWindow()
 {
     return GetAdjustedTime() + 60 * 2;
 }
@@ -146,7 +146,7 @@ std::string CMasternode::GetStrMessage() const
 //
 // When a new masternode broadcast is sent, update our information
 //
-bool CMasternode::UpdateFromNewBroadcast(CMasternodeBroadcast& mnb, int chainHeight)
+bool CMasternode::UpdateFromNewBroadcast(CMasternodeBroadcast& mnb)
 {
     if (mnb.sigTime > sigTime) {
         // TODO: lock cs. Need to be careful as mnb.lastPing.CheckAndUpdate locks cs_main internally.
@@ -159,7 +159,7 @@ bool CMasternode::UpdateFromNewBroadcast(CMasternodeBroadcast& mnb, int chainHei
         addr = mnb.addr;
         isBIP155Addr = !mnb.addr.IsAddrV1Compatible();
         int nDoS = 0;
-        if (mnb.lastPing.IsNull() || (!mnb.lastPing.IsNull() && mnb.lastPing.CheckAndUpdate(nDoS, chainHeight, false))) {
+        if (mnb.lastPing.IsNull() || (!mnb.lastPing.IsNull() && mnb.lastPing.CheckAndUpdate(nDoS, false))) {
             lastPing = mnb.lastPing;
             mnodeman.mapSeenMasternodePing.emplace(lastPing.GetHash(), lastPing);
         }
@@ -377,10 +377,10 @@ bool CMasternodeBroadcast::CheckDefaultPort(CService service, std::string& strEr
     return true;
 }
 
-bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
+bool CMasternodeBroadcast::CheckAndUpdate(int& nDos)
 {
     // make sure signature isn't in the future (past is OK)
-    if (sigTime > GetMaxTimeWindow(nChainHeight)) {
+    if (sigTime > GetMaxTimeWindow()) {
         LogPrint(BCLog::MASTERNODE,"mnb - Signature rejected, too far into the future %s\n", vin.prevout.hash.ToString());
         nDos = 1;
         return false;
@@ -433,7 +433,7 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
         return false;
 
     // incorrect ping or its sigTime
-    if(lastPing.IsNull() || !lastPing.CheckAndUpdate(nDos, nChainHeight, false, true)) {
+    if(lastPing.IsNull() || !lastPing.CheckAndUpdate(nDos, false, true)) {
         return false;
     }
 
@@ -459,7 +459,7 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
     if (pmn->pubKeyCollateralAddress == pubKeyCollateralAddress && !pmn->IsBroadcastedWithin(MasternodeBroadcastSeconds())) {
         //take the newest entry
         LogPrint(BCLog::MASTERNODE,"mnb - Got updated entry for %s\n", vin.prevout.hash.ToString());
-        if (pmn->UpdateFromNewBroadcast((*this), nChainHeight)) {
+        if (pmn->UpdateFromNewBroadcast((*this))) {
             if (pmn->IsEnabled()) Relay();
         }
         masternodeSync.AddedMasternodeList(GetHash());
@@ -510,9 +510,9 @@ std::string CMasternodePing::GetStrMessage() const
     return vin.ToString() + blockHash.ToString() + std::to_string(sigTime);
 }
 
-bool CMasternodePing::CheckAndUpdate(int& nDos, int nChainHeight, bool fRequireAvailable, bool fCheckSigTimeOnly)
+bool CMasternodePing::CheckAndUpdate(int& nDos, bool fRequireAvailable, bool fCheckSigTimeOnly)
 {
-    if (sigTime > GetMaxTimeWindow(nChainHeight)) {
+    if (sigTime > GetMaxTimeWindow()) {
         LogPrint(BCLog::MNPING,"%s: Signature rejected, too far into the future %s\n", __func__, vin.prevout.hash.ToString());
         nDos = 30;
         return false;
