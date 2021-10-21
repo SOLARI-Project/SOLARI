@@ -82,14 +82,14 @@
            <item>
             <widget class="QLabel" name="labelTitle">
              <property name="text">
-              <string notr="true">TextLabel</string>
+              <string notr="true">N/A</string>
              </property>
             </widget>
            </item>
            <item alignment="Qt::AlignTop">
             <widget class="QLabel" name="labelSubtitle1">
              <property name="text">
-              <string notr="true">TextLabel</string>
+              <string notr="true">N/A</string>
              </property>
             </widget>
            </item>
@@ -574,7 +574,7 @@
               <item>
                <widget class="QLabel" name="labelAvailableAmount">
                 <property name="text">
-                 <string notr="true">6,000 PIV</string>
+                 <string notr="true">N/A</string>
                 </property>
                </widget>
               </item>
@@ -660,7 +660,7 @@
               <item>
                <widget class="QLabel" name="labelAllocatedAmount">
                 <property name="text">
-                 <string notr="true">37,000 PIV</string>
+                 <string notr="true">N/A</string>
                 </property>
                </widget>
               </item>

@@ -82,7 +82,7 @@
         <item>
          <widget class="QLabel" name="labelPropName">
           <property name="text">
-           <string notr="true">Proposal Name</string>
+           <string notr="true">N/A</string>
           </property>
          </widget>
         </item>
@@ -174,14 +174,14 @@
             <item alignment="Qt::AlignBottom">
              <widget class="QLabel" name="labelPropAmount">
               <property name="text">
-               <string notr="true">5,000 PIV</string>
+               <string notr="true">N/A</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QLabel" name="labelPropMonths">
               <property name="text">
-               <string notr="true">2 months remaining</string>
+               <string notr="true">N/A</string>
               </property>
              </widget>
             </item>
@@ -207,7 +207,7 @@
             <string notr="true">margin-top:16;</string>
            </property>
            <property name="text">
-            <string notr="true">Passing</string>
+            <string notr="true">N/A</string>
            </property>
           </widget>
          </item>
@@ -289,7 +289,7 @@
                <string notr="true">color:#4D4D4D;</string>
               </property>
               <property name="text">
-               <string notr="true">24% No</string>
+               <string notr="true">N/A</string>
               </property>
              </widget>
             </item>
@@ -312,7 +312,7 @@
                <string notr="true">color:#5C4B7D;</string>
               </property>
               <property name="text">
-               <string notr="true">76% Yes</string>
+               <string notr="true">N/A</string>
               </property>
              </widget>
             </item>
