@@ -268,6 +268,17 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
 
         self.stake(1, [self.remoteOne, self.remoteTwo])
 
+        self.log.info("checking resync, cleaning budget data..")
+        # now let's drop budget data and try to re-sync it.
+        self.remoteOne.cleanbudget(True)
+        assert_equal(self.remoteOne.mnsync("status")["RequestedMasternodeAssets"], 0)
+        assert_equal(self.remoteOne.getbudgetprojection(), []) # empty
+
+        self.log.info("budget cleaned, starting resync")
+        self.wait_until_mnsync_finished()
+        self.check_budgetprojection(expected_budget)
+        self.log.info("budget data resynchronized successfully!")
+
         # now let's verify that votes expire properly.
         # Drop one MN and one DMN
         self.log.info("expiring MN1..")
