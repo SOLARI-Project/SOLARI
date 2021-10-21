@@ -514,9 +514,7 @@ bool CMasternodePayments::ProcessMNWinner(CMasternodePaymentWinner& winner, CNod
     RecordWinnerVote(winner.vinMasternode.prevout, winner.nBlockHeight);
 
     // Add winner
-    if (!AddWinningMasternode(winner)) {
-        return state.Error("Failed to add mnwinner"); // move state inside AddWinningMasternode
-    }
+    AddWinningMasternode(winner);
 
     // Relay only if we are synchronized.
     // Makes no sense to relay MNWinners to the peers from where we are syncing them.
@@ -561,19 +559,10 @@ bool CMasternodePayments::IsScheduled(const CMasternode& mn, int nNotBlockHeight
     return false;
 }
 
-bool CMasternodePayments::AddWinningMasternode(CMasternodePaymentWinner& winnerIn)
+void CMasternodePayments::AddWinningMasternode(CMasternodePaymentWinner& winnerIn)
 {
-    // check winner height
-    if (winnerIn.nBlockHeight - 100 > mnodeman.GetBestHeight() + 1) {
-        return error("%s: mnw - invalid height %d > %d", __func__, winnerIn.nBlockHeight - 100, mnodeman.GetBestHeight() + 1);
-    }
-
     {
         LOCK2(cs_mapMasternodePayeeVotes, cs_mapMasternodeBlocks);
-
-        if (mapMasternodePayeeVotes.count(winnerIn.GetHash())) {
-            return false;
-        }
 
         mapMasternodePayeeVotes[winnerIn.GetHash()] = winnerIn;
 
@@ -587,8 +576,6 @@ bool CMasternodePayments::AddWinningMasternode(CMasternodePaymentWinner& winnerI
     ExtractDestination(winnerIn.payee, addr);
     LogPrint(BCLog::MASTERNODE, "mnw - Adding winner %s for block %d\n", EncodeDestination(addr), winnerIn.nBlockHeight);
     mapMasternodeBlocks[winnerIn.nBlockHeight].AddPayee(winnerIn.payee, 1);
-
-    return true;
 }
 
 bool CMasternodeBlockPayees::IsTransactionValid(const CTransaction& txNew)
@@ -766,6 +753,12 @@ void CMasternodePayments::ProcessBlock(int nBlockHeight)
         return;
     }
 
+    // check winner height
+    if (nBlockHeight - 100 > mnodeman.GetBestHeight() + 1) {
+        LogPrintf("%s: mnw - invalid height %d > %d", __func__, nBlockHeight - 100, mnodeman.GetBestHeight() + 1);
+        return;
+    }
+
     // pay to the oldest MN that still had no payment but its input is old enough and it was active long enough
     int nCount = 0;
     MasternodeRef pmn = mnodeman.GetNextMasternodeInQueueForPayment(nBlockHeight, true, nCount);
@@ -790,9 +783,8 @@ void CMasternodePayments::ProcessBlock(int nBlockHeight)
             return;
         }
     }
-    if (!AddWinningMasternode(newWinner)) {
-        return;
-    }
+
+    AddWinningMasternode(newWinner);
     newWinner.Relay();
     LogPrintf("%s: Relayed winner %s\n", __func__, newWinner.GetHash().ToString());
     nLastBlockHeight = nBlockHeight;

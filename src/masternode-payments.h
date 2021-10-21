@@ -226,7 +226,7 @@ public:
 
     void UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload) override;
 
-    bool AddWinningMasternode(CMasternodePaymentWinner& winner);
+    void AddWinningMasternode(CMasternodePaymentWinner& winner);
     void ProcessBlock(int nBlockHeight);
 
     void Sync(CNode* node, int nCountNeeded);
