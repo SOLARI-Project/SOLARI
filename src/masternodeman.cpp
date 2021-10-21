@@ -814,17 +814,15 @@ int CMasternodeMan::ProcessGetMNList(CNode* pfrom, CTxIn& vin)
         return 0;
     }
 
-    // Only should ask for this once
-    // local network
+    // Check if the node asked for mn list sync before.
     bool isLocal = (pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal());
-
-    if (!isLocal && Params().NetworkIDString() == CBaseChainParams::MAIN) {
-        std::map<CNetAddr, int64_t>::iterator i = mAskedUsForMasternodeList.find(pfrom->addr);
-        if (i != mAskedUsForMasternodeList.end()) {
-            int64_t t = (*i).second;
+    if (!isLocal) {
+        auto itAskedUsMNList = mAskedUsForMasternodeList.find(pfrom->addr);
+        if (itAskedUsMNList != mAskedUsForMasternodeList.end()) {
+            int64_t t = (*itAskedUsMNList).second;
             if (GetTime() < t) {
                 LogPrintf("CMasternodeMan::ProcessMessage() : dseg - peer already asked me for the list\n");
-                return 34;
+                return 20;
             }
         }
         int64_t askAgain = GetTime() + MASTERNODES_DSEG_SECONDS;
