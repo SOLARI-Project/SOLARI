@@ -498,7 +498,10 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
                 // If it's not a DMN, then it could be a non-synced MN.
                 // Let's try to request the MN to the node.
                 // (the AskForMN() will only broadcast it every 10 min).
-                mnodeman.AskForMN(pfrom, winner.vinMasternode);
+
+                // But, only ask for missing items after the initial syncing process is complete
+                //   otherwise will think a full sync succeeded when they return a result
+                if (pfrom && masternodeSync.IsSynced()) mnodeman.AskForMN(pfrom, winner.vinMasternode);
             }
             return;
         }

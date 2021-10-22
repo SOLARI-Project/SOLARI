@@ -784,8 +784,10 @@ int CMasternodeMan::ProcessMNPing(CNode* pfrom, CMasternodePing& mnp)
     }
 
     // something significant is broken or mn is unknown,
-    // we might have to ask for a masternode entry once
-    AskForMN(pfrom, mnp.vin);
+    // we might have to ask for the mn entry (while we aren't syncing).
+    if (masternodeSync.IsSynced()) {
+        AskForMN(pfrom, mnp.vin);
+    }
 
     // All good
     return 0;
