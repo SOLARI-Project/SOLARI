@@ -2370,6 +2370,12 @@ void CNode::AskFor(const CInv& inv)
     mapAskFor.insert(std::make_pair(nRequestTime, inv));
 }
 
+void CNode::AskForInvReceived(const uint256& invHash, int invType)
+{
+    setAskFor.erase(invHash);
+    mapAlreadyAskedFor.erase(CInv(invType, invHash));
+}
+
 bool CConnman::NodeFullyConnected(const CNode* pnode)
 {
     return pnode && pnode->fSuccessfullyConnected && !pnode->fDisconnect;

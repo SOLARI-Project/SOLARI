@@ -442,6 +442,9 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
 
         if (pfrom->nVersion < ActiveProtocol()) return;
 
+        // Clear inv request
+        pfrom->AskForInvReceived(winner.GetHash(), MSG_MASTERNODE_WINNER);
+
         int nHeight = mnodeman.GetBestHeight();
 
         if (masternodePayments.mapMasternodePayeeVotes.count(winner.GetHash())) {

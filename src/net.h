@@ -788,6 +788,8 @@ public:
     }
 
     void AskFor(const CInv& inv);
+    // inv response received, clear it from the waiting inv set.
+    void AskForInvReceived(const uint256& invHash, int invType);
 
     bool HasFulfilledRequest(std::string strRequest)
     {
