@@ -1221,6 +1221,8 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         if (!proposal.ParseBroadcast(vRecv)) {
             return 20;
         }
+        // Clear inv request
+        pfrom->AskForInvReceived(proposal.GetHash(), MSG_BUDGET_PROPOSAL);
         return ProcessProposal(proposal);
     }
 
@@ -1228,6 +1230,10 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         CBudgetVote vote;
         vRecv >> vote;
         vote.SetValid(true);
+
+        // Clear inv request
+        pfrom->AskForInvReceived(vote.GetHash(), MSG_BUDGET_VOTE);
+
         CValidationState state;
         if (!ProcessProposalVote(vote, pfrom, state)) {
             int nDos = 0;
@@ -1245,6 +1251,8 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         if (!finalbudget.ParseBroadcast(vRecv)) {
             return 20;
         }
+        // Clear inv request
+        pfrom->AskForInvReceived(finalbudget.GetHash(), MSG_BUDGET_FINALIZED);
         return ProcessFinalizedBudget(finalbudget, pfrom);
     }
 
@@ -1252,6 +1260,10 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         CFinalizedBudgetVote vote;
         vRecv >> vote;
         vote.SetValid(true);
+
+        // Clear inv request
+        pfrom->AskForInvReceived(vote.GetHash(), MSG_BUDGET_FINALIZED_VOTE);
+
         CValidationState state;
         if (!ProcessFinalizedBudgetVote(vote, pfrom, state)) {
             int nDos = 0;

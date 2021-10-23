@@ -967,6 +967,8 @@ int CMasternodeMan::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
     if (strCommand == NetMsgType::MNBROADCAST) {
         CMasternodeBroadcast mnb;
         vRecv >> mnb;
+        // Clear inv request
+        pfrom->AskForInvReceived(mnb.GetHash(), MSG_MASTERNODE_ANNOUNCE);
         return ProcessMNBroadcast(pfrom, mnb);
 
     } else if (strCommand == NetMsgType::MNBROADCAST2) {
@@ -974,6 +976,8 @@ int CMasternodeMan::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         OverrideStream<CDataStream> s(&vRecv, vRecv.GetType(), vRecv.GetVersion() | ADDRV2_FORMAT);
         s >> mnb;
         mnb.isBIP155Addr = !mnb.addr.IsAddrV1Compatible();
+        // Clear inv request
+        pfrom->AskForInvReceived(mnb.GetHash(), MSG_MASTERNODE_ANNOUNCE);
 
         // For now, let's not process mnb2 with pre-BIP155 node addr format.
         if (!mnb.isBIP155Addr) {
@@ -988,6 +992,7 @@ int CMasternodeMan::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         CMasternodePing mnp;
         vRecv >> mnp;
         LogPrint(BCLog::MNPING, "mnp - Masternode ping, vin: %s\n", mnp.vin.prevout.hash.ToString());
+        pfrom->AskForInvReceived(mnp.GetHash(), MSG_MASTERNODE_PING);
         return ProcessMNPing(pfrom, mnp);
 
     } else if (strCommand == NetMsgType::GETMNLIST) {

@@ -440,6 +440,10 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
         vRecv >> winner;
 
         if (pfrom->nVersion < ActiveProtocol()) return;
+
+        // Clear inv request
+        pfrom->AskForInvReceived(winner.GetHash(), MSG_MASTERNODE_WINNER);
+
         CValidationState state;
         ProcessMNWinner(winner, pfrom, state);
     }
