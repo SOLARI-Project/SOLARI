@@ -18,8 +18,12 @@ from test_framework.test_framework import PivxTier2TestFramework
 from test_framework.util import (
     assert_equal,
     assert_true,
+    connect_nodes,
+    get_datadir_path,
     satoshi_round,
 )
+import shutil
+import os
 
 
 class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
@@ -114,6 +118,10 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
         for i in range(self.num_nodes):
             assert_equal(self.nodes[i].getbudgetprojection(), expected)
             self.log.info("Budget projection valid for node %d" % i)
+
+    def connect_nodes_bi(self, nodes, a, b):
+        connect_nodes(nodes[a], b)
+        connect_nodes(nodes[b], a)
 
     def run_test(self):
         self.enable_mocktime()
@@ -268,7 +276,7 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
 
         self.stake(1, [self.remoteOne, self.remoteTwo])
 
-        self.log.info("checking resync, cleaning budget data..")
+        self.log.info("checking resync (1): cleaning budget data only..")
         # now let's drop budget data and try to re-sync it.
         self.remoteOne.cleanbudget(True)
         assert_equal(self.remoteOne.mnsync("status")["RequestedMasternodeAssets"], 0)
@@ -277,7 +285,27 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
         self.log.info("budget cleaned, starting resync")
         self.wait_until_mnsync_finished()
         self.check_budgetprojection(expected_budget)
-        self.log.info("budget data resynchronized successfully!")
+        self.log.info("resync (1): budget data resynchronized successfully!")
+
+        self.log.info("checking resync (2): stop node, delete chain data and resync from scratch..")
+        # stop and remove everything
+        self.stop_node(self.ownerTwoPos)
+        ownerTwoDir = os.path.join(get_datadir_path(self.options.tmpdir, self.ownerTwoPos), "regtest")
+        for entry in ['chainstate', 'blocks', 'sporks', 'evodb', 'zerocoin', "mncache.dat", "budget.dat", "mnpayments.dat", "peers.dat"]:
+            rem_path = os.path.join(ownerTwoDir, entry)
+            shutil.rmtree(rem_path) if os.path.isdir(rem_path) else os.remove(rem_path)
+
+        self.log.info("restarting node..")
+        self.start_node(self.ownerTwoPos)
+        self.ownerTwo.setmocktime(self.mocktime)
+        for i in range(self.num_nodes):
+            if i is not self.ownerTwoPos:
+                self.connect_nodes_bi(self.nodes, self.ownerTwoPos, i)
+        self.stake(2, [self.remoteOne, self.remoteTwo])
+
+        self.log.info("syncing node..")
+        self.wait_until_mnsync_finished()
+        self.log.info("resync (2): budget data resynchronized successfully!")
 
         # now let's verify that votes expire properly.
         # Drop one MN and one DMN
