@@ -17,6 +17,13 @@ Notable Changes
 
 (Developers: add your notes here as part of your pull requests whenever possible)
 
+
+### Deprecated autocombinerewards RPC Command
+
+The `autocombinerewards` RPC command was soft-deprecated in v5.3.0 and replaced with explicit setter/getter commands `setautocombinethreshold`/`getautocombinethreshold`. PIVX Core, by default, will no longer accept the `autocombinerewards` command, returning a deprecation error, unless the `pivxd`/`pivx-qt` is started with the `-deprecatedrpc=autocombinerewards` option.
+
+This command will be fully removed in v6.0.0.
+
 *version* Change log
 ==============
 
