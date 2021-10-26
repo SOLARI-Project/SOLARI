@@ -809,16 +809,6 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
         return nDoS;
     }
 
-    // If we are a masternode with the same vin (i.e. already activated) and this mnb is ours (matches our Masternode pubkey)
-    // nothing to do here for us
-    if (fMasterNode && activeMasternode.vin != nullopt &&
-        mnb.vin.prevout == activeMasternode.vin->prevout &&
-        mnb.pubKeyMasternode == activeMasternode.pubKeyMasternode &&
-        activeMasternode.GetStatus() == ACTIVE_MASTERNODE_STARTED) {
-        mapSeenMasternodeBroadcast.emplace(mnbHash, mnb);
-        return 0;
-    }
-
     // make sure it's still unspent
     if (!CheckInputs(mnb, chainHeight, nDoS)) {
         return nDoS; // error set internally
