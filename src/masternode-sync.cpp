@@ -275,9 +275,10 @@ void CMasternodeSync::Process()
 
     if (IsSynced()) {
         /*
-            Resync if we lose all masternodes from sleep/wake or failure to sync originally
+            Resync if we lose all masternodes (except the local one in case the node is a MN)
+            from sleep/wake or failure to sync originally
         */
-        if (mnodeman.CountEnabled() == 0 && !isRegTestNet) {
+        if (mnodeman.CountEnabled() <= 1 && !isRegTestNet) {
             Reset();
         } else
             return;
