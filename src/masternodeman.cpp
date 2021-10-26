@@ -975,12 +975,11 @@ int CMasternodeMan::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         CMasternodeBroadcast mnb;
         OverrideStream<CDataStream> s(&vRecv, vRecv.GetType(), vRecv.GetVersion() | ADDRV2_FORMAT);
         s >> mnb;
-        mnb.isBIP155Addr = !mnb.addr.IsAddrV1Compatible();
         // Clear inv request
         pfrom->AskForInvReceived(mnb.GetHash(), MSG_MASTERNODE_ANNOUNCE);
 
         // For now, let's not process mnb2 with pre-BIP155 node addr format.
-        if (!mnb.isBIP155Addr) {
+        if (mnb.addr.IsAddrV1Compatible()) {
             LogPrint(BCLog::MASTERNODE, "%s: mnb2 with pre-BIP155 node addr format rejected\n", __func__);
             return 30;
         }
