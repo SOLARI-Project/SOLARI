@@ -1075,6 +1075,17 @@ void ThreadCheckMasternodes()
         // first clean up stale masternode payments data
         masternodePayments.CleanPaymentList(mnodeman.CheckAndRemove(), mnodeman.GetBestHeight());
 
+        // Startup-only, clean any stored seen MN broadcast with an invalid service that
+        // could have been invalidly stored on a previous release
+        auto itSeenMNB = mnodeman.mapSeenMasternodeBroadcast.begin();
+        while (itSeenMNB != mnodeman.mapSeenMasternodeBroadcast.end()) {
+            if (!itSeenMNB->second.addr.IsValid()) {
+                itSeenMNB = mnodeman.mapSeenMasternodeBroadcast.erase(itSeenMNB);
+            } else {
+                itSeenMNB++;
+            }
+        }
+
         while (true) {
 
             if (ShutdownRequested()) {
