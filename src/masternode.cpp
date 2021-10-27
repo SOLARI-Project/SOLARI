@@ -494,15 +494,6 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
 
 bool CMasternodeBroadcast::CheckInputsAndAdd(int nChainHeight, int& nDoS)
 {
-    // we are a masternode with the same vin (i.e. already activated) and this mnb is ours (matches our Masternode privkey)
-    // so nothing to do here for us
-    if (fMasterNode && activeMasternode.vin != nullopt &&
-            vin.prevout == activeMasternode.vin->prevout &&
-            pubKeyMasternode == activeMasternode.pubKeyMasternode &&
-            activeMasternode.GetStatus() == ACTIVE_MASTERNODE_STARTED) {
-        return true;
-    }
-
     // incorrect ping or its sigTime
     if(lastPing.IsNull() || !lastPing.CheckAndUpdate(nDoS, nChainHeight, false, true)) {
         return false;
