@@ -1235,8 +1235,11 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         if (!proposal.ParseBroadcast(vRecv)) {
             return 20;
         }
-        // Clear inv request
-        pfrom->AskForInvReceived(proposal.GetHash(), MSG_BUDGET_PROPOSAL);
+        {
+            // Clear inv request
+            LOCK(cs_main);
+            g_connman->RemoveAskFor(proposal.GetHash(), MSG_BUDGET_PROPOSAL);
+        }
         return ProcessProposal(proposal);
     }
 
@@ -1245,8 +1248,11 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         vRecv >> vote;
         vote.SetValid(true);
 
-        // Clear inv request
-        pfrom->AskForInvReceived(vote.GetHash(), MSG_BUDGET_VOTE);
+        {
+            // Clear inv request
+            LOCK(cs_main);
+            g_connman->RemoveAskFor(vote.GetHash(), MSG_BUDGET_VOTE);
+        }
 
         CValidationState state;
         if (!ProcessProposalVote(vote, pfrom, state)) {
@@ -1265,8 +1271,11 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         if (!finalbudget.ParseBroadcast(vRecv)) {
             return 20;
         }
-        // Clear inv request
-        pfrom->AskForInvReceived(finalbudget.GetHash(), MSG_BUDGET_FINALIZED);
+        {
+            // Clear inv request
+            LOCK(cs_main);
+            g_connman->RemoveAskFor(finalbudget.GetHash(), MSG_BUDGET_FINALIZED);
+        }
         return ProcessFinalizedBudget(finalbudget, pfrom);
     }
 
@@ -1275,8 +1284,11 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         vRecv >> vote;
         vote.SetValid(true);
 
-        // Clear inv request
-        pfrom->AskForInvReceived(vote.GetHash(), MSG_BUDGET_FINALIZED_VOTE);
+        {
+            // Clear inv request
+            LOCK(cs_main);
+            g_connman->RemoveAskFor(vote.GetHash(), MSG_BUDGET_FINALIZED_VOTE);
+        }
 
         CValidationState state;
         if (!ProcessFinalizedBudgetVote(vote, pfrom, state)) {

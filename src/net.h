@@ -222,6 +222,9 @@ public:
         post();
     };
 
+    // Clears AskFor requests for every known peer
+    void RemoveAskFor(const uint256& invHash, int invType);
+
     void RelayInv(CInv& inv);
     bool IsNodeConnected(const CAddress& addr);
     // Retrieves a connected peer (if connection success). Used only to check peer address availability for now.
@@ -790,7 +793,7 @@ public:
 
     void AskFor(const CInv& inv);
     // inv response received, clear it from the waiting inv set.
-    void AskForInvReceived(const uint256& invHash, int invType);
+    void AskForInvReceived(const uint256& invHash);
 
     bool HasFulfilledRequest(std::string strRequest)
     {
