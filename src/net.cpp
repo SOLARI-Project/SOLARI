@@ -2228,6 +2228,16 @@ void CConnman::RelayInv(CInv& inv)
     }
 }
 
+void CConnman::RemoveAskFor(const uint256& invHash, int invType)
+{
+    mapAlreadyAskedFor.erase(CInv(invType, invHash));
+
+    LOCK(cs_vNodes);
+    for (const auto& pnode : vNodes) {
+        pnode->AskForInvReceived(invHash);
+    }
+}
+
 void CConnman::RecordBytesRecv(uint64_t bytes)
 {
     LOCK(cs_totalBytesRecv);
@@ -2371,10 +2381,16 @@ void CNode::AskFor(const CInv& inv)
     mapAskFor.insert(std::make_pair(nRequestTime, inv));
 }
 
-void CNode::AskForInvReceived(const uint256& invHash, int invType)
+void CNode::AskForInvReceived(const uint256& invHash)
 {
     setAskFor.erase(invHash);
-    mapAlreadyAskedFor.erase(CInv(invType, invHash));
+    for (auto it = mapAskFor.begin(); it != mapAskFor.end();) {
+        if (it->second.hash == invHash) {
+            it = mapAskFor.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 bool CConnman::NodeFullyConnected(const CNode* pnode)
