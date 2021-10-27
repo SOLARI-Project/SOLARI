@@ -831,9 +831,11 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     if (mnb.pubKeyMasternode == activeMasternode.pubKeyMasternode && mnb.protocolVersion == PROTOCOL_VERSION) {
         activeMasternode.EnableHotColdMasterNode(mnb.vin, mnb.addr);
     }
-    //  Relay
+
+    // Relay only if we are synchronized and if the mnb address is not local.
+    // Makes no sense to relay MNBs to the peers from where we are syncing them.
     bool isLocal = (mnb.addr.IsRFC1918() || mnb.addr.IsLocal()) && !Params().IsRegTestNet();
-    if (!isLocal) mnb.Relay();
+    if (!isLocal && masternodeSync.IsSynced()) mnb.Relay();
 
     // Add it as a peer
     g_connman->AddNewAddress(CAddress(mnb.addr, NODE_NETWORK), pfrom->addr, 2 * 60 * 60);
