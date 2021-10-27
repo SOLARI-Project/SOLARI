@@ -544,9 +544,10 @@ bool CMasternodeBroadcast::CheckInputsAndAdd(int nChainHeight, int& nDoS)
         activeMasternode.EnableHotColdMasterNode(vin, addr);
     }
 
+    // Relay only if we are synchronized and if the mnb address is not local.
+    // Makes no sense to relay MNBs to the peers from where we are syncing them.
     bool isLocal = (addr.IsRFC1918() || addr.IsLocal()) && !Params().IsRegTestNet();
-
-    if (!isLocal) Relay();
+    if (!isLocal && masternodeSync.IsSynced()) Relay();
 
     return true;
 }

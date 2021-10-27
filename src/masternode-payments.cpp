@@ -517,7 +517,9 @@ void CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
         }
 
         if (masternodePayments.AddWinningMasternode(winner)) {
-            winner.Relay();
+            // Relay only if we are synchronized.
+            // Makes no sense to relay MNWinners to the peers from where we are syncing them.
+            if (masternodeSync.IsSynced()) winner.Relay();
             masternodeSync.AddedMasternodeWinner(winner.GetHash());
         }
     }

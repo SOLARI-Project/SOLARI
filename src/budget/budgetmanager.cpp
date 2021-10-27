@@ -1015,7 +1015,10 @@ int CBudgetManager::ProcessProposal(CBudgetProposal& proposal)
     if (!AddProposal(proposal)) {
         return 0;
     }
-    proposal.Relay();
+
+    // Relay only if we are synchronized
+    // Makes no sense to relay proposals to the peers from where we are syncing them.
+    if (masternodeSync.IsSynced()) proposal.Relay();
     masternodeSync.AddedBudgetItem(nHash);
 
     LogPrint(BCLog::MNBUDGET, "mprop (new) %s\n", nHash.ToString());
@@ -1058,7 +1061,9 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
             return state.DoS(0, false, REJECT_INVALID, "bad-mvote", false, strprintf("%s (%s)", err, mn_protx_id));
         }
 
-        vote.Relay();
+        // Relay only if we are synchronized
+        // Makes no sense to relay votes to the peers from where we are syncing them.
+        if (masternodeSync.IsSynced()) vote.Relay();
         masternodeSync.AddedBudgetItem(voteID);
         LogPrint(BCLog::MNBUDGET, "mvote - new vote (%s) for proposal %s from dmn %s\n",
                 voteID.ToString(), vote.GetProposalHash().ToString(), mn_protx_id);
@@ -1093,7 +1098,9 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
         return state.DoS(0, false, REJECT_INVALID, "bad-mvote", false, err);
     }
 
-    vote.Relay();
+    // Relay only if we are synchronized
+    // Makes no sense to relay votes to the peers from where we are syncing them.
+    if (masternodeSync.IsSynced()) vote.Relay();
     masternodeSync.AddedBudgetItem(voteID);
     LogPrint(BCLog::MNBUDGET, "mvote - new vote (%s) for proposal %s from dmn %s\n",
             voteID.ToString(), vote.GetProposalHash().ToString(), voteVin.prevout.ToString());
@@ -1111,7 +1118,10 @@ int CBudgetManager::ProcessFinalizedBudget(CFinalizedBudget& finalbudget, CNode*
     if (!AddFinalizedBudget(finalbudget, pfrom)) {
         return 0;
     }
-    finalbudget.Relay();
+
+    // Relay only if we are synchronized
+    // Makes no sense to relay finalizations to the peers from where we are syncing them.
+    if (masternodeSync.IsSynced()) finalbudget.Relay();
     masternodeSync.AddedBudgetItem(nHash);
 
     LogPrint(BCLog::MNBUDGET, "fbs (new) %s\n", nHash.ToString());
@@ -1153,7 +1163,9 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
             return state.DoS(0, false, REJECT_INVALID, "bad-fbvote", false, strprintf("%s (%s)", err, mn_protx_id));
         }
 
-        vote.Relay();
+        // Relay only if we are synchronized
+        // Makes no sense to relay votes to the peers from where we are syncing them.
+        if (masternodeSync.IsSynced()) vote.Relay();
         masternodeSync.AddedBudgetItem(voteID);
         LogPrint(BCLog::MNBUDGET, "fbvote - new vote (%s) for budget %s from dmn %s\n",
                 voteID.ToString(), vote.GetBudgetHash().ToString(), mn_protx_id);
@@ -1187,7 +1199,9 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
         return state.DoS(0, false, REJECT_INVALID, "bad-fbvote", false, err);
     }
 
-    vote.Relay();
+    // Relay only if we are synchronized
+    // Makes no sense to relay votes to the peers from where we are syncing them.
+    if (masternodeSync.IsSynced()) vote.Relay();
     masternodeSync.AddedBudgetItem(voteID);
     LogPrint(BCLog::MNBUDGET, "fbvote - new vote (%s) for budget %s from mn %s\n",
             voteID.ToString(), vote.GetBudgetHash().ToString(), voteVin.prevout.ToString());
