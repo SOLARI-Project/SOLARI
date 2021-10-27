@@ -15,7 +15,7 @@
 #include "sync.h"
 #include "util/system.h"
 
-#define MASTERNODES_DSEG_SECONDS (60 * 60) // One hour.
+#define MASTERNODES_REQUEST_SECONDS (60 * 60) // One hour.
 
 /** Maximum number of block hashes to cache */
 static const unsigned int CACHED_BLOCK_HASHES = 200;
@@ -130,7 +130,7 @@ public:
 
     int CountEnabled(bool only_legacy = false) const;
 
-    bool DsegUpdate(CNode* pnode);
+    bool RequestMnList(CNode* pnode);
 
     /// Find an entry
     CMasternode* Find(const COutPoint& collateralOut);

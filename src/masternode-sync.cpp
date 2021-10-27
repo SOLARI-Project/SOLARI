@@ -379,7 +379,7 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
             if (pnode->HasFulfilledRequest("mnsync")) return true;
 
             // Try to request MN list sync.
-            if (!mnodeman.DsegUpdate(pnode)) {
+            if (!mnodeman.RequestMnList(pnode)) {
                 return true; // Failed, try next peer.
             }
 
