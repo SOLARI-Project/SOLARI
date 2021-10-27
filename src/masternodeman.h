@@ -15,7 +15,7 @@
 #include "sync.h"
 #include "util/system.h"
 
-#define MASTERNODES_DSEG_SECONDS (60 * 60) // One hour.
+#define MASTERNODES_REQUEST_SECONDS (60 * 60) // One hour.
 
 /** Maximum number of block hashes to cache */
 static const unsigned int CACHED_BLOCK_HASHES = 200;
@@ -130,7 +130,7 @@ public:
     /// Count the number of nodes with a specific proto version for each network. Return the total.
     int CountNetworks(int& ipv4, int& ipv6, int& onion) const;
 
-    bool DsegUpdate(CNode* pnode);
+    bool RequestMnList(CNode* pnode);
 
     /// Find an entry
     CMasternode* Find(const COutPoint& collateralOut);

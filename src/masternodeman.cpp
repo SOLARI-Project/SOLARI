@@ -421,7 +421,7 @@ int CMasternodeMan::CountNetworks(int& ipv4, int& ipv6, int& onion) const
     return mapMasternodes.size();
 }
 
-bool CMasternodeMan::DsegUpdate(CNode* pnode)
+bool CMasternodeMan::RequestMnList(CNode* pnode)
 {
     // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
     if (deterministicMNManager->LegacyMNObsolete()) {
@@ -442,7 +442,7 @@ bool CMasternodeMan::DsegUpdate(CNode* pnode)
     }
 
     g_connman->PushMessage(pnode, CNetMsgMaker(pnode->GetSendVersion()).Make(NetMsgType::GETMNLIST, CTxIn()));
-    int64_t askAgain = GetTime() + MASTERNODES_DSEG_SECONDS;
+    int64_t askAgain = GetTime() + MASTERNODES_REQUEST_SECONDS;
     mWeAskedForMasternodeList[pnode->addr] = askAgain;
     return true;
 }
@@ -827,7 +827,7 @@ int CMasternodeMan::ProcessGetMNList(CNode* pfrom, CTxIn& vin)
                 return 20;
             }
         }
-        int64_t askAgain = GetTime() + MASTERNODES_DSEG_SECONDS;
+        int64_t askAgain = GetTime() + MASTERNODES_REQUEST_SECONDS;
         mAskedUsForMasternodeList[pfrom->addr] = askAgain;
     }
 
