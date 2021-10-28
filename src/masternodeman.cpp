@@ -262,7 +262,7 @@ int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
             //    sending a brand new mnb
             std::map<uint256, CMasternodeBroadcast>::iterator it3 = mapSeenMasternodeBroadcast.begin();
             while (it3 != mapSeenMasternodeBroadcast.end()) {
-                if (it3->second.vin == it->second->vin) {
+                if (it3->second.vin.prevout == it->first) {
                     masternodeSync.mapSeenSyncMNB.erase((*it3).first);
                     it3 = mapSeenMasternodeBroadcast.erase(it3);
                 } else {
@@ -277,6 +277,16 @@ int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
                     it2 = mWeAskedForMasternodeListEntry.erase(it2);
                 } else {
                     ++it2;
+                }
+            }
+
+            // clean MN pings right away.
+            auto itPing = mapSeenMasternodePing.begin();
+            while (itPing != mapSeenMasternodePing.end()) {
+                if (itPing->second.GetVin().prevout == it->first) {
+                    itPing = mapSeenMasternodePing.erase(itPing);
+                } else {
+                    ++itPing;
                 }
             }
 
