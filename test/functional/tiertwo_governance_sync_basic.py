@@ -276,7 +276,7 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
         self.stake(2, [self.remoteOne, self.remoteTwo])
 
         # assert that there is no budget finalization first.
-        assert_true(len(self.ownerOne.mnfinalbudget("show")) == 0)
+        assert_equal(len(self.ownerOne.mnfinalbudget("show")), 0)
 
         # suggest the budget finalization and confirm the tx (+4 blocks).
         budgetFinHash = self.broadcastbudgetfinalization(self.miner,
@@ -371,7 +371,19 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
         self.check_vote_existence(firstProposal.name, self.proRegTx1, "YES", False)
         self.log.info("DMN vote expired after collateral spend, all good")
 
-
+        # Check that the budget is removed 200 blocks after the last payment
+        assert_equal(len(self.miner.mnfinalbudget("show")), 1)
+        blocks_to_mine = nextSuperBlockHeight + 200 - self.miner.getblockcount()
+        self.log.info("Mining %d more blocks to check expired budget removal..." % blocks_to_mine)
+        self.stake(blocks_to_mine - 1, [self.remoteTwo])
+        # finalized budget must still be there
+        self.miner.checkbudgets()
+        assert_equal(len(self.miner.mnfinalbudget("show")), 1)
+        # after one more block it must be removed
+        self.stake(1, [self.remoteTwo])
+        self.miner.checkbudgets()
+        assert_equal(len(self.miner.mnfinalbudget("show")), 0)
+        self.log.info("All good.")
 
 if __name__ == '__main__':
     MasternodeGovernanceBasicTest().main()
