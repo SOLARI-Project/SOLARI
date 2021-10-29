@@ -235,12 +235,10 @@ bool CFinalizedBudget::CheckName()
 
 bool CFinalizedBudget::updateExpired(int nCurrentHeight)
 {
-    // Remove budgets after their last payment block
+    // Remove finalized budgets 2 * MAX_PROPOSALS_PER_CYCLE blocks after their end
     const int nBlockEnd = GetBlockEnd();
-    const int nBlocksPerCycle = Params().GetConsensus().nBudgetCycleBlocks;
-    const int nLastSuperBlock = nCurrentHeight - nCurrentHeight % nBlocksPerCycle;
-    if (nBlockEnd < nLastSuperBlock) {
-        strInvalid = strprintf("(ends at block %ld) too old and obsolete", nBlockEnd);
+    if (nCurrentHeight >= nBlockEnd + 2 * MAX_PROPOSALS_PER_CYCLE) {
+        strInvalid = strprintf("(ends at block %ld) too old and obsolete (current %ld)", nBlockEnd, nCurrentHeight);
         return true;
     }
 
