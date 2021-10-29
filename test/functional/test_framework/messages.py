@@ -289,13 +289,9 @@ class CInv:
         11: "MSG_BUDGET_FINALIZED",
         12: "MSG_BUDGET_FINALIZED_VOTE",
         13: "MSG_MASTERNODE_QUORUM",
-        14: "MSG_MASTERNODE_QUORUM",
         15: "MSG_MASTERNODE_ANNOUNCE",
         16: "MSG_MASTERNODE_PING",
-        17: "MSG_DSTX",
-        18: "MSG_PUBCOINS",
-        19: "MSG_GENWIT",
-        20: "MSG_ACC_VALUE"
+        17: "MSG_DSTX"
     }
 
     def __init__(self, t=0, h=0):
