@@ -200,7 +200,7 @@ bool CFinalizedBudget::CheckStartEnd()
     }
 
     // The following 2 checks check the same (basically if vecBudgetPayments.size() > 100)
-    if (GetBlockEnd() - nBlockStart > 100) {
+    if (GetBlockEnd() - nBlockStart + 1 > 100) {
         strInvalid = "Invalid BlockEnd";
         return false;
     }
