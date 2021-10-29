@@ -200,11 +200,11 @@ bool CFinalizedBudget::CheckStartEnd()
     }
 
     // The following 2 checks check the same (basically if vecBudgetPayments.size() > 100)
-    if (GetBlockEnd() - nBlockStart + 1 > 100) {
+    if (GetBlockEnd() - nBlockStart + 1 > MAX_PROPOSALS_PER_CYCLE) {
         strInvalid = "Invalid BlockEnd";
         return false;
     }
-    if ((int)vecBudgetPayments.size() > 100) {
+    if ((int)vecBudgetPayments.size() > MAX_PROPOSALS_PER_CYCLE) {
         strInvalid = "Invalid budget payments count (too many)";
         return false;
     }

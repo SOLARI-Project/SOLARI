@@ -51,6 +51,8 @@ protected:
     std::string strProposals;
 
 public:
+    static constexpr unsigned int MAX_PROPOSALS_PER_CYCLE = 100;
+
     // Set in CBudgetManager::AddFinalizedBudget via CheckCollateral
     int64_t nTime;
 
