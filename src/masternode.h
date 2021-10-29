@@ -59,7 +59,7 @@ public:
     const CTxIn GetVin() const { return vin; };
     bool IsNull() const { return blockHash.IsNull() || vin.prevout.IsNull(); }
 
-    bool CheckAndUpdate(int& nDos, int nChainHeight, bool fRequireAvailable = true, bool fCheckSigTimeOnly = false);
+    bool CheckAndUpdate(int& nDos, bool fRequireAvailable = true, bool fCheckSigTimeOnly = false);
     void Relay();
 
     CMasternodePing& operator=(const CMasternodePing& other) = default;
@@ -103,8 +103,6 @@ public:
     int nScanningErrorCount;
     int nLastScanningErrorBlockHeight;
     CMasternodePing lastPing;
-    // Whether the MN addr is in BIP155 format. Required for the signature hash.
-    bool isBIP155Addr{false};
 
     explicit CMasternode();
     CMasternode(const CMasternode& other);
@@ -133,7 +131,6 @@ public:
         protocolVersion = other.protocolVersion;
         nScanningErrorCount = other.nScanningErrorCount;
         nLastScanningErrorBlockHeight = other.nLastScanningErrorBlockHeight;
-        isBIP155Addr = other.isBIP155Addr;
         return *this;
     }
 
@@ -155,8 +152,9 @@ public:
         READWRITE(obj.pubKeyMasternode, obj.vchSig, obj.sigTime, obj.protocolVersion);
         READWRITE(obj.lastPing, obj.nScanningErrorCount, obj.nLastScanningErrorBlockHeight);
 
-        if (obj.protocolVersion >= MIN_BIP155_PROTOCOL_VERSION) {
-            READWRITE(obj.isBIP155Addr);
+        if (obj.protocolVersion == MIN_BIP155_PROTOCOL_VERSION) {
+            bool dummyIsBIP155Addr = false;
+            READWRITE(dummyIsBIP155Addr);
         }
     }
 
@@ -165,7 +163,7 @@ public:
         Unserialize(s);
     }
 
-    bool UpdateFromNewBroadcast(CMasternodeBroadcast& mnb, int chainHeight);
+    bool UpdateFromNewBroadcast(CMasternodeBroadcast& mnb);
 
     CMasternode::state GetActiveState() const;
 
@@ -249,7 +247,7 @@ public:
     CMasternodeBroadcast(CService newAddr, CTxIn newVin, CPubKey newPubkey, CPubKey newPubkey2, int protocolVersionIn, const CMasternodePing& _lastPing);
     CMasternodeBroadcast(const CMasternode& mn);
 
-    bool CheckAndUpdate(int& nDoS, int nChainHeight);
+    bool CheckAndUpdate(int& nDoS);
 
     uint256 GetHash() const;
 

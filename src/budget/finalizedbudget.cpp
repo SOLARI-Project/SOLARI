@@ -107,14 +107,6 @@ void CFinalizedBudget::SetSynced(bool synced)
     }
 }
 
-// Sort budget proposals by hash
-struct sortProposalsByHash  {
-    bool operator()(const CBudgetProposal* left, const CBudgetProposal* right)
-    {
-        return (left->GetHash() < right->GetHash());
-    }
-};
-
 bool CFinalizedBudget::CheckProposals(const std::map<uint256, CBudgetProposal>& mapWinningProposals) const
 {
     if (mapWinningProposals.empty()) {
