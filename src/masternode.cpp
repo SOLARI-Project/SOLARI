@@ -447,7 +447,7 @@ bool CMasternodeBroadcast::CheckAndUpdate(int& nDos, int nChainHeight)
     if (!CheckSignature()) {
         // For now (till v6.0), let's be "naive" and not fully ban nodes when the node is syncing
         // This could be a bad parsed BIP155 address that got stored on db on an old software version.
-        nDos = masternodeSync.IsSynced() ? 100 : 10;
+        nDos = masternodeSync.IsSynced() ? 100 : 5;
         return error("%s : Got bad Masternode address signature", __func__);
     }
 
