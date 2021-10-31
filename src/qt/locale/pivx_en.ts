@@ -762,12 +762,12 @@ for staking</source>
     </message>
     <message>
         <location line="+42"/>
-        <location line="+720"/>
+        <location line="+718"/>
         <source>Unselect all</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-596"/>
+        <location line="-594"/>
         <source>Please switch to &quot;List mode&quot; to use this function.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -812,7 +812,7 @@ for staking</source>
         <translation>(%1 locked)</translation>
     </message>
     <message>
-        <location line="+144"/>
+        <location line="+142"/>
         <source>yes</source>
         <translation>yes</translation>
     </message>
@@ -1248,7 +1248,7 @@ It will start automatically as soon as the wallet has enough confirmations on an
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+127"/>
+        <location line="+128"/>
         <location line="+222"/>
         <location line="+88"/>
         <source>Error loading chart, invalid show option</source>
@@ -2476,7 +2476,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/dashboardwidget.cpp" line="-530"/>
+        <location filename="../pivx/dashboardwidget.cpp" line="-531"/>
         <source>Jan</source>
         <translation type="unfinished"></translation>
     </message>
