@@ -1074,7 +1074,8 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
     CMasternode* pmn = mnodeman.Find(voteVin.prevout);
     if (!pmn) {
         err = strprintf("unknown masternode - vin: %s", voteVin.prevout.ToString());
-        mnodeman.AskForMN(pfrom, voteVin);
+        // Ask for MN only if we finished syncing the MN list.
+        if (pfrom && masternodeSync.IsMasternodeListSynced()) mnodeman.AskForMN(pfrom, voteVin);
         return state.DoS(0, false, REJECT_INVALID, "bad-mvote", false, err);
     }
 
@@ -1085,8 +1086,6 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
             err = strprintf("signature from masternode %s invalid", voteVin.prevout.ToString());
             return state.DoS(20, false, REJECT_INVALID, "bad-fbvote", false, err);
         }
-        // it could just be a non-synced masternode
-        mnodeman.AskForMN(pfrom, voteVin);
         return false;
     }
 
@@ -1175,7 +1174,8 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
     CMasternode* pmn = mnodeman.Find(voteVin.prevout);
     if (!pmn) {
         err = strprintf("unknown masternode - vin: %s", voteVin.prevout.ToString());
-        mnodeman.AskForMN(pfrom, voteVin);
+        // Ask for MN only if we finished syncing the MN list.
+        if (pfrom && masternodeSync.IsMasternodeListSynced()) mnodeman.AskForMN(pfrom, voteVin);
         return state.DoS(0, false, REJECT_INVALID, "bad-fbvote", false, err);
     }
 
@@ -1186,8 +1186,6 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
             err = strprintf("signature from masternode %s invalid", voteVin.prevout.ToString());
             return state.DoS(20, false, REJECT_INVALID, "bad-fbvote", false, err);
         }
-        // it could just be a non-synced masternode
-        mnodeman.AskForMN(pfrom, voteVin);
         return false;
     }
 
