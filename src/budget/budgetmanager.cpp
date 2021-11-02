@@ -14,6 +14,9 @@
 #include "validation.h"   // GetTransaction, cs_main
 
 
+// Peers can only request complete budget sync once per hour.
+#define BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS (60 * 60) // One hour.
+
 CBudgetManager g_budgetman;
 
 std::map<uint256, int64_t> askedForSourceProposalOrBudget;
@@ -229,13 +232,20 @@ bool CBudgetManager::AddFinalizedBudget(CFinalizedBudget& finalizedBudget, CNode
     if (!finalizedBudget.CheckProposals(mapWinningProposals)) {
         finalizedBudget.SetStrInvalid("Invalid proposals");
         LogPrint(BCLog::MNBUDGET,"%s: Budget finalization does not match with winning proposals\n", __func__);
-        // just for now (until v6), request proposals sync in case we are missing one of them.
+        // just for now (until v6), request proposals and budget sync in case we are missing them
         if (pfrom) {
+            // First single inv requests for single proposals that we don't have.
             for (const auto& propId : finalizedBudget.GetProposalsHashes()) {
                 if (!g_budgetman.HaveProposal(propId)) {
                     pfrom->PushInventory(CInv(MSG_BUDGET_PROPOSAL, propId));
                 }
             }
+
+            // Second a full budget sync for missing votes and the budget finalization that we are rejecting here.
+            // Note: this will not make any effect on peers with version <= 70923 as they, invalidly, are blocking
+            // follow-up budget sync request for the entire node life cycle.
+            uint256 n;
+            g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, n));
         }
         return false;
     }
@@ -956,18 +966,37 @@ void CBudgetManager::NewBlock()
             RemoveStaleVotesOnFinalBudget(&it.second);
         }
     }
+
+    {
+        // Clean peers who asked for budget votes sync after an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS)
+        LOCK2(cs_budgets, cs_proposals);
+        int64_t currentTime = GetTime();
+        auto itAskedBudSync = mAskedUsForBudgetSync.begin();
+        while (itAskedBudSync != mAskedUsForBudgetSync.end()) {
+            if ((*itAskedBudSync).second < currentTime) {
+                itAskedBudSync = mAskedUsForBudgetSync.erase(itAskedBudSync);
+            } else {
+                ++itAskedBudSync;
+            }
+        }
+    }
+
     LogPrint(BCLog::MNBUDGET,"%s:  PASSED\n", __func__);
 }
 
 int CBudgetManager::ProcessBudgetVoteSync(const uint256& nProp, CNode* pfrom)
 {
-    if (Params().NetworkIDString() == CBaseChainParams::MAIN) {
-        if (nProp.IsNull()) {
-            if (pfrom->HasFulfilledRequest("budgetvotesync")) {
-                LogPrint(BCLog::MNBUDGET, "mnvs - peer already asked me for the list\n");
-                return 20;
+    if (nProp.IsNull()) {
+        LOCK2(cs_budgets, cs_proposals);
+        if (!(pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal())) {
+            auto itLastRequest = mAskedUsForBudgetSync.find(pfrom->addr);
+            if (itLastRequest != mAskedUsForBudgetSync.end() && GetTime() < (*itLastRequest).second) {
+                LogPrint(BCLog::MASTERNODE, "budgetsync - peer %i already asked for budget sync\n", pfrom->GetId());
+                // The peers sync requests information is not stored on disk (for now), so
+                // the budget sync could be re-requested in less than the allowed time (due a node restart for example).
+                // So, for now, let's not be so hard with the node.
+                return 10;
             }
-            pfrom->FulfilledRequest("budgetvotesync");
         }
     }
 
@@ -986,7 +1015,10 @@ int CBudgetManager::ProcessProposal(CBudgetProposal& proposal)
     if (!AddProposal(proposal)) {
         return 0;
     }
-    proposal.Relay();
+
+    // Relay only if we are synchronized
+    // Makes no sense to relay proposals to the peers from where we are syncing them.
+    if (masternodeSync.IsSynced()) proposal.Relay();
     masternodeSync.AddedBudgetItem(nHash);
 
     LogPrint(BCLog::MNBUDGET, "mprop (new) %s\n", nHash.ToString());
@@ -1029,7 +1061,9 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
             return state.DoS(0, false, REJECT_INVALID, "bad-mvote", false, strprintf("%s (%s)", err, mn_protx_id));
         }
 
-        vote.Relay();
+        // Relay only if we are synchronized
+        // Makes no sense to relay votes to the peers from where we are syncing them.
+        if (masternodeSync.IsSynced()) vote.Relay();
         masternodeSync.AddedBudgetItem(voteID);
         LogPrint(BCLog::MNBUDGET, "mvote - new vote (%s) for proposal %s from dmn %s\n",
                 voteID.ToString(), vote.GetProposalHash().ToString(), mn_protx_id);
@@ -1041,7 +1075,8 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
     CMasternode* pmn = mnodeman.Find(voteVin.prevout);
     if (!pmn) {
         err = strprintf("unknown masternode - vin: %s", voteVin.prevout.ToString());
-        mnodeman.AskForMN(pfrom, voteVin);
+        // Ask for MN only if we finished syncing the MN list.
+        if (pfrom && masternodeSync.IsMasternodeListSynced()) mnodeman.AskForMN(pfrom, voteVin);
         return state.DoS(0, false, REJECT_INVALID, "bad-mvote", false, err);
     }
 
@@ -1052,8 +1087,6 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
             err = strprintf("signature from masternode %s invalid", voteVin.prevout.ToString());
             return state.DoS(20, false, REJECT_INVALID, "bad-fbvote", false, err);
         }
-        // it could just be a non-synced masternode
-        mnodeman.AskForMN(pfrom, voteVin);
         return false;
     }
 
@@ -1064,7 +1097,9 @@ bool CBudgetManager::ProcessProposalVote(CBudgetVote& vote, CNode* pfrom, CValid
         return state.DoS(0, false, REJECT_INVALID, "bad-mvote", false, err);
     }
 
-    vote.Relay();
+    // Relay only if we are synchronized
+    // Makes no sense to relay votes to the peers from where we are syncing them.
+    if (masternodeSync.IsSynced()) vote.Relay();
     masternodeSync.AddedBudgetItem(voteID);
     LogPrint(BCLog::MNBUDGET, "mvote - new vote (%s) for proposal %s from dmn %s\n",
             voteID.ToString(), vote.GetProposalHash().ToString(), voteVin.prevout.ToString());
@@ -1082,7 +1117,10 @@ int CBudgetManager::ProcessFinalizedBudget(CFinalizedBudget& finalbudget, CNode*
     if (!AddFinalizedBudget(finalbudget, pfrom)) {
         return 0;
     }
-    finalbudget.Relay();
+
+    // Relay only if we are synchronized
+    // Makes no sense to relay finalizations to the peers from where we are syncing them.
+    if (masternodeSync.IsSynced()) finalbudget.Relay();
     masternodeSync.AddedBudgetItem(nHash);
 
     LogPrint(BCLog::MNBUDGET, "fbs (new) %s\n", nHash.ToString());
@@ -1124,7 +1162,9 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
             return state.DoS(0, false, REJECT_INVALID, "bad-fbvote", false, strprintf("%s (%s)", err, mn_protx_id));
         }
 
-        vote.Relay();
+        // Relay only if we are synchronized
+        // Makes no sense to relay votes to the peers from where we are syncing them.
+        if (masternodeSync.IsSynced()) vote.Relay();
         masternodeSync.AddedBudgetItem(voteID);
         LogPrint(BCLog::MNBUDGET, "fbvote - new vote (%s) for budget %s from dmn %s\n",
                 voteID.ToString(), vote.GetBudgetHash().ToString(), mn_protx_id);
@@ -1135,7 +1175,8 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
     CMasternode* pmn = mnodeman.Find(voteVin.prevout);
     if (!pmn) {
         err = strprintf("unknown masternode - vin: %s", voteVin.prevout.ToString());
-        mnodeman.AskForMN(pfrom, voteVin);
+        // Ask for MN only if we finished syncing the MN list.
+        if (pfrom && masternodeSync.IsMasternodeListSynced()) mnodeman.AskForMN(pfrom, voteVin);
         return state.DoS(0, false, REJECT_INVALID, "bad-fbvote", false, err);
     }
 
@@ -1146,8 +1187,6 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
             err = strprintf("signature from masternode %s invalid", voteVin.prevout.ToString());
             return state.DoS(20, false, REJECT_INVALID, "bad-fbvote", false, err);
         }
-        // it could just be a non-synced masternode
-        mnodeman.AskForMN(pfrom, voteVin);
         return false;
     }
 
@@ -1158,7 +1197,9 @@ bool CBudgetManager::ProcessFinalizedBudgetVote(CFinalizedBudgetVote& vote, CNod
         return state.DoS(0, false, REJECT_INVALID, "bad-fbvote", false, err);
     }
 
-    vote.Relay();
+    // Relay only if we are synchronized
+    // Makes no sense to relay votes to the peers from where we are syncing them.
+    if (masternodeSync.IsSynced()) vote.Relay();
     masternodeSync.AddedBudgetItem(voteID);
     LogPrint(BCLog::MNBUDGET, "fbvote - new vote (%s) for budget %s from mn %s\n",
             voteID.ToString(), vote.GetBudgetHash().ToString(), voteVin.prevout.ToString());
@@ -1193,6 +1234,11 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         if (!proposal.ParseBroadcast(vRecv)) {
             return 20;
         }
+        {
+            // Clear inv request
+            LOCK(cs_main);
+            g_connman->RemoveAskFor(proposal.GetHash(), MSG_BUDGET_PROPOSAL);
+        }
         return ProcessProposal(proposal);
     }
 
@@ -1200,6 +1246,13 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         CBudgetVote vote;
         vRecv >> vote;
         vote.SetValid(true);
+
+        {
+            // Clear inv request
+            LOCK(cs_main);
+            g_connman->RemoveAskFor(vote.GetHash(), MSG_BUDGET_VOTE);
+        }
+
         CValidationState state;
         if (!ProcessProposalVote(vote, pfrom, state)) {
             int nDos = 0;
@@ -1217,6 +1270,11 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         if (!finalbudget.ParseBroadcast(vRecv)) {
             return 20;
         }
+        {
+            // Clear inv request
+            LOCK(cs_main);
+            g_connman->RemoveAskFor(finalbudget.GetHash(), MSG_BUDGET_FINALIZED);
+        }
         return ProcessFinalizedBudget(finalbudget, pfrom);
     }
 
@@ -1224,6 +1282,13 @@ int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, C
         CFinalizedBudgetVote vote;
         vRecv >> vote;
         vote.SetValid(true);
+
+        {
+            // Clear inv request
+            LOCK(cs_main);
+            g_connman->RemoveAskFor(vote.GetHash(), MSG_BUDGET_FINALIZED_VOTE);
+        }
+
         CValidationState state;
         if (!ProcessFinalizedBudgetVote(vote, pfrom, state)) {
             int nDos = 0;
@@ -1295,6 +1360,14 @@ void CBudgetManager::Sync(CNode* pfrom, const uint256& nProp, bool fPartial)
     }
     g_connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SYNCSTATUSCOUNT, MASTERNODE_SYNC_BUDGET_FIN, nInvCount));
     LogPrint(BCLog::MNBUDGET, "%s: sent %d items\n", __func__, nInvCount);
+
+    {
+        // Now that budget full sync request was handled, mark it as completed.
+        // We are not going to answer full budget sync requests for an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS).
+        // The remote peer can still do single prop and mnv sync requests if needed.
+        LOCK2(cs_budgets, cs_proposals);
+        mAskedUsForBudgetSync[pfrom->addr] = GetTime() + BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS;
+    }
 }
 
 bool CBudgetManager::UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::string& strError)
