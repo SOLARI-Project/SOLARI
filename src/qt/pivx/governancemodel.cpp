@@ -296,14 +296,14 @@ void GovernanceModel::pollGovernanceChanged()
         // Try to add it
         if (!g_budgetman.AddProposal(*it)) {
             LogPrint(BCLog::QT, "Cannot broadcast budget proposal - %s", it->IsInvalidReason());
-            // Remove proposals who due a reorg lost their fee tx
+            // Remove proposals which due a reorg lost their fee tx
             if (it->IsInvalidReason().find("Can't find collateral tx") != std::string::npos) {
                 // future: notify the user about it.
                 it = waitingPropsForConfirmations.erase(it);
                 continue;
             }
             // Check if the proposal didn't exceed the superblock start height
-            if (chainHeight > it->GetBlockStart()) {
+            if (chainHeight >= it->GetBlockStart()) {
                 // Edge case, the proposal was never broadcasted before the next superblock, can be removed.
                 // future: notify the user about it.
                 it = waitingPropsForConfirmations.erase(it);
@@ -349,7 +349,7 @@ void GovernanceModel::txLoaded(const QString& id, const int txType, const int tx
             ss >> proposal;
             if (!g_budgetman.HaveProposal(proposal.GetHash()) &&
                 !proposal.IsExpired(clientModel->getNumBlocks()) &&
-                proposal.GetBlockStart() < clientModel->getNumBlocks()) {
+                proposal.GetBlockStart() > clientModel->getNumBlocks()) {
                 scheduleBroadcast(proposal);
             }
         }
