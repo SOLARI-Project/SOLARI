@@ -30,9 +30,9 @@ static inline QString formatHtmlContent(const QString& str) {
 MasterNodeWizardDialog::MasterNodeWizardDialog(WalletModel* model, ClientModel* _clientModel, QWidget *parent) :
     FocusedDialog(parent),
     ui(new Ui::MasterNodeWizardDialog),
-    icConfirm1(new QPushButton()),
-    icConfirm3(new QPushButton()),
-    icConfirm4(new QPushButton()),
+    icConfirm1(new QPushButton(this)),
+    icConfirm3(new QPushButton(this)),
+    icConfirm4(new QPushButton(this)),
     walletModel(model),
     clientModel(_clientModel)
 {
@@ -133,7 +133,7 @@ void MasterNodeWizardDialog::accept()
             ui->lineEditName->setFocus();
             break;
         }
-        case 1:{
+        case 1: {
 
             // No empty names accepted.
             if (ui->lineEditName->text().isEmpty()) {
@@ -152,7 +152,7 @@ void MasterNodeWizardDialog::accept()
             ui->lineEditIpAddress->setFocus();
             break;
         }
-        case 2:{
+        case 2: {
 
             // No empty address accepted
             if (ui->lineEditIpAddress->text().isEmpty()) {
@@ -404,7 +404,7 @@ void MasterNodeWizardDialog::onBackClicked()
             ui->btnBack->setVisible(false);
             break;
         }
-        case 1:{
+        case 1: {
             ui->stackedWidget->setCurrentIndex(1);
             ui->lineEditName->setFocus();
             ui->pushNumber4->setChecked(false);

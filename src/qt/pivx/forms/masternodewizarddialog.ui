@@ -818,6 +818,9 @@
           </item>
           <item>
            <widget class="QLineEdit" name="lineEditName">
+            <property name="maxLength">
+             <number>25</number>
+            </property>
             <property name="placeholderText">
              <string notr="true">e.g. user_masternode</string>
             </property>

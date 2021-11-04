@@ -317,7 +317,7 @@ int CBudgetProposal::GetTotalPaymentCount() const
 
 int CBudgetProposal::GetRemainingPaymentCount(int nCurrentHeight) const
 {
-    // If this budget starts in the future, this value will be wrong
+    // If the proposal is already finished (passed the end block cycle), the payments value will be negative
     int nPayments = (GetBlockEndCycle() - GetBlockCycle(nCurrentHeight)) / Params().GetConsensus().nBudgetCycleBlocks - 1;
     // Take the lowest value
     return std::min(nPayments, GetTotalPaymentCount());

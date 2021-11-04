@@ -4,16 +4,16 @@
 
 #include "qt/pivx/settings/settingssignmessagewidgets.h"
 
-#include "init.h"
 #include "key_io.h"
 #include "messagesigner.h"
 #include "qt/askpassphrasedialog.h"
 #include "qt/addressbookpage.h"
-#include "qt/guiutil.h"
 #include "qt/pivx/settings/forms/ui_settingssignmessagewidgets.h"
 #include "qt/pivx/qtutils.h"
 #include "qt/walletmodel.h"
-#include "wallet/wallet.h"
+#include "util/validation.h"
+
+#include "messagesigner.h"
 
 #include <string>
 #include <vector>

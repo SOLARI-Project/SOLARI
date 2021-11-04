@@ -8,7 +8,6 @@
 
 #include "qt/pivx/qtutils.h"
 #include "guiutil.h"
-#include "amount.h"
 #include "optionsmodel.h"
 
 RequestDialog::RequestDialog(QWidget *parent) :
@@ -83,14 +82,6 @@ void RequestDialog::accept()
     if (walletModel) {
         QString labelStr = ui->lineEditLabel->text();
 
-        //Amount
-        int displayUnit = walletModel->getOptionsModel()->getDisplayUnit();
-        bool isValueValid = true;
-        CAmount value = (ui->lineEditAmount->text().isEmpty() ?
-                            0 :
-                            GUIUtil::parseValue(ui->lineEditAmount->text(), displayUnit, &isValueValid)
-                        );
-
         if (!this->isPaymentRequest) {
             // Add specific checks for cold staking address creation
             if (labelStr.isEmpty()) {
@@ -99,7 +90,11 @@ void RequestDialog::accept()
             }
         }
 
-        if (value < 0 || !isValueValid) {
+        int displayUnit = walletModel->getOptionsModel()->getDisplayUnit();
+        auto value = ui->lineEditAmount->text().isEmpty() ? -1 :
+                GUIUtil::parseValue(ui->lineEditAmount->text(), displayUnit);
+
+        if (value <= 0) {
             inform(tr("Invalid amount"));
             return;
         }
@@ -116,7 +111,7 @@ void RequestDialog::accept()
         CallResult<Destination> r;
         if (this->isPaymentRequest) {
             r = walletModel->getNewAddress(label);
-            title = tr("Request for ") + BitcoinUnits::format(displayUnit, value, false, BitcoinUnits::separatorAlways) + " " + QString(CURRENCY_UNIT.c_str());
+            title = tr("Request for ") + BitcoinUnits::format(displayUnit, info->amount, false, BitcoinUnits::separatorAlways) + " " + QString(CURRENCY_UNIT.c_str());
         } else {
             r = walletModel->getNewStakingAddress(label);
             title = tr("Cold Staking Address Generated");
