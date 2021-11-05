@@ -342,7 +342,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock({tx}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
-        SyncWithValidationInterfaceQueue();
         BOOST_CHECK(deterministicMNManager->GetListAtChainTip().HasMN(txid));
 
         // Add change to the utxos map
@@ -361,8 +360,12 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     // Mine 20 blocks, checking MN reward payments
     std::map<uint256, int> mapPayments;
     for (size_t i = 0; i < 20; i++) {
-        SyncWithValidationInterfaceQueue();
-        auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
+        auto mnList = deterministicMNManager->GetListAtChainTip();
+        BOOST_CHECK_EQUAL(mnList.GetValidMNsCount(), 6);
+        BOOST_CHECK_EQUAL(mnList.GetHeight(), nHeight);
+
+        // get next payee
+        auto dmnExpectedPayee = mnList.GetMNPayee();
         CBlock block = CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_ASSERT(!block.vtx.empty());
@@ -465,7 +468,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock(txns, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
-        SyncWithValidationInterfaceQueue();
         auto mnList = deterministicMNManager->GetListAtChainTip();
         for (size_t j = 0; j < 3; j++) {
             BOOST_CHECK(mnList.HasMN(txns[j].GetHash()));
@@ -477,10 +479,10 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
     // Mine 30 blocks, checking MN reward payments
     mapPayments.clear();
     for (size_t i = 0; i < 30; i++) {
-        auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
+        auto mnList = deterministicMNManager->GetListAtChainTip();
+        auto dmnExpectedPayee = mnList.GetMNPayee();
         CBlock block = CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
-        SyncWithValidationInterfaceQueue();
         BOOST_ASSERT(!block.vtx.empty());
         BOOST_CHECK(IsMNPayeeInBlock(block, dmnExpectedPayee->pdmnState->scriptPayout));
         mapPayments[dmnExpectedPayee->proTxHash]++;
@@ -533,7 +535,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, nHeight + 1);
 
-        SyncWithValidationInterfaceQueue();
         auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
         BOOST_ASSERT(dmn != nullptr);
         BOOST_CHECK_EQUAL(dmn->pdmnState->addr.GetPort(), 1000);
@@ -576,7 +577,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock({tx}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
-        SyncWithValidationInterfaceQueue();
         auto mnList = deterministicMNManager->GetListAtChainTip();
         BOOST_CHECK(mnList.HasMN(txid));
         auto dmn = mnList.GetMN(txid);
@@ -589,7 +589,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock({tx2}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
-        SyncWithValidationInterfaceQueue();
         dmn = deterministicMNManager->GetListAtChainTip().GetMN(txid);
         BOOST_ASSERT(dmn != nullptr);
         BOOST_CHECK(dmn->pdmnState->scriptOperatorPayout == operatorPayee);
@@ -647,7 +646,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
 
-        SyncWithValidationInterfaceQueue();
         auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
         BOOST_ASSERT(dmn != nullptr);
         BOOST_CHECK_MESSAGE(dmn->pdmnState->pubKeyOperator.Get() == new_operatorKey.GetPublicKey(), "mn operator key not changed");
@@ -667,7 +665,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         CreateAndProcessBlock({tx3}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
-        SyncWithValidationInterfaceQueue();
         dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
 
         // check updated dmn state
@@ -679,7 +676,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         // Mine 32 blocks, checking MN reward payments
         mapPayments.clear();
         for (size_t i = 0; i < 32; i++) {
-            SyncWithValidationInterfaceQueue();
             auto dmnExpectedPayee = deterministicMNManager->GetListAtChainTip().GetMNPayee();
             CBlock block = CreateAndProcessBlock({}, coinbaseKey);
             chainTip = chainActive.Tip();
@@ -786,7 +782,6 @@ BOOST_FIXTURE_TEST_CASE(dip3_protx, TestChain400Setup)
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
 
-        SyncWithValidationInterfaceQueue();
         auto dmn = deterministicMNManager->GetListAtChainTip().GetMN(proTx);
         BOOST_ASSERT(dmn != nullptr);
         BOOST_CHECK_MESSAGE(!dmn->pdmnState->pubKeyOperator.Get().IsValid(), "mn operator key not removed");
