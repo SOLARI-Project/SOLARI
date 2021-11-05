@@ -1460,11 +1460,6 @@ bool AppInitMain()
     // on the command line or in this network's section of the config file.
     gArgs.WarnForSectionOnlyArgs();
 
-    if (gArgs.IsArgSet("-seednode")) {
-        for (const std::string& strDest : gArgs.GetArgs("-seednode"))
-            connman.AddOneShot(strDest);
-    }
-
 #if ENABLE_ZMQ
     pzmqNotificationInterface = CZMQNotificationInterface::Create();
 
@@ -1960,6 +1955,10 @@ bool AppInitMain()
         if (!subnet.IsValid())
             return UIError(strprintf(_("Invalid netmask specified in %s: '%s'"), "-whitelist", net));
         connOptions.vWhitelistedRange.emplace_back(subnet);
+    }
+
+    if (gArgs.IsArgSet("-seednode")) {
+        connOptions.vSeedNodes = gArgs.GetArgs("-seednode");
     }
 
     if (!connman.Start(scheduler, connOptions)) {
