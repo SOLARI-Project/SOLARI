@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(GetShieldedSimpleCachedCreditAndDebit)
     CAmount firstDebitShieldedChange = firstDebit - fee;
 
     // Create the spending transaction
-    auto builder = TransactionBuilder(consensusParams, 1, &wallet);
+    auto builder = TransactionBuilder(consensusParams, &wallet);
     builder.SetFee(fee);
     builder.AddSaplingSpend(
             extskOut.expsk,
@@ -205,7 +205,7 @@ CWalletTx& buildTxAndLoadToWallet(CWallet& wallet, const libzcash::SaplingExtend
                                   const CAmount& destAmount, const Consensus::Params& consensus)
 {
     // Create the spending transaction
-    auto builder = TransactionBuilder(consensus, 1, &wallet);
+    auto builder = TransactionBuilder(consensus, &wallet);
     builder.SetFee(fee);
     builder.AddSaplingSpend(
             extskOut.expsk,

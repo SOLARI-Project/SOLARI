@@ -19,9 +19,9 @@ struct TxValues
     CAmount target{0};
 };
 
-SaplingOperation::SaplingOperation(const Consensus::Params& consensusParams, int nHeight, CWallet* _wallet) :
+SaplingOperation::SaplingOperation(const Consensus::Params& consensusParams, CWallet* _wallet) :
     wallet(_wallet),
-    txBuilder(consensusParams, nHeight, _wallet)
+    txBuilder(consensusParams, _wallet)
 {
     assert (wallet != nullptr);
 };

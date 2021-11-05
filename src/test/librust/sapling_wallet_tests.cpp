@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(SetSaplingNoteAddrsInCWalletTx) {
     BOOST_CHECK(nf != boost::none);
     uint256 nullifier = nf.get();
 
-    auto builder = TransactionBuilder(consensusParams, 1);
+    auto builder = TransactionBuilder(consensusParams);
     builder.AddSaplingSpend(expsk, note, anchor, witness);
     builder.AddSaplingOutput(fvk.ovk, pk, 40000000, {});
     builder.SetFee(10000000);
@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE(FindMySaplingNotes)
     auto testNote = GetTestSaplingNote(pa, 50000000);
 
     // Generate transaction
-    auto builder = TransactionBuilder(consensusParams, 1);
+    auto builder = TransactionBuilder(consensusParams);
     builder.AddSaplingSpend(expsk, testNote.note, testNote.tree.root(), testNote.tree.witness());
     builder.AddSaplingOutput(extfvk.fvk.ovk, pa, 25000000, {});
     builder.SetFee(10000000);
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(GetConflictedSaplingNotes)
     auto witness = saplingTree.witness();
 
     // Generate tx to create output note B
-    auto builder = TransactionBuilder(consensusParams, 1);
+    auto builder = TransactionBuilder(consensusParams);
     builder.AddSaplingSpend(expsk, note, anchor, witness);
     builder.AddSaplingOutput(extfvk.fvk.ovk, pk, 35000000, {});
     builder.SetFee(10000000);
@@ -257,14 +257,14 @@ BOOST_AUTO_TEST_CASE(GetConflictedSaplingNotes)
     anchor = saplingTree.root();
 
     // Create transaction to spend note B
-    auto builder2 = TransactionBuilder(consensusParams, 2);
+    auto builder2 = TransactionBuilder(consensusParams);
     builder2.SetFee(10000000);
     builder2.AddSaplingSpend(expsk, note2, anchor, spend_note_witness);
     builder2.AddSaplingOutput(extfvk.fvk.ovk, pk, 20000000, {});
     auto tx2 = builder2.Build().GetTxOrThrow();
 
     // Create conflicting transaction which also spends note B
-    auto builder3 = TransactionBuilder(consensusParams, 2);
+    auto builder3 = TransactionBuilder(consensusParams);
     builder3.SetFee(10000000);
     builder3.AddSaplingSpend(expsk, note2, anchor, spend_note_witness);
     builder3.AddSaplingOutput(extfvk.fvk.ovk, pk, 19999000, {});
@@ -312,7 +312,7 @@ BOOST_AUTO_TEST_CASE(SaplingNullifierIsSpent)
     auto testNote = GetTestSaplingNote(pa, 50000000);
 
     // Generate transaction
-    auto builder = TransactionBuilder(consensusParams, 1);
+    auto builder = TransactionBuilder(consensusParams);
     builder.AddSaplingSpend(expsk,  testNote.note, testNote.tree.root(), testNote.tree.witness());
     builder.AddSaplingOutput(extfvk.fvk.ovk, pa, 2500000, {});
     builder.SetFee(10000000);
@@ -371,7 +371,7 @@ BOOST_AUTO_TEST_CASE(NavigateFromSaplingNullifierToNote)
     auto testNote = GetTestSaplingNote(pa, 50000000);
 
     // Generate transaction
-    auto builder = TransactionBuilder(consensusParams, 1);
+    auto builder = TransactionBuilder(consensusParams);
     builder.AddSaplingSpend(expsk, testNote.note, testNote.tree.root(), testNote.tree.witness());
     builder.AddSaplingOutput(extfvk.fvk.ovk, pa, 25000000, {});
     builder.SetFee(10000000);
@@ -474,7 +474,7 @@ BOOST_AUTO_TEST_CASE(SpentSaplingNoteIsFromMe)
     auto witness = saplingTree.witness();
 
     // Generate transaction, which sends funds to note B
-    auto builder = TransactionBuilder(consensusParams, 1);
+    auto builder = TransactionBuilder(consensusParams);
     builder.AddSaplingSpend(expsk, note, anchor, witness);
     builder.AddSaplingOutput(extfvk.fvk.ovk, pk, 25000000, {});
     builder.SetFee(10000000);
@@ -547,7 +547,7 @@ BOOST_AUTO_TEST_CASE(SpentSaplingNoteIsFromMe)
     anchor = saplingTree.root();
 
     // Create transaction to spend note B
-    auto builder2 = TransactionBuilder(consensusParams, 2);
+    auto builder2 = TransactionBuilder(consensusParams);
     builder2.AddSaplingSpend(expsk, note2, anchor, spend_note_witness);
     builder2.AddSaplingOutput(extfvk.fvk.ovk, pk, 12500000, {});
     builder2.SetFee(10000000);
@@ -934,7 +934,7 @@ BOOST_AUTO_TEST_CASE(UpdatedSaplingNoteData)
     auto testNote = GetTestSaplingNote(pa, 50000000);
 
     // Generate transaction
-    auto builder = TransactionBuilder(consensusParams, 1);
+    auto builder = TransactionBuilder(consensusParams);
     builder.AddSaplingSpend(expsk, testNote.note, testNote.tree.root(), testNote.tree.witness());
     builder.AddSaplingOutput(extfvk.fvk.ovk, pa2, 25000000, {});
     builder.SetFee(10000000);
@@ -1045,7 +1045,7 @@ BOOST_AUTO_TEST_CASE(MarkAffectedSaplingTransactionsDirty)
 
     // Generate shielding tx from transparent to Sapling
     // 0.5 t-PIV in, 0.4 z-PIV out, 0.1 t-PIV fee
-    auto builder = TransactionBuilder(consensusParams, 1, &keystore);
+    auto builder = TransactionBuilder(consensusParams, &keystore);
     builder.AddTransparentInput(COutPoint(), scriptPubKey, 50000000);
     builder.AddSaplingOutput(extfvk.fvk.ovk, pk, 40000000, {});
     builder.SetFee(10000000);
@@ -1100,7 +1100,7 @@ BOOST_AUTO_TEST_CASE(MarkAffectedSaplingTransactionsDirty)
 
     // Create a Sapling-only transaction
     // 0.4 z-PIV in, 0.25 z-PIV out, 0.1 t-PIV fee, 0.05 z-PIV change
-    auto builder2 = TransactionBuilder(consensusParams, 2);
+    auto builder2 = TransactionBuilder(consensusParams);
     builder2.AddSaplingSpend(expsk, note, anchor, witness);
     builder2.AddSaplingOutput(extfvk.fvk.ovk, pk, 25000000, {});
     builder2.SetFee(10000000);
@@ -1156,7 +1156,7 @@ BOOST_AUTO_TEST_CASE(GetNotes)
         auto scriptPubKey = GetScriptForDestination(tsk.GetPubKey().GetID());
 
         // Generate shielding tx from transparent to Sapling (five 1 PIV notes)
-        auto builder = TransactionBuilder(consensusParams, 1, &keystore);
+        auto builder = TransactionBuilder(consensusParams, &keystore);
         builder.AddTransparentInput(COutPoint(), scriptPubKey, 510000000);
         for (int i=0; i<5; i++) builder.AddSaplingOutput(extfvk.fvk.ovk, pk, 100000000, {});
         builder.SetFee(10000000);

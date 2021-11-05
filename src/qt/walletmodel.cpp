@@ -637,8 +637,7 @@ OperationResult WalletModel::PrepareShieldedTransaction(WalletModelTransaction* 
     if (!opResult) return opResult;
 
     // Create the operation
-    int nextBlockHeight = cachedNumBlocks + 1;
-    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, wallet);
+    SaplingOperation operation(Params().GetConsensus(), wallet);
     auto operationResult = operation.setRecipients(recipients)
              ->setTransparentKeyChange(modelTransaction->getPossibleKeyChange())
              ->setSelectTransparentCoins(fromTransparent)

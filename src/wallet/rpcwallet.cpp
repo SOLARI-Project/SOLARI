@@ -1271,12 +1271,11 @@ static UniValue CreateColdStakeDelegation(CWallet* const pwallet, const UniValue
         // Delegate shield coins
         const Consensus::Params& consensus = Params().GetConsensus();
         // Check network status
-        int nextBlockHeight = chainActive.Height() + 1;
         if (sporkManager.IsSporkActive(SPORK_20_SAPLING_MAINTENANCE)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "SHIELD in maintenance (SPORK 20)");
         }
         std::vector<SendManyRecipient> recipients = {SendManyRecipient(ownerKey, *stakeKey, nValue, fV6Enforced)};
-        SaplingOperation operation(consensus, nextBlockHeight, pwallet);
+        SaplingOperation operation(consensus, pwallet);
         OperationResult res = operation.setSelectShieldedCoins(true)
                                        ->setRecipients(recipients)
                                        ->build();
@@ -1647,8 +1646,7 @@ UniValue viewshieldtransaction(const JSONRPCRequest& request)
 static SaplingOperation CreateShieldedTransaction(CWallet* const pwallet, const JSONRPCRequest& request)
 {
     LOCK2(cs_main, pwallet->cs_wallet);
-    int nextBlockHeight = chainActive.Height() + 1;
-    SaplingOperation operation(Params().GetConsensus(), nextBlockHeight, pwallet);
+    SaplingOperation operation(Params().GetConsensus(), pwallet);
 
     // Param 0: source of funds. Can either be a valid address, sapling address,
     // or the string "from_transparent"|"from_trans_cold"|"from_shield"
