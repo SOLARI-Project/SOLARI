@@ -83,9 +83,10 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         // our unit tests aren't testing multiple parts of the code at once.
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
 
-        // Register EvoNotificationInterface
         g_connman = std::make_unique<CConnman>(0x1337, 0x1337); // Deterministic randomness for tests.
         connman = g_connman.get();
+
+        // Register EvoNotificationInterface
         pEvoNotificationInterface = new EvoNotificationInterface();
         RegisterValidationInterface(pEvoNotificationInterface);
 
