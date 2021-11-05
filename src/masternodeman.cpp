@@ -41,7 +41,6 @@ struct CompareScoreMN {
 // CMasternodeDB
 //
 
-static const int MASTERNODE_DB_VERSION = 1;
 static const int MASTERNODE_DB_VERSION_BIP155 = 2;
 
 CMasternodeDB::CMasternodeDB()

@@ -96,7 +96,6 @@ struct DKG
         // Benchmark.
         size_t memberIdx = 0;
         while (state.KeepRunning()) {
-            auto& m = members[memberIdx];
 
             ReceiveShares(memberIdx);
 
