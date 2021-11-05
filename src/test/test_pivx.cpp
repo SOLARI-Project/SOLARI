@@ -86,7 +86,7 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         // Register EvoNotificationInterface
         g_connman = std::make_unique<CConnman>(0x1337, 0x1337); // Deterministic randomness for tests.
         connman = g_connman.get();
-        pEvoNotificationInterface = new EvoNotificationInterface(*connman);
+        pEvoNotificationInterface = new EvoNotificationInterface();
         RegisterValidationInterface(pEvoNotificationInterface);
 
         // Ideally we'd move all the RPC tests to the functional testing framework

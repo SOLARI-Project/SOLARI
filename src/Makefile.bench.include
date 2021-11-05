@@ -31,7 +31,8 @@ bench_bench_pivx_SOURCES = \
   bench/perf.cpp \
   bench/perf.h \
   bench/prevector.cpp \
-  bench/util_time.cpp
+  bench/util_time.cpp \
+  bench/walletprocessblock.cpp
 
 nodist_bench_bench_pivx_SOURCES = $(GENERATED_BENCH_FILES)
 
