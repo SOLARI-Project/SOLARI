@@ -38,6 +38,7 @@ void ProposalCard::setProposal(const ProposalInfo& _proposalInfo)
 {
     proposalInfo = _proposalInfo;
     ui->labelPropName->setText(QString::fromStdString(proposalInfo.name));
+    ui->labelPropName->setToolTip(QString::fromStdString(proposalInfo.name));
     ui->labelPropAmount->setText(GUIUtil::formatBalance(proposalInfo.amount));
     ui->labelPropMonths->setText(proposalInfo.remainingPayments < 0 ? tr("Inactive proposal") :
             proposalInfo.remainingPayments == 0 ? tr("Last month in course") :
