@@ -65,7 +65,8 @@ static CMutableTransaction NewCoinbase(const int nHeight, const CScript* pScript
     return txCoinbase;
 }
 
-bool SolveProofOfStake(CBlock* pblock, CBlockIndex* pindexPrev, CWallet* pwallet, std::vector<CStakeableOutput>* availableCoins)
+bool SolveProofOfStake(CBlock* pblock, CBlockIndex* pindexPrev, CWallet* pwallet,
+                       std::vector<CStakeableOutput>* availableCoins, bool stopPoSOnNewBlock)
 {
     boost::this_thread::interruption_point();
 
@@ -77,7 +78,13 @@ bool SolveProofOfStake(CBlock* pblock, CBlockIndex* pindexPrev, CWallet* pwallet
 
     CMutableTransaction txCoinStake;
     int64_t nTxNewTime = 0;
-    if (!pwallet->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, availableCoins)) {
+    if (!pwallet->CreateCoinStake(pindexPrev,
+                                  pblock->nBits,
+                                  txCoinStake,
+                                  nTxNewTime,
+                                  availableCoins,
+                                  stopPoSOnNewBlock
+                                  )) {
         LogPrint(BCLog::STAKING, "%s : stake not found\n", __func__);
         return false;
     }
@@ -152,7 +159,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                                                bool fProofOfStake,
                                                std::vector<CStakeableOutput>* availableCoins,
                                                bool fNoMempoolTx,
-                                               bool fTestValidity)
+                                               bool fTestValidity,
+                                               CBlockIndex* prevBlock,
+                                               bool stopPoSOnNewBlock)
 {
     resetBlock();
 
@@ -164,7 +173,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOps.push_back(-1); // updated at end
 
-    CBlockIndex* pindexPrev = WITH_LOCK(cs_main, return chainActive.Tip());
+    CBlockIndex* pindexPrev = prevBlock ? prevBlock : WITH_LOCK(cs_main, return chainActive.Tip());
     assert(pindexPrev);
     nHeight = pindexPrev->nHeight + 1;
 
@@ -176,7 +185,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     // Depending on the tip height, try to find a coinstake who solves the block or create a coinbase tx.
-    if (!(fProofOfStake ? SolveProofOfStake(pblock, pindexPrev, pwallet, availableCoins)
+    if (!(fProofOfStake ? SolveProofOfStake(pblock, pindexPrev, pwallet, availableCoins, stopPoSOnNewBlock)
                         : CreateCoinbaseTx(pblock, scriptPubKeyIn, pindexPrev))) {
         return nullptr;
     }
@@ -219,7 +228,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     {
         LOCK(cs_main);
-        if (chainActive.Tip() != pindexPrev) return nullptr; // new block came in, move on
+        if (prevBlock == nullptr && chainActive.Tip() != pindexPrev) return nullptr; // new block came in, move on
 
         CValidationState state;
         if (fTestValidity &&
