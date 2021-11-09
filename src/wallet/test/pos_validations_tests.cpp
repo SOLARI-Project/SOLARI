@@ -117,10 +117,28 @@ COutPoint GetOutpointWithAmount(const CTransaction& tx, CAmount outpointValue)
     return {};
 }
 
-std::shared_ptr<CBlock> CreateBlockInternal(CWallet* pwalletMain, const std::vector<CMutableTransaction>& txns = {}, CBlockIndex* customPrevBlock = nullptr)
+std::shared_ptr<CBlock> CreateBlockInternal(CWallet* pwalletMain, const std::vector<CMutableTransaction>& txns = {},
+                                            CBlockIndex* customPrevBlock = nullptr,
+                                            std::initializer_list<std::shared_ptr<CBlock>> forkchain = {})
 {
     std::vector<CStakeableOutput> availableCoins;
     BOOST_CHECK(pwalletMain->StakeableCoins(&availableCoins));
+
+    // As the wallet is not prepared to follow several chains at the same time,
+    // need to manually remove from the stakeable utxo set every already used
+    // coinstake inputs on the previous blocks of the parallel chain so they
+    // are not used again.
+    for (const auto& block : forkchain) {
+        auto usedOutput = block->vtx[1]->vin.at(0).prevout;
+        for (auto it = availableCoins.begin(); it != availableCoins.end() ; it++) {
+            if (it->tx->GetHash() == usedOutput.hash &&
+                it->i == (int) usedOutput.n) {
+                availableCoins.erase(it);
+                break;
+            }
+        }
+    }
+
     std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(
             Params(), false).CreateNewBlock(CScript(),
                                             pwalletMain,
@@ -151,13 +169,15 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     }
 
     // Chains diagram:
-    // A -- B -- C -- D -- E -- F
+    // A -- B -- C -- D -- E -- F -- G -- H -- I
     //           \
     //             -- D1 -- E1 -- F1
-    //           \
-    //             -- D2 -- E2 -- F2
+    //                  \
+    //                   -- E2 -- F2
     //           \
     //             -- D3 -- E3 -- F3
+    //                        \
+    //                         -- F3_1 -- G3 -- H3 -- I3
 
 
     // Tests:
@@ -182,7 +202,7 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     WITH_LOCK(pwalletMain->cs_wallet, pwalletMain->LockCoin(dTxOutPoint));
     std::shared_ptr<CBlock> pblockD = CreateBlockInternal(pwalletMain.get(), {dTx});
 
-    // Second forked block that connects a new tx
+    // Create D1 forked block that connects a new tx
     auto dest = pwalletMain->getNewAddress("").getObjResult();
     auto d1Tx = CreateAndCommitTx(pwalletMain.get(), *dest, 200 * COIN);
     std::shared_ptr<CBlock> pblockD1 = CreateBlockInternal(pwalletMain.get(), {d1Tx});
@@ -212,7 +232,7 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     auto e1Tx = CreateAndCommitTx(pwalletMain.get(), *dest, d1Tx.vout[0].nValue - 0.1 * COIN, &coinControl);
 
     CBlockIndex* pindexPrev = mapBlockIndex.at(pblockD1->GetHash());
-    std::shared_ptr<CBlock> pblockE1 = CreateBlockInternal(pwalletMain.get(), {e1Tx}, pindexPrev);
+    std::shared_ptr<CBlock> pblockE1 = CreateBlockInternal(pwalletMain.get(), {e1Tx}, pindexPrev, {pblockD1});
     BOOST_CHECK(ProcessNewBlock(pblockE1, nullptr));
 
     // #################################################################
@@ -240,14 +260,16 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     coinControl.fAllowOtherInputs = false;
     auto E2_tx2 = CreateAndCommitTx(pwalletMain.get(), *dest, 199 * COIN, &coinControl);
 
-    std::shared_ptr<CBlock> pblockE2 = CreateBlockInternal(pwalletMain.get(), {E2_tx1, E2_tx2}, pindexPrev);
+    std::shared_ptr<CBlock> pblockE2 = CreateBlockInternal(pwalletMain.get(), {E2_tx1, E2_tx2},
+                                                           pindexPrev, {pblockD1});
     BOOST_CHECK(ProcessNewBlock(pblockE2, nullptr));
 
     // Create block with F2_tx1 spending E2_tx1 again.
     auto F2_tx1 = CreateAndCommitTx(pwalletMain.get(), *dest, 199 * COIN, &coinControl);
 
     pindexPrev = mapBlockIndex.at(pblockE2->GetHash());
-    std::shared_ptr<CBlock> pblock5Forked = CreateBlockInternal(pwalletMain.get(), {F2_tx1}, pindexPrev);
+    std::shared_ptr<CBlock> pblock5Forked = CreateBlockInternal(pwalletMain.get(), {F2_tx1},
+                                                                pindexPrev, {pblockD1, pblockE2});
     BlockStateCatcher stateCatcher(pblock5Forked->GetHash());
     stateCatcher.registerEvent();
     BOOST_CHECK(!ProcessNewBlock(pblock5Forked, nullptr));
@@ -271,7 +293,7 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     auto E3_tx1 = CreateAndCommitTx(pwalletMain.get(), *dest, 200 * COIN, &coinControl);
 
     pindexPrev = mapBlockIndex.at(pblockD3->GetHash());
-    std::shared_ptr<CBlock> pblockE3 = CreateBlockInternal(pwalletMain.get(), {E3_tx1}, pindexPrev);
+    std::shared_ptr<CBlock> pblockE3 = CreateBlockInternal(pwalletMain.get(), {E3_tx1}, pindexPrev, {pblockD3});
     stateCatcher.clear();
     stateCatcher.setBlockHash(pblockE3->GetHash());
     BOOST_CHECK(!ProcessNewBlock(pblockE3, nullptr));
@@ -291,15 +313,22 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
 
     // Create valid block E3
     pindexPrev = mapBlockIndex.at(pblockD3->GetHash());
-    pblockE3 = CreateBlockInternal(pwalletMain.get(), {}, pindexPrev);
+    pblockE3 = CreateBlockInternal(pwalletMain.get(), {}, pindexPrev, {pblockD3});
     BOOST_CHECK(ProcessNewBlock(pblockE3, nullptr));
 
     // Now double spend F_tx1 in F3
     pindexPrev = mapBlockIndex.at(pblockE3->GetHash());
-    std::shared_ptr<CBlock> pblockF3 = CreateBlockInternal(pwalletMain.get(), {F_tx1}, pindexPrev);
+    std::shared_ptr<CBlock> pblockF3 = CreateBlockInternal(pwalletMain.get(), {F_tx1}, pindexPrev, {pblockD3, pblockE3});
     // Accepted on disk but not connected.
     BOOST_CHECK(ProcessNewBlock(pblockF3, nullptr));
     BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash();) != pblockF3->GetHash());
+
+    {
+        // Trigger a rescan so the wallet cleans up its internal state.
+        WalletRescanReserver reserver(pwalletMain.get());
+        BOOST_CHECK(reserver.reserve());
+        pwalletMain->RescanFromTime(0, reserver, true /* update */);
+    }
 
     // ##############################################################################
     // ### 6) coins created in G and G3, being spent in H and H3 --> should pass. ###
@@ -323,9 +352,9 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     BOOST_CHECK(ProcessNewBlock(pblockG, nullptr));
 
     // Now create the same coin in G3
-    pblockF3 = CreateBlockInternal(pwalletMain.get(), {}, mapBlockIndex.at(pblockE3->GetHash()));
+    pblockF3 = CreateBlockInternal(pwalletMain.get(), {}, mapBlockIndex.at(pblockE3->GetHash()), {pblockD3, pblockE3});
     BOOST_CHECK(ProcessNewBlock(pblockF3, nullptr));
-    auto pblockG3 = CreateBlockInternal(pwalletMain.get(), {gTx}, mapBlockIndex.at(pblockF3->GetHash()));
+    auto pblockG3 = CreateBlockInternal(pwalletMain.get(), {gTx}, mapBlockIndex.at(pblockF3->GetHash()), {pblockD3, pblockE3, pblockF3});
     BOOST_CHECK(ProcessNewBlock(pblockG3, nullptr));
     FlushStateToDisk();
 
@@ -342,7 +371,8 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     // H3 now..
     std::shared_ptr<CBlock> pblockH3 = CreateBlockInternal(pwalletMain.get(),
                                                            {hTx},
-                                                           mapBlockIndex.at(pblockG3->GetHash()));
+                                                           mapBlockIndex.at(pblockG3->GetHash()),
+                                                           {pblockD3, pblockE3, pblockF3, pblockG3});
     BOOST_CHECK(ProcessNewBlock(pblockH3, nullptr));
 
     // Try to read the forking point manually
@@ -350,7 +380,10 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     BOOST_CHECK(ReadBlockFromDisk(bl, mapBlockIndex.at(pblockC->GetHash())));
 
     // Make I3 the tip now.
-    std::shared_ptr<CBlock> pblockI3 = CreateBlockInternal(pwalletMain.get(), {}, mapBlockIndex.at(pblockH3->GetHash()));
+    std::shared_ptr<CBlock> pblockI3 = CreateBlockInternal(pwalletMain.get(),
+                                                           {},
+                                                           mapBlockIndex.at(pblockH3->GetHash()),
+                                                           {pblockD3, pblockE3, pblockF3, pblockG3, pblockH3});
     BOOST_CHECK(ProcessNewBlock(pblockI3, nullptr));
     BOOST_CHECK(WITH_LOCK(cs_main, return chainActive.Tip()->GetBlockHash() ==  pblockI3->GetHash()));
 
