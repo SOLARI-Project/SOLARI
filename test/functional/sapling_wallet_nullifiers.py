@@ -13,12 +13,12 @@ def connect_nodes_bi(nodes, a, b):
     connect_nodes(nodes[a], b)
     connect_nodes(nodes[b], a)
 
-class WalletNullifiersTest (PivxTestFramework):
+class WalletNullifiersTest(PivxTestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
-        saplingUpgrade = ['-nuparams=v5_shield:201']
-        self.extra_args = [saplingUpgrade, saplingUpgrade, saplingUpgrade, saplingUpgrade]
+        # whitelist all peers to speed up tx relay / mempool sync
+        self.extra_args = [['-nuparams=v5_shield:201', "-whitelist=127.0.0.1"]] * self.num_nodes
 
     def run_test (self):
         self.nodes[0].generate(1) # activate Sapling
