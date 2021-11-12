@@ -126,6 +126,18 @@ COutPoint GetOutpointWithAmount(const CTransaction& tx, CAmount outpointValue)
     return {};
 }
 
+static bool IsSpentOnFork(const COutput& coin, std::initializer_list<std::shared_ptr<CBlock>> forkchain = {})
+{
+    for (const auto& block : forkchain) {
+        const auto& usedOutput = block->vtx[1]->vin.at(0).prevout;
+        if (coin.tx->GetHash() == usedOutput.hash && coin.i == (int)usedOutput.n) {
+            // spent on fork
+            return true;
+        }
+    }
+    return false;
+}
+
 std::shared_ptr<CBlock> CreateBlockInternal(CWallet* pwalletMain, const std::vector<CMutableTransaction>& txns = {},
                                             CBlockIndex* customPrevBlock = nullptr,
                                             std::initializer_list<std::shared_ptr<CBlock>> forkchain = {})
@@ -135,26 +147,15 @@ std::shared_ptr<CBlock> CreateBlockInternal(CWallet* pwalletMain, const std::vec
 
     // Remove any utxo which is not deeper than 120 blocks (for the same reasoning
     // used when selecting tx inputs in CreateAndCommitTx)
-    for (auto it = availableCoins.begin(); it != availableCoins.end() ;) {
-        if (it->nDepth <= 120) {
-            it = availableCoins.erase(it);
-        } else {
-            it++;
-        }
-    }
-
     // Also, as the wallet is not prepared to follow several chains at the same time,
     // need to manually remove from the stakeable utxo set every already used
     // coinstake inputs on the previous blocks of the parallel chain so they
     // are not used again.
-    for (const auto& block : forkchain) {
-        auto usedOutput = block->vtx[1]->vin.at(0).prevout;
-        for (auto it = availableCoins.begin(); it != availableCoins.end() ; it++) {
-            if (it->tx->GetHash() == usedOutput.hash &&
-                it->i == (int) usedOutput.n) {
-                availableCoins.erase(it);
-                break;
-            }
+    for (auto it = availableCoins.begin(); it != availableCoins.end() ;) {
+        if (it->nDepth <= 120 || IsSpentOnFork(*it, forkchain)) {
+            it = availableCoins.erase(it);
+        } else {
+            it++;
         }
     }
 
@@ -177,6 +178,20 @@ std::shared_ptr<CBlock> CreateBlockInternal(CWallet* pwalletMain, const std::vec
         assert(SignBlock(*pblock, *pwalletMain));
     }
     return pblock;
+}
+
+static COutput GetUnspentCoin(CWallet* pwallet, std::initializer_list<std::shared_ptr<CBlock>> forkchain = {})
+{
+    std::vector<COutput> availableCoins;
+    CWallet::AvailableCoinsFilter coinsFilter;
+    coinsFilter.minDepth = 120;
+    BOOST_CHECK(pwallet->AvailableCoins(&availableCoins, nullptr, coinsFilter));
+    for (const auto& coin : availableCoins) {
+        if (!IsSpentOnFork(coin, forkchain)) {
+            return coin;
+        }
+    }
+    throw std::runtime_error("Unspent coin not found");
 }
 
 BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
@@ -354,12 +369,9 @@ BOOST_FIXTURE_TEST_CASE(created_on_fork_tests, TestPoSChainSetup)
     // ##############################################################################
 
     // First create new coins in G
-    std::vector<COutput> availableCoins;
-    CWallet::AvailableCoinsFilter coinsFilter;
-    coinsFilter.nMaximumCount = 3;
-    coinsFilter.minDepth = 20;
-    BOOST_CHECK(pwalletMain->AvailableCoins(&availableCoins, nullptr, coinsFilter));
-    COutput input = availableCoins.at(0);
+    // select an input that is not already spent in D3 or E3 (since we want to spend it also in G3)
+    const COutput& input = GetUnspentCoin(pwalletMain.get(), {pblockD3, pblockE3});
+
     coinControl.UnSelectAll();
     coinControl.Select(COutPoint(input.tx->GetHash(), input.i), input.Value());
     coinControl.fAllowOtherInputs = false;
