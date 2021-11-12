@@ -893,7 +893,7 @@ bool AutoBackupWallet(CWallet& wallet, std::string& strBackupWarning, std::strin
     }
 
     // Keep only 0 < nWalletBackups <= 10 backups, including the new one of course
-    folder_set_t folder_set = buildBackupsMapSortedByLastWrite(strWalletFile, backupsDir);
+    folder_set_t folder_set = buildBackupsMapSortedByLastWrite(backupFile.stem().string(), backupsDir);
     return cleanWalletBackups(folder_set, nWalletBackups, strBackupWarning);
 }
 
