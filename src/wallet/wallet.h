@@ -1054,7 +1054,7 @@ public:
         CAmount& nFeeRet,
         int& nChangePosInOut,
         std::string& strFailReason,
-        const CCoinControl* coinControl = NULL,
+        const CCoinControl* coinControl = nullptr,
         bool sign = true,
         CAmount nFeePay = 0,
         bool fIncludeDelegated = false,
@@ -1062,7 +1062,7 @@ public:
         int nExtraSize = 0,
         int nMinDepth = 0);
 
-    bool CreateTransaction(CScript scriptPubKey, const CAmount& nValue, CTransactionRef& tx, CReserveKey& reservekey, CAmount& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl = NULL, CAmount nFeePay = 0, bool fIncludeDelegated = false);
+    bool CreateTransaction(CScript scriptPubKey, const CAmount& nValue, CTransactionRef& tx, CReserveKey& reservekey, CAmount& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl = nullptr, CAmount nFeePay = 0, bool fIncludeDelegated = false, bool* fStakeDelegationVoided = nullptr, int nExtraSize = 0, int nMinDepth = 0);
 
     // enumeration for CommitResult (return status of CommitTransaction)
     enum CommitStatus

@@ -95,13 +95,22 @@ CTransaction CreateAndCommitTx(CWallet* pwalletMain, const CTxDestination& dest,
     CReserveKey reservekey(pwalletMain);
     CAmount nFeeRet = 0;
     std::string strFailReason;
+    // The minimum depth (100) required to spend coinbase outputs is calculated from the current chain tip.
+    // Since this transaction could be included in a fork block, at a lower height, this may result in
+    // selecting non-yet-available inputs, and thus creating non-connectable blocks due to premature-cb-spend.
+    // So, to be sure, only select inputs which are more than 120-blocks deep in the chain.
     BOOST_ASSERT(pwalletMain->CreateTransaction(GetScriptForDestination(dest),
                                    destValue,
                                    txNew,
                                    reservekey,
                                    nFeeRet,
                                    strFailReason,
-                                   coinControl));
+                                   coinControl,
+                                   true, /* sign*/
+                                   false, /*fIncludeDelegated*/
+                                   nullptr, /*fStakeDelegationVoided*/
+                                   0, /*nExtraSize*/
+                                   120 /*nMinDepth*/));
     pwalletMain->CommitTransaction(txNew, reservekey, nullptr);
     return *txNew;
 }
@@ -124,7 +133,17 @@ std::shared_ptr<CBlock> CreateBlockInternal(CWallet* pwalletMain, const std::vec
     std::vector<CStakeableOutput> availableCoins;
     BOOST_CHECK(pwalletMain->StakeableCoins(&availableCoins));
 
-    // As the wallet is not prepared to follow several chains at the same time,
+    // Remove any utxo which is not deeper than 120 blocks (for the same reasoning
+    // used when selecting tx inputs in CreateAndCommitTx)
+    for (auto it = availableCoins.begin(); it != availableCoins.end() ;) {
+        if (it->nDepth <= 120) {
+            it = availableCoins.erase(it);
+        } else {
+            it++;
+        }
+    }
+
+    // Also, as the wallet is not prepared to follow several chains at the same time,
     // need to manually remove from the stakeable utxo set every already used
     // coinstake inputs on the previous blocks of the parallel chain so they
     // are not used again.
