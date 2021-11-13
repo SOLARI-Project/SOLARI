@@ -164,7 +164,7 @@ static void WalletProcessBlockBench(benchmark::State& state)
             recipients.emplace_back(pwallet->GenerateNewSaplingZKey(), 100 * COIN, "", false);
             recipients.emplace_back(pwallet->GenerateNewSaplingZKey(), 240 * COIN, "", false);
 
-            SaplingOperation operation(params.GetConsensus(), nextBlockHeight, pwallet.get());
+            SaplingOperation operation(params.GetConsensus(), pwallet.get());
             auto operationResult = operation.setRecipients(recipients)
                     ->setSelectTransparentCoins(true)
                     ->setMinDepth(1)

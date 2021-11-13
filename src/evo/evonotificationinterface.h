@@ -10,7 +10,6 @@
 class EvoNotificationInterface : public CValidationInterface
 {
 public:
-    explicit EvoNotificationInterface() {}
     virtual ~EvoNotificationInterface() = default;
 
     // a small helper to initialize current block height in sub-modules on startup
