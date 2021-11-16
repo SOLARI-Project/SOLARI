@@ -132,6 +132,7 @@ BASE_SCRIPTS= [
     'mining_v5_upgrade.py',                     # ~ 48 sec
     'p2p_mempool.py',                           # ~ 46 sec
     'rpc_named_arguments.py',                   # ~ 45 sec
+    'p2p_leak.py',
     'feature_filelock.py',
     'feature_help.py',                          # ~ 30 sec
 
@@ -143,7 +144,6 @@ BASE_SCRIPTS= [
     # 'mining_basic.py',
     # 'wallet_bumpfee.py',
     # 'wallet_listsinceblock.py',
-    # 'p2p_leak.py',
     # 'feature_cltv.py',
     # 'feature_minchainwork.py',
     # 'p2p_fingerprint.py',
