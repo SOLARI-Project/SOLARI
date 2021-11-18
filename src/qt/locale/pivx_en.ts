@@ -4,12 +4,7 @@
 <context>
     <name>AddNewAddressDialog</name>
     <message>
-        <location filename="../pivx/forms/addnewaddressdialog.ui" line="+14"/>
-        <source>Dialog</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+39"/>
+        <location filename="../pivx/forms/addnewaddressdialog.ui" line="+53"/>
         <source>New Address</source>
         <translation type="unfinished"></translation>
     </message>
@@ -19,12 +14,7 @@
         <translation type="unfinished">Address</translation>
     </message>
     <message>
-        <location line="+19"/>
-        <source>PushButton</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+42"/>
+        <location line="+61"/>
         <source>CANCEL</source>
         <translation type="unfinished"></translation>
     </message>
@@ -37,12 +27,7 @@
 <context>
     <name>AddNewContactDialog</name>
     <message>
-        <location filename="../pivx/forms/addnewcontactdialog.ui" line="+14"/>
-        <source>Dialog</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+240"/>
+        <location filename="../pivx/forms/addnewcontactdialog.ui" line="+254"/>
         <source>CANCEL</source>
         <translation type="unfinished"></translation>
     </message>
@@ -197,24 +182,6 @@
     </message>
 </context>
 <context>
-    <name>AddressLabelRow</name>
-    <message>
-        <location filename="../pivx/forms/addresslabelrow.ui" line="+20"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+39"/>
-        <source>Bob Allen</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+23"/>
-        <source>DN6i46dytMPVhV1JMGZFuQBh7BZZ6nNLox</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>AddressTableModel</name>
     <message>
         <location filename="../addresstablemodel.cpp" line="+317"/>
@@ -245,12 +212,7 @@
 <context>
     <name>AddressesWidget</name>
     <message>
-        <location filename="../pivx/forms/addresseswidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+342"/>
+        <location filename="../pivx/forms/addresseswidget.ui" line="+356"/>
         <source>Contact name</source>
         <translation type="unfinished"></translation>
     </message>
@@ -360,19 +322,6 @@ Are you sure?</source>
         <location filename="../forms/askpassphrasedialog.ui" line="+32"/>
         <source>Passphrase Dialog</source>
         <translation>Passphrase Dialog</translation>
-    </message>
-    <message>
-        <location line="+41"/>
-        <location line="+78"/>
-        <location line="+56"/>
-        <location line="+57"/>
-        <source>TextLabel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+90"/>
-        <source>PushButton</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../askpassphrasedialog.cpp" line="+90"/>
@@ -537,23 +486,12 @@ for staking</source>
 <context>
     <name>BalanceBubble</name>
     <message>
-        <location filename="../pivx/forms/balancebubble.ui" line="+26"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+49"/>
+        <location filename="../pivx/forms/balancebubble.ui" line="+75"/>
         <source>Transparent</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+15"/>
-        <location line="+26"/>
-        <source>0.00 pivx</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-13"/>
+        <location line="+28"/>
         <source>Shielded</source>
         <translation type="unfinished"></translation>
     </message>
@@ -574,22 +512,12 @@ for staking</source>
 <context>
     <name>CSRow</name>
     <message>
-        <location filename="../pivx/forms/csrow.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+71"/>
+        <location filename="../pivx/forms/csrow.ui" line="+85"/>
         <source>Savings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+20"/>
-        <source>0,00 PIV</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+14"/>
+        <location line="+34"/>
         <source>address</source>
         <translation type="unfinished"></translation>
     </message>
@@ -671,8 +599,7 @@ for staking</source>
         <translation>Amount</translation>
     </message>
     <message>
-        <location line="-393"/>
-        <location line="+124"/>
+        <location line="-269"/>
         <location line="+461"/>
         <source>0.00 PIV</source>
         <translation type="unfinished"></translation>
@@ -859,12 +786,7 @@ for staking</source>
 <context>
     <name>ColdStakingWidget</name>
     <message>
-        <location filename="../pivx/forms/coldstakingwidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+341"/>
+        <location filename="../pivx/forms/coldstakingwidget.ui" line="+355"/>
         <source>Owner address (optional, if empty a new address will be created)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1144,14 +1066,6 @@ address</source>
     </message>
 </context>
 <context>
-    <name>ContactDropdownRow</name>
-    <message>
-        <location filename="../pivx/forms/contactdropdownrow.ui" line="+20"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-</context>
-<context>
     <name>CreateProposalDialog</name>
     <message>
         <location filename="../pivx/forms/createproposaldialog.ui" line="+520"/>
@@ -1282,12 +1196,7 @@ address</source>
 <context>
     <name>DashboardWidget</name>
     <message>
-        <location filename="../pivx/forms/dashboardwidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+79"/>
+        <location filename="../pivx/forms/dashboardwidget.ui" line="+93"/>
         <source>Transactions</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1394,12 +1303,7 @@ It will start automatically as soon as the wallet has enough confirmations on an
 <context>
     <name>DefaultDialog</name>
     <message>
-        <location filename="../pivx/forms/defaultdialog.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+228"/>
+        <location filename="../pivx/forms/defaultdialog.ui" line="+242"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1475,14 +1379,6 @@ It will start automatically as soon as the wallet has enough confirmations on an
         <location line="+5"/>
         <source>New key generation failed.</source>
         <translation>New key generation failed.</translation>
-    </message>
-</context>
-<context>
-    <name>ExpandableButton</name>
-    <message>
-        <location filename="../pivx/forms/expandablebutton.ui" line="+26"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
     </message>
 </context>
 <context>
@@ -1761,35 +1657,15 @@ Be part of the DAO.</source>
 <context>
     <name>LoadingDialog</name>
     <message>
-        <location filename="../pivx/forms/loadingdialog.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+69"/>
-        <source>TextLabel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+44"/>
+        <location filename="../pivx/forms/loadingdialog.ui" line="+127"/>
         <source>Loading</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <source>.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>LockUnlock</name>
     <message>
-        <location filename="../pivx/forms/lockunlock.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+90"/>
+        <location filename="../pivx/forms/lockunlock.ui" line="+104"/>
         <source>Unlock Wallet</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1807,11 +1683,6 @@ Be part of the DAO.</source>
 <context>
     <name>MNRow</name>
     <message>
-        <location filename="../pivx/forms/mnrow.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
         <location filename="../pivx/mnrow.cpp" line="+25"/>
         <source>Collateral tx not found</source>
         <translation type="unfinished"></translation>
@@ -1825,12 +1696,7 @@ Be part of the DAO.</source>
 <context>
     <name>MasterNodeWizardDialog</name>
     <message>
-        <location filename="../pivx/forms/masternodewizarddialog.ui" line="+14"/>
-        <source>Dialog</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+182"/>
+        <location filename="../pivx/forms/masternodewizarddialog.ui" line="+196"/>
         <source>1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1998,12 +1864,7 @@ Be part of the DAO.</source>
 <context>
     <name>MasterNodesWidget</name>
     <message>
-        <location filename="../pivx/forms/masternodeswidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+281"/>
+        <location filename="../pivx/forms/masternodeswidget.ui" line="+295"/>
         <source>Start All</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2199,12 +2060,7 @@ Are you sure?</source>
 <context>
     <name>MnInfoDialog</name>
     <message>
-        <location filename="../pivx/forms/mninfodialog.ui" line="+20"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+84"/>
+        <location filename="../pivx/forms/mninfodialog.ui" line="+104"/>
         <source>Masternode Information</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2334,22 +2190,9 @@ Are you sure?</source>
     </message>
 </context>
 <context>
-    <name>MyAddressRow</name>
-    <message>
-        <location filename="../pivx/forms/myaddressrow.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-</context>
-<context>
     <name>NavMenuWidget</name>
     <message>
-        <location filename="../pivx/forms/navmenuwidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+156"/>
+        <location filename="../pivx/forms/navmenuwidget.ui" line="+170"/>
         <source>HOME
 </source>
         <translation type="unfinished"></translation>
@@ -2396,11 +2239,6 @@ STAKING</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+46"/>
-        <source>V 1.0.0</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../pivx/navmenuwidget.cpp" line="+23"/>
         <source>v%1</source>
         <translation type="unfinished"></translation>
@@ -2427,14 +2265,6 @@ STAKING</source>
         <location line="+13"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>OptionButton</name>
-    <message>
-        <location filename="../pivx/forms/optionbutton.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
     </message>
 </context>
 <context>
@@ -2578,12 +2408,12 @@ Address: %4
 <context>
     <name>ProposalCard</name>
     <message>
-        <location filename="../pivx/forms/proposalcard.ui" line="+343"/>
+        <location filename="../pivx/forms/proposalcard.ui" line="+355"/>
         <source>Vote</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/proposalcard.cpp" line="+42"/>
+        <location filename="../pivx/proposalcard.cpp" line="+43"/>
         <source>Inactive proposal</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2676,7 +2506,12 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+141"/>
+        <location line="+56"/>
+        <source>URL</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+85"/>
         <source>Positive Votes</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3043,40 +2878,7 @@ Address: %4
         <translation>Client name</translation>
     </message>
     <message>
-        <location line="+10"/>
-        <location line="+23"/>
-        <location line="+26"/>
-        <location line="+23"/>
-        <location line="+20"/>
-        <location line="+30"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+36"/>
-        <location line="+23"/>
-        <location line="+20"/>
-        <location line="+516"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+23"/>
-        <location line="+26"/>
-        <location line="+23"/>
-        <location line="+78"/>
-        <source>N/A</source>
-        <translation>N/A</translation>
-    </message>
-    <message>
-        <location line="-1077"/>
+        <location line="+145"/>
         <source>Number of connections</source>
         <translation>Number of connections</translation>
     </message>
@@ -3353,12 +3155,7 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+23"/>
-        <source>-resync:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+7"/>
+        <location line="+30"/>
         <source>Deletes all local blockchain folders so the wallet synchronizes from scratch.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3546,12 +3343,7 @@ Address: %4
 <context>
     <name>ReceiveDialog</name>
     <message>
-        <location filename="../pivx/forms/receivedialog.ui" line="+14"/>
-        <source>Dialog</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+81"/>
+        <location filename="../pivx/forms/receivedialog.ui" line="+95"/>
         <source>My Address</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3569,12 +3361,7 @@ Address: %4
 <context>
     <name>ReceiveWidget</name>
     <message>
-        <location filename="../pivx/forms/receivewidget.ui" line="+20"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+61"/>
+        <location filename="../pivx/forms/receivewidget.ui" line="+81"/>
         <source>Scan the QR code or copy the address to receive PIV</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3749,32 +3536,17 @@ try unlocking the wallet</source>
 <context>
     <name>RequestDialog</name>
     <message>
-        <location filename="../pivx/forms/requestdialog.ui" line="+14"/>
-        <source>Dialog</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+242"/>
+        <location filename="../pivx/forms/requestdialog.ui" line="+256"/>
         <source>Amount</source>
         <translation type="unfinished">Amount</translation>
     </message>
     <message>
-        <location line="+74"/>
-        <source>PIV</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-117"/>
+        <location line="-43"/>
         <source>Instead of sharing only a PIVX address, you can create a payment request, bundling up more information</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+332"/>
-        <source>D7VFR83SQbiezrW72hjcWJtcfip5krte2Z </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+53"/>
+        <location line="+385"/>
         <source>COPY ADDRESS</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3824,7 +3596,7 @@ try unlocking the wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/requestdialog.cpp" line="+27"/>
+        <location filename="../pivx/requestdialog.cpp" line="+28"/>
         <source>Creates an address to receive coin delegations and be able to stake them.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3862,12 +3634,7 @@ try unlocking the wallet</source>
 <context>
     <name>SendChangeAddressDialog</name>
     <message>
-        <location filename="../pivx/forms/sendchangeaddressdialog.ui" line="+14"/>
-        <source>Dialog</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+238"/>
+        <location filename="../pivx/forms/sendchangeaddressdialog.ui" line="+252"/>
         <location filename="../pivx/sendchangeaddressdialog.cpp" line="+64"/>
         <source>CANCEL</source>
         <translation type="unfinished"></translation>
@@ -3906,27 +3673,12 @@ try unlocking the wallet</source>
 <context>
     <name>SendCustomFeeDialog</name>
     <message>
-        <location filename="../pivx/forms/sendcustomfeedialog.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+190"/>
+        <location filename="../pivx/forms/sendcustomfeedialog.ui" line="+204"/>
         <source>Recommended</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+86"/>
-        <source>PIV/kilobyte</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-63"/>
-        <source>0.00 KB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-69"/>
+        <location line="-46"/>
         <source>Customize the transaction fee, depending on the fee value your transaction might be included faster in the blockchain</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3961,7 +3713,7 @@ try unlocking the wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+122"/>
+        <location line="+125"/>
         <source>Invalid custom fee amount</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3984,26 +3736,12 @@ try unlocking the wallet</source>
 <context>
     <name>SendMemoDialog</name>
     <message>
-        <location filename="../pivx/forms/sendmemodialog.ui" line="+14"/>
-        <source>Dialog</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+137"/>
+        <location filename="../pivx/forms/sendmemodialog.ui" line="+151"/>
         <source>Private message only visible for the recipient(s)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+52"/>
-        <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;.SF NS Text&apos;; font-size:13pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+65"/>
+        <location line="+117"/>
         <source>SAVE</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4021,12 +3759,7 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>SendMultiRow</name>
     <message>
-        <location filename="../pivx/forms/sendmultirow.ui" line="+26"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+118"/>
+        <location filename="../pivx/forms/sendmultirow.ui" line="+144"/>
         <source>Enter address</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4323,12 +4056,7 @@ Do you want to continue?
 <context>
     <name>SettingsBackupWallet</name>
     <message>
-        <location filename="../pivx/settings/forms/settingsbackupwallet.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+147"/>
+        <location filename="../pivx/settings/forms/settingsbackupwallet.ui" line="+161"/>
         <source>Change Wallet Passphrase</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4390,12 +4118,7 @@ Remember to write it down and store it safely, otherwise you might lose access t
 <context>
     <name>SettingsBitToolWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingsbittoolwidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+459"/>
+        <location filename="../pivx/settings/forms/settingsbittoolwidget.ui" line="+473"/>
         <source>Import Address</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4588,12 +4311,7 @@ Using this mechanism you can share your keys without middle-man risk, only need 
 <context>
     <name>SettingsConsoleWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingsconsolewidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+46"/>
+        <location filename="../pivx/settings/forms/settingsconsolewidget.ui" line="+60"/>
         <source>Console</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4652,12 +4370,7 @@ Verify that you have installed a predetermined text editor.</source>
 <context>
     <name>SettingsDisplayOptionsWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingsdisplayoptionswidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+194"/>
+        <location filename="../pivx/settings/forms/settingsdisplayoptionswidget.ui" line="+208"/>
         <source>Hide stake charts in the dashboard</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4726,12 +4439,7 @@ Verify that you have installed a predetermined text editor.</source>
 <context>
     <name>SettingsExportCSV</name>
     <message>
-        <location filename="../pivx/settings/forms/settingsexportcsv.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+41"/>
+        <location filename="../pivx/settings/forms/settingsexportcsv.ui" line="+55"/>
         <source>Export Accounting</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4742,44 +4450,31 @@ Verify that you have installed a predetermined text editor.</source>
     </message>
     <message>
         <location line="+35"/>
-        <source>Where</source>
+        <location filename="../pivx/settings/settingsexportcsv.cpp" line="+61"/>
+        <source>Export Transaction History</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+58"/>
         <location line="+115"/>
-        <location filename="../pivx/settings/settingsexportcsv.cpp" line="+70"/>
+        <location filename="../pivx/settings/settingsexportcsv.cpp" line="+8"/>
         <location line="+7"/>
         <source>Select folder...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="-48"/>
+        <location filename="../pivx/settings/settingsexportcsv.cpp" line="-15"/>
         <source>Export Address Book</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../pivx/settings/settingsexportcsv.cpp" line="-16"/>
-        <source>Export CSV</source>
-        <translation type="unfinished"></translation>
+        <location filename="../pivx/settings/settingsexportcsv.cpp" line="+1"/>
+        <source>Comma separated file (*.csv)</source>
+        <translation type="unfinished">Comma separated file (*.csv)</translation>
     </message>
     <message>
-        <location line="+0"/>
-        <source>Export Address List</source>
-        <translation type="unfinished">Export Address List</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>PIVX_tx_csv_export(*.csv)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+0"/>
-        <source>PIVX_addresses_csv_export(*.csv)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+23"/>
+        <location line="+22"/>
         <location line="+72"/>
         <source>Please select a folder to export the csv file first.</source>
         <translation type="unfinished"></translation>
@@ -4852,12 +4547,7 @@ There was an error trying to save the address list to %1. Please try again.</sou
 <context>
     <name>SettingsFaqWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingsfaqwidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+152"/>
+        <location filename="../pivx/settings/forms/settingsfaqwidget.ui" line="+166"/>
         <source>1) What is PIVX?</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4867,12 +4557,7 @@ There was an error trying to save the address list to %1. Please try again.</sou
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+148"/>
-        <source>https://PIVX.org/</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+135"/>
+        <location line="+283"/>
         <source>1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5110,12 +4795,7 @@ There was an error trying to save the address list to %1. Please try again.</sou
 <context>
     <name>SettingsInformationWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingsinformationwidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+102"/>
+        <location filename="../pivx/settings/forms/settingsinformationwidget.ui" line="+116"/>
         <source>Network Monitor</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5253,12 +4933,7 @@ There was an error trying to save the address list to %1. Please try again.</sou
 <context>
     <name>SettingsMainOptionsWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingsmainoptionswidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+278"/>
+        <location filename="../pivx/settings/forms/settingsmainoptionswidget.ui" line="+292"/>
         <source>Window</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5339,12 +5014,7 @@ Are you sure?
 <context>
     <name>SettingsSignMessageWidgets</name>
     <message>
-        <location filename="../pivx/settings/forms/settingssignmessagewidgets.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+64"/>
+        <location filename="../pivx/settings/forms/settingssignmessagewidgets.ui" line="+78"/>
         <source>Sign/Verify Message</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5484,12 +5154,7 @@ Are you sure?
 <context>
     <name>SettingsWalletOptionsWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingswalletoptionswidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+450"/>
+        <location filename="../pivx/settings/forms/settingswalletoptionswidget.ui" line="+464"/>
         <source>Reset to default</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5593,12 +5258,7 @@ Are you sure?
 <context>
     <name>SettingsWalletRepairWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingswalletrepairwidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+94"/>
+        <location filename="../pivx/settings/forms/settingswalletrepairwidget.ui" line="+108"/>
         <location filename="../pivx/settings/settingswalletrepairwidget.cpp" line="+22"/>
         <source>Wallet Repair</source>
         <translation type="unfinished"></translation>
@@ -5707,12 +5367,7 @@ Are you sure?
 <context>
     <name>SettingsWidget</name>
     <message>
-        <location filename="../pivx/settings/forms/settingswidget.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+255"/>
+        <location filename="../pivx/settings/forms/settingswidget.ui" line="+269"/>
         <source>Wallet Data</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5876,27 +5531,9 @@ Are you sure?
     </message>
 </context>
 <context>
-    <name>SnackBar</name>
-    <message>
-        <location filename="../pivx/forms/snackbar.ui" line="+26"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+51"/>
-        <source>Contact Stored</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>Splash</name>
     <message>
-        <location filename="../pivx/forms/splash.ui" line="+26"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+143"/>
+        <location filename="../pivx/forms/splash.ui" line="+169"/>
         <source>Loading…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5912,12 +5549,7 @@ Are you sure?
 <context>
     <name>TooltipMenu</name>
     <message>
-        <location filename="../pivx/forms/tooltipmenu.ui" line="+26"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+60"/>
+        <location filename="../pivx/forms/tooltipmenu.ui" line="+86"/>
         <source>Copy</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5940,12 +5572,7 @@ Are you sure?
 <context>
     <name>TopBar</name>
     <message>
-        <location filename="../pivx/forms/topbar.ui" line="+26"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+103"/>
+        <location filename="../pivx/forms/topbar.ui" line="+129"/>
         <source>transparent</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6464,12 +6091,7 @@ backup will be created.
 <context>
     <name>TxDetailDialog</name>
     <message>
-        <location filename="../pivx/forms/sendconfirmdialog.ui" line="+26"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+90"/>
+        <location filename="../pivx/forms/sendconfirmdialog.ui" line="+116"/>
         <location filename="../pivx/sendconfirmdialog.cpp" line="+75"/>
         <source>Transaction Details</source>
         <translation type="unfinished"></translation>
@@ -6492,17 +6114,7 @@ backup will be created.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+167"/>
-        <source>D7VFR83SQbie…BhjcWJtcfip5krte2Z </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+103"/>
-        <source>May 25, 2017</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="-621"/>
+        <location line="-351"/>
         <source>ID</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6557,12 +6169,7 @@ backup will be created.
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+100"/>
-        <source>TextLabel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+51"/>
+        <location line="+151"/>
         <source>CANCEL</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6615,24 +6222,6 @@ backup will be created.
         <location line="+153"/>
         <source>Unknown</source>
         <translation type="unfinished">Unknown</translation>
-    </message>
-</context>
-<context>
-    <name>TxRow</name>
-    <message>
-        <location filename="../pivx/forms/txrow.ui" line="+20"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+142"/>
-        <source>+0.000585 PIV</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+10"/>
-        <source>-0.000585 PIV</source>
-        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -7682,12 +7271,7 @@ Please run &apos;sapling-fetch-params&apos; or &apos;./util/fetch-params.sh&apos
 <context>
     <name>send</name>
     <message>
-        <location filename="../pivx/forms/send.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished">Form</translation>
-    </message>
-    <message>
-        <location line="+60"/>
+        <location filename="../pivx/forms/send.ui" line="+74"/>
         <location line="+629"/>
         <source>Send</source>
         <translation type="unfinished"></translation>
