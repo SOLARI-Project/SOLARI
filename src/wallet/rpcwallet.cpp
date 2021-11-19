@@ -305,8 +305,12 @@ UniValue getaddressesbylabel(const JSONRPCRequest& request)
     UniValue ret(UniValue::VOBJ);
     for (auto it = pwallet->NewAddressBookIterator(); it.IsValid(); it.Next()) {
         auto addrBook = it.GetValue();
-        if (!addrBook.isShielded() && addrBook.name == label) {
-            ret.pushKV(EncodeDestination(*it.GetCTxDestKey(), AddressBook::IsColdStakingPurpose(addrBook.purpose)), AddressBookDataToJSON(addrBook, false));
+        if (addrBook.name == label) {
+            if (!addrBook.isShielded()) {
+                ret.pushKV(EncodeDestination(*it.GetCTxDestKey(), AddressBook::IsColdStakingPurpose(addrBook.purpose)), AddressBookDataToJSON(addrBook, false));
+            } else {
+                ret.pushKV(Standard::EncodeDestination(*it.GetShieldedDestKey()), AddressBookDataToJSON(addrBook, false));
+            }
         }
     }
 
@@ -999,9 +1003,11 @@ UniValue setlabel(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    CTxDestination dest = DecodeDestination(request.params[0].get_str());
-    if (!IsValidDestination(dest))
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid PIVX address");
+    const CWDestination& dest = Standard::DecodeDestination(request.params[0].get_str());
+    // Make sure the destination is valid
+    if (!Standard::IsValidDestination(dest)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
+    }
 
     std::string old_label = pwallet->GetNameForAddressBookEntry(dest);
     std::string label = LabelFromValue(request.params[1]);

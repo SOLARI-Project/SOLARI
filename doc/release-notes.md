@@ -24,6 +24,15 @@ The `autocombinerewards` RPC command was soft-deprecated in v5.3.0 and replaced 
 
 This command will be fully removed in v6.0.0.
 
+### Shield address support for RPC label commands
+
+The `setlabel` RPC command now supports a shield address input argument to allow users to set labels for shield addresses. Additionally, the `getaddressesbylabel` RPC command will also now return shield addresses with a matching label.
+
+### Specify optional label for getnewshieldaddress
+
+The `getnewshieldaddress` RPC command now takes an optional argument `label (string)` to denote the desired label for the generated address.
+
+
 *version* Change log
 ==============
 
