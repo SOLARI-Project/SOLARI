@@ -22,6 +22,7 @@ class WalletNullifiersTest(PivxTestFramework):
 
     def run_test (self):
         self.nodes[0].generate(1) # activate Sapling
+        self.sync_all()
 
         # add shield addr to node 0
         myzaddr0 = self.nodes[0].getnewshieldaddress()
@@ -32,9 +33,7 @@ class WalletNullifiersTest(PivxTestFramework):
         recipients = []
         recipients.append({"address":myzaddr0, "amount":Decimal('10.0') - Decimal('1')}) # utxo amount less fee
 
-        txid = self.nodes[0].shieldsendmany(mytaddr, recipients)
-
-        self.sync_all()
+        self.nodes[0].shieldsendmany(mytaddr, recipients)
         self.nodes[0].generate(1)
         self.sync_all()
 
