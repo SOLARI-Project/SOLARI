@@ -595,7 +595,6 @@ public:
     bool fOneShot;
     bool fClient;
     const bool fInbound;
-    bool fNetworkNode;
     /**
      * Whether the peer has signaled support for receiving ADDRv2 (BIP155)
      * messages, implying a preference to receive ADDRv2 instead of ADDR ones.
@@ -612,7 +611,6 @@ public:
     RecursiveMutex cs_filter;
     std::unique_ptr<CBloomFilter> pfilter;
     std::atomic<int> nRefCount;
-    const NodeId id;
 
     const uint64_t nKeyedNetGroup;
     std::atomic_bool fPauseRecv;
@@ -675,6 +673,7 @@ public:
     CNode& operator=(const CNode&) = delete;
 
 private:
+    const NodeId id;
     const uint64_t nLocalHostNonce;
     // Services offered to this peer
     const ServiceFlags nLocalServices;
