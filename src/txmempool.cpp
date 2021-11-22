@@ -1487,6 +1487,12 @@ void CTxMemPool::TrimToSize(size_t sizelimit, std::vector<COutPoint>* pvNoSpends
         LogPrint(BCLog::MEMPOOL, "Removed %u txn, rolling minimum fee bumped to %s\n", nTxnRemoved, maxFeeRateRemoved.ToString());
 }
 
+bool CTxMemPool::TransactionWithinChainLimit(const uint256& txid, size_t chainLimit) const {
+    LOCK(cs);
+    auto it = mapTx.find(txid);
+    return it == mapTx.end() || (it->GetCountWithAncestors() < chainLimit &&
+       it->GetCountWithDescendants() < chainLimit);
+}
 
 bool CTxMemPool::IsLoaded() const
 {
