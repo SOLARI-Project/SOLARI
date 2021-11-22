@@ -6,7 +6,6 @@
 #include "masternode.h"
 
 #include "addrman.h"
-#include "init.h"
 #include "masternode-sync.h"
 #include "masternodeman.h"
 #include "netbase.h"
