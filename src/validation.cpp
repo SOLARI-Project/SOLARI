@@ -2864,7 +2864,7 @@ static const CBlockIndex* GetLastCheckpoint()
     if (!Checkpoints::fEnabled)
         return nullptr;
 
-    const Checkpoints::MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
+    const MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
 
     for (const auto& i : reverse_iterate(checkpoints)) {
         const uint256& hash = i.second;
