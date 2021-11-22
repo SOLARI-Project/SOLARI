@@ -185,6 +185,7 @@ source_group("BitcoinHeaders" FILES
         ${IMMER_HEADERS}
         ${EVO_HEADERS}
         ./src/support/cleanse.h
+        ./src/support/events.h
         )
 
 set(SERVER_SOURCES
