@@ -148,7 +148,7 @@ void CActiveDeterministicMasternodeManager::Init()
         const std::string& strService = info.service.ToString();
         LogPrintf("%s: Checking inbound connection to '%s'\n", __func__, strService);
         SOCKET hSocket;
-        bool fConnected = ConnectSocket(info.service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
+        bool fConnected = ConnectSocketDirectly(info.service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
         CloseSocket(hSocket);
 
         if (!fConnected) {

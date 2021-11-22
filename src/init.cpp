@@ -1054,12 +1054,11 @@ bool AppInitParameterInteraction()
     nMaxConnections = std::max(nUserMaxConnections, 0);
 
     // Trim requested connection counts, to fit into system limitations
-    nMaxConnections = std::max(std::min(nMaxConnections, (int) (FD_SETSIZE - nBind - MIN_CORE_FILEDESCRIPTORS)), 0);
-    nFD = RaiseFileDescriptorLimit(nMaxConnections + MIN_CORE_FILEDESCRIPTORS);
+    nMaxConnections = std::max(std::min(nMaxConnections, (int)(FD_SETSIZE - nBind - MIN_CORE_FILEDESCRIPTORS - MAX_ADDNODE_CONNECTIONS)), 0);
+    nFD = RaiseFileDescriptorLimit(nMaxConnections + MIN_CORE_FILEDESCRIPTORS + MAX_ADDNODE_CONNECTIONS);
     if (nFD < MIN_CORE_FILEDESCRIPTORS)
         return UIError(_("Not enough file descriptors available."));
-    if (nFD - MIN_CORE_FILEDESCRIPTORS < nMaxConnections)
-        nMaxConnections = nFD - MIN_CORE_FILEDESCRIPTORS;
+    nMaxConnections = std::min(nFD - MIN_CORE_FILEDESCRIPTORS - MAX_ADDNODE_CONNECTIONS, nMaxConnections);
 
     // ********************************************************* Step 3: parameter-to-internal-flags
 
@@ -1248,7 +1247,7 @@ bool AppInitMain()
     LogPrintf("Default data directory %s\n", GetDefaultDataDir().string());
     LogPrintf("Using data directory %s\n", GetDataDir().string());
     LogPrintf("Using config file %s\n", GetConfigFile(gArgs.GetArg("-conf", PIVX_CONF_FILENAME)).string());
-    LogPrintf("Using at most %i connections (%i file descriptors available)\n", nMaxConnections, nFD);
+    LogPrintf("Using at most %i automatic connections (%i file descriptors available)\n", nMaxConnections, nFD);
     std::ostringstream strErrors;
 
     // Warn about relative -datadir path.
@@ -1978,6 +1977,7 @@ bool AppInitMain()
     connOptions.nRelevantServices = nRelevantServices;
     connOptions.nMaxConnections = nMaxConnections;
     connOptions.nMaxOutbound = std::min(MAX_OUTBOUND_CONNECTIONS, connOptions.nMaxConnections);
+    connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
     connOptions.nMaxFeeler = 1;
     connOptions.nBestHeight = chain_active_height;
     connOptions.uiInterface = &uiInterface;

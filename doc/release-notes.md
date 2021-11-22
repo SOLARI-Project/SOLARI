@@ -32,6 +32,14 @@ The `setlabel` RPC command now supports a shield address input argument to allow
 
 The `getnewshieldaddress` RPC command now takes an optional argument `label (string)` to denote the desired label for the generated address.
 
+P2P connection management
+--------------------------
+
+- Peers manually added through the addnode option or addnode RPC now have their own
+  limit of sixteen connections which does not compete with other inbound or outbound
+  connection usage and is not subject to the maxconnections limitation.
+
+- New connections to manually added peers are much faster.
 
 *version* Change log
 ==============

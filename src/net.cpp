@@ -323,7 +323,7 @@ bool CConnman::CheckIncomingNonce(uint64_t nonce)
 
 CNode* CConnman::ConnectNode(CAddress addrConnect, const char* pszDest, bool fCountFailure)
 {
-    if (pszDest == NULL) {
+    if (pszDest == nullptr) {
         if (IsLocal(addrConnect)) {
             LogPrintf("%s: cannot connect to local node\n", __func__);
             return nullptr;
@@ -342,38 +342,72 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char* pszDest, bool fCo
         pszDest ? pszDest : addrConnect.ToString(),
         pszDest ? 0.0 : (double)(GetAdjustedTime() - addrConnect.nTime) / 3600.0);
 
-    // Connect
-    SOCKET hSocket = INVALID_SOCKET;
-    bool proxyConnectionFailed = false;
-    if (pszDest ? ConnectSocketByName(addrConnect, hSocket, pszDest, Params().GetDefaultPort(), nConnectTimeout, &proxyConnectionFailed) :
-                  ConnectSocket(addrConnect, hSocket, nConnectTimeout, &proxyConnectionFailed)) {
-        if (!IsSelectableSocket(hSocket)) {
-            LogPrintf("Cannot create connection: non-selectable socket created (fd >= FD_SETSIZE ?)\n");
-            CloseSocket(hSocket);
-            return NULL;
+    // Resolve
+    const int default_port = Params().GetDefaultPort();
+    if (pszDest) {
+        std::vector<CService> resolved;
+        if (Lookup(pszDest, resolved,  default_port, fNameLookup && !HaveNameProxy(), 256) && !resolved.empty()) {
+            addrConnect = CAddress(resolved[GetRand(resolved.size())], NODE_NONE);
+            if (!addrConnect.IsValid()) {
+                LogPrint(BCLog::NET, "Resolver returned invalid address %s for %s", addrConnect.ToString(), pszDest);
+                return nullptr;
+            }
         }
-
-        addrman.Attempt(addrConnect, fCountFailure);
-
-        // Add node
-        NodeId id = GetNewNodeId();
-        uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();
-        CNode* pnode = new CNode(id, nLocalServices, GetBestHeight(), hSocket, addrConnect, CalculateKeyedNetGroup(addrConnect), nonce, pszDest ? pszDest : "", false);
-        pnode->nServicesExpected = ServiceFlags(addrConnect.nServices & nRelevantServices);
-        pnode->fWhitelisted = IsWhitelistedRange(addrConnect);
-        pnode->AddRef();
-
-        // We're making a new connection, harvest entropy from the time (and our peer count)
-        RandAddEvent((uint32_t)id);
-
-        return pnode;
-    } else if (!proxyConnectionFailed) {
-        // If connecting to the node failed, and failure is not caused by a problem connecting to
-        // the proxy, mark this as an attempt.
-        addrman.Attempt(addrConnect, fCountFailure);
     }
 
-    return NULL;
+    // Connect
+    bool connected = false;
+    SOCKET hSocket = INVALID_SOCKET;
+    proxyType proxy;
+    if (addrConnect.IsValid()) {
+        bool proxyConnectionFailed = false;
+
+        if (GetProxy(addrConnect.GetNetwork(), proxy)) {
+            hSocket = CreateSocket(proxy.proxy);
+            if (hSocket == INVALID_SOCKET) {
+                return nullptr;
+            }
+            connected = ConnectThroughProxy(proxy, addrConnect.ToStringIP(), addrConnect.GetPort(), hSocket, nConnectTimeout, &proxyConnectionFailed);
+        } else {
+            // no proxy needed (none set for target network)
+            hSocket = CreateSocket(addrConnect);
+            if (hSocket == INVALID_SOCKET) {
+                return nullptr;
+            }
+            connected = ConnectSocketDirectly(addrConnect, hSocket, nConnectTimeout);
+        }
+        if (!proxyConnectionFailed) {
+            // If a connection to the node was attempted, and failure (if any) is not caused by a problem connecting to
+            // the proxy, mark this as an attempt.
+            addrman.Attempt(addrConnect, fCountFailure);
+        }
+    } else if (pszDest && GetNameProxy(proxy)) {
+        hSocket = CreateSocket(proxy.proxy);
+        if (hSocket == INVALID_SOCKET) {
+            return nullptr;
+        }
+        std::string host;
+        int port = default_port;
+        SplitHostPort(std::string(pszDest), port, host);
+        connected = ConnectThroughProxy(proxy, host, port, hSocket, nConnectTimeout, nullptr);
+    }
+    if (!connected) {
+        CloseSocket(hSocket);
+        return nullptr;
+    }
+
+    // Add node
+    NodeId id = GetNewNodeId();
+    uint64_t nonce = GetDeterministicRandomizer(RANDOMIZER_ID_LOCALHOSTNONCE).Write(id).Finalize();
+    CNode* pnode = new CNode(id, nLocalServices, GetBestHeight(), hSocket, addrConnect, CalculateKeyedNetGroup(addrConnect), nonce, pszDest ? pszDest : "", false);
+    pnode->nServicesExpected = ServiceFlags(addrConnect.nServices & nRelevantServices);
+    pnode->fWhitelisted = IsWhitelistedRange(addrConnect);
+    pnode->AddRef();
+
+    // We're making a new connection, harvest entropy from the time (and our peer count)
+    RandAddEvent((uint32_t)id);
+
+    return pnode;
 }
 
 void CConnman::DumpBanlist()
@@ -387,10 +421,10 @@ void CConnman::DumpBanlist()
 
     CBanDB bandb;
     banmap_t banmap;
-    SetBannedSetDirty(false);
     GetBanned(banmap);
-    if (!bandb.Write(banmap))
-        SetBannedSetDirty(true);
+    if (bandb.Write(banmap)) {
+        SetBannedSetDirty(false);
+    }
 
     LogPrint(BCLog::NET, "Flushed %d banned node ips/subnets to banlist.dat  %dms\n",
         banmap.size(), GetTimeMillis() - nStart);
@@ -517,6 +551,8 @@ bool CConnman::Unban(const CSubNet &subNet)
 void CConnman::GetBanned(banmap_t &banMap)
 {
     LOCK(cs_setBanned);
+    // Sweep the banlist so expired bans are not returned
+    SweepBanned();
     banMap = setBanned; //create a thread safe copy
 }
 
@@ -630,6 +666,7 @@ void CNode::copyStats(CNodeStats& stats, const std::vector<bool>& m_asmap)
         X(cleanSubVer);
     }
     X(fInbound);
+    X(fAddnode);
     X(nStartingHeight);
     {
         LOCK(cs_vSend);
@@ -1442,8 +1479,7 @@ void CConnman::ProcessOneShot()
     CAddress addr;
     CSemaphoreGrant grant(*semOutbound, true);
     if (grant) {
-        if (!OpenNetworkConnection(addr, false, &grant, strDest.c_str(), true))
-            AddOneShot(strDest);
+        OpenNetworkConnection(addr, false, &grant, strDest.c_str(), true);
     }
 }
 
@@ -1505,7 +1541,12 @@ void CConnman::ThreadOpenConnections()
         {
             LOCK(cs_vNodes);
             for (const CNode* pnode : vNodes) {
-                if (!pnode->fInbound) {
+                if (!pnode->fInbound && !pnode->fAddnode) {
+                    // Netgroups for inbound and addnode peers are not excluded because our goal here
+                    // is to not use multiple of our limited outbound slots on a single netgroup
+                    // but inbound and addnode peers do not use our outbound slots. Inbound peers
+                    // also have the added issue that they're attacker controlled and could be used
+                    // to prevent us from connecting to particular hosts if we used them here.
                     setConnected.insert(pnode->addr.GetGroup(addrman.m_asmap));
                     nOutbound++;
                 }
@@ -1658,59 +1699,65 @@ void CConnman::ThreadOpenAddedConnections()
         vAddedNodes = gArgs.GetArgs("-addnode");
     }
 
-    for (unsigned int i = 0; true; i++) {
+    while (true) {
+        CSemaphoreGrant grant(*semAddnode);
         std::vector<AddedNodeInfo> vInfo = GetAddedNodeInfo();
+        bool tried = false;
         for (const AddedNodeInfo& info : vInfo) {
             if (!info.fConnected) {
-                CSemaphoreGrant grant(*semOutbound);
-                // If strAddedNode is an IP/port, decode it immediately, so
-                // OpenNetworkConnection can detect existing connections to that IP/port.
-                CService service(LookupNumeric(info.strAddedNode, Params().GetDefaultPort()));
-                OpenNetworkConnection(CAddress(service, NODE_NONE), false, &grant, info.strAddedNode.c_str(), false);
+                if (!grant.TryAcquire()) {
+                    // If we've used up our semaphore and need a new one, lets not wait here since while we are waiting
+                    // the addednodeinfo state might change.
+                    break;
+                }
+                tried = true;
+                CAddress addr(CService(), NODE_NONE);
+                OpenNetworkConnection(addr, false, &grant, info.strAddedNode.c_str(), false, false, true);
                 if (!interruptNet.sleep_for(std::chrono::milliseconds(500)))
                     return;
             }
         }
-        if (!interruptNet.sleep_for(std::chrono::minutes(2)))
+        // Retry every 60 seconds if a connection was attempted, otherwise two seconds
+        if (!interruptNet.sleep_for(std::chrono::seconds(tried ? 60 : 2)))
             return;
     }
 }
 
 // if successful, this moves the passed grant to the constructed node
-bool CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFailure, CSemaphoreGrant* grantOutbound, const char* pszDest, bool fOneShot, bool fFeeler)
+void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFailure, CSemaphoreGrant* grantOutbound, const char* pszDest, bool fOneShot, bool fFeeler, bool fAddnode)
 {
     //
     // Initiate outbound network connection
     //
     if (interruptNet) {
-        return false;
+        return;
     }
     if (!pszDest) {
         if (IsLocal(addrConnect) ||
             FindNode(static_cast<CNetAddr>(addrConnect)) || IsBanned(addrConnect) ||
             FindNode(addrConnect.ToStringIPPort()))
-            return false;
+            return;
     } else if (FindNode(pszDest))
-        return false;
+        return;
 
     CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure);
 
     if (!pnode)
-        return false;
+        return;
     if (grantOutbound)
         grantOutbound->MoveTo(pnode->grantOutbound);
     if (fOneShot)
         pnode->fOneShot = true;
     if (fFeeler)
         pnode->fFeeler = true;
+    if (fAddnode)
+        pnode->fAddnode = true;
 
     m_msgproc->InitializeNode(pnode);
     {
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
     }
-
-    return true;
 }
 
 void CConnman::ThreadMessageHandler()
@@ -1776,35 +1823,18 @@ bool CConnman::BindListenPort(const CService& addrBind, std::string& strError, b
         return false;
     }
 
-    SOCKET hListenSocket = socket(((struct sockaddr*)&sockaddr)->sa_family, SOCK_STREAM, IPPROTO_TCP);
+    SOCKET hListenSocket = CreateSocket(addrBind);
     if (hListenSocket == INVALID_SOCKET) {
         strError = strprintf("Error: Couldn't open socket for incoming connections (socket returned error %s)", NetworkErrorString(WSAGetLastError()));
         LogPrintf("%s\n", strError);
         return false;
     }
-    if (!IsSelectableSocket(hListenSocket)) {
-        strError = "Error: Couldn't create a listenable socket for incoming connections";
-        LogPrintf("%s\n", strError);
-        return false;
-    }
-
 
 #ifndef WIN32
-#ifdef SO_NOSIGPIPE
-    // Different way of disabling SIGPIPE on BSD
-    setsockopt(hListenSocket, SOL_SOCKET, SO_NOSIGPIPE, (void*)&nOne, sizeof(int));
-#endif
     // Allow binding if the port is still in TIME_WAIT state after
     // the program was closed and restarted. Not an issue on windows!
     setsockopt(hListenSocket, SOL_SOCKET, SO_REUSEADDR, (void*)&nOne, sizeof(int));
 #endif
-
-    // Set to non-blocking, incoming connections will also inherit this
-    if (!SetSocketNonBlocking(hListenSocket, true)) {
-        strError = strprintf("BindListenPort: Setting listening socket to non-blocking failed, error %s\n", NetworkErrorString(WSAGetLastError()));
-        LogPrintf("%s\n", strError);
-        return false;
-    }
 
     // some systems don't have IPV6_V6ONLY but are always v6only; others do have the option
     // and enable it by default or not. Try to enable it, if possible.
@@ -1898,6 +1928,7 @@ CConnman::CConnman(uint64_t nSeed0In, uint64_t nSeed1In) : nSeed0(nSeed0In), nSe
     nReceiveFloodSize = 0;
     nMaxConnections = 0;
     nMaxOutbound = 0;
+    nMaxAddnode = 0;
     nBestHeight = 0;
     clientInterface = nullptr;
     flagInterruptMsgProc = false;
@@ -1917,6 +1948,7 @@ bool CConnman::Start(CScheduler& scheduler, std::string& strNodeError, Options c
     nLocalServices = connOptions.nLocalServices;
     nMaxConnections = connOptions.nMaxConnections;
     nMaxOutbound = std::min(connOptions.nMaxOutbound, nMaxConnections);
+    nMaxAddnode = connOptions.nMaxAddnode;
     nMaxFeeler = connOptions.nMaxFeeler;
 
     nSendBufferMaxSize = connOptions.nSendBufferMaxSize;
@@ -1968,6 +2000,10 @@ bool CConnman::Start(CScheduler& scheduler, std::string& strNodeError, Options c
     if (semOutbound == nullptr) {
         // initialize semaphore
         semOutbound = std::make_unique<CSemaphore>(std::min((nMaxOutbound + nMaxFeeler), nMaxConnections));
+    }
+    if (semAddnode == nullptr) {
+        // initialize semaphore
+        semAddnode = std::make_unique<CSemaphore>(nMaxAddnode);
     }
 
     //
@@ -2041,9 +2077,17 @@ void CConnman::Interrupt()
     interruptNet();
     InterruptSocks5(true);
 
-    if (semOutbound)
-        for (int i=0; i<(nMaxOutbound + nMaxFeeler); i++)
+    if (semOutbound) {
+        for (int i=0; i<(nMaxOutbound + nMaxFeeler); i++) {
             semOutbound->post();
+        }
+    }
+
+    if (semAddnode) {
+        for (int i=0; i<nMaxAddnode; i++) {
+            semAddnode->post();
+        }
+    }
 }
 
 void CConnman::Stop()
@@ -2084,6 +2128,7 @@ void CConnman::Stop()
     vNodesDisconnected.clear();
     vhListenSocket.clear();
     semOutbound.reset();
+    semAddnode.reset();
 }
 
 void CConnman::DeleteNode(CNode* pnode)
@@ -2290,6 +2335,7 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     strSubVer = "";
     fWhitelisted = false;
     fOneShot = false;
+    fAddnode = false;
     fClient = false; // set by version message
     fFeeler = false;
     fSuccessfullyConnected = false;
