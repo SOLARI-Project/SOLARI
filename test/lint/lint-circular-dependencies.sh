@@ -71,7 +71,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "kernel -> stakeinput -> wallet/wallet -> kernel"
     "legacy/validation_zerocoin_legacy -> wallet/wallet -> validation -> legacy/validation_zerocoin_legacy"
     "masternode-sync -> masternodeman -> net_processing -> masternode-sync"
-    "primitives/transaction -> script/standard -> script/interpreter -> primitives/transaction"
     "qt/askpassphrasedialog -> qt/pivx/pivxgui -> qt/pivx/topbar -> qt/askpassphrasedialog"
     "qt/pivx/coldstakingwidget -> qt/pivx/tooltipmenu -> qt/pivx/pivxgui -> qt/pivx/coldstakingwidget"
     "qt/pivx/masternodeswidget -> qt/pivx/tooltipmenu -> qt/pivx/pivxgui -> qt/pivx/masternodeswidget"
