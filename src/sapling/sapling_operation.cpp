@@ -512,7 +512,7 @@ OperationResult SaplingOperation::loadUnspentNotes(TxValues& txValues, uint256& 
 
     // Fetch Sapling anchor and witnesses
     uint256 anchor;
-    std::vector<boost::optional<SaplingWitness>> witnesses;
+    std::vector<Optional<SaplingWitness>> witnesses;
     wallet->GetSaplingScriptPubKeyMan()->GetSaplingNoteWitnesses(ops, witnesses, anchor);
 
     // Add Sapling spends

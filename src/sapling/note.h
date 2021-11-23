@@ -7,7 +7,7 @@
 #include "uint256.h"
 
 #include <array>
-#include <boost/optional.hpp>
+#include "optional.h"
 
 namespace libzcash {
 
@@ -41,8 +41,8 @@ public:
     SaplingNote(const SaplingPaymentAddress& address, uint64_t value);
     virtual ~SaplingNote() {};
 
-    boost::optional<uint256> cmu() const;
-    boost::optional<uint256> nullifier(const SaplingFullViewingKey& vk, const uint64_t position) const;
+    Optional<uint256> cmu() const;
+    Optional<uint256> nullifier(const SaplingFullViewingKey& vk, const uint64_t position) const;
 };
 
 class BaseNotePlaintext {
@@ -72,14 +72,14 @@ public:
     SaplingNotePlaintext(const SaplingNote& note, const std::array<unsigned char, ZC_MEMO_SIZE>& memo);
     virtual ~SaplingNotePlaintext() {}
 
-    static boost::optional<SaplingNotePlaintext> decrypt(
+    static Optional<SaplingNotePlaintext> decrypt(
         const SaplingEncCiphertext& ciphertext,
         const uint256& ivk,
         const uint256& epk,
         const uint256& cmu
     );
 
-    static boost::optional<SaplingNotePlaintext> decrypt(
+    static Optional<SaplingNotePlaintext> decrypt(
         const SaplingEncCiphertext& ciphertext,
         const uint256& epk,
         const uint256& esk,
@@ -87,7 +87,7 @@ public:
         const uint256& cmu
     );
 
-    boost::optional<SaplingNote> note(const SaplingIncomingViewingKey& ivk) const;
+    Optional<SaplingNote> note(const SaplingIncomingViewingKey& ivk) const;
 
     SERIALIZE_METHODS(SaplingNotePlaintext, obj)
     {
@@ -104,7 +104,7 @@ public:
         READWRITE(obj.memo_);       // 512 bytes
     }
 
-    boost::optional<SaplingNotePlaintextEncryptionResult> encrypt(const uint256& pk_d) const;
+    Optional<SaplingNotePlaintextEncryptionResult> encrypt(const uint256& pk_d) const;
 };
 
 class SaplingOutgoingPlaintext
@@ -125,7 +125,7 @@ public:
         READWRITE(obj.esk);         // 8 bytes
     }
 
-    static boost::optional<SaplingOutgoingPlaintext> decrypt(
+    static Optional<SaplingOutgoingPlaintext> decrypt(
         const SaplingOutCiphertext& ciphertext,
         const uint256& ovk,
         const uint256& cv,

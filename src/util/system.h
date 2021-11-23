@@ -64,8 +64,8 @@ extern CTranslationInterface translationInterface;
  */
 inline std::string _(const char* psz)
 {
-    // todo: this boost::optional is needed for now. Will get removed moving forward
-    boost::optional<std::string> rv = translationInterface.Translate(psz);
+    // todo: this Optional is needed for now. Will get removed moving forward
+    Optional<std::string> rv = translationInterface.Translate(psz);
     return rv ? (*rv) : psz;
 }
 
