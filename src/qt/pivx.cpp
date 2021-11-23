@@ -289,7 +289,9 @@ void BitcoinCore::restart(const QStringList& args)
             qDebug() << __func__ << ": Restart failed...";
             return;
         }
+        // Forced cleanup.
         CExplicitNetCleanup::callCleanup();
+        ReleaseDirectoryLocks();
         QProcess::startDetached(QApplication::applicationFilePath(), args);
         qDebug() << __func__ << ": Restart initiated...";
         QApplication::quit();
