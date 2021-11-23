@@ -1,7 +1,7 @@
 // Copyright (c) 2016-2020 The ZCash developers
-// Copyright (c) 2020 The PIVX developers
+// Copyright (c) 2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 /*
 See the Zcash protocol specification for more information.
@@ -11,12 +11,11 @@ https://github.com/zcash/zips/blob/master/protocol/protocol.pdf
 #ifndef ZC_NOTE_ENCRYPTION_H_
 #define ZC_NOTE_ENCRYPTION_H_
 
+#include "optional.h"
+#include "sapling/sapling.h"
 #include "uint256.h"
 
-#include "sapling/sapling.h"
-
 #include <array>
-#include "optional.h"
 
 namespace libzcash {
 

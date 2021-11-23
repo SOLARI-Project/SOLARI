@@ -1,12 +1,17 @@
+// Copyright (c) 2016-2020 The ZCash developers
+// Copyright (c) 2021 The PIVX developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or https://www.opensource.org/licenses/mit-license.php.
+
 #ifndef ZC_ADDRESS_H_
 #define ZC_ADDRESS_H_
 
-#include "uint256.h"
-#include "serialize.h"
+#include "optional.h"
 #include "sapling/sapling.h"
+#include "serialize.h"
+#include "uint256.h"
 
 #include <array>
-#include "optional.h"
 #include <boost/variant.hpp>
 
 namespace libzcash {

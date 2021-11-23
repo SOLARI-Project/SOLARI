@@ -1,18 +1,17 @@
-// Copyright (c) 2018 The Zcash developers
+// Copyright (c) 2018-2020 The ZCash developers
+// Copyright (c) 2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #ifndef PIVX_ZIP32_H
 #define PIVX_ZIP32_H
 
-#include "uint256.h"
 #include "key.h"
+#include "optional.h"
 #include "sapling/address.h"
 #include "serialize.h"
 #include "support/allocators/zeroafterfree.h"
 #include "uint256.h"
-
-#include "optional.h"
 
 const uint32_t ZIP32_HARDENED_KEY_LIMIT = 0x80000000;
 const size_t ZIP32_XFVK_SIZE = 169;

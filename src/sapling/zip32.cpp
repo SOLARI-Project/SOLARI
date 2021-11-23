@@ -1,14 +1,15 @@
-// Copyright (c) 2018 The Zcash developers
+// Copyright (c) 2018-2020 The ZCash developers
+// Copyright (c) 2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include "sapling/zip32.h"
 
 #include "hash.h"
 #include "random.h"
+#include "sapling/prf.h"
 #include "streams.h"
 #include "version.h"
-#include "sapling/prf.h"
 
 #include <librustzcash.h>
 #include <sodium.h>
