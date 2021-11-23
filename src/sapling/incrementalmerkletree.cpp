@@ -932,17 +932,17 @@ void IncrementalMerkleTree<Depth, Hash>::append(Hash obj) {
         right = obj;
     } else {
         // Combine the leaves and propagate it up the tree
-        boost::optional<Hash> combined = Hash::combine(*left, *right, 0);
+        Optional<Hash> combined = Hash::combine(*left, *right, 0);
 
         // Set the "left" leaf to the object and make the "right" leaf none
         left = obj;
-        right = boost::none;
+        right = nullopt;
 
         for (size_t i = 0; i < Depth; i++) {
             if (i < parents.size()) {
                 if (parents[i]) {
                     combined = Hash::combine(*parents[i], *combined, i+1);
-                    parents[i] = boost::none;
+                    parents[i] = nullopt;
                 } else {
                     parents[i] = *combined;
                     break;
@@ -1119,7 +1119,7 @@ void IncrementalWitness<Depth, Hash>::append(Hash obj) {
 
         if (cursor->is_complete(cursor_depth)) {
             filled.push_back(cursor->root(cursor_depth));
-            cursor = boost::none;
+            cursor = nullopt;
         }
     } else {
         cursor_depth = tree.next_depth(filled.size());
