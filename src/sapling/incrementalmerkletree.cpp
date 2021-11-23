@@ -1,5 +1,5 @@
-// Copyright (c) 2016-2018 The Zcash developers
-// Copyright (c) 2020 The PIVX developers
+// Copyright (c) 2016-2020 The ZCash developers
+// Copyright (c) 2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
@@ -7,6 +7,7 @@
 
 #include "crypto/sha256.h"
 #include "sapling/incrementalmerkletree.h"
+
 #include <librustzcash.h>
 
 namespace libzcash {

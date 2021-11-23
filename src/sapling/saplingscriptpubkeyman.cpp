@@ -1,9 +1,10 @@
 // Copyright (c) 2016-2020 The ZCash developers
-// Copyright (c) 2020 The PIVX developers
+// Copyright (c) 2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include "sapling/saplingscriptpubkeyman.h"
+
 #include "chain.h" // for CBlockIndex
 #include "validation.h" // for ReadBlockFromDisk()
 
