@@ -263,6 +263,17 @@ bool CFinalizedBudget::UpdateValid(int nCurrentHeight)
     return true;
 }
 
+int CFinalizedBudget::GetVoteCount() const
+{
+    int ret = 0;
+    for (const auto& it : mapVotes) {
+        if (it.second.IsValid()) {
+            ret++;
+        }
+    }
+    return ret;
+}
+
 std::vector<uint256> CFinalizedBudget::GetVotesHashes() const
 {
     std::vector<uint256> vRet;
