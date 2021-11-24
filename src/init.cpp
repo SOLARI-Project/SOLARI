@@ -200,8 +200,7 @@ void Interrupt()
         g_connman->Interrupt();
 }
 
-/** Preparing steps before shutting down or restarting the wallet */
-void PrepareShutdown()
+void Shutdown()
 {
     fRequestShutdown = true;  // Needed when we shutdown the wallet
     LogPrintf("%s: In progress...\n", __func__);
@@ -335,21 +334,7 @@ void PrepareShutdown()
         LogPrintf("%s: Unable to remove pidfile: %s\n", __func__, e.what());
     }
 #endif
-}
 
-/**
-* Shutdown is split into 2 parts:
-* Part 1: shut down everything but the main wallet instance (done in PrepareShutdown() )
-* Part 2: delete wallet instance
-*
-* In case of a restart PrepareShutdown() was already called before, but this method here gets
-* called implicitly when the parent object is deleted. In this case we have to skip the
-* PrepareShutdown() part because it was already executed and just delete the wallet instance.
-*/
-void Shutdown()
-{
-    // Shutdown part 1: prepare shutdown
-    PrepareShutdown();
 #ifdef ENABLE_WALLET
     for (CWalletRef pwallet : vpwallets) {
         delete pwallet;
