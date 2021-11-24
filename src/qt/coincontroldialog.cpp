@@ -11,7 +11,6 @@
 #include "bitcoinunits.h"
 #include "coincontrol.h"
 #include "guiutil.h"
-#include "init.h"
 #include "optionsmodel.h"
 #include "policy/policy.h"
 #include "txmempool.h"
