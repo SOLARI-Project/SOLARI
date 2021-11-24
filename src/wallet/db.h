@@ -143,10 +143,6 @@ public:
      */
     void Flush(bool shutdown);
 
-    /** Close and reset.
-     */
-    void CloseAndReset();
-
     void IncrementUpdateCounter();
     std::atomic<unsigned int> nUpdateCounter;
     unsigned int nLastSeen;

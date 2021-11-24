@@ -803,9 +803,3 @@ void BerkeleyDatabase::Flush(bool shutdown)
         }
     }
 }
-
-void BerkeleyDatabase::CloseAndReset()
-{
-    env->Close();
-    env->Reset();
-}
