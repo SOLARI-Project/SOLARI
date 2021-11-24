@@ -10,17 +10,26 @@
 
 #include "qt/pivx/pivxgui.h"
 
-#include "clientmodel.h"
-#include "guiconstants.h"
-#include "guiutil.h"
-#include "intro.h"
+
+#include "fs.h"
+#include "guiinterface.h"
+#include "init.h"
+#include "masternodeconfig.h"
 #include "net.h"
-#include "networkstyle.h"
-#include "optionsmodel.h"
+#include "qt/clientmodel.h"
+#include "qt/guiconstants.h"
+#include "qt/guiutil.h"
+#include "qt/intro.h"
+#include "qt/optionsmodel.h"
+#include "qt/networkstyle.h"
 #include "qt/pivx/splash.h"
 #include "qt/pivx/welcomecontentwidget.h"
+#include "qt/winshutdownmonitor.h"
+#include "rpc/server.h"
+#include "shutdown.h"
+#include "util/system.h"
 #include "utilitydialog.h"
-#include "winshutdownmonitor.h"
+#include "warnings.h"
 
 #ifdef ENABLE_WALLET
 #include "qt/pivx/governancemodel.h"
@@ -29,17 +38,6 @@
 #include "walletmodel.h"
 #include "interfaces/wallet.h"
 #include "wallet/walletutil.h"
-#endif
-#include "masternodeconfig.h"
-
-#include "fs.h"
-#include "init.h"
-#include "rpc/server.h"
-#include "guiinterface.h"
-#include "util/system.h"
-#include "warnings.h"
-
-#ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
 #endif
 

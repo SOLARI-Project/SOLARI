@@ -7,11 +7,11 @@
 #include "walletmodel.h"
 
 #include "budget/budgetproposal.h"
-#include "init.h"   // for ShutdownRequested()
 #include "interfaces/handler.h"
 #include "sapling/key_io_sapling.h"
 #include "sapling/sapling_operation.h"
 #include "sapling/transaction_builder.h"
+#include "shutdown.h"
 #include "spork.h"
 #include "wallet/fees.h"
 

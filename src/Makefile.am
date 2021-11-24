@@ -261,6 +261,7 @@ BITCOIN_CORE_H = \
   script/standard.h \
   script/script_error.h \
   serialize.h \
+  shutdown.h \
   span.h \
   spork.h \
   sporkdb.h \
@@ -374,6 +375,7 @@ libbitcoin_server_a_SOURCES = \
   rpc/server.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
+  shutdown.cpp \
   sporkdb.cpp \
   timedata.cpp \
   torcontrol.cpp \

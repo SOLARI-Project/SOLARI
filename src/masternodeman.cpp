@@ -8,7 +8,6 @@
 #include "addrman.h"
 #include "evo/deterministicmns.h"
 #include "fs.h"
-#include "init.h" // for ShutdownRequested
 #include "masternode-payments.h"
 #include "masternode-sync.h"
 #include "masternode.h"
@@ -16,6 +15,7 @@
 #include "netbase.h"
 #include "netmessagemaker.h"
 #include "net_processing.h"
+#include "shutdown.h"
 #include "spork.h"
 #include "validation.h"
 

@@ -20,13 +20,12 @@
 #include "sapling/key_io_sapling.h"
 #include "script/sign.h"
 #include "scheduler.h"
+#include "shutdown.h"
 #include "spork.h"
 #include "util/validation.h"
 #include "utilmoneystr.h"
 #include "wallet/fees.h"
 #include "zpivchain.h"
-
-#include  <init.h>    // for StartShutdown/ShutdownRequested
 
 #include <future>
 #include <boost/algorithm/string/replace.hpp>
