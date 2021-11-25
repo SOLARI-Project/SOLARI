@@ -360,6 +360,7 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
         self.stake(15, [self.remoteTwo]) # create blocks to remove staled votes
         time.sleep(2) # wait a little bit
         self.check_vote_existence(firstProposal.name, self.mnOneCollateral.hash, "YES", False)
+        self.check_budget_finalization_sync(2, "OK") # budget finalization vote removal
         self.log.info("MN1 vote expired after collateral spend, all good")
 
         self.log.info("expiring DMN1..")
@@ -369,6 +370,7 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
         self.stake(15, [self.remoteTwo]) # create blocks to remove staled votes
         time.sleep(2) # wait a little bit
         self.check_vote_existence(firstProposal.name, self.proRegTx1, "YES", False)
+        self.check_budget_finalization_sync(1, "OK") # budget finalization vote removal
         self.log.info("DMN vote expired after collateral spend, all good")
 
         # Check that the budget is removed 200 blocks after the last payment
