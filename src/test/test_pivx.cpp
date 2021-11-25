@@ -18,6 +18,7 @@
 #include "net_processing.h"
 #include "rpc/server.h"
 #include "rpc/register.h"
+#include "pow.h"
 #include "script/sigcache.h"
 #include "sporkdb.h"
 #include "txmempool.h"

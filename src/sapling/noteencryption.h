@@ -13,10 +13,10 @@ https://github.com/zcash/zips/blob/master/protocol/protocol.pdf
 
 #include "uint256.h"
 
-#include "sapling/address.h"
 #include "sapling/sapling.h"
 
 #include <array>
+#include <boost/optional.hpp>
 
 namespace libzcash {
 
