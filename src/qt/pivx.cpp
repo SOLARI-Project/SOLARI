@@ -43,8 +43,9 @@
 #include "wallet/wallet.h"
 #endif
 
+#include <atomic>
+
 #include <QApplication>
-#include <QDebug>
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QMessageBox>
@@ -163,7 +164,8 @@ public:
 public Q_SLOTS:
     void initialize();
     void shutdown();
-    void restart(QStringList args);
+    bool shutdownFromThread(const QString& type = "Shutdown");
+    void restart(const QStringList& args);
 
 Q_SIGNALS:
     void initializeResult(int retval);
@@ -171,9 +173,6 @@ Q_SIGNALS:
     void runawayException(const QString& message);
 
 private:
-    /// Flag indicating a restart
-    bool execute_restart{false};
-
     /// Pass fatal exception message to UI thread
     void handleRunawayException(const std::exception* e);
 };
@@ -259,8 +258,6 @@ void BitcoinCore::handleRunawayException(const std::exception* e)
 
 void BitcoinCore::initialize()
 {
-    execute_restart = true;
-
     try {
         qDebug() << __func__ << ": Running AppInit2 in thread";
         if (!AppInitBasicSetup()) {
@@ -280,56 +277,58 @@ void BitcoinCore::initialize()
     } catch (const std::exception& e) {
         handleRunawayException(&e);
     } catch (...) {
-        handleRunawayException(NULL);
+        handleRunawayException(nullptr);
     }
 }
 
-void BitcoinCore::restart(QStringList args)
+void BitcoinCore::restart(const QStringList& args)
 {
-    if (execute_restart) { // Only restart 1x, no matter how often a user clicks on a restart-button
-        execute_restart = false;
-        try {
-            qDebug() << __func__ << ": Running Restart in thread";
-            Interrupt();
-            PrepareShutdown();
-            qDebug() << __func__ << ": Shutdown finished";
-            Q_EMIT shutdownResult(1);
-            CExplicitNetCleanup::callCleanup();
-            QProcess::startDetached(QApplication::applicationFilePath(), args);
-            qDebug() << __func__ << ": Restart initiated...";
-            QApplication::quit();
-        } catch (const std::exception& e) {
-            handleRunawayException(&e);
-        } catch (...) {
-            handleRunawayException(NULL);
+    static std::atomic<bool> restartAvailable{true};
+    if (restartAvailable.exchange(false)) {
+        if (!shutdownFromThread("restart")) {
+            qDebug() << __func__ << ": Restart failed...";
+            return;
         }
+        // Forced cleanup.
+        CExplicitNetCleanup::callCleanup();
+        ReleaseDirectoryLocks();
+        QProcess::startDetached(QApplication::applicationFilePath(), args);
+        qDebug() << __func__ << ": Restart initiated...";
+        QApplication::quit();
     }
 }
 
 void BitcoinCore::shutdown()
 {
+    shutdownFromThread("Shutdown");
+}
+
+bool BitcoinCore::shutdownFromThread(const QString& type)
+{
     try {
-        qDebug() << __func__ << ": Running Shutdown in thread";
+        qDebug() << __func__ << ": Running "+type+" in thread";
         Interrupt();
         Shutdown();
-        qDebug() << __func__ << ": Shutdown finished";
+        qDebug() << __func__ << ": "+type+" finished";
         Q_EMIT shutdownResult(1);
+        return true;
     } catch (const std::exception& e) {
         handleRunawayException(&e);
     } catch (...) {
-        handleRunawayException(NULL);
+        handleRunawayException(nullptr);
     }
+    return false;
 }
 
 BitcoinApplication::BitcoinApplication(int& argc, char** argv) : QApplication(argc, argv),
-                                                                 coreThread(0),
-                                                                 optionsModel(0),
-                                                                 clientModel(0),
-                                                                 window(0),
-                                                                 pollShutdownTimer(0),
+                                                                 coreThread(nullptr),
+                                                                 optionsModel(nullptr),
+                                                                 clientModel(nullptr),
+                                                                 window(nullptr),
+                                                                 pollShutdownTimer(nullptr),
 #ifdef ENABLE_WALLET
-                                                                 paymentServer(0),
-                                                                 walletModel(0),
+                                                                 paymentServer(nullptr),
+                                                                 walletModel(nullptr),
 #endif
                                                                  returnValue(0)
 {
@@ -346,10 +345,10 @@ BitcoinApplication::~BitcoinApplication()
     }
 
     delete window;
-    window = 0;
+    window = nullptr;
 #ifdef ENABLE_WALLET
     delete paymentServer;
-    paymentServer = 0;
+    paymentServer = nullptr;
 #endif
     // Delete Qt-settings if user clicked on "Reset Options"
     QSettings settings;
@@ -358,7 +357,7 @@ BitcoinApplication::~BitcoinApplication()
         settings.sync();
     }
     delete optionsModel;
-    optionsModel = 0;
+    optionsModel = nullptr;
 }
 
 #ifdef ENABLE_WALLET
@@ -375,7 +374,7 @@ void BitcoinApplication::createOptionsModel()
 
 void BitcoinApplication::createWindow(const NetworkStyle* networkStyle)
 {
-    window = new PIVXGUI(networkStyle, 0);
+    window = new PIVXGUI(networkStyle, nullptr);
 
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, &QTimer::timeout, window, &PIVXGUI::detectShutdown);
@@ -541,7 +540,7 @@ void BitcoinApplication::shutdownResult(int retval)
 
 void BitcoinApplication::handleRunawayException(const QString& message)
 {
-    QMessageBox::critical(0, "Runaway exception", QObject::tr("A fatal error occurred. PIVX can no longer continue safely and will quit.") + QString("\n\n") + message);
+    QMessageBox::critical(nullptr, "Runaway exception", QObject::tr("A fatal error occurred. PIVX can no longer continue safely and will quit.") + QString("\n\n") + message);
     ::exit(1);
 }
 
