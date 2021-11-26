@@ -52,7 +52,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> stakeinput -> chain"
     "chain -> legacy/stakemodifier -> validation -> chain"
     "chainparamsbase -> util/system -> logging -> chainparamsbase"
-    "coins -> policy/fees -> txmempool -> coins"
     "consensus/zerocoin_verify -> spork -> validation -> consensus/zerocoin_verify"
     "evo/deterministicmns -> masternode -> masternode-sync -> evo/deterministicmns"
     "evo/deterministicmns -> masternodeman -> net_processing -> evo/deterministicmns"
@@ -72,13 +71,9 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> validation -> undo -> chain"
     "chain -> legacy/stakemodifier -> validation -> pow -> chain"
     "chain -> legacy/stakemodifier -> validation -> zpivchain -> chain"
-    "coins -> policy/fees -> policy/policy -> validation -> coins"
-    "coins -> policy/fees -> txmempool -> evo/deterministicmns -> coins"
-    "coins -> policy/fees -> txmempool -> evo/specialtx -> coins"
     "consensus/tx_verify -> consensus/zerocoin_verify -> spork -> validation -> consensus/tx_verify"
     "evo/deterministicmns -> masternodeman -> net_processing -> validationinterface -> evo/deterministicmns"
     "evo/deterministicmns -> masternodeman -> validation -> evo/specialtx -> evo/deterministicmns"
-    "coins -> policy/fees -> policy/policy -> validation -> txdb -> coins"
     "chain -> legacy/stakemodifier -> stakeinput -> wallet/wallet -> spork -> net_processing -> chain"
 )
 
