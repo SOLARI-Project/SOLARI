@@ -378,8 +378,8 @@ private:
     // Network usage totals
     RecursiveMutex cs_totalBytesRecv;
     RecursiveMutex cs_totalBytesSent;
-    uint64_t nTotalBytesRecv{0};
-    uint64_t nTotalBytesSent{0};
+    uint64_t nTotalBytesRecv GUARDED_BY(cs_totalBytesRecv) = 0;
+    uint64_t nTotalBytesSent GUARDED_BY(cs_totalBytesSent) = 0;
 
     // Whitelisted ranges. Any node connecting from these is automatically
     // whitelisted (as well as those connecting to whitelisted binds).
@@ -396,7 +396,7 @@ private:
     CAddrMan addrman;
     std::deque<std::string> vOneShots;
     RecursiveMutex cs_vOneShots;
-    std::vector<std::string> vAddedNodes;
+    std::vector<std::string> vAddedNodes GUARDED_BY(cs_vAddedNodes);
     RecursiveMutex cs_vAddedNodes;
     std::vector<CNode*> vNodes;
     std::list<CNode*> vNodesDisconnected;
