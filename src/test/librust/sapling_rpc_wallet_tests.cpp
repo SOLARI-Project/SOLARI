@@ -14,6 +14,7 @@
 #include "key_io.h"
 #include "consensus/merkle.h"
 #include "wallet/wallet.h"
+#include "wallet/walletutil.h"
 
 #include "sapling/key_io_sapling.h"
 #include "sapling/address.h"
@@ -497,7 +498,14 @@ BOOST_AUTO_TEST_CASE(rpc_shieldsendmany_taddr_to_sapling)
     vpwallets.erase(vpwallets.begin());
 }
 
-BOOST_AUTO_TEST_CASE(rpc_wallet_encrypted_wallet_sapzkeys)
+struct RealWalletTestingSetup : public WalletTestingSetupBase
+{
+    RealWalletTestingSetup() : WalletTestingSetupBase(CBaseChainParams::MAIN,
+                                                      "test_wallet",
+                                                      WalletDatabase::Create(fs::absolute("test_wallet", GetWalletDir()))) {};
+};
+
+BOOST_FIXTURE_TEST_CASE(rpc_wallet_encrypted_wallet_sapzkeys, RealWalletTestingSetup)
 {
     UniValue retValue;
     int n = 100;
@@ -535,6 +543,7 @@ BOOST_AUTO_TEST_CASE(rpc_wallet_encrypted_wallet_sapzkeys)
 
     PushCurrentDirectory push_dir(gArgs.GetArg("-datadir","/tmp/thisshouldnothappen"));
     BOOST_CHECK(m_wallet.EncryptWallet(strWalletPass));
+    BOOST_CHECK(m_wallet.IsCrypted());
 
     // Verify we can still list the keys imported
     BOOST_CHECK_NO_THROW(retValue = CallRPC("listshieldaddresses"));
@@ -547,6 +556,7 @@ BOOST_AUTO_TEST_CASE(rpc_wallet_encrypted_wallet_sapzkeys)
     // We can't call RPC walletpassphrase as that invokes RPCRunLater which breaks tests.
     // So we manually unlock.
     BOOST_CHECK(m_wallet.Unlock(strWalletPass));
+    BOOST_CHECK(m_wallet.IsCrypted());
 
     // Now add a key
     BOOST_CHECK_NO_THROW(CallRPC("getnewshieldaddress"));
