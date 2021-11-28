@@ -19,7 +19,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "crypter -> wallet/wallet -> crypter"
     "evo/deterministicmns -> masternodeman -> evo/deterministicmns"
     "evo/deterministicmns -> llmq/quorums_utils -> evo/deterministicmns"
-    "llmq/quorums_blockprocessor -> net_processing -> llmq/quorums_blockprocessor"
     "kernel -> validation -> kernel"
     "masternode -> masternode-sync -> masternode"
     "masternode -> masternodeman -> masternode"
