@@ -1923,14 +1923,18 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         if (std::find(allMessages.begin(), allMessages.end(), strCommand) != allMessages.end()) {
             // Check if the dispatcher can process this message first. If not, try going with the old flow.
             if (!masternodeSync.MessageDispatcher(pfrom, strCommand, vRecv)) {
-                // Probably one the extensions
+                // Probably one the extensions, future: encapsulate all of this inside tiertwo_networksync.
                 int dosScore{0};
                 if (!mnodeman.ProcessMessage(pfrom, strCommand, vRecv, dosScore)) {
                     WITH_LOCK(cs_main, Misbehaving(pfrom->GetId(), dosScore));
+                    return false;
                 }
                 g_budgetman.ProcessMessage(pfrom, strCommand, vRecv);
                 masternodePayments.ProcessMessageMasternodePayments(pfrom, strCommand, vRecv);
-                sporkManager.ProcessSpork(pfrom, strCommand, vRecv);
+                if (!sporkManager.ProcessSpork(pfrom, strCommand, vRecv, dosScore)) {
+                    WITH_LOCK(cs_main, Misbehaving(pfrom->GetId(), dosScore));
+                    return false;
+                }
             }
         } else {
             // Ignore unknown commands for extensibility
