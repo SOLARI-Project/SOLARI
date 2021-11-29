@@ -6,6 +6,7 @@
 #include "llmq/quorums_commitment.h"
 
 #include "chainparams.h"
+#include "evo/deterministicmns.h"
 #include "llmq/quorums_utils.h"
 #include "logging.h"
 #include "validation.h"
@@ -106,7 +107,7 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
         return errorFinalCommitment("quorumSig");
     }
 
-    auto members = utils::GetAllQuorumMembers(params.type, pQuorumIndex);
+    auto members = deterministicMNManager->GetAllQuorumMembers(params.type, pQuorumIndex);
     for (int i = members.size(); i < params.size; i++) {
         if (validMembers[i]) {
             return errorFinalCommitment("validMembers bitset (bit %d should not be set)", i);

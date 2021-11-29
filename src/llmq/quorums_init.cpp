@@ -7,7 +7,6 @@
 
 #include "bls/bls_worker.h"
 #include "llmq/quorums_blockprocessor.h"
-#include "llmq/quorums_commitment.h"
 
 
 namespace llmq

@@ -589,6 +589,9 @@ public:
     bool LegacyMNObsolete(int nHeight) const;
     bool LegacyMNObsolete() const;
 
+    // Get the list of members for a given quorum type and index
+    std::vector<CDeterministicMNCPtr> GetAllQuorumMembers(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum);
+
 private:
     void CleanupCache(int nHeight);
 };

@@ -8,21 +8,12 @@
 #include "chainparams.h"
 #include "random.h"
 #include "spork.h"
-#include "validation.h"
 
 namespace llmq
 {
 
 namespace utils
 {
-
-std::vector<CDeterministicMNCPtr> GetAllQuorumMembers(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum)
-{
-    auto& params = Params().GetConsensus().llmqs.at(llmqType);
-    auto allMns = deterministicMNManager->GetListForBlock(pindexQuorum);
-    auto modifier = ::SerializeHash(std::make_pair(static_cast<uint8_t>(llmqType), pindexQuorum->GetBlockHash()));
-    return allMns.CalculateQuorum(params.size, modifier);
-}
 
 uint256 BuildCommitmentHash(Consensus::LLMQType llmqType, const uint256& blockHash, const std::vector<bool>& validMembers, const CBLSPublicKey& pubKey, const uint256& vvecHash)
 {
