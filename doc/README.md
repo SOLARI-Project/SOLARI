@@ -30,7 +30,7 @@ Drag PIVX-Qt to your applications folder, and then run PIVX-Qt.
 
 * See the documentation at the [PIVX Wiki](https://github.com/PIVX-Project/PIVX/wiki)
 for help and more information.
-* Ask for help on [BitcoinTalk](https://bitcointalk.org/index.php?topic=1262920.0) or on the [PIVX Forum](http://forum.pivx.org/).
+* Ask for help on the [PIVX Forum](http://forum.pivx.org/).
 * Join our Discord server [Discord Server](https://discord.pivx.org)
 
 Building
@@ -58,11 +58,10 @@ The PIVX repo's [root README](/README.md) contains relevant information on the d
 - [Dnsseed Policy](dnsseed-policy.md)
 
 ### Resources
-* Discuss on the [BitcoinTalk](https://bitcointalk.org/index.php?topic=1262920.0) or the [PIVX](http://forum.pivx.org/) forum.
+* Discuss on the [PIVX](http://forum.pivx.org/) forum.
 * Join the [PIVX Discord](https://discord.pivx.org).
 
 ### Miscellaneous
-- [Assets Attribution](assets-attribution.md)
 - [Files](files.md)
 - [Fuzz-testing](fuzzing.md)
 - [Reduce Memory](reduce-memory.md)
