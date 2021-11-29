@@ -7,7 +7,6 @@
 
 #include "clientversion.h"
 #include "httpserver.h"
-#include "init.h"
 #include "key_io.h"
 #include "sapling/key_io_sapling.h"
 #include "masternode-sync.h"

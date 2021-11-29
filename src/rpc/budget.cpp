@@ -8,7 +8,6 @@
 #include "budget/budgetutil.h"
 #include "db.h"
 #include "evo/deterministicmns.h"
-#include "init.h"
 #include "key_io.h"
 #include "masternode-payments.h"
 #include "masternode-sync.h"
