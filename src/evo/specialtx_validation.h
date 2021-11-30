@@ -6,14 +6,14 @@
 #ifndef PIVX_SPECIALTX_H
 #define PIVX_SPECIALTX_H
 
-#include "streams.h"
+#include "llmq/quorums_commitment.h"
 #include "version.h"
-#include "primitives/transaction.h"
 
 class CBlock;
 class CBlockIndex;
 class CCoinsViewCache;
 class CValidationState;
+class CTransaction;
 class uint256;
 
 /** The maximum allowed size of the extraPayload (for any TxType) */
@@ -31,6 +31,9 @@ bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state);
 // Update internal tiertwo data when blocks containing special txes get connected/disconnected
 bool ProcessSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex, const CCoinsViewCache* view, CValidationState& state, bool fJustCheck);
 bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex);
+
+// Validate given LLMQ final commitment with the list at pindexQuorum
+bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* pindexQuorum);
 
 uint256 CalcTxInputsHash(const CTransaction& tx);
 

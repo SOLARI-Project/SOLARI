@@ -13,7 +13,6 @@
 #include "evo/deterministicmns.h"
 #include "evo/providertx.h"
 #include "llmq/quorums_blockprocessor.h"
-#include "llmq/quorums_commitment.h"
 #include "messagesigner.h"
 #include "primitives/transaction.h"
 #include "primitives/block.h"
@@ -421,7 +420,16 @@ static bool CheckProUpRevTx(const CTransaction& tx, const CBlockIndex* pindexPre
 }
 
 // LLMQ final commitment Payload
-static bool CheckLLMQCommitment(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
+bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* pindexQuorum)
+{
+    std::vector<CBLSPublicKey> allkeys;
+    for (const auto m : deterministicMNManager->GetAllQuorumMembers((Consensus::LLMQType)qfc.llmqType, pindexQuorum)) {
+        allkeys.emplace_back(m->pdmnState->pubKeyOperator.Get());
+    }
+    return qfc.Verify(allkeys);
+}
+
+static bool CheckLLMQCommitmentTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
 {
     llmq::LLMQCommPL pl;
     if (!GetTxPayload(tx, pl)) {
@@ -455,7 +463,7 @@ static bool CheckLLMQCommitment(const CTransaction& tx, const CBlockIndex* pinde
             return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
         }
 
-        if (!pl.commitment.Verify(pindexQuorum)) {
+        if (!VerifyLLMQCommitment(pl.commitment, pindexQuorum)) {
             return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid");
         }
     }
@@ -546,7 +554,7 @@ bool CheckSpecialTx(const CTransaction& tx, const CBlockIndex* pindexPrev, const
         }
         case CTransaction::TxType::LLMQCOMM: {
             // quorum commitment
-            return CheckLLMQCommitment(tx, pindexPrev, state);
+            return CheckLLMQCommitmentTx(tx, pindexPrev, state);
         }
     }
 

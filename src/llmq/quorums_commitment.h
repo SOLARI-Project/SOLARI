@@ -48,7 +48,7 @@ public:
     bool IsNull() const;
     void ToJson(UniValue& obj) const;
 
-    bool Verify(const CBlockIndex* pQuorumIndex) const;
+    bool Verify(const std::vector<CBLSPublicKey>& allkeys) const;
     bool VerifySizes(const Consensus::LLMQParams& params) const;
 
     SERIALIZE_METHODS(CFinalCommitment, obj)

@@ -6,7 +6,6 @@
 #include "llmq/quorums_commitment.h"
 
 #include "chainparams.h"
-#include "evo/deterministicmns.h"
 #include "llmq/quorums_utils.h"
 #include "logging.h"
 
@@ -65,7 +64,7 @@ static bool errorFinalCommitment(const char* fmt, const Args&... args)
     return false;
 }
 
-bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
+bool CFinalCommitment::Verify(const std::vector<CBLSPublicKey>& allkeys) const
 {
     if (nVersion == 0 || nVersion > CURRENT_VERSION) {
         return errorFinalCommitment("version (%d)", nVersion);
@@ -106,8 +105,7 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
         return errorFinalCommitment("quorumSig");
     }
 
-    auto members = deterministicMNManager->GetAllQuorumMembers(params->type, pQuorumIndex);
-    for (int i = members.size(); i < params->size; i++) {
+    for (int i = allkeys.size(); i < params->size; i++) {
         if (validMembers[i]) {
             return errorFinalCommitment("validMembers bitset (bit %d should not be set)", i);
         }
@@ -119,11 +117,11 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
     // check signatures
     uint256 commitmentHash = utils::BuildCommitmentHash(params->type, quorumHash, validMembers, quorumPublicKey, quorumVvecHash);
     std::vector<CBLSPublicKey> memberPubKeys;
-    for (size_t i = 0; i < members.size(); i++) {
+    for (size_t i = 0; i < allkeys.size(); i++) {
         if (!signers[i]) {
             continue;
         }
-        memberPubKeys.emplace_back(members[i]->pdmnState->pubKeyOperator.Get());
+        memberPubKeys.emplace_back(allkeys[i]);
     }
     if (!membersSig.VerifySecureAggregated(memberPubKeys, commitmentHash)) {
         return errorFinalCommitment("aggregated members signature");

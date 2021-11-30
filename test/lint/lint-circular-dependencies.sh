@@ -15,7 +15,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chainparamsbase -> util/system -> chainparamsbase"
     "consensus/params -> consensus/upgrades -> consensus/params"
     "evo/deterministicmns -> masternodeman -> evo/deterministicmns"
-    "evo/deterministicmns -> llmq/quorums_commitment -> evo/deterministicmns"
+    "evo/specialtx_validation -> llmq/quorums_blockprocessor -> evo/specialtx_validation"
     "evo/specialtx_validation -> validation -> evo/specialtx_validation"
     "kernel -> validation -> kernel"
     "masternode -> masternodeman -> masternode"

@@ -1185,7 +1185,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     std::vector<CBLSSecretKey> skeys2(skeys.begin(), skeys.end()-1);
     llmq::CFinalCommitment qfc2 = CreateFinalCommitment(pkeys2, skeys2, quorumHash);
     BOOST_CHECK(!qfc2.IsNull());
-    BOOST_CHECK(qfc2.Verify(quorumIndex));
+    BOOST_CHECK(VerifyLLMQCommitment(qfc2, quorumIndex));
     ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc2, &dummyNode);
     // final commitment received and accepted
     BOOST_CHECK(llmq::quorumBlockProcessor->HasMinableCommitment(::SerializeHash(qfc2)));
@@ -1193,7 +1193,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // Now receive another commitment for the same quorum hash, but with all 3 signatures
     qfc = CreateFinalCommitment(pkeys, skeys, quorumHash);
     BOOST_CHECK(!qfc.IsNull());
-    BOOST_CHECK(qfc.Verify(quorumIndex));
+    BOOST_CHECK(VerifyLLMQCommitment(qfc, quorumIndex));
     ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc, &dummyNode);
     BOOST_CHECK(qfc.CountSigners() > qfc2.CountSigners());
 

@@ -10,6 +10,7 @@
 #include "consensus/validation.h"
 #include "llmq/quorums_utils.h"
 #include "evo/evodb.h"
+#include "evo/specialtx_validation.h"
 #include "net.h"
 #include "primitives/block.h"
 #include "validation.h"
@@ -93,7 +94,7 @@ void CQuorumBlockProcessor::ProcessMessage(CNode* pfrom, CDataStream& vRecv, int
         return;
     }
 
-    if (!qc.Verify(pquorumIndex)) {
+    if (!VerifyLLMQCommitment(qc, pquorumIndex)) {
         retMisbehavingScore = LogMisbehaving(pfrom, 100, "invalid commtiment for quorum", qc.quorumHash.ToString());
         return;
     }
