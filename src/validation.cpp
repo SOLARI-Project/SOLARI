@@ -399,9 +399,13 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
     if (tx.IsCoinBase())
         return state.DoS(100, false, REJECT_INVALID, "coinbase");
 
-    //Coinstake is also only valid in a block, not as a loose transaction
+    // Coinstake is also only valid in a block, not as a loose transaction
     if (tx.IsCoinStake())
         return state.DoS(100, false, REJECT_INVALID, "coinstake");
+
+    // LLMQ final commitment too, not valid as a loose transaction
+    if (tx.IsQuorumCommitmentTx())
+        return state.DoS(100, false, REJECT_INVALID, "llmqcomm");
 
     if (pool.existsProviderTxConflict(tx)) {
         return state.DoS(0, false, REJECT_DUPLICATE, "protx-dup");
