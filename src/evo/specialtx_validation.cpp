@@ -432,12 +432,12 @@ static bool CheckLLMQCommitment(const CTransaction& tx, const CBlockIndex* pinde
         return state.DoS(100, false, REJECT_INVALID, "bad-qc-version");
     }
 
-    if (!Params().GetConsensus().llmqs.count((Consensus::LLMQType)pl.commitment.llmqType)) {
+    Optional<Consensus::LLMQParams> params = Params().GetConsensus().GetLLMQParams(pl.commitment.llmqType);
+    if (params == nullopt) {
         return state.DoS(100, false, REJECT_INVALID, "bad-qc-type");
     }
-    const auto& params = Params().GetConsensus().llmqs.at((Consensus::LLMQType)pl.commitment.llmqType);
 
-    if (!pl.commitment.VerifySizes(params)) {
+    if (!pl.commitment.VerifySizes(*params)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid-sizes");
     }
 

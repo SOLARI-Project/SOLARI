@@ -71,12 +71,12 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
         return errorFinalCommitment("version (%d)", nVersion);
     }
 
-    if (!Params().GetConsensus().llmqs.count((Consensus::LLMQType)llmqType)) {
+    Optional<Consensus::LLMQParams> params = Params().GetConsensus().GetLLMQParams(llmqType);
+    if (params == nullopt) {
         return errorFinalCommitment("type (%d)", llmqType);
     }
-    const auto& params = Params().GetConsensus().llmqs.at((Consensus::LLMQType)llmqType);
 
-    if (!VerifySizes(params)) {
+    if (!VerifySizes(*params)) {
         return errorFinalCommitment("sizes");
     }
 
@@ -85,12 +85,12 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
     }
 
     int count_validmembers = CountValidMembers();
-    if (count_validmembers < params.minSize) {
-        return errorFinalCommitment("valid members count (%d < %d)", count_validmembers, params.minSize);
+    if (count_validmembers < params->minSize) {
+        return errorFinalCommitment("valid members count (%d < %d)", count_validmembers, params->minSize);
     }
     int count_signers = CountSigners();
-    if (count_signers < params.minSize) {
-        return errorFinalCommitment("signers count (%d < %d)", count_signers, params.minSize);
+    if (count_signers < params->minSize) {
+        return errorFinalCommitment("signers count (%d < %d)", count_signers, params->minSize);
     }
 
     if (!quorumPublicKey.IsValid()) {
@@ -106,8 +106,8 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
         return errorFinalCommitment("quorumSig");
     }
 
-    auto members = deterministicMNManager->GetAllQuorumMembers(params.type, pQuorumIndex);
-    for (int i = members.size(); i < params.size; i++) {
+    auto members = deterministicMNManager->GetAllQuorumMembers(params->type, pQuorumIndex);
+    for (int i = members.size(); i < params->size; i++) {
         if (validMembers[i]) {
             return errorFinalCommitment("validMembers bitset (bit %d should not be set)", i);
         }
@@ -117,7 +117,7 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
     }
 
     // check signatures
-    uint256 commitmentHash = utils::BuildCommitmentHash(params.type, quorumHash, validMembers, quorumPublicKey, quorumVvecHash);
+    uint256 commitmentHash = utils::BuildCommitmentHash(params->type, quorumHash, validMembers, quorumPublicKey, quorumVvecHash);
     std::vector<CBLSPublicKey> memberPubKeys;
     for (size_t i = 0; i < members.size(); i++) {
         if (!signers[i]) {

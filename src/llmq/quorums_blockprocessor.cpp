@@ -56,13 +56,12 @@ void CQuorumBlockProcessor::ProcessMessage(CNode* pfrom, CDataStream& vRecv, int
         retMisbehavingScore = LogMisbehaving(pfrom, 100, "null commitment");
         return;
     }
-    if (!Params().GetConsensus().llmqs.count((Consensus::LLMQType)qc.llmqType)) {
+
+    Optional<Consensus::LLMQParams> llmq_params = Params().GetConsensus().GetLLMQParams(qc.llmqType);
+    if (llmq_params == nullopt) {
         retMisbehavingScore = LogMisbehaving(pfrom, 100, "invalid commitment type %d", qc.llmqType);
         return;
     }
-
-    auto type = (Consensus::LLMQType)qc.llmqType;
-    const auto& llmq_params = Params().GetConsensus().llmqs.at(type);
 
     // Verify that quorumHash is part of the active chain and that it's the first block in the DKG interval
     const CBlockIndex* pquorumIndex;
@@ -81,7 +80,7 @@ void CQuorumBlockProcessor::ProcessMessage(CNode* pfrom, CDataStream& vRecv, int
             retMisbehavingScore = LogMisbehaving(pfrom, 0, "block %s not in active chain", qc.quorumHash.ToString());
             return;
         }
-        int quorumHeight = pquorumIndex->nHeight - (pquorumIndex->nHeight % llmq_params.dkgInterval);
+        int quorumHeight = pquorumIndex->nHeight - (pquorumIndex->nHeight % llmq_params->dkgInterval);
         if (quorumHeight != pquorumIndex->nHeight) {
             retMisbehavingScore = LogMisbehaving(pfrom, 100, "block %s is not the first in the DKG interval", qc.quorumHash.ToString());
             return;
@@ -188,12 +187,10 @@ bool CQuorumBlockProcessor::ProcessCommitment(int nHeight, const uint256& blockH
         return true;
     }
 
-    const auto& params = Params().GetConsensus().llmqs.at((Consensus::LLMQType)qc.llmqType);
-
     // Store commitment in DB
-    auto cacheKey = std::make_pair(static_cast<uint8_t>(params.type), quorumHash);
+    auto cacheKey = std::make_pair(qc.llmqType, quorumHash);
     evoDb.Write(std::make_pair(DB_MINED_COMMITMENT, cacheKey), std::make_pair(qc, blockHash));
-    evoDb.Write(BuildInversedHeightKey(params.type, nHeight), quorumIndex->nHeight);
+    evoDb.Write(BuildInversedHeightKey((Consensus::LLMQType)qc.llmqType, nHeight), quorumIndex->nHeight);
 
     {
         LOCK(minableCommitmentsCs);
