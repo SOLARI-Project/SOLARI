@@ -420,17 +420,64 @@ static bool CheckProUpRevTx(const CTransaction& tx, const CBlockIndex* pindexPre
 }
 
 // LLMQ final commitment Payload
-bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* pindexQuorum)
+bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* pindexPrev, CValidationState& state)
 {
-    std::vector<CBLSPublicKey> allkeys;
-    for (const auto m : deterministicMNManager->GetAllQuorumMembers((Consensus::LLMQType)qfc.llmqType, pindexQuorum)) {
-        allkeys.emplace_back(m->pdmnState->pubKeyOperator.Get());
+    AssertLockHeld(cs_main);
+
+    // Check version
+    if (qfc.nVersion == 0 || qfc.nVersion > llmq::CFinalCommitment::CURRENT_VERSION) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-version");
     }
-    return qfc.Verify(allkeys);
+
+    // Check type
+    Optional<Consensus::LLMQParams> params = Params().GetConsensus().GetLLMQParams(qfc.llmqType);
+    if (params == nullopt) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-type");
+    }
+
+    // Check sizes
+    if (!qfc.VerifySizes(*params)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-sizes");
+    }
+
+    if (pindexPrev) {
+        // Get quorum index
+        auto it = mapBlockIndex.find(qfc.quorumHash);
+        if (it == mapBlockIndex.end()) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
+        }
+        const CBlockIndex* pindexQuorum = it->second;
+
+        // Check height
+        if (pindexQuorum->nHeight % params->dkgInterval != 0) {
+            // not first block of DKG interval
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-height");
+        }
+
+        if (pindexQuorum != pindexPrev->GetAncestor(pindexQuorum->nHeight)) {
+            // not part of active chain
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
+        }
+
+        // Get members and check signatures (for not-null commitments)
+        if (!qfc.IsNull()) {
+            std::vector<CBLSPublicKey> allkeys;
+            for (const auto m : deterministicMNManager->GetAllQuorumMembers((Consensus::LLMQType)qfc.llmqType, pindexQuorum)) {
+                allkeys.emplace_back(m->pdmnState->pubKeyOperator.Get());
+            }
+            if (!qfc.Verify(allkeys, *params)) {
+                return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid");
+            }
+        }
+    }
+
+    return true;
 }
 
 static bool CheckLLMQCommitmentTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
 {
+    AssertLockHeld(cs_main);
+
     llmq::LLMQCommPL pl;
     if (!GetTxPayload(tx, pl)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-qc-payload");
@@ -440,35 +487,11 @@ static bool CheckLLMQCommitmentTx(const CTransaction& tx, const CBlockIndex* pin
         return state.DoS(100, false, REJECT_INVALID, "bad-qc-version");
     }
 
-    Optional<Consensus::LLMQParams> params = Params().GetConsensus().GetLLMQParams(pl.commitment.llmqType);
-    if (params == nullopt) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-type");
+    if (pindexPrev && pl.nHeight != (uint32_t)pindexPrev->nHeight + 1) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-qc-height");
     }
 
-    if (!pl.commitment.VerifySizes(*params)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid-sizes");
-    }
-
-    if (pindexPrev) {
-        if (pl.nHeight != (uint32_t)pindexPrev->nHeight + 1) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-height");
-        }
-
-        if (!mapBlockIndex.count(pl.commitment.quorumHash)) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
-        }
-        const CBlockIndex* pindexQuorum = mapBlockIndex.at(pl.commitment.quorumHash);
-        if (pindexQuorum != pindexPrev->GetAncestor(pindexQuorum->nHeight)) {
-            // not part of active chain
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
-        }
-
-        if (!VerifyLLMQCommitment(pl.commitment, pindexQuorum)) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid");
-        }
-    }
-
-    return true;
+    return VerifyLLMQCommitment(pl.commitment, pindexPrev, state);
 }
 
 // Basic non-contextual checks for all tx types

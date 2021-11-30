@@ -64,32 +64,15 @@ static bool errorFinalCommitment(const char* fmt, const Args&... args)
     return false;
 }
 
-bool CFinalCommitment::Verify(const std::vector<CBLSPublicKey>& allkeys) const
+bool CFinalCommitment::Verify(const std::vector<CBLSPublicKey>& allkeys, const Consensus::LLMQParams& params) const
 {
-    if (nVersion == 0 || nVersion > CURRENT_VERSION) {
-        return errorFinalCommitment("version (%d)", nVersion);
-    }
-
-    Optional<Consensus::LLMQParams> params = Params().GetConsensus().GetLLMQParams(llmqType);
-    if (params == nullopt) {
-        return errorFinalCommitment("type (%d)", llmqType);
-    }
-
-    if (!VerifySizes(*params)) {
-        return errorFinalCommitment("sizes");
-    }
-
-    if (IsNull()) {
-        return true;
-    }
-
     int count_validmembers = CountValidMembers();
-    if (count_validmembers < params->minSize) {
-        return errorFinalCommitment("valid members count (%d < %d)", count_validmembers, params->minSize);
+    if (count_validmembers < params.minSize) {
+        return errorFinalCommitment("valid members count (%d < %d)", count_validmembers, params.minSize);
     }
     int count_signers = CountSigners();
-    if (count_signers < params->minSize) {
-        return errorFinalCommitment("signers count (%d < %d)", count_signers, params->minSize);
+    if (count_signers < params.minSize) {
+        return errorFinalCommitment("signers count (%d < %d)", count_signers, params.minSize);
     }
 
     if (!quorumPublicKey.IsValid()) {
@@ -105,7 +88,7 @@ bool CFinalCommitment::Verify(const std::vector<CBLSPublicKey>& allkeys) const
         return errorFinalCommitment("quorumSig");
     }
 
-    for (int i = allkeys.size(); i < params->size; i++) {
+    for (int i = allkeys.size(); i < params.size; i++) {
         if (validMembers[i]) {
             return errorFinalCommitment("validMembers bitset (bit %d should not be set)", i);
         }
@@ -115,7 +98,7 @@ bool CFinalCommitment::Verify(const std::vector<CBLSPublicKey>& allkeys) const
     }
 
     // check signatures
-    uint256 commitmentHash = utils::BuildCommitmentHash(params->type, quorumHash, validMembers, quorumPublicKey, quorumVvecHash);
+    uint256 commitmentHash = utils::BuildCommitmentHash(params.type, quorumHash, validMembers, quorumPublicKey, quorumVvecHash);
     std::vector<CBLSPublicKey> memberPubKeys;
     for (size_t i = 0; i < allkeys.size(); i++) {
         if (!signers[i]) {

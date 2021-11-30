@@ -1058,8 +1058,18 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // create final commitment
     llmq::CFinalCommitment qfc = CreateFinalCommitment(pkeys, skeys, quorumHash);
     BOOST_CHECK(!qfc.IsNull());
-    BOOST_CHECK(qfc.Verify(quorumIndex));
-    // verify that it fails changing the key of one of the signers (!TODO)
+    {
+        LOCK(cs_main);
+        CValidationState state;
+        BOOST_CHECK(VerifyLLMQCommitment(qfc, chainTip, state));
+    }
+
+    // verify that it fails changing the key of one of the signers
+    std::vector<CBLSPublicKey> allkeys(pkeys);
+    allkeys.emplace_back(members.back()->pdmnState->pubKeyOperator.Get());
+    BOOST_CHECK(qfc.Verify(allkeys, params));   // already checked with VerifyLLMQCommitment
+    allkeys[0] = GetRandomBLSKey().GetPublicKey();
+    BOOST_CHECK(!qfc.Verify(allkeys, params));
 
     // receive final commitment message
     CNode dummyNode(id++, NODE_NETWORK, 0, INVALID_SOCKET, CAddress(ip(0xa0b0c001), NODE_NONE), 0, 0, "", true);
@@ -1185,7 +1195,11 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     std::vector<CBLSSecretKey> skeys2(skeys.begin(), skeys.end()-1);
     llmq::CFinalCommitment qfc2 = CreateFinalCommitment(pkeys2, skeys2, quorumHash);
     BOOST_CHECK(!qfc2.IsNull());
-    BOOST_CHECK(VerifyLLMQCommitment(qfc2, quorumIndex));
+    {
+        LOCK(cs_main);
+        CValidationState state;
+        BOOST_CHECK(VerifyLLMQCommitment(qfc2, chainTip, state));
+    }
     ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc2, &dummyNode);
     // final commitment received and accepted
     BOOST_CHECK(llmq::quorumBlockProcessor->HasMinableCommitment(::SerializeHash(qfc2)));
@@ -1193,7 +1207,11 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // Now receive another commitment for the same quorum hash, but with all 3 signatures
     qfc = CreateFinalCommitment(pkeys, skeys, quorumHash);
     BOOST_CHECK(!qfc.IsNull());
-    BOOST_CHECK(VerifyLLMQCommitment(qfc, quorumIndex));
+    {
+        LOCK(cs_main);
+        CValidationState state;
+        BOOST_CHECK(VerifyLLMQCommitment(qfc, chainTip, state));
+    }
     ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc, &dummyNode);
     BOOST_CHECK(qfc.CountSigners() > qfc2.CountSigners());
 

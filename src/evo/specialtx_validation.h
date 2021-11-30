@@ -33,7 +33,7 @@ bool ProcessSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex, co
 bool UndoSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex);
 
 // Validate given LLMQ final commitment with the list at pindexQuorum
-bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* pindexQuorum);
+bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* pindexPrev, CValidationState& state);
 
 uint256 CalcTxInputsHash(const CTransaction& tx);
 

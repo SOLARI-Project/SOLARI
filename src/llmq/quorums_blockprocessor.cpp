@@ -58,44 +58,19 @@ void CQuorumBlockProcessor::ProcessMessage(CNode* pfrom, CDataStream& vRecv, int
         return;
     }
 
-    Optional<Consensus::LLMQParams> llmq_params = Params().GetConsensus().GetLLMQParams(qc.llmqType);
-    if (llmq_params == nullopt) {
-        retMisbehavingScore = LogMisbehaving(pfrom, 100, "invalid commitment type %d", qc.llmqType);
-        return;
-    }
-
-    // Verify that quorumHash is part of the active chain and that it's the first block in the DKG interval
-    const CBlockIndex* pquorumIndex;
-    {
-        LOCK(cs_main);
-        auto it = mapBlockIndex.find(qc.quorumHash);
-        if (it == mapBlockIndex.end()) {
-            // can't really punish the node here, as we might simply be the one that is on the wrong chain or not
-            // fully synced
-            retMisbehavingScore = LogMisbehaving(pfrom, 0, "unknown block %s", qc.quorumHash.ToString());
-            return;
-        }
-        pquorumIndex = it->second;
-        if (chainActive.Tip()->GetAncestor(pquorumIndex->nHeight) != pquorumIndex) {
-            // same, can't punish
-            retMisbehavingScore = LogMisbehaving(pfrom, 0, "block %s not in active chain", qc.quorumHash.ToString());
-            return;
-        }
-        int quorumHeight = pquorumIndex->nHeight - (pquorumIndex->nHeight % llmq_params->dkgInterval);
-        if (quorumHeight != pquorumIndex->nHeight) {
-            retMisbehavingScore = LogMisbehaving(pfrom, 100, "block %s is not the first in the DKG interval", qc.quorumHash.ToString());
-            return;
-        }
-    }
-
     // Check if we already got a better one locally
     // We do this before verifying the commitment to avoid DoS
     if (HasBetterMinableCommitment(qc)) {
         return;
     }
 
-    if (!VerifyLLMQCommitment(qc, pquorumIndex)) {
-        retMisbehavingScore = LogMisbehaving(pfrom, 100, "invalid commtiment for quorum", qc.quorumHash.ToString());
+    CValidationState state;
+    if (!WITH_LOCK(cs_main, return VerifyLLMQCommitment(qc, chainActive.Tip(), state); )) {
+        // can't really punish the node for "bad-qc-quorum-hash" here, as we might simply be
+        // the one that is on the wrong chain or not fully synced
+        int dos = (state.GetRejectReason() == "bad-qc-quorum-hash" ? 0 : state.GetDoSScore());
+        retMisbehavingScore = LogMisbehaving(pfrom, dos, "invalid commtiment for quorum %s: %s",
+                                             qc.quorumHash.ToString(), state.GetRejectReason());
         return;
     }
 
