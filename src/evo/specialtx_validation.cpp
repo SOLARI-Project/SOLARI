@@ -18,6 +18,7 @@
 #include "primitives/transaction.h"
 #include "primitives/block.h"
 #include "script/standard.h"
+#include "validation.h" // needed by CheckLLMQCommitment (!TODO: remove)
 
 /* -- Helper static functions -- */
 
@@ -419,6 +420,49 @@ static bool CheckProUpRevTx(const CTransaction& tx, const CBlockIndex* pindexPre
     return true;
 }
 
+// LLMQ final commitment Payload
+static bool CheckLLMQCommitment(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
+{
+    llmq::LLMQCommPL pl;
+    if (!GetTxPayload(tx, pl)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-qc-payload");
+    }
+
+    if (pl.nVersion == 0 || pl.nVersion > llmq::LLMQCommPL::CURRENT_VERSION) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-qc-version");
+    }
+
+    if (!Params().GetConsensus().llmqs.count((Consensus::LLMQType)pl.commitment.llmqType)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-qc-type");
+    }
+    const auto& params = Params().GetConsensus().llmqs.at((Consensus::LLMQType)pl.commitment.llmqType);
+
+    if (!pl.commitment.VerifySizes(params)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid-sizes");
+    }
+
+    if (pindexPrev) {
+        if (pl.nHeight != (uint32_t)pindexPrev->nHeight + 1) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-height");
+        }
+
+        if (!mapBlockIndex.count(pl.commitment.quorumHash)) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
+        }
+        const CBlockIndex* pindexQuorum = mapBlockIndex.at(pl.commitment.quorumHash);
+        if (pindexQuorum != pindexPrev->GetAncestor(pindexQuorum->nHeight)) {
+            // not part of active chain
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
+        }
+
+        if (!pl.commitment.Verify(pindexQuorum)) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid");
+        }
+    }
+
+    return true;
+}
+
 // Basic non-contextual checks for all tx types
 static bool CheckSpecialTxBasic(const CTransaction& tx, CValidationState& state)
 {
@@ -502,7 +546,7 @@ bool CheckSpecialTx(const CTransaction& tx, const CBlockIndex* pindexPrev, const
         }
         case CTransaction::TxType::LLMQCOMM: {
             // quorum commitment
-            return llmq::CheckLLMQCommitment(tx, pindexPrev, state);
+            return CheckLLMQCommitment(tx, pindexPrev, state);
         }
     }
 

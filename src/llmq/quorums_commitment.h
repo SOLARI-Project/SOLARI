@@ -86,8 +86,6 @@ public:
     void ToJson(UniValue& obj) const;
 };
 
-bool CheckLLMQCommitment(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
-
 } // namespace llmq
 
 #endif // PIVX_QUORUMS_COMMITMENT_H

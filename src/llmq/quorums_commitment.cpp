@@ -9,7 +9,6 @@
 #include "evo/deterministicmns.h"
 #include "llmq/quorums_utils.h"
 #include "logging.h"
-#include "validation.h"
 
 
 namespace llmq
@@ -156,48 +155,6 @@ void LLMQCommPL::ToJson(UniValue& obj) const
     UniValue qcObj;
     commitment.ToJson(qcObj);
     obj.pushKV("commitment", qcObj);
-}
-
-bool CheckLLMQCommitment(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
-{
-    LLMQCommPL pl;
-    if (!GetTxPayload(tx, pl)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-payload");
-    }
-
-    if (pl.nVersion == 0 || pl.nVersion > LLMQCommPL::CURRENT_VERSION) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-version");
-    }
-
-    if (!Params().GetConsensus().llmqs.count((Consensus::LLMQType)pl.commitment.llmqType)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-type");
-    }
-    const auto& params = Params().GetConsensus().llmqs.at((Consensus::LLMQType)pl.commitment.llmqType);
-
-    if (!pl.commitment.VerifySizes(params)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid-sizes");
-    }
-
-    if (pindexPrev) {
-        if (pl.nHeight != (uint32_t)pindexPrev->nHeight + 1) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-height");
-        }
-
-        if (!mapBlockIndex.count(pl.commitment.quorumHash)) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
-        }
-        const CBlockIndex* pindexQuorum = mapBlockIndex.at(pl.commitment.quorumHash);
-        if (pindexQuorum != pindexPrev->GetAncestor(pindexQuorum->nHeight)) {
-            // not part of active chain
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
-        }
-
-        if (!pl.commitment.Verify(pindexQuorum)) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid");
-        }
-    }
-
-    return true;
 }
 
 } // namespace llmq
