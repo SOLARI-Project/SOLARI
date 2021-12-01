@@ -1,13 +1,12 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin developers
-// Copyright (c) 2015-2020 The PIVX developers
+// Copyright (c) 2015-2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include "primitives/transaction.h"
 
 #include "hash.h"
-#include "script/standard.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
 
@@ -79,23 +78,6 @@ CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
 uint256 CTxOut::GetHash() const
 {
     return SerializeHash(*this);
-}
-
-bool CTxOut::GetKeyIDFromUTXO(CKeyID& keyIDRet) const
-{
-    std::vector<valtype> vSolutions;
-    txnouttype whichType;
-    if (scriptPubKey.empty() || !Solver(scriptPubKey, whichType, vSolutions))
-        return false;
-    if (whichType == TX_PUBKEY) {
-        keyIDRet = CPubKey(vSolutions[0]).GetID();
-        return true;
-    }
-    if (whichType == TX_PUBKEYHASH || whichType == TX_COLDSTAKE) {
-        keyIDRet = CKeyID(uint160(vSolutions[0]));
-        return true;
-    }
-    return false;
 }
 
 bool CTxOut::IsZerocoinMint() const
