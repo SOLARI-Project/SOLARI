@@ -419,7 +419,7 @@ void CBudgetManager::RemoveByFeeTxId(const uint256& feeTxId)
     }
 }
 
-const CFinalizedBudget* CBudgetManager::GetBudgetWithHighestVoteCount(int chainHeight) const
+CBudgetManager::HighestFinBudget CBudgetManager::GetBudgetWithHighestVoteCount(int chainHeight) const
 {
     LOCK(cs_budgets);
     int highestVoteCount = 0;
@@ -434,13 +434,13 @@ const CFinalizedBudget* CBudgetManager::GetBudgetWithHighestVoteCount(int chainH
             highestVoteCount = voteCount;
         }
     }
-    return pHighestBudget;
+    return {pHighestBudget, highestVoteCount};
 }
 
 int CBudgetManager::GetHighestVoteCount(int chainHeight) const
 {
-    const CFinalizedBudget* pbudget = GetBudgetWithHighestVoteCount(chainHeight);
-    return (pbudget ? pbudget->GetVoteCount() : -1);
+    const auto& highestBudFin = GetBudgetWithHighestVoteCount(chainHeight);
+    return (highestBudFin.m_budget_fin ? highestBudFin.m_vote_count : -1);
 }
 
 bool CBudgetManager::GetPayeeAndAmount(int chainHeight, CScript& payeeRet, CAmount& nAmountRet) const
@@ -449,8 +449,9 @@ bool CBudgetManager::GetPayeeAndAmount(int chainHeight, CScript& payeeRet, CAmou
     if (!IsBudgetPaymentBlock(chainHeight, nCountThreshold))
         return false;
 
-    const CFinalizedBudget* pfb = GetBudgetWithHighestVoteCount(chainHeight);
-    return pfb && pfb->GetPayeeAndAmount(chainHeight, payeeRet, nAmountRet) && pfb->GetVoteCount() > nCountThreshold;
+    const auto& highestBudFin = GetBudgetWithHighestVoteCount(chainHeight);
+    const CFinalizedBudget* pfb = highestBudFin.m_budget_fin;
+    return pfb && pfb->GetPayeeAndAmount(chainHeight, payeeRet, nAmountRet) && highestBudFin.m_vote_count > nCountThreshold;
 }
 
 bool CBudgetManager::GetExpectedPayeeAmount(int chainHeight, CAmount& nAmountRet) const
@@ -670,10 +671,11 @@ TrxValidationStatus CBudgetManager::IsTransactionValid(const CTransaction& txNew
     {
         LOCK(cs_budgets);
         // Get the finalized budget with the highest amount of votes..
-        const CFinalizedBudget* highestVotesBudget = GetBudgetWithHighestVoteCount(nBlockHeight);
+        const auto& highestBudFin = GetBudgetWithHighestVoteCount(nBlockHeight);
+        const CFinalizedBudget* highestVotesBudget = highestBudFin.m_budget_fin;
         if (highestVotesBudget) {
             // Need to surpass the threshold
-            if (highestVotesBudget->GetVoteCount() > nCountThreshold) {
+            if (highestBudFin.m_vote_count > nCountThreshold) {
                 fThreshold = true;
                 if (highestVotesBudget->IsTransactionValid(txNew, nBlockHash, nBlockHeight) ==
                     TrxValidationStatus::Valid) {
