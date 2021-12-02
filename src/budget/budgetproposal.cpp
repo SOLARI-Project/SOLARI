@@ -4,8 +4,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "budget/budgetproposal.h"
-
-#include "masternodeman.h"
+#include "chainparams.h"
+#include "script/standard.h"
 
 CBudgetProposal::CBudgetProposal():
         nAllotted(0),
@@ -77,9 +77,9 @@ void CBudgetProposal::SyncVotes(CNode* pfrom, bool fPartial, int& nInvCount) con
     }
 }
 
-bool CBudgetProposal::IsHeavilyDownvoted(bool fNewRules)
+bool CBudgetProposal::IsHeavilyDownvoted(bool fNewRules, int mnCount)
 {
-    if (GetNays() - GetYeas() > (fNewRules ? 3 : 1) * mnodeman.CountEnabled() / 10) {
+    if (GetNays() - GetYeas() > (fNewRules ? 3 : 1) * mnCount / 10) {
         strInvalid = "Heavily Downvoted";
         return true;
     }
@@ -166,7 +166,7 @@ bool CBudgetProposal::updateExpired(int nCurrentHeight)
     return false;
 }
 
-bool CBudgetProposal::UpdateValid(int nCurrentHeight)
+bool CBudgetProposal::UpdateValid(int nCurrentHeight, int mnCount)
 {
     fValid = false;
 
@@ -175,7 +175,7 @@ bool CBudgetProposal::UpdateValid(int nCurrentHeight)
 
     // Never kill a proposal before the first superblock
     if (!fNewRules || nCurrentHeight > nBlockStart) {
-        if (IsHeavilyDownvoted(fNewRules)) return false;
+        if (IsHeavilyDownvoted(fNewRules, mnCount)) return false;
     }
 
     if (updateExpired(nCurrentHeight)) {
