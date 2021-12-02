@@ -1924,7 +1924,6 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
                 g_budgetman.ProcessMessage(pfrom, strCommand, vRecv);
                 masternodePayments.ProcessMessageMasternodePayments(pfrom, strCommand, vRecv);
                 sporkManager.ProcessSpork(pfrom, strCommand, vRecv);
-                masternodeSync.ProcessMessage(pfrom, strCommand, vRecv);
             }
         } else {
             // Ignore unknown commands for extensibility

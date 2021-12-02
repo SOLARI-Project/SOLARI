@@ -220,17 +220,12 @@ std::string CMasternodeSync::GetSyncStatus()
     return "";
 }
 
-void CMasternodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
+void CMasternodeSync::ProcessSyncStatusMsg(int nItemID, int nCount)
 {
-    if (strCommand == NetMsgType::SYNCSTATUSCOUNT) { //Sync status count
-        int nItemID;
-        int nCount;
-        vRecv >> nItemID >> nCount;
+    if (RequestedMasternodeAssets >= MASTERNODE_SYNC_FINISHED) return;
 
-        if (RequestedMasternodeAssets >= MASTERNODE_SYNC_FINISHED) return;
-
-        //this means we will receive no further communication
-        switch (nItemID) {
+    //this means we will receive no further communication
+    switch (nItemID) {
         case (MASTERNODE_SYNC_LIST):
             if (nItemID != RequestedMasternodeAssets) return;
             sumMasternodeList += nCount;
@@ -251,10 +246,11 @@ void CMasternodeSync::ProcessMessage(CNode* pfrom, std::string& strCommand, CDat
             sumBudgetItemFin += nCount;
             countBudgetItemFin++;
             break;
-        }
-
-        LogPrint(BCLog::MASTERNODE, "CMasternodeSync:ProcessMessage - ssc - got inventory count %d %d\n", nItemID, nCount);
+        default:
+            break;
     }
+
+    LogPrint(BCLog::MASTERNODE, "CMasternodeSync:ProcessMessage - ssc - got inventory count %d %d\n", nItemID, nCount);
 }
 
 void CMasternodeSync::ClearFulfilledRequest()
