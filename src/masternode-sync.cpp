@@ -402,6 +402,10 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
 
         if (lastMasternodeWinner > 0 && lastMasternodeWinner < GetTime() - MASTERNODE_SYNC_TIMEOUT * 2 && RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD) { //hasn't received a new item in the last five seconds, so we'll move to the
             SwitchToNextAsset();
+            // in case we received a budget item while we were syncing the mnw, let's reset the last budget item received time.
+            // reason: if we received for example a single proposal +50 seconds ago, then once the budget sync starts (right after this call),
+            // it will look like the sync is finished, and will not wait to receive any budget data and declare the sync over.
+            lastBudgetItem = 0;
             return false;
         }
 
@@ -412,6 +416,11 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
                 syncTimeout("MASTERNODE_SYNC_MNW");
             } else {
                 SwitchToNextAsset();
+                // Same as above (future: remove all of this duplicated code in v6.0.)
+                // in case we received a budget item while we were syncing the mnw, let's reset the last budget item received time.
+                // reason: if we received for example a single proposal +50 seconds ago, then once the budget sync starts (right after this call),
+                // it will look like the sync is finished, and will not wait to receive any budget data and declare the sync over.
+                lastBudgetItem = 0;
             }
             return false;
         }
