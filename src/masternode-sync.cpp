@@ -411,7 +411,7 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
 
         // timeout
         if (lastMasternodeWinner == 0 &&
-            (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 3 || GetTime() - nAssetSyncStarted > MASTERNODE_SYNC_TIMEOUT * 5)) {
+            (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 2 || GetTime() - nAssetSyncStarted > MASTERNODE_SYNC_TIMEOUT * 5)) {
             if (sporkManager.IsSporkActive(SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT)) {
                 syncTimeout("MASTERNODE_SYNC_MNW");
             } else {
@@ -425,8 +425,8 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
             return false;
         }
 
-        // Don't request mnw initial sync to more than 6 randomly ordered peers in this round.
-        if (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 3) return false;
+        // Don't request mnw initial sync to more than 4 randomly ordered peers in this round.
+        if (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD * 2) return false;
 
         // Request mnw sync if we haven't requested it yet.
         if (pnode->HasFulfilledRequest("mnwsync")) return true;
