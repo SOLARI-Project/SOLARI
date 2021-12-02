@@ -567,7 +567,7 @@ bool CDeterministicMNManager::UndoBlock(const CBlock& block, const CBlockIndex* 
     return true;
 }
 
-void CDeterministicMNManager::UpdatedBlockTip(const CBlockIndex* pindex)
+void CDeterministicMNManager::SetTipIndex(const CBlockIndex* pindex)
 {
     LOCK(cs);
     tipIndex = pindex;
