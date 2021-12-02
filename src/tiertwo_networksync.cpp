@@ -93,6 +93,9 @@ bool CMasternodeSync::MessageDispatcher(CNode* pfrom, std::string& strCommand, C
         int nCount;
         vRecv >> nItemID >> nCount;
 
+        // Update stats
+        ProcessSyncStatusMsg(nItemID, nCount);
+
         // this means we will receive no further communication on the first sync
         switch (nItemID) {
             case MASTERNODE_SYNC_LIST: {
