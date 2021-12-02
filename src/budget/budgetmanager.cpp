@@ -1360,7 +1360,7 @@ void CBudgetManager::Sync(CNode* pfrom, const uint256& nProp, bool fPartial)
     g_connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SYNCSTATUSCOUNT, MASTERNODE_SYNC_BUDGET_FIN, nInvCount));
     LogPrint(BCLog::MNBUDGET, "%s: sent %d items\n", __func__, nInvCount);
 
-    {
+    if (!fPartial && nProp.IsNull()) { // Only for external full budget sync requests
         // Now that budget full sync request was handled, mark it as completed.
         // We are not going to answer full budget sync requests for an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS).
         // The remote peer can still do single prop and mnv sync requests if needed.
