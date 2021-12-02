@@ -337,11 +337,18 @@ bool CMasternodeSync::SyncWithNode(CNode* pnode, bool fLegacyMnObsolete)
 
     //set to synced
     if (RequestedMasternodeAssets == MASTERNODE_SYNC_SPORKS) {
+
+        // Sync sporks from at least 2 peers
+        if (RequestedMasternodeAttempt >= MASTERNODE_SYNC_THRESHOLD) {
+            SwitchToNextAsset();
+            return false;
+        }
+
+        // Request sporks sync if we haven't requested it yet.
         if (pnode->HasFulfilledRequest("getspork")) return true;
         pnode->FulfilledRequest("getspork");
 
-        g_connman->PushMessage(pnode, msgMaker.Make(NetMsgType::GETSPORKS)); //get current network sporks
-        if (RequestedMasternodeAttempt >= 2) SwitchToNextAsset();
+        g_connman->PushMessage(pnode, msgMaker.Make(NetMsgType::GETSPORKS));
         RequestedMasternodeAttempt++;
         return false;
     }
