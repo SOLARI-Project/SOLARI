@@ -1327,15 +1327,46 @@ void CBudgetManager::SetSynced(bool synced)
     }
 }
 
+template<typename Map, typename Item>
+static bool relayItemIfFound(const uint256& itemHash, CNode* pfrom, RecursiveMutex& cs, Map& map, bool fPartial, const char* type)
+{
+    CNetMsgMaker msgMaker(pfrom->GetSendVersion());
+    LOCK(cs);
+    const auto& it = map.find(itemHash);
+    if (it == map.end()) return false;
+    Item* item = &(it->second);
+    if (!item->IsValid()) return true; // don't broadcast invalid items
+    g_connman->PushMessage(pfrom, msgMaker.Make(type, item->GetBroadcast()));
+    int nInvCount = 1;
+    item->SyncVotes(pfrom, fPartial, nInvCount);
+    LogPrint(BCLog::MNBUDGET, "%s: single %s sent %d items\n", __func__, type, nInvCount);
+    return true;
+}
+
 void CBudgetManager::Sync(CNode* pfrom, const uint256& nProp, bool fPartial)
 {
+    // Single item request
+    if (!nProp.IsNull()) {
+        // Try first to relay a proposal
+        if (relayItemIfFound<std::map<uint256, CBudgetProposal>, CBudgetProposal>(nProp, pfrom, cs_proposals, mapProposals, fPartial, NetMsgType::BUDGETPROPOSAL)) {
+            return;
+        }
+        // Try now to relay a finalization
+        if (relayItemIfFound<std::map<uint256, CFinalizedBudget>, CFinalizedBudget>(nProp, pfrom, cs_budgets, mapFinalizedBudgets, fPartial, NetMsgType::FINALBUDGET)) {
+            return;
+        }
+        LogPrint(BCLog::MNBUDGET, "%s: single request budget item not found\n", __func__);
+        return;
+    }
+
+    // Full budget sync request.
     CNetMsgMaker msgMaker(pfrom->GetSendVersion());
     int nInvCount = 0;
     {
         LOCK(cs_proposals);
         for (auto& it: mapProposals) {
             CBudgetProposal* pbudgetProposal = &(it.second);
-            if (pbudgetProposal && pbudgetProposal->IsValid() && (nProp.IsNull() || it.first == nProp)) {
+            if (pbudgetProposal && pbudgetProposal->IsValid()) {
                 pfrom->PushInventory(CInv(MSG_BUDGET_PROPOSAL, it.second.GetHash()));
                 nInvCount++;
                 pbudgetProposal->SyncVotes(pfrom, fPartial, nInvCount);
@@ -1350,7 +1381,7 @@ void CBudgetManager::Sync(CNode* pfrom, const uint256& nProp, bool fPartial)
         LOCK(cs_budgets);
         for (auto& it: mapFinalizedBudgets) {
             CFinalizedBudget* pfinalizedBudget = &(it.second);
-            if (pfinalizedBudget && pfinalizedBudget->IsValid() && (nProp.IsNull() || it.first == nProp)) {
+            if (pfinalizedBudget && pfinalizedBudget->IsValid()) {
                 pfrom->PushInventory(CInv(MSG_BUDGET_FINALIZED, it.second.GetHash()));
                 nInvCount++;
                 pfinalizedBudget->SyncVotes(pfrom, fPartial, nInvCount);
