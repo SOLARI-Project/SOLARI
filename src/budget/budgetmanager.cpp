@@ -1343,6 +1343,26 @@ static bool relayItemIfFound(const uint256& itemHash, CNode* pfrom, RecursiveMut
     return true;
 }
 
+template<typename Map, typename Item>
+static bool relayValidItems(CNode* pfrom, RecursiveMutex& cs, Map& map, bool fPartial, GetDataMsg invType, const int mn_sync_budget_type)
+{
+    CNetMsgMaker msgMaker(pfrom->GetSendVersion());
+    int nInvCount = 0;
+    {
+        LOCK(cs);
+        for (auto& it: map) {
+            Item* item = &(it.second);
+            if (item && item->IsValid()) {
+                pfrom->PushInventory(CInv(invType, item->GetHash()));
+                nInvCount++;
+                item->SyncVotes(pfrom, fPartial, nInvCount);
+            }
+        }
+    }
+    g_connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SYNCSTATUSCOUNT, mn_sync_budget_type, nInvCount));
+    LogPrint(BCLog::MNBUDGET, "%s: sent %d items\n", __func__, nInvCount);
+}
+
 void CBudgetManager::Sync(CNode* pfrom, const uint256& nProp, bool fPartial)
 {
     // Single item request
@@ -1360,38 +1380,10 @@ void CBudgetManager::Sync(CNode* pfrom, const uint256& nProp, bool fPartial)
     }
 
     // Full budget sync request.
-    CNetMsgMaker msgMaker(pfrom->GetSendVersion());
-    int nInvCount = 0;
-    {
-        LOCK(cs_proposals);
-        for (auto& it: mapProposals) {
-            CBudgetProposal* pbudgetProposal = &(it.second);
-            if (pbudgetProposal && pbudgetProposal->IsValid()) {
-                pfrom->PushInventory(CInv(MSG_BUDGET_PROPOSAL, it.second.GetHash()));
-                nInvCount++;
-                pbudgetProposal->SyncVotes(pfrom, fPartial, nInvCount);
-            }
-        }
-    }
-    g_connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SYNCSTATUSCOUNT, MASTERNODE_SYNC_BUDGET_PROP, nInvCount));
-    LogPrint(BCLog::MNBUDGET, "%s: sent %d items\n", __func__, nInvCount);
+    relayValidItems<std::map<uint256, CBudgetProposal>, CBudgetProposal>(pfrom, cs_proposals, mapProposals, fPartial, MSG_BUDGET_PROPOSAL, MASTERNODE_SYNC_BUDGET_PROP);
+    relayValidItems<std::map<uint256, CFinalizedBudget>, CFinalizedBudget>(pfrom, cs_budgets, mapFinalizedBudgets, fPartial, MSG_BUDGET_FINALIZED, MASTERNODE_SYNC_BUDGET_FIN);
 
-    nInvCount = 0;
-    {
-        LOCK(cs_budgets);
-        for (auto& it: mapFinalizedBudgets) {
-            CFinalizedBudget* pfinalizedBudget = &(it.second);
-            if (pfinalizedBudget && pfinalizedBudget->IsValid()) {
-                pfrom->PushInventory(CInv(MSG_BUDGET_FINALIZED, it.second.GetHash()));
-                nInvCount++;
-                pfinalizedBudget->SyncVotes(pfrom, fPartial, nInvCount);
-            }
-        }
-    }
-    g_connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SYNCSTATUSCOUNT, MASTERNODE_SYNC_BUDGET_FIN, nInvCount));
-    LogPrint(BCLog::MNBUDGET, "%s: sent %d items\n", __func__, nInvCount);
-
-    if (!fPartial && nProp.IsNull()) { // Only for external full budget sync requests
+    if (!fPartial) {
         // Now that budget full sync request was handled, mark it as completed.
         // We are not going to answer full budget sync requests for an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS).
         // The remote peer can still do single prop and mnv sync requests if needed.
