@@ -713,13 +713,16 @@ void CoinControlDialog::loadAvailableCoin(bool treeMode,
     // vout index
     itemOutput->setText(COLUMN_VOUT_INDEX, QString::number(outIndex));
 
-    // disable locked coins
-    const bool isLockedCoin = model->isLockedCoin(txhash, outIndex);
-    if (isLockedCoin) {
-        --nSelectableInputs;
-        coinControl->UnSelect({txhash, outIndex}); // just to be sure
-        itemOutput->setDisabled(true);
-        itemOutput->setIcon(COLUMN_CHECKBOX, QIcon(":/icons/lock_closed"));
+    // disable locked coins (!TODO: implement locked notes)
+    bool isLockedCoin{false};
+    if (fSelectTransparent) {
+        isLockedCoin = model->isLockedCoin(txhash, outIndex);
+        if (isLockedCoin) {
+            --nSelectableInputs;
+            coinControl->UnSelect({txhash, outIndex}); // just to be sure
+            itemOutput->setDisabled(true);
+            itemOutput->setIcon(COLUMN_CHECKBOX, QIcon(":/icons/lock_closed"));
+        }
     }
 
     // set checkbox
