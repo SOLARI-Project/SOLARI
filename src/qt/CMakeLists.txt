@@ -134,7 +134,6 @@ SET(QT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/sendmemodialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/sendmultirow.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/send.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/pivx/addnewaddressdialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/addnewcontactdialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/requestdialog.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/receivewidget.cpp
