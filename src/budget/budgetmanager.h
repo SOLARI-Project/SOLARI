@@ -31,9 +31,9 @@ protected:
     std::map<uint256, CFinalizedBudget> mapFinalizedBudgets;                // guarded by cs_budgets
 
     std::map<uint256, CBudgetVote> mapSeenProposalVotes;                    // guarded by cs_votes
-    std::map<uint256, CBudgetVote> mapOrphanProposalVotes;                  // guarded by cs_votes
+    std::map<uint256, std::vector<CBudgetVote>> mapOrphanProposalVotes;        // guarded by cs_votes
     std::map<uint256, CFinalizedBudgetVote> mapSeenFinalizedBudgetVotes;    // guarded by cs_finalizedvotes
-    std::map<uint256, CFinalizedBudgetVote> mapOrphanFinalizedBudgetVotes;  // guarded by cs_finalizedvotes
+    std::map<uint256, std::vector<CFinalizedBudgetVote>> mapOrphanFinalizedBudgetVotes;  // guarded by cs_finalizedvotes
 
     // Memory Only. Updated in NewBlock (blocks arrive in order)
     std::atomic<int> nBestHeight;
@@ -140,7 +140,7 @@ public:
     uint256 SubmitFinalBudget();
 
     bool UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::string& strError);
-    bool UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError);
+    bool UpdateFinalizedBudget(const CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError);
     TrxValidationStatus IsTransactionValid(const CTransaction& txNew, const uint256& nBlockHash, int nBlockHeight) const;
     std::string GetRequiredPaymentsString(int nBlockHeight);
     bool FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake) const;

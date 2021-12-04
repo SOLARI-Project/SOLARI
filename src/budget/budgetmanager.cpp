@@ -33,20 +33,38 @@ void CBudgetManager::CheckOrphanVotes()
     std::string strError = "";
     {
         LOCK(cs_votes);
-        for (auto it = mapOrphanProposalVotes.begin(); it != mapOrphanProposalVotes.end();) {
-            if (UpdateProposal(it->second, nullptr, strError))
-                it = mapOrphanProposalVotes.erase(it);
-            else
-                ++it;
+        for (auto itOrphanVotes = mapOrphanProposalVotes.begin(); itOrphanVotes != mapOrphanProposalVotes.end();) {
+            auto& setVotes = itOrphanVotes->second;
+            for (auto itVote = setVotes.begin(); itVote != setVotes.end();) {
+                if (UpdateProposal(*itVote, nullptr, strError)) {
+                    itVote = setVotes.erase(itVote);
+                } else {
+                    itVote++;
+                }
+            }
+            if (setVotes.empty()) {
+                itOrphanVotes = mapOrphanProposalVotes.erase(itOrphanVotes);
+            } else {
+                ++itOrphanVotes;
+            }
         }
     }
     {
         LOCK(cs_finalizedvotes);
-        for (auto it = mapOrphanFinalizedBudgetVotes.begin(); it != mapOrphanFinalizedBudgetVotes.end();) {
-            if (UpdateFinalizedBudget(it->second, nullptr, strError))
-                it = mapOrphanFinalizedBudgetVotes.erase(it);
-            else
-                ++it;
+        for (auto itOrphanVotes = mapOrphanFinalizedBudgetVotes.begin(); itOrphanVotes != mapOrphanFinalizedBudgetVotes.end();) {
+            auto& setVotes = itOrphanVotes->second;
+            for (auto itVote = setVotes.begin(); itVote != setVotes.end();) {
+                if (UpdateFinalizedBudget(*itVote, nullptr, strError)) {
+                    itVote = setVotes.erase(itVote);
+                } else {
+                    itVote++;
+                }
+            }
+            if (setVotes.empty()) {
+                itOrphanVotes = mapOrphanFinalizedBudgetVotes.erase(itOrphanVotes);
+            } else {
+                ++itOrphanVotes;
+            }
         }
     }
     LogPrint(BCLog::MNBUDGET,"%s: Done\n", __func__);
@@ -238,10 +256,11 @@ bool CBudgetManager::AddFinalizedBudget(CFinalizedBudget& finalizedBudget, CNode
         LogPrint(BCLog::MNBUDGET,"%s: Budget finalization does not match with winning proposals\n", __func__);
         // just for now (until v6), request proposals and budget sync in case we are missing them
         if (pfrom) {
-            // First single inv requests for single proposals that we don't have.
+            CNetMsgMaker maker(pfrom->GetSendVersion());
+            // First, request single proposals that we don't have.
             for (const auto& propId : finalizedBudget.GetProposalsHashes()) {
                 if (!g_budgetman.HaveProposal(propId)) {
-                    pfrom->PushInventory(CInv(MSG_BUDGET_PROPOSAL, propId));
+                    g_connman->PushMessage(pfrom, maker.Make(NetMsgType::BUDGETVOTESYNC, propId));
                 }
             }
 
@@ -249,7 +268,7 @@ bool CBudgetManager::AddFinalizedBudget(CFinalizedBudget& finalizedBudget, CNode
             // Note: this will not make any effect on peers with version <= 70923 as they, invalidly, are blocking
             // follow-up budget sync request for the entire node life cycle.
             uint256 n;
-            g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, n));
+            g_connman->PushMessage(pfrom, maker.Make(NetMsgType::BUDGETVOTESYNC, n));
         }
         return false;
     }
@@ -980,6 +999,10 @@ void CBudgetManager::NewBlock()
         }
     }
 
+    {
+        // todo: Clean orphan proposal votes and budget finalization votes
+    }
+
     LogPrint(BCLog::MNBUDGET,"%s:  PASSED\n", __func__);
 }
 
@@ -1344,7 +1367,7 @@ static bool relayItemIfFound(const uint256& itemHash, CNode* pfrom, RecursiveMut
 }
 
 template<typename Map, typename Item>
-static bool relayValidItems(CNode* pfrom, RecursiveMutex& cs, Map& map, bool fPartial, GetDataMsg invType, const int mn_sync_budget_type)
+static void relayValidItems(CNode* pfrom, RecursiveMutex& cs, Map& map, bool fPartial, GetDataMsg invType, const int mn_sync_budget_type)
 {
     CNetMsgMaker msgMaker(pfrom->GetSendVersion());
     int nInvCount = 0;
@@ -1404,7 +1427,7 @@ bool CBudgetManager::UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::
             if (!masternodeSync.IsSynced()) return false;
 
             LogPrint(BCLog::MNBUDGET,"%s: Unknown proposal %d, asking for source proposal\n", __func__, nProposalHash.ToString());
-            WITH_LOCK(cs_votes, mapOrphanProposalVotes[nProposalHash] = vote; );
+            WITH_LOCK(cs_votes, mapOrphanProposalVotes[nProposalHash].emplace_back(vote); );
 
             if (!askedForSourceProposalOrBudget.count(nProposalHash)) {
                 g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, nProposalHash));
@@ -1420,7 +1443,7 @@ bool CBudgetManager::UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::
     return mapProposals[nProposalHash].AddOrUpdateVote(vote, strError);
 }
 
-bool CBudgetManager::UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError)
+bool CBudgetManager::UpdateFinalizedBudget(const CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError)
 {
     LOCK(cs_budgets);
 
@@ -1432,7 +1455,7 @@ bool CBudgetManager::UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CNode* pf
             if (!masternodeSync.IsSynced()) return false;
 
             LogPrint(BCLog::MNBUDGET,"%s: Unknown Finalized Proposal %s, asking for source budget\n", __func__, nBudgetHash.ToString());
-            WITH_LOCK(cs_finalizedvotes, mapOrphanFinalizedBudgetVotes[nBudgetHash] = vote; );
+            WITH_LOCK(cs_finalizedvotes, mapOrphanFinalizedBudgetVotes[nBudgetHash].emplace_back(vote););
 
             if (!askedForSourceProposalOrBudget.count(nBudgetHash)) {
                 g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, nBudgetHash));
