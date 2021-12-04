@@ -828,6 +828,12 @@ void CoinControlDialog::updateView()
     // sort view
     sortView(sortColumn, sortOrder);
     ui->treeWidget->setEnabled(true);
+
+    // TODO: Remove this once note locking is functional
+    // Hide or show locking button and context menu items
+    lockAction->setVisible(fSelectTransparent);
+    unlockAction->setVisible(fSelectTransparent);
+    ui->pushButtonToggleLock->setVisible(fSelectTransparent);
 }
 
 void CoinControlDialog::refreshDialog()
