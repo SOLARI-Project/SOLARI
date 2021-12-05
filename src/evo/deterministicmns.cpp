@@ -5,10 +5,12 @@
 
 #include "evo/deterministicmns.h"
 
+#include "chain.h"
+#include "coins.h"
 #include "chainparams.h"
 #include "consensus/upgrades.h"
+#include "consensus/validation.h"
 #include "core_io.h"
-#include "evo/specialtx.h"
 #include "key_io.h"
 #include "guiinterface.h"
 #include "masternode.h" // for MasternodeCollateralMinConf
@@ -16,7 +18,6 @@
 #include "script/standard.h"
 #include "spork.h"
 #include "sync.h"
-#include "validation.h"
 
 #include <univalue.h>
 
@@ -90,16 +91,6 @@ void CDeterministicMN::ToJson(UniValue& obj) const
     obj.pushKV("proTxHash", proTxHash.ToString());
     obj.pushKV("collateralHash", collateralOutpoint.hash.ToString());
     obj.pushKV("collateralIndex", (int)collateralOutpoint.n);
-
-    std::string collateralAddressStr = "";
-    Coin coin;
-    if (GetUTXOCoin(collateralOutpoint, coin)) {
-        CTxDestination dest;
-        if (ExtractDestination(coin.out.scriptPubKey, dest)) {
-            collateralAddressStr = EncodeDestination(dest);
-        }
-    }
-    obj.pushKV("collateralAddress", collateralAddressStr);
     obj.pushKV("operatorReward", (double)nOperatorReward / 100);
     obj.pushKV("dmnstate", stateObj);
 }
@@ -629,14 +620,6 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, const C
             if (old_mn) {
                 old_mn->SetSpent();
                 mnodeman.CheckAndRemove();
-            }
-
-            Coin coin;
-            const CAmount collAmt = Params().GetConsensus().nMNCollateralAmt;
-            if (!pl.collateralOutpoint.hash.IsNull() && (!GetUTXOCoin(pl.collateralOutpoint, coin) || coin.out.nValue != collAmt)) {
-                // should actually never get to this point as CheckProRegTx should have handled this case.
-                // We do this additional check nevertheless to be 100% sure
-                return _state.DoS(100, false, REJECT_INVALID, "bad-protx-collateral");
             }
 
             auto replacedDmn = newList.GetMNByCollateral(dmn->collateralOutpoint);

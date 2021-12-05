@@ -8,7 +8,7 @@
 #include "core_io.h"
 #include "destination_io.h"
 #include "evo/deterministicmns.h"
-#include "evo/specialtx.h"
+#include "evo/specialtx_validation.h"
 #include "evo/providertx.h"
 #include "key_io.h"
 #include "masternode.h"
@@ -242,6 +242,22 @@ static CBLSSecretKey GetBLSSecretKey(const std::string& hexKey)
     return sk;
 }
 
+static UniValue DmnToJson(const CDeterministicMNCPtr dmn)
+{
+    UniValue ret(UniValue::VOBJ);
+    dmn->ToJson(ret);
+    Coin coin;
+    if (!WITH_LOCK(cs_main, return pcoinsTip->GetUTXOCoin(dmn->collateralOutpoint, coin); )) {
+        return ret;
+    }
+    CTxDestination dest;
+    if (!ExtractDestination(coin.out.scriptPubKey, dest)) {
+        return ret;
+    }
+    ret.pushKV("collateralAddress", EncodeDestination(dest));
+    return ret;
+}
+
 #ifdef ENABLE_WALLET
 
 template<typename SpecialTxPayload>
@@ -352,7 +368,8 @@ static std::string SignAndSendSpecialTx(CWallet* const pwallet, CMutableTransact
     SetTxPayload(tx, pl);
 
     CValidationState state;
-    if (!CheckSpecialTx(tx, GetChainTip(), state)) {
+    CCoinsViewCache view(pcoinsTip.get());
+    if (!CheckSpecialTx(tx, GetChainTip(), &view, state)) {
         throw JSONRPCError(RPC_MISC_ERROR, FormatStateMessage(state));
     }
 
@@ -492,11 +509,8 @@ static UniValue ProTxRegister(const JSONRPCRequest& request, bool fSignAndSend)
 
     // referencing unspent collateral outpoint
     Coin coin;
-    {
-        LOCK(cs_main);
-        if (!GetUTXOCoin(pl.collateralOutpoint, coin)) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("collateral not found: %s-%d", collateralHash.ToString(), collateralIndex));
-        }
+    if (!WITH_LOCK(cs_main, return pcoinsTip->GetUTXOCoin(pl.collateralOutpoint, coin); )) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("collateral not found: %s-%d", collateralHash.ToString(), collateralIndex));
     }
     if (coin.out.nValue != Params().GetConsensus().nMNCollateralAmt) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("collateral %s-%d with invalid value %d", collateralHash.ToString(), collateralIndex, coin.out.nValue));
@@ -677,18 +691,6 @@ static bool CheckWalletOwnsScript(CWallet* pwallet, const CScript& script)
 #endif
 }
 
-static Optional<int> GetUTXOConfirmations(const COutPoint& outpoint)
-{
-    // nullopt means UTXO is yet unknown or already spent
-    Optional<int> coinHeight = GetUTXOHeight(outpoint);
-    if (coinHeight == nullopt || *coinHeight < 0)
-        return nullopt;
-    int nChainHeight(WITH_LOCK(cs_main, return chainActive.Height(); ));
-    if (nChainHeight < 0 || *coinHeight > nChainHeight)
-        return nullopt;
-    return Optional<int>(nChainHeight - *coinHeight + 1);
-}
-
 static void AddDMNEntryToList(UniValue& ret, CWallet* pwallet, const CDeterministicMNCPtr& dmn, bool fVerbose, bool fFromWallet)
 {
     assert(!fFromWallet || pwallet);
@@ -720,10 +722,9 @@ static void AddDMNEntryToList(UniValue& ret, CWallet* pwallet, const CDeterminis
     }
 
     if (fVerbose) {
-        UniValue o(UniValue::VOBJ);
-        dmn->ToJson(o);
-        Optional<int> confirmations = GetUTXOConfirmations(dmn->collateralOutpoint);
-        o.pushKV("confirmations", confirmations ? *confirmations : -1);
+        UniValue o = DmnToJson(dmn);
+        int confs = WITH_LOCK(cs_main, return pcoinsTip->GetCoinDepthAtHeight(dmn->collateralOutpoint, chainActive.Height()); );
+        o.pushKV("confirmations", confs);
         o.pushKV("hasOwnerKey", hasOwnerKey);
         o.pushKV("hasVotingKey", hasVotingKey);
         o.pushKV("ownsCollateral", ownsCollateral);

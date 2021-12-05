@@ -22,7 +22,7 @@
 #include "consensus/tx_verify.h"
 #include "consensus/validation.h"
 #include "consensus/zerocoin_verify.h"
-#include "evo/specialtx.h"
+#include "evo/specialtx_validation.h"
 #include "flatfile.h"
 #include "guiinterface.h"
 #include "invalid.h"
@@ -250,23 +250,6 @@ bool CheckFinalTx(const CTransactionRef& tx, int flags)
     const int64_t nBlockTime = (flags & LOCKTIME_MEDIAN_TIME_PAST) ? chainActive.Tip()->GetMedianTimePast() : GetAdjustedTime();
 
     return IsFinalTx(tx, nBlockHeight, nBlockTime);
-}
-
-bool GetUTXOCoin(const COutPoint& outpoint, Coin& coin)
-{
-    LOCK(cs_main);
-    if (!pcoinsTip->GetCoin(outpoint, coin))
-        return false;
-    if (coin.IsSpent())
-        return false;
-    return true;
-}
-
-Optional<int> GetUTXOHeight(const COutPoint& outpoint)
-{
-    // nullopt means UTXO is yet unknown or already spent
-    Coin coin;
-    return GetUTXOCoin(outpoint, coin) ? Optional<int>(coin.nHeight) : nullopt;
 }
 
 void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) {
@@ -501,6 +484,11 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
             return state.Invalid(error("AcceptToMemoryPool: shielded requirements not met"),
                                  REJECT_DUPLICATE, "bad-txns-shielded-requirements-not-met");
 
+        if (!CheckSpecialTx(tx, chainActive.Tip(), &view, state)) {
+            // pass the state returned by the function above
+            return false;
+        }
+
         // Bring the best block into scope
         view.GetBestBlock();
 
@@ -574,11 +562,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
         std::string errString;
         if (!pool.CalculateMemPoolAncestors(entry, setAncestors, nLimitAncestors, nLimitAncestorSize, nLimitDescendants, nLimitDescendantSize, errString)) {
             return state.DoS(0, error("%s : %s", __func__, errString), REJECT_NONSTANDARD, "too-long-mempool-chain", false);
-        }
-
-        if (!CheckSpecialTx(tx, chainActive.Tip(), state)) {
-            // pass the state returned by the function above
-            return false;
         }
 
         bool fCLTVIsActivated = consensus.NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_BIP65);
@@ -1654,7 +1637,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     nTimeVerify += nTime2 - nTimeStart;
     LogPrint(BCLog::BENCHMARK, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs]\n", nInputs - 1, 0.001 * (nTime2 - nTimeStart), nInputs <= 1 ? 0 : 0.001 * (nTime2 - nTimeStart) / (nInputs - 1), nTimeVerify * 0.000001);
 
-    if (!ProcessSpecialTxsInBlock(block, pindex, state, fJustCheck)) {
+    if (!ProcessSpecialTxsInBlock(block, pindex, &view, state, fJustCheck)) {
         return error("%s: Special tx processing failed with %s", __func__, FormatStateMessage(state));
     }
     int64_t nTime3 = GetTimeMicros();
@@ -3753,7 +3736,7 @@ static bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs,
     }
 
     CValidationState state;
-    if (!ProcessSpecialTxsInBlock(block, pindex, state, false /*fJustCheck*/)) {
+    if (!ProcessSpecialTxsInBlock(block, pindex, &inputs, state, false /*fJustCheck*/)) {
         return error("%s: Special tx processing failed for block %s with %s",
                      __func__, pindex->GetBlockHash().ToString(), FormatStateMessage(state));
     }
