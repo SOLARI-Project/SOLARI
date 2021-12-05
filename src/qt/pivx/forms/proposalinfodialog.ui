@@ -28,7 +28,7 @@
   <property name="styleSheet">
    <string notr="true"/>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_3">
+  <layout class="QVBoxLayout" name="verticalLayout_1">
    <property name="spacing">
     <number>0</number>
    </property>
@@ -61,7 +61,7 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -69,7 +69,7 @@
        <number>0</number>
       </property>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <layout class="QHBoxLayout" name="horizontalLayout_1">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -184,7 +184,7 @@
           <height>450</height>
          </size>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_4">
+        <layout class="QVBoxLayout" name="verticalLayout_3">
          <property name="leftMargin">
           <number>0</number>
          </property>
@@ -230,7 +230,7 @@ background:transparent;
 background:transparent;
 }</string>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_7">
+            <layout class="QVBoxLayout" name="verticalLayout_4">
              <property name="spacing">
               <number>0</number>
              </property>
@@ -251,7 +251,7 @@ background:transparent;
              </property>
              <item>
               <widget class="QWidget" name="content" native="true">
-               <layout class="QVBoxLayout" name="verticalLayout_2">
+               <layout class="QVBoxLayout" name="verticalLayout_5">
                 <property name="leftMargin">
                  <number>16</number>
                 </property>
@@ -263,7 +263,7 @@ background:transparent;
                 </property>
                 <item>
                  <widget class="QWidget" name="contentID" native="true">
-                  <layout class="QHBoxLayout" name="horizontalLayout_12" stretch="0,0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
                    <property name="leftMargin">
                     <number>0</number>
                    </property>
@@ -343,7 +343,7 @@ background:transparent;
                 </item>
                 <item>
                  <widget class="QWidget" name="contentName" native="true">
-                  <layout class="QHBoxLayout" name="horizontalLayout_12" stretch="0,0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0">
                    <property name="leftMargin">
                     <number>0</number>
                    </property>
@@ -609,7 +609,7 @@ background:transparent;
                 </item>
                 <item>
                  <widget class="QWidget" name="contentUrl" native="true">
-                  <layout class="QHBoxLayout" name="horizontalLayout_12" stretch="0,0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="0,0">
                    <property name="leftMargin">
                     <number>0</number>
                    </property>
