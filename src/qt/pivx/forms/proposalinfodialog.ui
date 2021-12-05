@@ -406,7 +406,7 @@ background:transparent;
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLabel" name="labelDividerID">
+                 <widget class="QLabel" name="labelDividerName">
                   <property name="maximumSize">
                    <size>
                     <width>16777215</width>
@@ -422,8 +422,8 @@ background:transparent;
                  </widget>
                 </item>
                 <item>
-                 <widget class="QWidget" name="gridName" native="true">
-                  <layout class="QGridLayout" name="contentConfDateStatus">
+                 <widget class="QWidget" name="gridRecipient" native="true">
+                  <layout class="QGridLayout" name="contentRecipient">
                    <property name="leftMargin">
                     <number>0</number>
                    </property>
@@ -486,7 +486,7 @@ background:transparent;
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLabel" name="labelDividerName">
+                 <widget class="QLabel" name="labelDividerRecipient">
                   <property name="maximumSize">
                    <size>
                     <width>16777215</width>
