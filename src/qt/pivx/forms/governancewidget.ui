@@ -19,7 +19,7 @@
   <property name="windowTitle">
    <string notr="true">N/A</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="2,1">
+  <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="2,1">
    <property name="spacing">
     <number>0</number>
    </property>
@@ -37,7 +37,7 @@
    </property>
    <item>
     <widget class="QWidget" name="left" native="true">
-     <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0,1,0">
+     <layout class="QVBoxLayout" name="verticalLayout_1" stretch="0,0,1,0">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -58,7 +58,7 @@
           <height>60</height>
          </size>
         </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -75,7 +75,7 @@
           <number>0</number>
          </property>
          <item>
-          <layout class="QVBoxLayout" name="verticalLayout_8">
+          <layout class="QVBoxLayout" name="verticalLayout_2">
            <property name="spacing">
             <number>5</number>
            </property>
@@ -116,7 +116,7 @@
              <height>0</height>
             </size>
            </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -144,7 +144,7 @@
              <height>0</height>
             </size>
            </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -199,7 +199,7 @@
          </property>
          <item>
           <widget class="QWidget" name="containerWarning" native="true">
-           <layout class="QVBoxLayout" name="verticalLayout_21">
+           <layout class="QVBoxLayout" name="verticalLayout_4">
             <property name="spacing">
              <number>6</number>
             </property>
@@ -226,7 +226,7 @@
               <property name="frameShadow">
                <enum>QFrame::Raised</enum>
               </property>
-              <layout class="QHBoxLayout" name="horizontalLayout11" stretch="0,2">
+              <layout class="QHBoxLayout" name="horizontalLayout_5" stretch="0,2">
                <property name="spacing">
                 <number>3</number>
                </property>
@@ -288,7 +288,7 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <layout class="QVBoxLayout" name="verticalLayout_5">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -356,7 +356,7 @@
         <property name="frameShadow">
          <enum>QFrame::Raised</enum>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_7" stretch="8">
+        <layout class="QVBoxLayout" name="verticalLayout_6" stretch="8">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -386,7 +386,7 @@
            <property name="frameShadow">
             <enum>QFrame::Raised</enum>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout">
+           <layout class="QVBoxLayout" name="verticalLayout_7">
             <property name="spacing">
              <number>12</number>
             </property>
@@ -451,7 +451,7 @@
    </item>
    <item>
     <widget class="QWidget" name="right" native="true">
-     <layout class="QVBoxLayout" name="verticalLayout_5">
+     <layout class="QVBoxLayout" name="verticalLayout_8">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -465,7 +465,7 @@
        <number>0</number>
       </property>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0">
+       <layout class="QVBoxLayout" name="verticalLayout_9" stretch="0,0,0">
         <property name="spacing">
          <number>6</number>
         </property>
@@ -480,7 +480,7 @@
          </widget>
         </item>
         <item>
-         <spacer name="verticalSpacer_4">
+         <spacer name="verticalSpacer_1">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
@@ -503,7 +503,7 @@
             <height>200</height>
            </size>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout_6">
+          <layout class="QVBoxLayout" name="verticalLayout_10">
            <property name="leftMargin">
             <number>0</number>
            </property>
@@ -548,7 +548,7 @@
            </item>
            <item>
             <widget class="QWidget" name="widget" native="true">
-             <layout class="QVBoxLayout" name="verticalLayout_10">
+             <layout class="QVBoxLayout" name="verticalLayout_11">
               <property name="spacing">
                <number>3</number>
               </property>
@@ -617,7 +617,7 @@
             </widget>
            </item>
            <item>
-            <spacer name="verticalSpacer_7">
+            <spacer name="verticalSpacer_4">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>
@@ -634,7 +634,7 @@
            </item>
            <item>
             <widget class="QWidget" name="widget_2" native="true">
-             <layout class="QVBoxLayout" name="verticalLayout_9">
+             <layout class="QVBoxLayout" name="verticalLayout_12">
               <property name="spacing">
                <number>3</number>
               </property>
@@ -665,7 +665,7 @@
                </widget>
               </item>
               <item>
-               <spacer name="verticalSpacer_6">
+               <spacer name="verticalSpacer_5">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
                 </property>
@@ -703,7 +703,7 @@
             </widget>
            </item>
            <item>
-            <spacer name="verticalSpacer_8">
+            <spacer name="verticalSpacer_6">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>
@@ -717,7 +717,7 @@
            </item>
            <item>
             <widget class="QWidget" name="containerSuperblockInfo" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout">
+             <layout class="QHBoxLayout" name="horizontalLayout_6">
               <property name="spacing">
                <number>4</number>
               </property>
