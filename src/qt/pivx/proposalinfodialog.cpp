@@ -20,7 +20,7 @@ ProposalInfoDialog::ProposalInfoDialog(QWidget *parent) :
     setCssProperty(ui->frame, "container-dialog");
     setCssProperty(ui->labelTitle, "text-title-dialog");
     setCssProperty({ui->labelAmount, ui->labelName, ui->labelUrl, ui->labelRecipient, ui->labelPosVotes, ui->labelId, ui->labelNegVotes, ui->labelEndDate, ui->labelDate, ui->labelStatus}, "text-subtitle");
-    setCssProperty({ui->labelDividerID, ui->labelDividerChange, ui->labelDividerMemo}, "container-divider");
+    setCssProperty({ui->labelDividerID, ui->labelDividerName, ui->labelDividerRecipient, ui->labelDividerChange, ui->labelDividerMemo}, "container-divider");
     setCssProperty({ui->textAmount, ui->textName, ui->textUrl, ui->textRecipient, ui->textPosVotes, ui->textId, ui->textNegVotes, ui->textEndDate, ui->textDate, ui->textStatus} , "text-body3-dialog");
     setCssProperty({ui->pushCopy, ui->btnUrlCopy, ui->btnNameCopy}, "ic-copy-big");
     setCssProperty(ui->btnEsc, "ic-close");
