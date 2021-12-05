@@ -10,6 +10,7 @@
 
 #include <QDesktopServices>
 #include <QGraphicsDropShadowEffect>
+#include <QScrollBar>
 #include <QTimer>
 
 void initComboView(PWidget* parent, QComboBox* comboBox, const QString& filterHint, const QList<QString>& values)
@@ -187,7 +188,7 @@ void GovernanceWidget::onMenuClicked(ProposalCard* card)
     QRect rect = card->geometry();
     QPoint pos = rect.topRight();
     pos.setX(pos.x() - 22);
-    pos.setY(pos.y() + (isSync ? 100 : 140));
+    pos.setY(pos.y() + (isSync ? 100 : 140) - ui->scrollArea->verticalScrollBar()->value());
     propMenu->move(pos);
     propMenu->show();
 }
