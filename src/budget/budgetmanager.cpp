@@ -38,7 +38,7 @@ void CBudgetManager::CheckOrphanVotes()
                 // Proposal found.
                 CBudgetProposal* bp = &(itProposal->second);
                 // Try to add orphan votes
-                for (const CBudgetVote& vote : itOrphanVotes->second) {
+                for (const CBudgetVote& vote : itOrphanVotes->second.first) {
                     std::string strError;
                     if (!bp->AddOrUpdateVote(vote, strError)) {
                         LogPrint(BCLog::MNBUDGET, "Unable to add orphan vote for proposal: %s\n", strError);
@@ -60,7 +60,7 @@ void CBudgetManager::CheckOrphanVotes()
                 // Finalized budget found.
                 CFinalizedBudget* fb = &(itFinalBudget->second);
                 // Try to add orphan votes
-                for (const CFinalizedBudgetVote& vote : itOrphanVotes->second) {
+                for (const CFinalizedBudgetVote& vote : itOrphanVotes->second.first) {
                     std::string strError;
                     if (!fb->AddOrUpdateVote(vote, strError)) {
                         LogPrint(BCLog::MNBUDGET, "Unable to add orphan vote for final budget: %s\n", strError);
@@ -1006,9 +1006,28 @@ void CBudgetManager::NewBlock()
         }
     }
 
-    {
-        // todo: Clean orphan proposal votes and budget finalization votes
-    }
+    int64_t now = GetTime();
+    const auto cleanOrphans = [now](auto& mutex, auto& mapOrphans, auto& mapSeen) {
+        LOCK(mutex);
+        for (auto it = mapOrphans.begin() ; it != mapOrphans.end();) {
+            int64_t lastReceivedVoteTime = it->second.second;
+            if (lastReceivedVoteTime + BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS < now) {
+                // Clean seen votes
+                for (const auto& voteIt : it->second.first) {
+                    mapSeen.erase(voteIt.GetHash());
+                }
+                // Remove proposal orphan votes
+                it = mapOrphans.erase(it);
+            } else {
+                it++;
+            }
+        }
+    };
+
+    // Clean orphan proposal votes if no parent arrived after an hour.
+    cleanOrphans(cs_votes, mapOrphanProposalVotes, mapSeenProposalVotes);
+    // Clean orphan budget votes if no parent arrived after an hour.
+    cleanOrphans(cs_finalizedvotes, mapOrphanFinalizedBudgetVotes, mapSeenFinalizedBudgetVotes);
 
     LogPrint(BCLog::MNBUDGET,"%s:  PASSED\n", __func__);
 }
@@ -1424,6 +1443,33 @@ void CBudgetManager::Sync(CNode* pfrom, bool fPartial)
     }
 }
 
+template<typename T>
+static void TryAppendOrphanVoteMap(const T& vote,
+                                   const uint256& parentHash,
+                                   std::map<uint256, std::pair<std::vector<T>, int64_t>>& mapOrphan,
+                                   std::map<uint256, T>& mapSeen)
+{
+    if (mapOrphan.size() > ORPHAN_VOTES_CACHE_LIMIT) {
+        // future: notify user about this
+        mapSeen.erase(vote.GetHash());
+    } else {
+        // Append orphan vote
+        const auto& it = mapOrphan.find(parentHash);
+        if (it != mapOrphan.end()) {
+            // Check size limit and erase it from the seen map if we already passed it
+            if (it->second.first.size() > ORPHAN_VOTES_CACHE_LIMIT) {
+                // future: check if the MN already voted and replace vote
+                mapSeen.erase(vote.GetHash());
+            } else {
+                it->second.first.emplace_back(vote);
+                it->second.second = GetTime();
+            }
+        } else {
+            mapOrphan.emplace(parentHash, std::make_pair<std::vector<T>, int64_t>({vote}, GetTime()));
+        }
+    }
+}
+
 bool CBudgetManager::UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::string& strError)
 {
     LOCK(cs_proposals);
@@ -1436,7 +1482,10 @@ bool CBudgetManager::UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::
             if (!masternodeSync.IsSynced()) return false;
 
             LogPrint(BCLog::MNBUDGET,"%s: Unknown proposal %d, asking for source proposal\n", __func__, nProposalHash.ToString());
-            WITH_LOCK(cs_votes, mapOrphanProposalVotes[nProposalHash].emplace_back(vote); );
+            {
+                LOCK(cs_votes);
+                TryAppendOrphanVoteMap<CBudgetVote>(vote, nProposalHash, mapOrphanProposalVotes, mapSeenProposalVotes);
+            }
 
             if (!askedForSourceProposalOrBudget.count(nProposalHash)) {
                 g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, nProposalHash));
@@ -1464,7 +1513,10 @@ bool CBudgetManager::UpdateFinalizedBudget(const CFinalizedBudgetVote& vote, CNo
             if (!masternodeSync.IsSynced()) return false;
 
             LogPrint(BCLog::MNBUDGET,"%s: Unknown Finalized Proposal %s, asking for source budget\n", __func__, nBudgetHash.ToString());
-            WITH_LOCK(cs_finalizedvotes, mapOrphanFinalizedBudgetVotes[nBudgetHash].emplace_back(vote););
+            {
+                LOCK(cs_finalizedvotes);
+                TryAppendOrphanVoteMap<CFinalizedBudgetVote>(vote, nBudgetHash, mapOrphanFinalizedBudgetVotes, mapSeenFinalizedBudgetVotes);
+            }
 
             if (!askedForSourceProposalOrBudget.count(nBudgetHash)) {
                 g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, nBudgetHash));
