@@ -12,6 +12,8 @@
 
 class CValidationState;
 
+#define ORPHAN_VOTES_CACHE_LIMIT 10000
+
 //
 // Budget Manager : Contains all proposals for the budget
 //
@@ -31,9 +33,11 @@ protected:
     std::map<uint256, CFinalizedBudget> mapFinalizedBudgets;                // guarded by cs_budgets
 
     std::map<uint256, CBudgetVote> mapSeenProposalVotes;                    // guarded by cs_votes
-    std::map<uint256, std::vector<CBudgetVote>> mapOrphanProposalVotes;        // guarded by cs_votes
+    typedef std::pair<std::vector<CBudgetVote>, int64_t> PropVotesAndLastVoteReceivedTime;
+    std::map<uint256, PropVotesAndLastVoteReceivedTime> mapOrphanProposalVotes;        // guarded by cs_votes
     std::map<uint256, CFinalizedBudgetVote> mapSeenFinalizedBudgetVotes;    // guarded by cs_finalizedvotes
-    std::map<uint256, std::vector<CFinalizedBudgetVote>> mapOrphanFinalizedBudgetVotes;  // guarded by cs_finalizedvotes
+    typedef std::pair<std::vector<CFinalizedBudgetVote>, int64_t> BudVotesAndLastVoteReceivedTime;
+    std::map<uint256, BudVotesAndLastVoteReceivedTime> mapOrphanFinalizedBudgetVotes;  // guarded by cs_finalizedvotes
 
     // Memory Only. Updated in NewBlock (blocks arrive in order)
     std::atomic<int> nBestHeight;
