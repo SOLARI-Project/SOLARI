@@ -30,43 +30,50 @@ bool CheckCollateral(const uint256& nTxCollateralHash, const uint256& nExpectedH
 
 void CBudgetManager::CheckOrphanVotes()
 {
-    std::string strError = "";
     {
-        LOCK(cs_votes);
+        LOCK2(cs_proposals, cs_votes);
         for (auto itOrphanVotes = mapOrphanProposalVotes.begin(); itOrphanVotes != mapOrphanProposalVotes.end();) {
-            auto& setVotes = itOrphanVotes->second;
-            for (auto itVote = setVotes.begin(); itVote != setVotes.end();) {
-                if (UpdateProposal(*itVote, nullptr, strError)) {
-                    itVote = setVotes.erase(itVote);
-                } else {
-                    itVote++;
+            auto itProposal = mapProposals.find(itOrphanVotes->first);
+            if (itProposal != mapProposals.end()) {
+                // Proposal found.
+                CBudgetProposal* bp = &(itProposal->second);
+                // Try to add orphan votes
+                for (const CBudgetVote& vote : itOrphanVotes->second) {
+                    std::string strError;
+                    if (!bp->AddOrUpdateVote(vote, strError)) {
+                        LogPrint(BCLog::MNBUDGET, "Unable to add orphan vote for proposal: %s\n", strError);
+                    }
                 }
-            }
-            if (setVotes.empty()) {
+                // Remove entry from the map
                 itOrphanVotes = mapOrphanProposalVotes.erase(itOrphanVotes);
             } else {
                 ++itOrphanVotes;
             }
         }
     }
+
     {
-        LOCK(cs_finalizedvotes);
+        LOCK2(cs_budgets, cs_finalizedvotes);
         for (auto itOrphanVotes = mapOrphanFinalizedBudgetVotes.begin(); itOrphanVotes != mapOrphanFinalizedBudgetVotes.end();) {
-            auto& setVotes = itOrphanVotes->second;
-            for (auto itVote = setVotes.begin(); itVote != setVotes.end();) {
-                if (UpdateFinalizedBudget(*itVote, nullptr, strError)) {
-                    itVote = setVotes.erase(itVote);
-                } else {
-                    itVote++;
+            auto itFinalBudget = mapFinalizedBudgets.find(itOrphanVotes->first);
+            if (itFinalBudget != mapFinalizedBudgets.end()) {
+                // Finalized budget found.
+                CFinalizedBudget* fb = &(itFinalBudget->second);
+                // Try to add orphan votes
+                for (const CFinalizedBudgetVote& vote : itOrphanVotes->second) {
+                    std::string strError;
+                    if (!fb->AddOrUpdateVote(vote, strError)) {
+                        LogPrint(BCLog::MNBUDGET, "Unable to add orphan vote for final budget: %s\n", strError);
+                    }
                 }
-            }
-            if (setVotes.empty()) {
+                // Remove entry from the map
                 itOrphanVotes = mapOrphanFinalizedBudgetVotes.erase(itOrphanVotes);
             } else {
                 ++itOrphanVotes;
             }
         }
     }
+
     LogPrint(BCLog::MNBUDGET,"%s: Done\n", __func__);
 }
 
