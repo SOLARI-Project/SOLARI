@@ -98,7 +98,10 @@ public:
 
     void ResetSync() { SetSynced(false); }
     void MarkSynced() { SetSynced(true); }
-    void Sync(CNode* node, const uint256& nProp, bool fPartial = false);
+    // Respond to full budget sync requests and internally triggered partial budget items relay
+    void Sync(CNode* node, bool fPartial);
+    // Respond to single budget item requests (proposals / budget finalization)
+    void SyncSingleItem(CNode* pfrom, const uint256& nProp);
     void SetBestHeight(int height) { nBestHeight.store(height, std::memory_order_release); };
     int GetBestHeight() const { return nBestHeight.load(std::memory_order_acquire); }
 
