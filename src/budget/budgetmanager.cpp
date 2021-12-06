@@ -953,7 +953,7 @@ void CBudgetManager::NewBlock()
         CBudgetManager* manager = this;
         g_connman->ForEachNode([manager](CNode* pnode){
             if (pnode->nVersion >= ActiveProtocol())
-                manager->Sync(pnode, UINT256_ZERO, true);
+                manager->Sync(pnode, true);
         });
         MarkSynced();
     }
@@ -1022,7 +1022,8 @@ int CBudgetManager::ProcessBudgetVoteSync(const uint256& nProp, CNode* pfrom)
         }
     }
 
-    Sync(pfrom, nProp);
+    if (nProp.IsNull()) Sync(pfrom, false /* fPartial */);
+    else SyncSingleItem(pfrom, nProp);
     LogPrint(BCLog::MNBUDGET, "mnvs - Sent Masternode votes to peer %i\n", pfrom->GetId());
     return 0;
 }
@@ -1350,31 +1351,31 @@ void CBudgetManager::SetSynced(bool synced)
     }
 }
 
-template<typename Map, typename Item>
-static bool relayItemIfFound(const uint256& itemHash, CNode* pfrom, RecursiveMutex& cs, Map& map, bool fPartial, const char* type)
+template<typename T>
+static bool relayItemIfFound(const uint256& itemHash, CNode* pfrom, RecursiveMutex& cs, std::map<uint256, T>& map, const char* type)
 {
     CNetMsgMaker msgMaker(pfrom->GetSendVersion());
     LOCK(cs);
     const auto& it = map.find(itemHash);
     if (it == map.end()) return false;
-    Item* item = &(it->second);
+    T* item = &(it->second);
     if (!item->IsValid()) return true; // don't broadcast invalid items
     g_connman->PushMessage(pfrom, msgMaker.Make(type, item->GetBroadcast()));
     int nInvCount = 1;
-    item->SyncVotes(pfrom, fPartial, nInvCount);
+    item->SyncVotes(pfrom, false /* fPartial */, nInvCount);
     LogPrint(BCLog::MNBUDGET, "%s: single %s sent %d items\n", __func__, type, nInvCount);
     return true;
 }
 
-template<typename Map, typename Item>
-static void relayValidItems(CNode* pfrom, RecursiveMutex& cs, Map& map, bool fPartial, GetDataMsg invType, const int mn_sync_budget_type)
+template<typename T>
+static void relayInventoryItems(CNode* pfrom, RecursiveMutex& cs, std::map<uint256, T>& map, bool fPartial, GetDataMsg invType, const int mn_sync_budget_type)
 {
     CNetMsgMaker msgMaker(pfrom->GetSendVersion());
     int nInvCount = 0;
     {
         LOCK(cs);
         for (auto& it: map) {
-            Item* item = &(it.second);
+            T* item = &(it.second);
             if (item && item->IsValid()) {
                 pfrom->PushInventory(CInv(invType, item->GetHash()));
                 nInvCount++;
@@ -1386,25 +1387,26 @@ static void relayValidItems(CNode* pfrom, RecursiveMutex& cs, Map& map, bool fPa
     LogPrint(BCLog::MNBUDGET, "%s: sent %d items\n", __func__, nInvCount);
 }
 
-void CBudgetManager::Sync(CNode* pfrom, const uint256& nProp, bool fPartial)
+void CBudgetManager::SyncSingleItem(CNode* pfrom, const uint256& nProp)
 {
-    // Single item request
-    if (!nProp.IsNull()) {
-        // Try first to relay a proposal
-        if (relayItemIfFound<std::map<uint256, CBudgetProposal>, CBudgetProposal>(nProp, pfrom, cs_proposals, mapProposals, fPartial, NetMsgType::BUDGETPROPOSAL)) {
-            return;
-        }
-        // Try now to relay a finalization
-        if (relayItemIfFound<std::map<uint256, CFinalizedBudget>, CFinalizedBudget>(nProp, pfrom, cs_budgets, mapFinalizedBudgets, fPartial, NetMsgType::FINALBUDGET)) {
-            return;
-        }
-        LogPrint(BCLog::MNBUDGET, "%s: single request budget item not found\n", __func__);
+    if (nProp.IsNull()) return;
+    // Try first to relay a proposal
+    if (relayItemIfFound<CBudgetProposal>(nProp, pfrom, cs_proposals, mapProposals, NetMsgType::BUDGETPROPOSAL)) {
         return;
     }
+    // Try now to relay a finalization
+    if (relayItemIfFound<CFinalizedBudget>(nProp, pfrom, cs_budgets, mapFinalizedBudgets, NetMsgType::FINALBUDGET)) {
+        return;
+    }
+    LogPrint(BCLog::MNBUDGET, "%s: single request budget item not found\n", __func__);
+}
 
+
+void CBudgetManager::Sync(CNode* pfrom, bool fPartial)
+{
     // Full budget sync request.
-    relayValidItems<std::map<uint256, CBudgetProposal>, CBudgetProposal>(pfrom, cs_proposals, mapProposals, fPartial, MSG_BUDGET_PROPOSAL, MASTERNODE_SYNC_BUDGET_PROP);
-    relayValidItems<std::map<uint256, CFinalizedBudget>, CFinalizedBudget>(pfrom, cs_budgets, mapFinalizedBudgets, fPartial, MSG_BUDGET_FINALIZED, MASTERNODE_SYNC_BUDGET_FIN);
+    relayInventoryItems<CBudgetProposal>(pfrom, cs_proposals, mapProposals, fPartial, MSG_BUDGET_PROPOSAL, MASTERNODE_SYNC_BUDGET_PROP);
+    relayInventoryItems<CFinalizedBudget>(pfrom, cs_budgets, mapFinalizedBudgets, fPartial, MSG_BUDGET_FINALIZED, MASTERNODE_SYNC_BUDGET_FIN);
 
     if (!fPartial) {
         // Now that budget full sync request was handled, mark it as completed.
