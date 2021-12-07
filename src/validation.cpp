@@ -851,7 +851,8 @@ CAmount GetBlockValue(int nHeight)
 
 int64_t GetMasternodePayment()
 {
-    return 3 * COIN;
+    // Future: refactor function callers to use this line directly.
+    return Params().GetConsensus().nMNBlockReward;
 }
 
 bool IsInitialBlockDownload()

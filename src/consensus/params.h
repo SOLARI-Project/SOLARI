@@ -101,6 +101,7 @@ struct Params {
     int nFutureTimeDriftPoS;
     CAmount nMaxMoneyOut;
     CAmount nMNCollateralAmt;
+    CAmount nMNBlockReward;
     int64_t nProposalEstablishmentTime;
     int nStakeMinAge;
     int nStakeMinDepth;
