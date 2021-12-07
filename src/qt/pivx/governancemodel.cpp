@@ -197,21 +197,21 @@ OperationResult GovernanceModel::validatePropURL(const QString& url) const
 OperationResult GovernanceModel::validatePropAmount(CAmount amount) const
 {
     if (amount < PROPOSAL_MIN_AMOUNT) { // Future: move constant to a budget interface.
-        return {false, strprintf("Amount below the minimum of %s PIV", FormatMoney(PROPOSAL_MIN_AMOUNT))};
+        return {false, strprintf(_("Amount below the minimum of %s PIV"), FormatMoney(PROPOSAL_MIN_AMOUNT))};
     }
 
     if (amount > getMaxAvailableBudgetAmount()) {
-        return {false, strprintf("Amount exceeding the maximum available of %s PIV", FormatMoney(getMaxAvailableBudgetAmount()))};
+        return {false, strprintf(_("Amount exceeding the maximum available of %s PIV"), FormatMoney(getMaxAvailableBudgetAmount()))};
     }
     return {true};
 }
 
 OperationResult GovernanceModel::validatePropPaymentCount(int paymentCount) const
 {
-    if (paymentCount < 1) return { false, "Invalid payment count, must be greater than zero."};
+    if (paymentCount < 1) return { false, _("Invalid payment count, must be greater than zero.")};
     int nMaxPayments = getPropMaxPaymentsCount();
     if (paymentCount > nMaxPayments) {
-        return { false, strprintf("Invalid payment count, cannot be greater than %d", nMaxPayments)};
+        return { false, strprintf(_("Invalid payment count, cannot be greater than %d"), nMaxPayments)};
     }
     return {true};
 }
@@ -232,13 +232,13 @@ OperationResult GovernanceModel::createProposal(const std::string& strProposalNa
 
     // Parse address
     const CTxDestination* dest = Standard::GetTransparentDestination(Standard::DecodeDestination(strPaymentAddr));
-    if (!dest) return {false, "invalid recipient address for the proposal"};
+    if (!dest) return {false, _("invalid recipient address for the proposal")};
     CScript scriptPubKey = GetScriptForDestination(*dest);
 
     // Validate proposal
     CBudgetProposal proposal(strProposalName, strURL, nPaymentCount, scriptPubKey, nAmount, nBlockStart, UINT256_ZERO);
     if (!proposal.IsWellFormed(g_budgetman.GetTotalBudget(proposal.GetBlockStart()))) {
-        return {false, strprintf("Proposal is not valid %s", proposal.IsInvalidReason())};
+        return {false, strprintf(_("Proposal is not valid %s"), proposal.IsInvalidReason())};
     }
 
     // Craft and send transaction.
