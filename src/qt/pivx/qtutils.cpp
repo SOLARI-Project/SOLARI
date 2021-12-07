@@ -182,6 +182,7 @@ void setSortTxTypeFilter(QComboBox* filter, SortEdit* lineEditType)
     filter->addItem(QObject::tr("Hot stakes"), TransactionFilterProxy::TYPE(TransactionRecord::StakeHot));
     filter->addItem(QObject::tr("Delegated"), TransactionFilterProxy::TYPE(TransactionRecord::P2CSDelegationSent) | TransactionFilterProxy::TYPE(TransactionRecord::P2CSDelegationSentOwner));
     filter->addItem(QObject::tr("Delegations"), TransactionFilterProxy::TYPE(TransactionRecord::P2CSDelegation));
+    filter->addItem(QObject::tr("DAO payment"), TransactionFilterProxy::TYPE(TransactionRecord::BudgetPayment));
 }
 
 void setupSettings(QSettings* settings)

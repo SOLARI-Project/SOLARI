@@ -81,6 +81,7 @@ public:
         SendToOther,
         RecvWithAddress,
         MNReward,
+        BudgetPayment,
         RecvFromOther,
         SendToSelf,
         ZerocoinMint,
