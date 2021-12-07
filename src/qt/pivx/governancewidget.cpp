@@ -142,7 +142,23 @@ void GovernanceWidget::onVoteForPropClicked(const ProposalInfo& proposalInfo)
 
 void GovernanceWidget::onCreatePropClicked()
 {
-    if (!walletModel || !governanceModel) return;
+    if (!walletModel || !governanceModel || !clientModel) return;
+
+    if (!governanceModel->isTierTwoSync()) {
+        inform(tr("Please wait until the node is fully synced"));
+        return;
+    }
+
+    // Do not allow proposals submission 1440 blocks away (1 day) from the next superblock
+    // The budget finalization could have been submitted and the user would never know it, losing the first superblock.
+    // future: customizable future superblock height selection (for now, we are automatically using the next superblock).
+    const int chainHeight = clientModel->getLastBlockProcessedHeight();
+    const int nextSuperblock = governanceModel->getNextSuperblockHeight();
+    const int acceptedRange = (walletModel->isTestNetwork() || walletModel->isRegTestNetwork()) ? 10 : 1440;
+    if (nextSuperblock - acceptedRange < chainHeight) {
+        inform(tr("Cannot create proposal, superblock is too close. Need to wait %1 blocks").arg(nextSuperblock - chainHeight));
+        return;
+    }
 
     auto ptrUnlockedContext = std::make_unique<WalletModel::UnlockContext>(walletModel->requestUnlock());
     if (!ptrUnlockedContext->isValid()) {
