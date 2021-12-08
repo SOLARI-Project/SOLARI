@@ -1819,7 +1819,7 @@ bool AppInitMain()
 
     //flag our cached items so we send them to our peers
     g_budgetman.ResetSync();
-    g_budgetman.ClearSeen();
+    g_budgetman.ReloadMapSeen();
 
     RegisterValidationInterface(&g_budgetman);
 

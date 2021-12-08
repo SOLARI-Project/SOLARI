@@ -66,18 +66,15 @@ public:
 
     CBudgetManager() {}
 
-    void ClearSeen()
-    {
-        WITH_LOCK(cs_votes, mapSeenProposalVotes.clear(); );
-        WITH_LOCK(cs_finalizedvotes, mapSeenFinalizedBudgetVotes.clear(); );
-    }
-
     void UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload) override;
 
     bool HaveProposal(const uint256& propHash) const { LOCK(cs_proposals); return mapProposals.count(propHash); }
     bool HaveSeenProposalVote(const uint256& voteHash) const { LOCK(cs_votes); return mapSeenProposalVotes.count(voteHash); }
     bool HaveFinalizedBudget(const uint256& budgetHash) const { LOCK(cs_budgets); return mapFinalizedBudgets.count(budgetHash); }
     bool HaveSeenFinalizedBudgetVote(const uint256& voteHash) const { LOCK(cs_finalizedvotes); return mapSeenFinalizedBudgetVotes.count(voteHash); }
+
+    // Clears and reloads seen votes in the maps, and clears orphan votes
+    void ReloadMapSeen();
 
     void AddSeenProposalVote(const CBudgetVote& vote);
     void AddSeenFinalizedBudgetVote(const CFinalizedBudgetVote& vote);

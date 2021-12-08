@@ -28,6 +28,26 @@ std::map<uint256, int64_t> askedForSourceProposalOrBudget;
 // Used to check both proposals and finalized-budgets collateral txes
 bool CheckCollateral(const uint256& nTxCollateralHash, const uint256& nExpectedHash, std::string& strError, int64_t& nTime, int nCurrentHeight, bool fBudgetFinalization);
 
+void CBudgetManager::ReloadMapSeen()
+{
+    const auto reloadSeenMap = [](auto& mutex1, auto& mutex2, const auto& mapBudgets, auto& mapSeen, auto& mapOrphans) {
+        LOCK2(mutex1, mutex2);
+        mapSeen.clear();
+        mapOrphans.clear();
+        for (const auto& b : mapBudgets) {
+            for (const auto& it : b.second.mapVotes) {
+                const auto& vote = it.second;
+                if (vote.IsValid()) {
+                    mapSeen.emplace(vote.GetHash(), vote);
+                }
+            }
+        }
+    };
+
+    reloadSeenMap(cs_proposals, cs_votes, mapProposals, mapSeenProposalVotes, mapOrphanProposalVotes);
+    reloadSeenMap(cs_budgets, cs_finalizedvotes, mapFinalizedBudgets, mapSeenFinalizedBudgetVotes, mapOrphanFinalizedBudgetVotes);
+}
+
 void CBudgetManager::CheckOrphanVotes()
 {
     {
@@ -1031,7 +1051,7 @@ void CBudgetManager::NewBlock()
 
     // Once every 2 weeks (1/14 * 1/1440), clean the seen maps
     if (masternodeSync.IsSynced() && GetRandInt(1440) == 0) {
-        ClearSeen();
+        ReloadMapSeen();
     }
 
     LogPrint(BCLog::MNBUDGET,"%s:  PASSED\n", __func__);
