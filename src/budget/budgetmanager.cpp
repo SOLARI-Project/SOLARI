@@ -952,8 +952,8 @@ void CBudgetManager::NewBlock()
     // incremental sync with our peers
     if (masternodeSync.IsSynced()) {
         LogPrint(BCLog::MNBUDGET,"%s:  incremental sync started\n", __func__);
-        if (GetRandInt(1440) == 0) {
-            ClearSeen();
+        // Once every 7 days, try to relay the complete budget data
+        if (GetRandInt(Params().IsRegTestNet() ? 2 : 720) == 0) {
             ResetSync();
         }
 
@@ -1028,6 +1028,11 @@ void CBudgetManager::NewBlock()
     cleanOrphans(cs_votes, mapOrphanProposalVotes, mapSeenProposalVotes);
     // Clean orphan budget votes if no parent arrived after an hour.
     cleanOrphans(cs_finalizedvotes, mapOrphanFinalizedBudgetVotes, mapSeenFinalizedBudgetVotes);
+
+    // Once every 2 weeks (1/14 * 1/1440), clean the seen maps
+    if (masternodeSync.IsSynced() && GetRandInt(1440) == 0) {
+        ClearSeen();
+    }
 
     LogPrint(BCLog::MNBUDGET,"%s:  PASSED\n", __func__);
 }
