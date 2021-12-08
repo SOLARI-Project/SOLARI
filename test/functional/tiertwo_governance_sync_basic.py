@@ -380,6 +380,25 @@ class MasternodeGovernanceBasicTest(PivxTier2TestFramework):
             assert_equal(len(self.nodes[i].getbudgetinfo()), 16)
         self.log.info("resync (2): budget data resynchronized successfully!")
 
+        # Let's now verify the remote budget data relay.
+        # Drop the budget data and generate blocks until someone incrementally sync us
+        # (this is done once every 28 blocks on regtest).
+        self.log.info("Testing incremental sync from peers, dropping budget data...")
+        self.remoteDMN1.cleanbudget(try_sync=False)
+        assert_equal(self.remoteDMN1.getbudgetprojection(), []) # empty
+        assert_equal(self.remoteDMN1.getbudgetinfo(), [])
+        self.log.info("Generating blocks until someone syncs the node..")
+        self.stake(40, [self.remoteOne, self.remoteTwo])
+        time.sleep(5) # wait a little bit
+        self.log.info("Checking budget sync..")
+        for i in range(self.num_nodes):
+            assert_equal(len(self.nodes[i].getbudgetinfo()), 16)
+        self.check_vote_existence(firstProposal.name, self.mnOneCollateral.hash, "YES", True)
+        self.check_vote_existence(firstProposal.name, self.mnTwoCollateral.hash, "YES", True)
+        self.check_vote_existence(firstProposal.name, self.proRegTx1, "YES", True)
+        self.check_budget_finalization_sync(3, "OK")
+        self.log.info("Remote incremental sync succeeded")
+
         # now let's verify that votes expire properly.
         # Drop one MN and one DMN
         self.log.info("expiring MN1..")
