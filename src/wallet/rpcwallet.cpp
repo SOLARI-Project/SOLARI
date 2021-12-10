@@ -3823,39 +3823,32 @@ UniValue listunspent(const JSONRPCRequest& request)
         if (out.nDepth < nMinDepth || out.nDepth > nMaxDepth)
             continue;
 
-        if (!destinations.empty()) {
-            CTxDestination address;
-            if (!ExtractDestination(out.tx->tx->vout[out.i].scriptPubKey, address))
-                continue;
+        CTxDestination address;
+        const CScript& scriptPubKey = out.tx->tx->vout[out.i].scriptPubKey;
+        bool fValidAddress = ExtractDestination(scriptPubKey, address);
 
-            if (!destinations.count(address))
-                continue;
+        if (!destinations.empty() && (!fValidAddress || !destinations.count(address))) {
+            continue;
         }
 
-        CAmount nValue = out.tx->tx->vout[out.i].nValue;
-        const CScript& pk = out.tx->tx->vout[out.i].scriptPubKey;
         UniValue entry(UniValue::VOBJ);
         entry.pushKV("txid", out.tx->GetHash().GetHex());
         entry.pushKV("vout", out.i);
         entry.pushKV("generated", out.tx->IsCoinStake() || out.tx->IsCoinBase());
-        CTxDestination address;
-        if (ExtractDestination(out.tx->tx->vout[out.i].scriptPubKey, address)) {
+        if (fValidAddress) {
             entry.pushKV("address", EncodeDestination(address));
             if (pwallet->HasAddressBook(address)) {
                 entry.pushKV("label", pwallet->GetNameForAddressBookEntry(address));
             }
-        }
-        entry.pushKV("scriptPubKey", HexStr(pk));
-        if (pk.IsPayToScriptHash()) {
-            CTxDestination address;
-            if (ExtractDestination(pk, address)) {
+            if (scriptPubKey.IsPayToScriptHash()) {
                 const CScriptID& hash = boost::get<CScriptID>(address);
                 CScript redeemScript;
                 if (pwallet->GetCScript(hash, redeemScript))
                     entry.pushKV("redeemScript", HexStr(redeemScript));
             }
         }
-        entry.pushKV("amount", ValueFromAmount(nValue));
+        entry.pushKV("scriptPubKey", HexStr(scriptPubKey));
+        entry.pushKV("amount", ValueFromAmount(out.tx->tx->vout[out.i].nValue));
         entry.pushKV("confirmations", out.nDepth);
         entry.pushKV("spendable", out.fSpendable);
         entry.pushKV("solvable", out.fSolvable);
