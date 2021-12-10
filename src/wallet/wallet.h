@@ -930,6 +930,9 @@ public:
     //! pindex is the old tip being disconnected.
     void DecrementNoteWitnesses(const CBlockIndex* pindex);
 
+    //! clear note witness cache
+    void ClearNoteWitnessCache();
+
 
     //! Adds Sapling spending key to the store, and saves it to disk
     bool AddSaplingZKey(const libzcash::SaplingExtendedSpendingKey &key);
