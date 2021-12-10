@@ -1913,6 +1913,12 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         pfrom->fRelayTxes = true;
     }
 
+    else if (strCommand == NetMsgType::NOTFOUND) {
+        // We do not care about the NOTFOUND message (for now), but logging an Unknown Command
+        // message is undesirable as we transmit it ourselves.
+        return true;
+    }
+
     else {
         // Tier two msg type search
         const std::vector<std::string>& allMessages = getTierTwoNetMessageTypes();
