@@ -79,7 +79,6 @@ SET(QT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/notificator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/optionsmodel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/peertablemodel.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/platformstyle.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/qvalidatedlineedit.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/qvaluecombobox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/rpcconsole.cpp

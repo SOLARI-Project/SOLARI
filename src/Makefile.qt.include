@@ -197,7 +197,6 @@ BITCOIN_QT_H = \
   qt/optionsmodel.h \
   qt/paymentserver.h \
   qt/peertablemodel.h \
-  qt/platformstyle.h \
   qt/qvalidatedlineedit.h \
   qt/qvaluecombobox.h \
   qt/rpcconsole.h \
@@ -528,7 +527,6 @@ BITCOIN_QT_BASE_CPP = \
   qt/notificator.cpp \
   qt/optionsmodel.cpp \
   qt/peertablemodel.cpp \
-  qt/platformstyle.cpp \
   qt/qvalidatedlineedit.cpp \
   qt/qvaluecombobox.cpp \
   qt/rpcconsole.cpp \
