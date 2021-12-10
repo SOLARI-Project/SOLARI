@@ -18,6 +18,10 @@ static const int64_t BUDGET_VOTE_UPDATE_MIN = 60 * 60;
 // Minimum value for a proposal to be considered valid
 static const CAmount PROPOSAL_MIN_AMOUNT = 10 * COIN;
 
+// Net ser values
+static const size_t PROP_URL_MAX_SIZE = 64;
+static const size_t PROP_NAME_MAX_SIZE = 20;
+
 class CBudgetManager;
 
 //
@@ -113,8 +117,8 @@ public:
     // Serialization for local DB
     SERIALIZE_METHODS(CBudgetProposal, obj)
     {
-        READWRITE(LIMITED_STRING(obj.strProposalName, 20));
-        READWRITE(LIMITED_STRING(obj.strURL, 64));
+        READWRITE(LIMITED_STRING(obj.strProposalName, PROP_NAME_MAX_SIZE));
+        READWRITE(LIMITED_STRING(obj.strURL, PROP_URL_MAX_SIZE));
         READWRITE(obj.nBlockStart);
         READWRITE(obj.nBlockEnd);
         READWRITE(obj.nAmount);

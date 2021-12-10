@@ -88,7 +88,6 @@ QT_END_NAMESPACE
 
 class GovernanceModel : public QObject
 {
-    static const int PROP_URL_MAX_SIZE = 100;
 
 public:
     explicit GovernanceModel(ClientModel* _clientModel, MNModel* _mnModel);
@@ -120,6 +119,7 @@ public:
     std::vector<VoteInfo> getLocalMNsVotesForProposal(const ProposalInfo& propInfo);
     // Check if the URL is valid.
     OperationResult validatePropURL(const QString& url) const;
+    OperationResult validatePropName(const QString& name) const;
     OperationResult validatePropAmount(CAmount amount) const;
     OperationResult validatePropPaymentCount(int paymentCount) const;
     // Whether the tier two network synchronization has finished or not

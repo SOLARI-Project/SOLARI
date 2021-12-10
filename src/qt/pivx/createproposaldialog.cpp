@@ -137,7 +137,7 @@ void CreateProposalDialog::setupPageThree()
 
 void CreateProposalDialog::propNameChanged(const QString& newText)
 {
-    bool isValid = !newText.isEmpty() && IsValidUTF8(newText.toStdString());
+    bool isValid = !newText.isEmpty() && IsValidUTF8(newText.toStdString()) && govModel->validatePropName(newText).getRes();
     setCssEditLine(ui->lineEditPropName, isValid, true);
 }
 
@@ -182,6 +182,12 @@ bool CreateProposalDialog::validatePageOne()
         return false;
     }
 
+    auto res = govModel->validatePropName(propName);
+    if (!res) {
+        inform(QString::fromStdString(res.getError()));
+        return false;
+    }
+
     // For now, only accept UTF8 valid strings.
     if (!IsValidUTF8(propName.toStdString())) {
         setCssEditLine(ui->lineEditPropName, false, true);
@@ -189,8 +195,7 @@ bool CreateProposalDialog::validatePageOne()
         return false;
     }
 
-
-    auto res = govModel->validatePropURL(ui->lineEditURL->text());
+    res = govModel->validatePropURL(ui->lineEditURL->text());
     if (!res) inform(QString::fromStdString(res.getError()));
     return res.getRes();
 }
