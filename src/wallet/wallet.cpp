@@ -4280,7 +4280,11 @@ CWallet* CWallet::CreateWalletFromFile(const std::string& name, const fs::path& 
 
     LOCK(cs_main);
     CBlockIndex* pindexRescan = chainActive.Genesis();
-    if (!gArgs.GetBoolArg("-rescan", false)) {
+
+    if (gArgs.GetBoolArg("-rescan", false)) {
+        // clear note witness cache before a full rescan
+        walletInstance->ClearNoteWitnessCache();
+    } else {
         WalletBatch batch(*walletInstance->database);
         CBlockLocator locator;
         if (batch.ReadBestBlock(locator))
@@ -4620,6 +4624,8 @@ void CWallet::IncrementNoteWitnesses(const CBlockIndex* pindex,
                             SaplingMerkleTree& saplingTree) { m_sspk_man->IncrementNoteWitnesses(pindex, pblock, saplingTree); }
 
 void CWallet::DecrementNoteWitnesses(const CBlockIndex* pindex) { m_sspk_man->DecrementNoteWitnesses(pindex->nHeight); }
+
+void CWallet::ClearNoteWitnessCache() { m_sspk_man->ClearNoteWitnessCache(); }
 
 bool CWallet::AddSaplingZKey(const libzcash::SaplingExtendedSpendingKey &key) { return m_sspk_man->AddSaplingZKey(key); }
 
