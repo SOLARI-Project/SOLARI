@@ -854,8 +854,7 @@ static void RelayAddress(const CAddress& addr, bool fReachable, CConnman* connma
 bool static PushTierTwoGetDataRequest(const CInv& inv,
                                       CNode* pfrom,
                                       CConnman* connman,
-                                      CNetMsgMaker& msgMaker,
-                                      int chainHeight)
+                                      CNetMsgMaker& msgMaker)
 {
     if (inv.type == MSG_SPORK) {
         if (mapSporks.count(inv.hash)) {
@@ -1027,7 +1026,6 @@ void static ProcessGetData(CNode* pfrom, CConnman* connman, const std::atomic<bo
     CNetMsgMaker msgMaker(pfrom->GetSendVersion());
     {
         LOCK(cs_main);
-        int chainHeight = chainActive.Height();
 
         while (it != pfrom->vRecvGetData.end() && (it->type == MSG_TX || IsTierTwoInventoryTypeKnown(it->type))) {
             if (interruptMsgProc)
@@ -1054,7 +1052,7 @@ void static ProcessGetData(CNode* pfrom, CConnman* connman, const std::atomic<bo
 
             if (!pushed) {
                 // Now check if it's a tier two data request and push it.
-                pushed = PushTierTwoGetDataRequest(inv, pfrom, connman, msgMaker, chainHeight);
+                pushed = PushTierTwoGetDataRequest(inv, pfrom, connman, msgMaker);
             }
 
             if (!pushed) {
@@ -1913,6 +1911,12 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         pfrom->fRelayTxes = true;
     }
 
+    else if (strCommand == NetMsgType::NOTFOUND) {
+        // We do not care about the NOTFOUND message (for now), but logging an Unknown Command
+        // message is undesirable as we transmit it ourselves.
+        return true;
+    }
+
     else {
         // Tier two msg type search
         const std::vector<std::string>& allMessages = getTierTwoNetMessageTypes();
@@ -1975,7 +1979,7 @@ bool PeerLogicValidation::ProcessMessages(CNode* pfrom, std::atomic<bool>& inter
 
     msg.SetVersion(pfrom->GetRecvVersion());
     // Scan for message start
-    if (memcmp(msg.hdr.pchMessageStart, Params().MessageStart(), MESSAGE_START_SIZE) != 0) {
+    if (memcmp(msg.hdr.pchMessageStart, Params().MessageStart(), CMessageHeader::MESSAGE_START_SIZE) != 0) {
         LogPrint(BCLog::NET, "PROCESSMESSAGE: INVALID MESSAGESTART %s peer=%d\n", SanitizeString(msg.hdr.GetCommand()), pfrom->GetId());
         pfrom->fDisconnect = true;
         return false;
