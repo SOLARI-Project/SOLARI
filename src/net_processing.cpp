@@ -1065,10 +1065,10 @@ void static ProcessGetData(CNode* pfrom, CConnman* connman, const std::atomic<bo
         }
     } // release cs_main
 
-    if (it != pfrom->vRecvGetData.end()) {
+    if (it != pfrom->vRecvGetData.end() && !pfrom->fPauseSend) {
         const CInv &inv = *it;
-        it++;
         if (inv.type == MSG_BLOCK || inv.type == MSG_FILTERED_BLOCK) {
+            it++;
             ProcessGetBlockData(pfrom, inv, connman, interruptMsgProc);
         }
     }
