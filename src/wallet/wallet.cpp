@@ -1445,9 +1445,9 @@ void CWallet::MarkAffectedTransactionsDirty(const CTransaction& tx)
     if (HasSaplingSPKM() && tx.IsShieldedTx()) {
         for (const SpendDescription &spend : tx.sapData->vShieldedSpend) {
             const uint256& nullifier = spend.nullifier;
-            if (m_sspk_man->mapSaplingNullifiersToNotes.count(nullifier) &&
-                mapWallet.count(m_sspk_man->mapSaplingNullifiersToNotes[nullifier].hash)) {
-                auto it = mapWallet.find(m_sspk_man->mapSaplingNullifiersToNotes[nullifier].hash);
+            auto nit = m_sspk_man->mapSaplingNullifiersToNotes.find(nullifier);
+            if (nit != m_sspk_man->mapSaplingNullifiersToNotes.end()) {
+                auto it = mapWallet.find(nit->second.hash);
                 if (it != mapWallet.end()) {
                     it->second.MarkDirty();
                 }

@@ -1617,8 +1617,9 @@ UniValue viewshieldtransaction(const JSONRPCRequest& request)
     // Sapling outputs
     for (uint32_t i = 0; i < wtx.tx->sapData->vShieldedOutput.size(); ++i) {
         auto op = SaplingOutPoint(hash, i);
-        if (!wtx.mapSaplingNoteData.count(op)) continue;
-        const auto& nd = wtx.mapSaplingNoteData.at(op);
+        auto it = wtx.mapSaplingNoteData.find(op);
+        if (it == wtx.mapSaplingNoteData.end()) continue;
+        const auto& nd = it->second;
 
         const bool isOutgoing = !nd.IsMyNote();
         std::string addrStr = "unknown";
