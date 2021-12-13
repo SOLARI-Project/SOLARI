@@ -196,6 +196,7 @@ BITCOIN_CORE_H = \
   httpserver.h \
   indirectmap.h \
   init.h \
+  tiertwo/init.h \
   interfaces/handler.h \
   interfaces/wallet.h \
   invalid.h \
@@ -350,6 +351,7 @@ libbitcoin_server_a_SOURCES = \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
+  tiertwo/init.cpp \
   dbwrapper.cpp \
   legacy/validation_zerocoin_legacy.cpp \
   sapling/sapling_validation.cpp \
@@ -729,6 +731,7 @@ CLEANFILES = $(EXTRA_LIBRARIES)
 
 CLEANFILES += *.gcda *.gcno
 CLEANFILES += budget/*.gcda budget/*.gcno
+CLEANFILES += bls/*.gcda bls/*.gcno
 CLEANFILES += compat/*.gcda compat/*.gcno
 CLEANFILES += consensus/*.gcda consensus/*.gcno
 CLEANFILES += crc32c/src/*.gcda crc32c/src/*.gcno
@@ -744,6 +747,7 @@ CLEANFILES += sapling/*.gcda sapling/*.gcno
 CLEANFILES += script/*.gcda script/*.gcno
 CLEANFILES += support/*.gcda support/*.gcno
 CLEANFILES += test/librust/*.gcda test/librust/*.gcno
+CLEANFILES += tiertwo/*.gcda tiertwo/*.gcno
 CLEANFILES += univalue/*.gcda univalue/*.gcno
 CLEANFILES += util/*.gcda util/*.gcno
 CLEANFILES += wallet/*.gcda wallet/*.gcno
