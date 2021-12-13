@@ -162,8 +162,9 @@ UniValue preparebudget(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, res.ToString());
 
     // Store proposal name as a comment
-    assert(pwallet->mapWallet.count(wtx->GetHash()));
-    pwallet->mapWallet.at(wtx->GetHash()).SetComment("Proposal: " + strProposalName);
+    auto it = pwallet->mapWallet.find(wtx->GetHash());
+    assert(it != pwallet->mapWallet.end());
+    it->second.SetComment("Proposal: " + strProposalName);
 
     return wtx->GetHash().ToString();
 }

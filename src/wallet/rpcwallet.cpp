@@ -1094,12 +1094,13 @@ static UniValue ShieldSendManyTo(CWallet * const pwallet,
 
     // add comments
     const uint256& txHash = uint256S(txid);
-    assert(pwallet->mapWallet.count(txHash));
+    auto it = pwallet->mapWallet.find(txHash);
+    assert(it != pwallet->mapWallet.end());
     if (!commentStr.empty()) {
-        pwallet->mapWallet.at(txHash).mapValue["comment"] = commentStr;
+        it->second.mapValue["comment"] = commentStr;
     }
     if (!toStr.empty()) {
-        pwallet->mapWallet.at(txHash).mapValue["to"] = toStr;
+        it->second.mapValue["to"] = toStr;
     }
 
     return txid;
@@ -1532,9 +1533,10 @@ UniValue viewshieldtransaction(const JSONRPCRequest& request)
     hash.SetHex(request.params[0].get_str());
 
     UniValue entry(UniValue::VOBJ);
-    if (!pwallet->mapWallet.count(hash))
+    auto it = pwallet->mapWallet.find(hash);
+    if (it == pwallet->mapWallet.end())
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
-    const CWalletTx& wtx = pwallet->mapWallet.at(hash);
+    const CWalletTx& wtx = it->second;
 
     if (!wtx.tx->IsShieldedTx()) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid transaction, no shield data available");
@@ -2807,8 +2809,9 @@ UniValue listreceivedbyshieldaddress(const JSONRPCRequest& request)
         int index = -1;
         int64_t time = 0;
 
-        if (pwallet->mapWallet.count(entry.op.hash)) {
-            const CWalletTx& wtx = pwallet->mapWallet.at(entry.op.hash);
+        auto it = pwallet->mapWallet.find(entry.op.hash);
+        if (it != pwallet->mapWallet.end()) {
+            const CWalletTx& wtx = it->second;
             if (!wtx.m_confirm.hashBlock.IsNull())
                 height = mapBlockIndex[wtx.m_confirm.hashBlock]->nHeight;
             index = wtx.m_confirm.nIndex;
