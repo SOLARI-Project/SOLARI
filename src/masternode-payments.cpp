@@ -399,15 +399,14 @@ bool CMasternodePayments::ProcessMessageMasternodePayments(CNode* pfrom, std::st
 {
     if (!masternodeSync.IsBlockchainSynced()) return true;
 
-    if (fLiteMode) return true; //disable all Masternode related functionality
-
     // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
     if (deterministicMNManager->LegacyMNObsolete()) {
         LogPrint(BCLog::MASTERNODE, "mnw - skip obsolete message %s\n", strCommand);
         return true;
     }
 
-    if (strCommand == NetMsgType::GETMNWINNERS) { //Masternode Payments Request Sync
+    if (strCommand == NetMsgType::GETMNWINNERS) {
+        //Masternode Payments Request Sync
         int nCountNeeded;
         vRecv >> nCountNeeded;
 

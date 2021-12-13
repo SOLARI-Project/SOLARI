@@ -514,7 +514,6 @@ std::string HelpMessage(HelpMessageMode mode)
     }
     strUsage += HelpMessageOpt("-shrinkdebugfile", "Shrink debug.log file on client startup (default: 1 when no -debug)");
     AppendParamsHelpMessages(strUsage, showDebug);
-    strUsage += HelpMessageOpt("-litemode=<n>", strprintf("Disable all PIVX specific functionality (Masternodes, Budgeting) (0-1, default: %u)", 0));
 
     strUsage += HelpMessageGroup("Masternode options:");
     strUsage += HelpMessageOpt("-masternode=<n>", strprintf("Enable the client to act as a masternode (0-1, default: %u)", DEFAULT_MASTERNODE));
@@ -1755,14 +1754,6 @@ bool AppInitMain()
         }
     }
 #endif
-
-    // lite mode disables all Masternode related functionality
-    fLiteMode = gArgs.GetBoolArg("-litemode", false);
-    if (fMasterNode && fLiteMode) {
-        return UIError(_("You can not start a masternode in litemode"));
-    }
-
-    LogPrintf("fLiteMode %d\n", fLiteMode);
 
     threadGroup.create_thread(std::bind(&ThreadCheckMasternodes));
 
