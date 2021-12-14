@@ -12,6 +12,8 @@
 
 class CValidationState;
 
+#define ORPHAN_VOTES_CACHE_LIMIT 10000
+
 //
 // Budget Manager : Contains all proposals for the budget
 //
@@ -31,9 +33,11 @@ protected:
     std::map<uint256, CFinalizedBudget> mapFinalizedBudgets;                // guarded by cs_budgets
 
     std::map<uint256, CBudgetVote> mapSeenProposalVotes;                    // guarded by cs_votes
-    std::map<uint256, CBudgetVote> mapOrphanProposalVotes;                  // guarded by cs_votes
+    typedef std::pair<std::vector<CBudgetVote>, int64_t> PropVotesAndLastVoteReceivedTime;
+    std::map<uint256, PropVotesAndLastVoteReceivedTime> mapOrphanProposalVotes;        // guarded by cs_votes
     std::map<uint256, CFinalizedBudgetVote> mapSeenFinalizedBudgetVotes;    // guarded by cs_finalizedvotes
-    std::map<uint256, CFinalizedBudgetVote> mapOrphanFinalizedBudgetVotes;  // guarded by cs_finalizedvotes
+    typedef std::pair<std::vector<CFinalizedBudgetVote>, int64_t> BudVotesAndLastVoteReceivedTime;
+    std::map<uint256, BudVotesAndLastVoteReceivedTime> mapOrphanFinalizedBudgetVotes;  // guarded by cs_finalizedvotes
 
     // Memory Only. Updated in NewBlock (blocks arrive in order)
     std::atomic<int> nBestHeight;
@@ -62,18 +66,15 @@ public:
 
     CBudgetManager() {}
 
-    void ClearSeen()
-    {
-        WITH_LOCK(cs_votes, mapSeenProposalVotes.clear(); );
-        WITH_LOCK(cs_finalizedvotes, mapSeenFinalizedBudgetVotes.clear(); );
-    }
-
     void UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload) override;
 
     bool HaveProposal(const uint256& propHash) const { LOCK(cs_proposals); return mapProposals.count(propHash); }
     bool HaveSeenProposalVote(const uint256& voteHash) const { LOCK(cs_votes); return mapSeenProposalVotes.count(voteHash); }
     bool HaveFinalizedBudget(const uint256& budgetHash) const { LOCK(cs_budgets); return mapFinalizedBudgets.count(budgetHash); }
     bool HaveSeenFinalizedBudgetVote(const uint256& voteHash) const { LOCK(cs_finalizedvotes); return mapSeenFinalizedBudgetVotes.count(voteHash); }
+
+    // Clears and reloads seen votes in the maps, and clears orphan votes
+    void ReloadMapSeen();
 
     void AddSeenProposalVote(const CBudgetVote& vote);
     void AddSeenFinalizedBudgetVote(const CFinalizedBudgetVote& vote);
@@ -98,7 +99,10 @@ public:
 
     void ResetSync() { SetSynced(false); }
     void MarkSynced() { SetSynced(true); }
-    void Sync(CNode* node, const uint256& nProp, bool fPartial = false);
+    // Respond to full budget sync requests and internally triggered partial budget items relay
+    void Sync(CNode* node, bool fPartial);
+    // Respond to single budget item requests (proposals / budget finalization)
+    void SyncSingleItem(CNode* pfrom, const uint256& nProp);
     void SetBestHeight(int height) { nBestHeight.store(height, std::memory_order_release); };
     int GetBestHeight() const { return nBestHeight.load(std::memory_order_acquire); }
 
@@ -140,7 +144,7 @@ public:
     uint256 SubmitFinalBudget();
 
     bool UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::string& strError);
-    bool UpdateFinalizedBudget(CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError);
+    bool UpdateFinalizedBudget(const CFinalizedBudgetVote& vote, CNode* pfrom, std::string& strError);
     TrxValidationStatus IsTransactionValid(const CTransaction& txNew, const uint256& nBlockHash, int nBlockHeight) const;
     std::string GetRequiredPaymentsString(int nBlockHeight);
     bool FillBlockPayee(CMutableTransaction& txCoinbase, CMutableTransaction& txCoinstake, const int nHeight, bool fProofOfStake) const;

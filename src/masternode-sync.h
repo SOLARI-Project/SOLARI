@@ -79,7 +79,7 @@ public:
     void AddedBudgetItem(const uint256& hash);
     void SwitchToNextAsset();
     std::string GetSyncStatus();
-    void ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
+    void ProcessSyncStatusMsg(int nItemID, int itemCount);
     bool IsBudgetFinEmpty();
     bool IsBudgetPropEmpty();
 
