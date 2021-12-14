@@ -13,7 +13,9 @@
 #include "masternode-payments.h"
 #include "masternodeconfig.h"
 #include "llmq/quorums_init.h"
+#include "scheduler.h"
 #include "tiertwo/masternode_meta_manager.h"
+#include "tiertwo/netfulfilledman.h"
 #include "validation.h"
 #include "wallet/wallet.h"
 
@@ -65,7 +67,7 @@ static void LoadBlockHashesCache(CMasternodeMan& man)
     }
 }
 
-bool LoadTierTwo(int chain_active_height, bool fReindexChainState)
+bool LoadTierTwo(int chain_active_height, bool load_cache_files)
 {
     // ################################# //
     // ## Legacy Masternodes Manager ### //
@@ -118,11 +120,9 @@ bool LoadTierTwo(int chain_active_height, bool fReindexChainState)
     // ############################## //
     // ## Net MNs Metadata Manager ## //
     // ############################## //
-    bool fLoadCacheFiles = !(fReindex || fReindexChainState);
-    fs::path pathDB = GetDataDir();
     uiInterface.InitMessage(_("Loading masternode cache..."));
     CFlatDB<CMasternodeMetaMan> metadb(MN_META_CACHE_FILENAME, MN_META_CACHE_FILE_ID);
-    if (fLoadCacheFiles) {
+    if (load_cache_files) {
         if (!metadb.Load(g_mmetaman)) {
             return UIError(strprintf(_("Failed to load masternode metadata cache from: %s"), metadb.GetDbPath().string()));
         }
@@ -130,6 +130,22 @@ bool LoadTierTwo(int chain_active_height, bool fReindexChainState)
         CMasternodeMetaMan mmetamanTmp;
         if (!metadb.Dump(mmetamanTmp)) {
             return UIError(strprintf(_("Failed to clear masternode metadata cache at: %s"), metadb.GetDbPath().string()));
+        }
+    }
+
+    // ############################## //
+    // ## Network Requests Manager ## //
+    // ############################## //
+    uiInterface.InitMessage(_("Loading network requests cache..."));
+    CFlatDB<CNetFulfilledRequestManager> netRequestsDb(NET_REQUESTS_CACHE_FILENAME, NET_REQUESTS_CACHE_FILE_ID);
+    if (load_cache_files) {
+        if (!netRequestsDb.Load(g_netfulfilledman)) {
+            LogPrintf("Failed to load network requests cache from %s", netRequestsDb.GetDbPath().string());
+        }
+    } else {
+        CNetFulfilledRequestManager netfulfilledmanTmp;
+        if (!netRequestsDb.Dump(netfulfilledmanTmp)) {
+            LogPrintf("Failed to clear network requests cache at %s", netRequestsDb.GetDbPath().string());
         }
     }
 
@@ -148,7 +164,8 @@ void DumpTierTwo()
     DumpMasternodes();
     DumpBudgets(g_budgetman);
     DumpMasternodePayments();
-    CFlatDB<CMasternodeMetaMan>("mnmetacache.dat", "magicMasternodeMetaCache").Dump(g_mmetaman);
+    CFlatDB<CMasternodeMetaMan>(MN_META_CACHE_FILENAME, MN_META_CACHE_FILE_ID).Dump(g_mmetaman);
+    CFlatDB<CNetFulfilledRequestManager>(NET_REQUESTS_CACHE_FILENAME, NET_REQUESTS_CACHE_FILE_ID).Dump(g_netfulfilledman);
 }
 
 void SetBudgetFinMode(const std::string& mode)
@@ -240,6 +257,7 @@ bool InitActiveMN()
 void StartTierTwoThreadsAndScheduleJobs(boost::thread_group& threadGroup, CScheduler& scheduler)
 {
     threadGroup.create_thread(std::bind(&ThreadCheckMasternodes));
+    scheduler.scheduleEvery(std::bind(&CNetFulfilledRequestManager::DoMaintenance, std::ref(g_netfulfilledman)), 60 * 1000);
 
     // Start LLMQ system
     if (gArgs.GetBoolArg("-disabledkg", false)) {
