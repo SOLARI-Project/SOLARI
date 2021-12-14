@@ -37,10 +37,9 @@ void SaplingScriptPubKeyMan::UpdateSaplingNullifierNoteMapForBlock(const CBlock 
     LOCK(wallet->cs_wallet);
 
     for (const auto& tx : pblock->vtx) {
-        const uint256& hash = tx->GetHash();
-        bool txIsOurs = wallet->mapWallet.count(hash);
-        if (txIsOurs) {
-            UpdateSaplingNullifierNoteMapWithTx(wallet->mapWallet.at(hash));
+        auto it = wallet->mapWallet.find(tx->GetHash());
+        if (it != wallet->mapWallet.end()) {
+            UpdateSaplingNullifierNoteMapWithTx(it->second);
         }
     }
 }
@@ -746,8 +745,9 @@ CAmount SaplingScriptPubKeyMan::GetDebit(const CTransaction& tx, const isminefil
             // If we have the spend nullifier, it means that this input is ours.
             // The transaction (and decrypted note data) has been added to the wallet.
             const SaplingOutPoint& op = it->second;
-            assert(wallet->mapWallet.count(op.hash));
-            const auto& wtx = wallet->mapWallet.at(op.hash);
+            auto wit = wallet->mapWallet.find(op.hash);
+            assert(wit != wallet->mapWallet.end());
+            const auto& wtx = wit->second;
             assert(wtx.mapSaplingNoteData.count(op));
             const auto& nd = wtx.mapSaplingNoteData.at(op);
             assert(nd.IsMyNote());        // todo: Add watch only check.
@@ -820,10 +820,11 @@ void SaplingScriptPubKeyMan::GetSaplingNoteWitnesses(const std::vector<SaplingOu
     Optional<uint256> rt;
     int i = 0;
     for (SaplingOutPoint note : notes) {
-        if (wallet->mapWallet.count(note.hash) &&
-            wallet->mapWallet.at(note.hash).mapSaplingNoteData.count(note) &&
-            wallet->mapWallet.at(note.hash).mapSaplingNoteData[note].witnesses.size() > 0) {
-            witnesses[i] = wallet->mapWallet.at(note.hash).mapSaplingNoteData[note].witnesses.front();
+        auto it = wallet->mapWallet.find(note.hash);
+        if (it != wallet->mapWallet.end() &&
+            it->second.mapSaplingNoteData.count(note) &&
+            it->second.mapSaplingNoteData[note].witnesses.size() > 0) {
+            witnesses[i] = it->second.mapSaplingNoteData[note].witnesses.front();
             if (!rt) {
                 rt = witnesses[i]->root();
             } else {

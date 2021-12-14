@@ -755,8 +755,9 @@ void CWallet::AddToSpends(const COutPoint& outpoint, const uint256& wtxid)
 
 void CWallet::AddToSpends(const uint256& wtxid)
 {
-    assert(mapWallet.count(wtxid));
-    CWalletTx& thisTx = mapWallet.at(wtxid);
+    auto it = mapWallet.find(wtxid);
+    assert(it != mapWallet.end());
+    CWalletTx& thisTx = it->second;
     if (thisTx.IsCoinBase()) // Coinbases don't spend anything!
         return;
 
