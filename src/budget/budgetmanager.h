@@ -46,8 +46,13 @@ protected:
     // who's asked for the complete budget sync and the last time
     std::map<CNetAddr, int64_t> mAskedUsForBudgetSync; // guarded by cs_budgets and cs_proposals.
 
+    struct HighestFinBudget {
+        const CFinalizedBudget* m_budget_fin{nullptr};
+        int m_vote_count{0};
+    };
+
     // Returns a const pointer to the budget with highest vote count
-    const CFinalizedBudget* GetBudgetWithHighestVoteCount(int chainHeight) const;
+    HighestFinBudget GetBudgetWithHighestVoteCount(int chainHeight) const;
     int GetHighestVoteCount(int chainHeight) const;
     // Get the payee and amount for the budget with the highest vote count
     bool GetPayeeAndAmount(int chainHeight, CScript& payeeRet, CAmount& nAmountRet) const;
