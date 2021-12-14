@@ -19,7 +19,6 @@
 #include "qt/clientmodel.h"
 #include "qt/guiconstants.h"
 #include "qt/optionsmodel.h"
-#include "qt/recentrequeststablemodel.h"
 #include "qt/transactiontablemodel.h"
 #include "qt/walletmodeltransaction.h"
 
@@ -50,7 +49,6 @@ WalletModel::WalletModel(CWallet* wallet, OptionsModel* optionsModel, QObject* p
 
     addressTableModel = new AddressTableModel(wallet, this);
     transactionTableModel = new TransactionTableModel(wallet, this);
-    recentRequestsTableModel = new RecentRequestsTableModel(wallet, this);
 }
 
 void WalletModel::init()
@@ -696,11 +694,6 @@ AddressTableModel* WalletModel::getAddressTableModel()
 TransactionTableModel* WalletModel::getTransactionTableModel()
 {
     return transactionTableModel;
-}
-
-RecentRequestsTableModel* WalletModel::getRecentRequestsTableModel()
-{
-    return recentRequestsTableModel;
 }
 
 WalletModel::EncryptionStatus WalletModel::getEncryptionStatus() const

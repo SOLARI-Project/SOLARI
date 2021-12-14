@@ -15,7 +15,6 @@
 #include "clientmodel.h"
 #include "qt/guiutil.h"
 #include "optionsmodel.h"
-#include "qt/platformstyle.h"
 #include "walletmodel.h"
 #include "addresstablemodel.h"
 
