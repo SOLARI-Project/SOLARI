@@ -1710,10 +1710,17 @@ bool AppInitMain()
     LogPrintf("Waiting for genesis block to be imported...\n");
     {
         std::unique_lock<std::mutex> lockG(cs_GenesisWait);
-        while (!fHaveGenesis) {
-            condvar_GenesisWait.wait(lockG);
+        // We previously could hang here if StartShutdown() is called prior to
+        // ThreadImport getting started, so instead we just wait on a timer to
+        // check ShutdownRequested() regularly.
+        while (!fHaveGenesis && !ShutdownRequested()) {
+            condvar_GenesisWait.wait_for(lockG, std::chrono::milliseconds(500));
         }
         uiInterface.NotifyBlockTip.disconnect(BlockNotifyGenesisWait);
+    }
+
+    if (ShutdownRequested()) {
+        return false;
     }
 
     int chain_active_height;
