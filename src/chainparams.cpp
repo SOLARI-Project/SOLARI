@@ -69,7 +69,7 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
  *    timestamp before)
  * + Contains no strange transactions
  */
-static Checkpoints::MapCheckpoints mapCheckpoints = {
+static MapCheckpoints mapCheckpoints = {
     { 259201, uint256S("1c9121bf9329a6234bfd1ea2d91515f19cd96990725265253f4b164283ade5dd")},
     { 424998, uint256S("f31e381eedb0ed3ed65fcc98cc71f36012bee32e8efd017c4f9fb0620fd35f6b")},
     { 616764, uint256S("29dd0bd1c59484f290896687b4ffb6a49afa5c498caf61967c69a541f8191557")}, //!< First block to use new modifierV1
@@ -97,7 +97,7 @@ static Checkpoints::MapCheckpoints mapCheckpoints = {
     {3024000, uint256S("be4bc75afcfb9136924810f7483b2695089a366cc4ee27fd6dc3ecd5396e1f0f")}, //!< Superblock
 };
 
-static const Checkpoints::CCheckpointData data = {
+static const CCheckpointData data = {
     &mapCheckpoints,
     1591401645, // * UNIX timestamp of last checkpoint block
     5607713,    // * total number of transactions between genesis and last checkpoint
@@ -105,19 +105,19 @@ static const Checkpoints::CCheckpointData data = {
     3000        // * estimated number of transactions per day after checkpoint
 };
 
-static Checkpoints::MapCheckpoints mapCheckpointsTestnet = {
+static MapCheckpoints mapCheckpointsTestnet = {
     {0, uint256S("0x001")},
     //{    201, uint256S("6ae7d52092fd918c8ac8d9b1334400387d3057997e6e927a88e57186dc395231")},     // v5 activation (PoS/Sapling)
 };
 
-static const Checkpoints::CCheckpointData dataTestnet = {
+static const CCheckpointData dataTestnet = {
     &mapCheckpointsTestnet,
     1454124731,
     0,
     3000};
 
-static Checkpoints::MapCheckpoints mapCheckpointsRegtest = {{0, uint256S("0x001")}};
-static const Checkpoints::CCheckpointData dataRegtest = {
+static MapCheckpoints mapCheckpointsRegtest = {{0, uint256S("0x001")}};
+static const CCheckpointData dataRegtest = {
     &mapCheckpointsRegtest,
     1454124731,
     0,
@@ -147,6 +147,7 @@ public:
         consensus.nFutureTimeDriftPoS = 180;
         consensus.nMaxMoneyOut = 21000000 * COIN;
         consensus.nMNCollateralAmt = 10000 * COIN;
+        consensus.nMNBlockReward = 3 * COIN;
         consensus.nProposalEstablishmentTime = 60 * 60 * 24;    // must be at least a day old to make it into a budget
         consensus.nStakeMinAge = 60 * 60;
         consensus.nStakeMinDepth = 600;
@@ -256,7 +257,7 @@ public:
         bech32HRPs[SAPLING_EXTENDED_FVK]         = "pxviews";
     }
 
-    const Checkpoints::CCheckpointData& Checkpoints() const
+    const CCheckpointData& Checkpoints() const
     {
         return data;
     }
@@ -290,6 +291,7 @@ public:
         consensus.nFutureTimeDriftPoS = 180;
         consensus.nMaxMoneyOut = 21000000 * COIN;
         consensus.nMNCollateralAmt = 10000 * COIN;
+        consensus.nMNBlockReward = 3 * COIN;
         consensus.nProposalEstablishmentTime = 60 * 5;  // at least 5 min old to make it into a budget
         consensus.nStakeMinAge = 60 * 60;
         consensus.nStakeMinDepth = 100;
@@ -382,7 +384,7 @@ public:
         bech32HRPs[SAPLING_EXTENDED_FVK]         = "pxviewtestsapling";
     }
 
-    const Checkpoints::CCheckpointData& Checkpoints() const
+    const CCheckpointData& Checkpoints() const
     {
         return dataTestnet;
     }
@@ -415,6 +417,7 @@ public:
         consensus.nFutureTimeDriftPoS = 180;
         consensus.nMaxMoneyOut = 43199500 * COIN;
         consensus.nMNCollateralAmt = 100 * COIN;
+        consensus.nMNBlockReward = 3 * COIN;
         consensus.nProposalEstablishmentTime = 60 * 5;  // at least 5 min old to make it into a budget
         consensus.nStakeMinAge = 0;
         consensus.nStakeMinDepth = 20;
@@ -508,7 +511,7 @@ public:
         bech32HRPs[SAPLING_EXTENDED_FVK]         = "pxviewtestsapling";
     }
 
-    const Checkpoints::CCheckpointData& Checkpoints() const
+    const CCheckpointData& Checkpoints() const
     {
         return dataRegtest;
     }

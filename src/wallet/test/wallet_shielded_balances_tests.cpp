@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The PIVX developers
+// Copyright (c) 2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
@@ -14,7 +14,6 @@
 #include "wallet/wallet.h"
 
 #include <boost/filesystem.hpp>
-
 #include <boost/test/unit_test.hpp>
 
 CAmount fee = COIN; // Hardcoded fee
@@ -98,7 +97,7 @@ SaplingSpendValues UpdateWalletInternalNotesData(CWalletTx& wtx, const SaplingOu
             wtx.tx->sapData->vShieldedOutput[sapPoint.n].ephemeralKey,
             wtx.tx->sapData->vShieldedOutput[sapPoint.n].cmu);
     assert(static_cast<bool>(maybe_pt));
-    boost::optional<libzcash::SaplingNotePlaintext> notePlainText = maybe_pt.get();
+    Optional<libzcash::SaplingNotePlaintext> notePlainText = maybe_pt.get();
     libzcash::SaplingNote note = notePlainText->note(ivk).get();
 
     // Append note to the tree
@@ -357,7 +356,7 @@ BOOST_AUTO_TEST_CASE(GetShieldedAvailableCredit)
 
     std::vector<SaplingOutPoint> ops = {saplingEntries[0].op};
     uint256 anchor;
-    std::vector<boost::optional<SaplingWitness>> witnesses;
+    std::vector<Optional<SaplingWitness>> witnesses;
     wallet.GetSaplingScriptPubKeyMan()->GetSaplingNoteWitnesses(ops, witnesses, anchor);
     SaplingSpendValues sapSpendValues{saplingEntries[0].note, anchor, *witnesses[0]};
 

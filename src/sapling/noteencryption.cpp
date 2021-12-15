@@ -1,7 +1,7 @@
 // Copyright (c) 2016-2020 The ZCash developers
-// Copyright (c) 2020 The PIVX developers
+// Copyright (c) 2021 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include "sapling/noteencryption.h"
 
@@ -109,7 +109,7 @@ void KDF(unsigned char K[NOTEENCRYPTION_CIPHER_KEYSIZE],
 
 namespace libzcash {
 
-boost::optional<SaplingNoteEncryption> SaplingNoteEncryption::FromDiversifier(diversifier_t d) {
+Optional<SaplingNoteEncryption> SaplingNoteEncryption::FromDiversifier(diversifier_t d) {
     uint256 epk;
     uint256 esk;
 
@@ -118,13 +118,13 @@ boost::optional<SaplingNoteEncryption> SaplingNoteEncryption::FromDiversifier(di
 
     // Compute epk given the diversifier
     if (!librustzcash_sapling_ka_derivepublic(d.begin(), esk.begin(), epk.begin())) {
-        return boost::none;
+        return nullopt;
     }
 
     return SaplingNoteEncryption(epk, esk);
 }
 
-boost::optional<SaplingEncCiphertext> SaplingNoteEncryption::encrypt_to_recipient(
+Optional<SaplingEncCiphertext> SaplingNoteEncryption::encrypt_to_recipient(
     const uint256 &pk_d,
     const SaplingEncPlaintext &message
 )
@@ -136,7 +136,7 @@ boost::optional<SaplingEncCiphertext> SaplingNoteEncryption::encrypt_to_recipien
     uint256 dhsecret;
 
     if (!librustzcash_sapling_ka_agree(pk_d.begin(), esk.begin(), dhsecret.begin())) {
-        return boost::none;
+        return nullopt;
     }
 
     // Construct the symmetric key
@@ -160,7 +160,7 @@ boost::optional<SaplingEncCiphertext> SaplingNoteEncryption::encrypt_to_recipien
     return ciphertext;
 }
 
-boost::optional<SaplingEncPlaintext> AttemptSaplingEncDecryption(
+Optional<SaplingEncPlaintext> AttemptSaplingEncDecryption(
     const SaplingEncCiphertext &ciphertext,
     const uint256 &ivk,
     const uint256 &epk
@@ -169,7 +169,7 @@ boost::optional<SaplingEncPlaintext> AttemptSaplingEncDecryption(
     uint256 dhsecret;
 
     if (!librustzcash_sapling_ka_agree(epk.begin(), ivk.begin(), dhsecret.begin())) {
-        return boost::none;
+        return nullopt;
     }
 
     // Construct the symmetric key
@@ -189,13 +189,13 @@ boost::optional<SaplingEncPlaintext> AttemptSaplingEncDecryption(
         0,
         cipher_nonce, K) != 0)
     {
-        return boost::none;
+        return nullopt;
     }
 
     return plaintext;
 }
 
-boost::optional<SaplingEncPlaintext> AttemptSaplingEncDecryption (
+Optional<SaplingEncPlaintext> AttemptSaplingEncDecryption (
     const SaplingEncCiphertext &ciphertext,
     const uint256 &epk,
     const uint256 &esk,
@@ -205,7 +205,7 @@ boost::optional<SaplingEncPlaintext> AttemptSaplingEncDecryption (
     uint256 dhsecret;
 
     if (!librustzcash_sapling_ka_agree(pk_d.begin(), esk.begin(), dhsecret.begin())) {
-        return boost::none;
+        return nullopt;
     }
 
     // Construct the symmetric key
@@ -225,7 +225,7 @@ boost::optional<SaplingEncPlaintext> AttemptSaplingEncDecryption (
         0,
         cipher_nonce, K) != 0)
     {
-        return boost::none;
+        return nullopt;
     }
 
     return plaintext;
@@ -264,7 +264,7 @@ SaplingOutCiphertext SaplingNoteEncryption::encrypt_to_ourselves(
     return ciphertext;
 }
 
-boost::optional<SaplingOutPlaintext> AttemptSaplingOutDecryption(
+Optional<SaplingOutPlaintext> AttemptSaplingOutDecryption(
     const SaplingOutCiphertext &ciphertext,
     const uint256 &ovk,
     const uint256 &cv,
@@ -289,7 +289,7 @@ boost::optional<SaplingOutPlaintext> AttemptSaplingOutDecryption(
         0,
         cipher_nonce, K) != 0)
     {
-        return boost::none;
+        return nullopt;
     }
 
     return plaintext;

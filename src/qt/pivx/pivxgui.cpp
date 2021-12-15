@@ -17,8 +17,7 @@
 #include "guiinterface.h"
 #include "qt/pivx/qtutils.h"
 #include "qt/pivx/defaultdialog.h"
-
-#include "init.h"
+#include "shutdown.h"
 #include "util/system.h"
 
 #include <QApplication>

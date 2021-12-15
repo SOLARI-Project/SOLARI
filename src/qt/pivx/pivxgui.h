@@ -173,7 +173,7 @@ private:
     void unsubscribeFromCoreSignals();
 
 public Q_SLOTS:
-    /** called by a timer to check if fRequestShutdown has been set **/
+    /** called by a timer to check if ShutdownRequested() **/
     void detectShutdown();
 
 private Q_SLOTS:

@@ -14,7 +14,6 @@
 #include "clientmodel.h"
 #include "fs.h"
 #include "guiutil.h"
-#include "init.h"
 #include "masternode-sync.h"
 #include "masternodeconfig.h"
 #include "masternodeman.h"

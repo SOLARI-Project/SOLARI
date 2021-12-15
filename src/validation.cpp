@@ -25,7 +25,6 @@
 #include "evo/specialtx.h"
 #include "flatfile.h"
 #include "guiinterface.h"
-#include "init.h"
 #include "invalid.h"
 #include "interfaces/handler.h"
 #include "legacy/validation_zerocoin_legacy.h"
@@ -37,6 +36,7 @@
 #include "pow.h"
 #include "reverse_iterate.h"
 #include "script/sigcache.h"
+#include "shutdown.h"
 #include "spork.h"
 #include "sporkdb.h"
 #include "evo/evodb.h"
@@ -851,7 +851,8 @@ CAmount GetBlockValue(int nHeight)
 
 int64_t GetMasternodePayment()
 {
-    return 3 * COIN;
+    // Future: refactor function callers to use this line directly.
+    return Params().GetConsensus().nMNBlockReward;
 }
 
 bool IsInitialBlockDownload()
@@ -2858,6 +2859,23 @@ bool CheckBlockTime(const CBlockHeader& block, CValidationState& state, CBlockIn
     return true;
 }
 
+//! Returns last CBlockIndex* in mapBlockIndex that is a checkpoint
+static const CBlockIndex* GetLastCheckpoint()
+{
+    if (!Checkpoints::fEnabled)
+        return nullptr;
+
+    const MapCheckpoints& checkpoints = *Params().Checkpoints().mapCheckpoints;
+
+    for (const auto& i : reverse_iterate(checkpoints)) {
+        const uint256& hash = i.second;
+        BlockMap::const_iterator t = mapBlockIndex.find(hash);
+        if (t != mapBlockIndex.end())
+            return t->second;
+    }
+    return nullptr;
+}
+
 bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex* const pindexPrev)
 {
     const Consensus::Params& consensus = Params().GetConsensus();
@@ -2886,7 +2904,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
             REJECT_CHECKPOINT, "checkpoint mismatch");
 
     // Don't accept any forks from the main chain prior to last checkpoint
-    CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint();
+    const CBlockIndex* pcheckpoint = GetLastCheckpoint();
     if (pcheckpoint && nHeight < pcheckpoint->nHeight)
         return state.DoS(0, error("%s : forked chain older than last checkpoint (height %d)", __func__, nHeight));
 

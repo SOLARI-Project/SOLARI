@@ -21,6 +21,7 @@
 #include "rpc/server.h"
 #include "sapling/sapling_operation.h"
 #include "sapling/key_io_sapling.h"
+#include "shutdown.h"
 #include "spork.h"
 #include "timedata.h"
 #include "utilmoneystr.h"
@@ -28,8 +29,6 @@
 #include "wallet/walletdb.h"
 #include "wallet/walletutil.h"
 #include "zpivchain.h"
-
-#include  <init.h>    // for StartShutdown
 
 #include <stdint.h>
 #include <univalue.h>

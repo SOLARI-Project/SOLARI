@@ -230,6 +230,7 @@ set(SERVER_SOURCES
         ./src/rpc/server.cpp
         ./src/script/sigcache.cpp
         ./src/script/ismine.cpp
+        ./src/shutdown.cpp
         ./src/sporkdb.cpp
         ./src/timedata.cpp
         ./src/torcontrol.cpp

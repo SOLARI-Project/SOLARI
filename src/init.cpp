@@ -44,6 +44,7 @@
 #include "script/sigcache.h"
 #include "script/standard.h"
 #include "scheduler.h"
+#include "shutdown.h"
 #include "spork.h"
 #include "sporkdb.h"
 #include "evo/evodb.h"
@@ -137,7 +138,7 @@ CClientUIInterface uiInterface;  // Declared but not defined in guiinterface.h
 // created by AppInit() or the Qt main() function.
 //
 // A clean exit happens when StartShutdown() or the SIGTERM
-// signal handler sets fRequestShutdown, which triggers
+// signal handler sets ShutdownRequested(), which triggers
 // the DetectShutdownThread(), which interrupts the main thread group.
 // DetectShutdownThread() then exits, which causes AppInit() to
 // continue (it .joins the shutdown thread).
@@ -147,20 +148,9 @@ CClientUIInterface uiInterface;  // Declared but not defined in guiinterface.h
 // threads have exited.
 //
 // Shutdown for Qt is very similar, only it uses a QTimer to detect
-// fRequestShutdown getting set, and then does the normal Qt
+// ShutdownRequested() getting set, and then does the normal Qt
 // shutdown thing.
 //
-
-std::atomic<bool> fRequestShutdown{false};
-
-void StartShutdown()
-{
-    fRequestShutdown = true;
-}
-bool ShutdownRequested()
-{
-    return fRequestShutdown;
-}
 
 class CCoinsViewErrorCatcher : public CCoinsViewBacked
 {
@@ -202,7 +192,7 @@ void Interrupt()
 
 void Shutdown()
 {
-    fRequestShutdown = true;  // Needed when we shutdown the wallet
+    StartShutdown();  // Needed when we shutdown the wallet
     LogPrintf("%s: In progress...\n", __func__);
     static RecursiveMutex cs_Shutdown;
     TRY_LOCK(cs_Shutdown, lockShutdown);
@@ -1701,7 +1691,7 @@ bool AppInitMain()
                     "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
                 if (fRet) {
                     fReindex = true;
-                    fRequestShutdown = false;
+                    AbortShutdown();
                 } else {
                     LogPrintf("Aborted block database rebuild. Exiting.\n");
                     return false;
@@ -1829,7 +1819,7 @@ bool AppInitMain()
 
     //flag our cached items so we send them to our peers
     g_budgetman.ResetSync();
-    g_budgetman.ClearSeen();
+    g_budgetman.ReloadMapSeen();
 
     RegisterValidationInterface(&g_budgetman);
 
