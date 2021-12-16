@@ -580,8 +580,8 @@ Optional<libzcash::SaplingPaymentAddress>
 bool SaplingScriptPubKeyMan::IsSaplingNullifierFromMe(const uint256& nullifier) const
 {
     LOCK(wallet->cs_wallet);
-    return mapSaplingNullifiersToNotes.count(nullifier) &&
-        wallet->mapWallet.count(mapSaplingNullifiersToNotes.at(nullifier).hash);
+    auto it = mapSaplingNullifiersToNotes.find(nullifier);
+    return it != mapSaplingNullifiersToNotes.end() && wallet->mapWallet.count(it->second.hash);
 }
 
 std::set<std::pair<libzcash::PaymentAddress, uint256>> SaplingScriptPubKeyMan::GetNullifiersForAddresses(
@@ -621,18 +621,20 @@ std::set<std::pair<libzcash::PaymentAddress, uint256>> SaplingScriptPubKeyMan::G
 
 Optional<libzcash::SaplingPaymentAddress> SaplingScriptPubKeyMan::GetOutPointAddress(const CWalletTx& tx, const SaplingOutPoint& op) const
 {
-    if (!tx.mapSaplingNoteData.count(op)) {
+    auto it = tx.mapSaplingNoteData.find(op);
+    if (it == tx.mapSaplingNoteData.end()) {
         return nullopt;
     }
-    return tx.mapSaplingNoteData.at(op).address;
+    return it->second.address;
 }
 
 CAmount SaplingScriptPubKeyMan::GetOutPointValue(const CWalletTx& tx, const SaplingOutPoint& op) const
 {
-    if (!tx.mapSaplingNoteData.count(op)) {
+    auto it = tx.mapSaplingNoteData.find(op);
+    if (it == tx.mapSaplingNoteData.end()) {
         return 0;
     }
-    return tx.mapSaplingNoteData.at(op).amount ? *(tx.mapSaplingNoteData.at(op).amount) : 0;
+    return it->second.amount ? *(it->second.amount) : 0;
 }
 
 Optional<std::string> SaplingScriptPubKeyMan::GetOutPointMemo(const CWalletTx& tx, const SaplingOutPoint& op) const
@@ -748,8 +750,9 @@ CAmount SaplingScriptPubKeyMan::GetDebit(const CTransaction& tx, const isminefil
             auto wit = wallet->mapWallet.find(op.hash);
             assert(wit != wallet->mapWallet.end());
             const auto& wtx = wit->second;
-            assert(wtx.mapSaplingNoteData.count(op));
-            const auto& nd = wtx.mapSaplingNoteData.at(op);
+            auto nit = wtx.mapSaplingNoteData.find(op);
+            assert(nit != wtx.mapSaplingNoteData.end());
+            const auto& nd = nit->second;
             assert(nd.IsMyNote());        // todo: Add watch only check.
             assert(static_cast<bool>(nd.amount));
             nDebit += *(nd.amount);
@@ -770,8 +773,9 @@ CAmount SaplingScriptPubKeyMan::GetShieldedChange(const CWalletTx& wtx) const
     SaplingOutPoint op{txHash, 0};
     for (uint32_t pos = 0; pos < (uint32_t) wtx.tx->sapData->vShieldedOutput.size(); ++pos) {
         op.n = pos;
-        if (!wtx.mapSaplingNoteData.count(op)) continue;
-        const auto& nd = wtx.mapSaplingNoteData.at(op);
+        auto it = wtx.mapSaplingNoteData.find(op);
+        if (it == wtx.mapSaplingNoteData.end()) continue;
+        const auto& nd = it->second;
         if (!nd.IsMyNote() || !static_cast<bool>(nd.address) || !static_cast<bool>(nd.amount)) continue;
         if (IsNoteSaplingChange(op, *(nd.address))) {
             nChange += *(nd.amount);
@@ -821,14 +825,16 @@ void SaplingScriptPubKeyMan::GetSaplingNoteWitnesses(const std::vector<SaplingOu
     int i = 0;
     for (SaplingOutPoint note : notes) {
         auto it = wallet->mapWallet.find(note.hash);
-        if (it != wallet->mapWallet.end() &&
-            it->second.mapSaplingNoteData.count(note) &&
-            it->second.mapSaplingNoteData[note].witnesses.size() > 0) {
-            witnesses[i] = it->second.mapSaplingNoteData[note].witnesses.front();
-            if (!rt) {
-                rt = witnesses[i]->root();
-            } else {
-                assert(*rt == witnesses[i]->root());
+        if (it != wallet->mapWallet.end()) {
+            auto nit = it->second.mapSaplingNoteData.find(note);
+            if (nit != it->second.mapSaplingNoteData.end() &&
+                    nit->second.witnesses.size() > 0) {
+                witnesses[i] = nit->second.witnesses.front();
+                if (!rt) {
+                    rt = witnesses[i]->root();
+                } else {
+                    assert(*rt == witnesses[i]->root());
+                }
             }
         }
         i++;
