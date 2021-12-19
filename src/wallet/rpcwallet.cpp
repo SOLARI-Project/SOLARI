@@ -3761,6 +3761,8 @@ UniValue listunspent(const JSONRPCRequest& request)
         nMaxDepth = request.params[1].get_int();
     }
 
+    CWallet::AvailableCoinsFilter coinFilter;
+
     std::set<CTxDestination> destinations;
     if (request.params.size() > 2) {
         RPCTypeCheckArgument(request.params[2], UniValue::VARR);
@@ -3774,6 +3776,7 @@ UniValue listunspent(const JSONRPCRequest& request)
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + input.get_str());
             destinations.insert(dest);
         }
+        coinFilter.onlyFilteredDest = &destinations;
     }
 
     // List watch only utxo
@@ -3785,7 +3788,6 @@ UniValue listunspent(const JSONRPCRequest& request)
             nWatchonlyConfig = 1;
     }
 
-    CWallet::AvailableCoinsFilter coinFilter;
     if (request.params.size() > 4) {
         const UniValue& options = request.params[4].get_obj();
 
@@ -3829,19 +3831,13 @@ UniValue listunspent(const JSONRPCRequest& request)
         if (out.nDepth < nMinDepth || out.nDepth > nMaxDepth)
             continue;
 
-        CTxDestination address;
-        const CScript& scriptPubKey = out.tx->tx->vout[out.i].scriptPubKey;
-        bool fValidAddress = ExtractDestination(scriptPubKey, address);
-
-        if (!destinations.empty() && (!fValidAddress || !destinations.count(address))) {
-            continue;
-        }
-
         UniValue entry(UniValue::VOBJ);
         entry.pushKV("txid", out.tx->GetHash().GetHex());
         entry.pushKV("vout", out.i);
         entry.pushKV("generated", out.tx->IsCoinStake() || out.tx->IsCoinBase());
-        if (fValidAddress) {
+        CTxDestination address;
+        const CScript& scriptPubKey = out.tx->tx->vout[out.i].scriptPubKey;
+        if (ExtractDestination(scriptPubKey, address)) {
             entry.pushKV("address", EncodeDestination(address));
             if (pwallet->HasAddressBook(address)) {
                 entry.pushKV("label", pwallet->GetNameForAddressBookEntry(address));
