@@ -26,6 +26,8 @@ bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& stat
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight);
 bool ContextualCheckZerocoinSpendNoSerialCheck(const CTransaction& tx, const libzerocoin::CoinSpend* spend, int nHeight);
 
+bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx);
+
 // Returns false if coin spend is invalid. Invalidity/DoS causes are treated inside the function.
 bool ParseAndValidateZerocoinSpends(const Consensus::Params& consensus,
                                     const CTransaction& tx, int chainHeight,

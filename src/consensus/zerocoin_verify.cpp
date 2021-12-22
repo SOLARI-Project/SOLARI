@@ -8,6 +8,7 @@
 #include "consensus/consensus.h"
 #include "invalid.h"
 #include "script/interpreter.h"
+#include "txdb.h" // for zerocoinDb
 #include "utilmoneystr.h"        // for FormatMoney
 #include "../validation.h"
 #include "zpivchain.h"
@@ -180,6 +181,32 @@ bool ContextualCheckZerocoinTx(const CTransactionRef& tx, CValidationState& stat
         }
     }
 
+    return true;
+}
+
+bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx)
+{
+    uint256 txHash;
+    // if not in zerocoinDB then its not in the blockchain
+    if (!zerocoinDB->ReadCoinSpend(bnSerial, txHash))
+        return false;
+
+    // Now get the chain tx
+    CTransactionRef tx;
+    uint256 hashBlock;
+    if (!GetTransaction(txHash, tx, hashBlock, true))
+        return false;
+
+    if (hashBlock.IsNull() || !mapBlockIndex.count(hashBlock)) {
+        return false;
+    }
+
+    CBlockIndex* pindex = mapBlockIndex[hashBlock];
+    if (!chainActive.Contains(pindex)) {
+        return false;
+    }
+
+    nHeightTx = pindex->nHeight;
     return true;
 }
 

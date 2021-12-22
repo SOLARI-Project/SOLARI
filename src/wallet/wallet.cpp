@@ -25,7 +25,6 @@
 #include "util/validation.h"
 #include "utilmoneystr.h"
 #include "wallet/fees.h"
-#include "zpivchain.h"
 
 #include <future>
 #include <boost/algorithm/string/replace.hpp>

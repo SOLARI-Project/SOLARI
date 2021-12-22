@@ -28,7 +28,6 @@
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
 #include "wallet/walletutil.h"
-#include "zpivchain.h"
 
 #include <stdint.h>
 #include <univalue.h>

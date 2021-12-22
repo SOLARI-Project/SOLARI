@@ -10,7 +10,6 @@
 class CBigNum;
 class CTxIn;
 
-bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx);
 libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin);
 
 #endif //PIVX_ZPIVCHAIN_H
