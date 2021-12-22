@@ -154,6 +154,12 @@ namespace ZPIVModule {
         return true;
     }
 
+    libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin)
+    {
+        CDataStream serializedCoinSpend = ScriptSigToSerializedSpend(txin.scriptSig);
+        return libzerocoin::CoinSpend(serializedCoinSpend);
+    }
+
     bool validateInput(const CTxIn &in, const CTxOut &prevOut, const CTransaction &tx, PublicCoinSpend &publicSpend) {
         // Now prove that the commitment value opens to the input
         if (!parseCoinSpend(in, tx, prevOut, publicSpend)) {

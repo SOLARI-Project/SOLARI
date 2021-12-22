@@ -47,7 +47,6 @@
 #include "utilmoneystr.h"
 #include "validationinterface.h"
 #include "warnings.h"
-#include "zpivchain.h"
 #include "zpiv/zpivmodule.h"
 
 #include <future>
@@ -3063,7 +3062,7 @@ static bool CheckInBlockDoubleSpends(const CBlock& block, int nHeight, CValidati
                     }
                     spend = publicSpend;
                 } else {
-                    spend = TxInToZerocoinSpend(in);
+                    spend = ZPIVModule::TxInToZerocoinSpend(in);
                 }
                 // Check for serials double spending in the same block
                 const CBigNum& s = spend.getCoinSerialNumber();
@@ -3159,7 +3158,7 @@ static bool IsUnspentOnFork(std::unordered_set<COutPoint, SaltedOutpointHasher>&
                     }
                 } else {
                     // zerocoin serial
-                    const CBigNum& s = TxInToZerocoinSpend(in).getCoinSerialNumber();
+                    const CBigNum& s = ZPIVModule::TxInToZerocoinSpend(in).getCoinSerialNumber();
                     if (serials.find(s) != serials.end()) {
                         return state.DoS(100, false, REJECT_INVALID, "bad-txns-serials-spent-fork-post-split");
                     }
@@ -3333,7 +3332,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
         const CTransaction& coinstake = *block.vtx[1];
         const CTxIn& coinstake_in = coinstake.vin[0];
         if (coinstake_in.IsZerocoinSpend()) {
-            libzerocoin::CoinSpend spend = TxInToZerocoinSpend(coinstake_in);
+            libzerocoin::CoinSpend spend = ZPIVModule::TxInToZerocoinSpend(coinstake_in);
             if (!ContextualCheckZerocoinSpend(coinstake, &spend, pindex->nHeight)) {
                 return state.DoS(100,error("%s: main chain ContextualCheckZerocoinSpend failed for tx %s", __func__,
                         coinstake.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");

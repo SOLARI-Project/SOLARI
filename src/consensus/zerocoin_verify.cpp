@@ -11,7 +11,6 @@
 #include "txdb.h" // for zerocoinDb
 #include "utilmoneystr.h"        // for FormatMoney
 #include "../validation.h"
-#include "zpivchain.h"
 #include "zpiv/zpivmodule.h"
 
 
@@ -61,7 +60,7 @@ static bool CheckZerocoinSpend(const CTransactionRef _tx, CValidationState& stat
             }
             newSpend = publicSpend;
         } else {
-            newSpend = TxInToZerocoinSpend(txin);
+            newSpend = ZPIVModule::TxInToZerocoinSpend(txin);
         }
 
         //check that the denomination is valid
@@ -296,7 +295,7 @@ bool ParseAndValidateZerocoinSpends(const Consensus::Params& consensus,
             }
             vSpendsRet.emplace_back(publicSpend.getCoinSerialNumber(), tx.GetHash());
         } else {
-            libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txIn);
+            libzerocoin::CoinSpend spend = ZPIVModule::TxInToZerocoinSpend(txIn);
             //queue for db write after the 'justcheck' section has concluded
             if (!ContextualCheckZerocoinSpend(tx, &spend, chainHeight)) {
                 return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,

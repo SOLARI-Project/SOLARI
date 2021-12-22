@@ -44,12 +44,9 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "wallet/fees -> wallet/wallet -> wallet/fees"
     "wallet/scriptpubkeyman -> wallet/wallet -> wallet/scriptpubkeyman"
     "wallet/wallet -> wallet/walletdb -> wallet/wallet"
-    "wallet/wallet -> zpivchain -> wallet/wallet"
-    "zpiv/zpivmodule -> zpivchain -> zpiv/zpivmodule"
     "chain -> legacy/stakemodifier -> stakeinput -> chain"
     "chain -> legacy/stakemodifier -> validation -> chain"
     "chainparamsbase -> util/system -> logging -> chainparamsbase"
-    "consensus/zerocoin_verify -> spork -> validation -> consensus/zerocoin_verify"
     "evo/deterministicmns -> masternode -> masternode-sync -> evo/deterministicmns"
     "evo/deterministicmns -> masternode -> wallet/wallet -> evo/deterministicmns"
     "evo/specialtx_validation -> llmq/quorums_blockprocessor -> validation -> evo/specialtx_validation"
@@ -64,8 +61,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> validation -> checkpoints -> chain"
     "chain -> legacy/stakemodifier -> validation -> undo -> chain"
     "chain -> legacy/stakemodifier -> validation -> pow -> chain"
-    "chain -> legacy/stakemodifier -> validation -> zpivchain -> chain"
-    "consensus/tx_verify -> consensus/zerocoin_verify -> spork -> validation -> consensus/tx_verify"
     "evo/deterministicmns -> llmq/quorums_commitment -> validation -> validationinterface -> evo/deterministicmns"
 )
 
