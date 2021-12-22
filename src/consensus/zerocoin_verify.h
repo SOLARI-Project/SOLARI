@@ -7,7 +7,16 @@
 
 #include "consensus/consensus.h"
 #include "script/interpreter.h"
-#include "zpivchain.h"
+
+class CValidationState;
+class CBigNum;
+
+namespace Consensus {
+    struct Params;
+}
+namespace libzerocoin {
+    class CoinSpend;
+}
 
 // Fake Serial attack Range
 bool isBlockBetweenFakeSerialAttackRange(int nHeight);

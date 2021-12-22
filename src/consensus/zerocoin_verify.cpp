@@ -6,14 +6,11 @@
 
 #include "chainparams.h"
 #include "consensus/consensus.h"
-#include "guiinterface.h"        // for ui_interface
 #include "invalid.h"
 #include "script/interpreter.h"
-#include "spork.h"               // for sporkManager
-#include "txdb.h"
-#include "upgrades.h"            // for IsActivationHeight
 #include "utilmoneystr.h"        // for FormatMoney
 #include "../validation.h"
+#include "zpivchain.h"
 #include "zpiv/zpivmodule.h"
 
 
