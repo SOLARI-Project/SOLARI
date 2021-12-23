@@ -16,7 +16,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> chain"
     "chainparamsbase -> util/system -> chainparamsbase"
     "consensus/params -> consensus/upgrades -> consensus/params"
-    "crypter -> wallet/wallet -> crypter"
     "evo/deterministicmns -> masternodeman -> evo/deterministicmns"
     "evo/deterministicmns -> llmq/quorums_utils -> evo/deterministicmns"
     "kernel -> validation -> kernel"
