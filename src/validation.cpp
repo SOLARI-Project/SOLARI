@@ -1691,10 +1691,15 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
             pindex->nHeight < consensus.height_last_ZC_AccumCheckpoint) {
         // Legacy Zerocoin DB: If Accumulators Checkpoint is changed, cache the checksums
         CacheAccChecksum(pindex, true);
+        // Clean coinspends cache every 50k blocks, so it does not grow unnecessarily
+        if (pindex->nHeight % 50000 == 0) {
+            ZPIVModule::CleanCoinSpendsCache();
+        }
     } else if (accumulatorCache && pindex->nHeight > consensus.height_last_ZC_AccumCheckpoint + 100) {
         // 100 blocks After last Checkpoint block, wipe the checksum database and cache
         accumulatorCache->Wipe();
         accumulatorCache.reset();
+        ZPIVModule::CleanCoinSpendsCache();
     }
 
     // 100 blocks after the last invalid out, clean the map contents
