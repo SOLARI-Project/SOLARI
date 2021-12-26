@@ -140,6 +140,7 @@ struct HTTPReply
 const char *http_errorstring(int code)
 {
     switch(code) {
+#if LIBEVENT_VERSION_NUMBER >= 0x02010300
         case EVREQ_HTTP_TIMEOUT:
             return "timeout reached";
         case EVREQ_HTTP_EOF:
@@ -152,6 +153,7 @@ const char *http_errorstring(int code)
             return "request was canceled";
         case EVREQ_HTTP_DATA_TOO_LONG:
             return "response body is larger than allowed";
+#endif
         default:
             return "unknown";
     }
@@ -182,11 +184,13 @@ static void http_request_done(struct evhttp_request *req, void *ctx)
     }
 }
 
+#if LIBEVENT_VERSION_NUMBER >= 0x02010300
 static void http_error_cb(enum evhttp_request_error err, void *ctx)
 {
     HTTPReply *reply = static_cast<HTTPReply*>(ctx);
     reply->error = err;
 }
+#endif
 
 UniValue CallRPC(const std::string& strMethod, const UniValue& params)
 {
@@ -204,7 +208,9 @@ UniValue CallRPC(const std::string& strMethod, const UniValue& params)
     raii_evhttp_request req = obtain_evhttp_request(http_request_done, (void*)&response);
     if (req == NULL)
         throw std::runtime_error("create http request failed");
+#if LIBEVENT_VERSION_NUMBER >= 0x02010300
     evhttp_request_set_error_cb(req.get(), http_error_cb);
+#endif
 
     // Get credentials
     std::string strRPCUserColonPass;
