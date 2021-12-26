@@ -9,6 +9,7 @@
 #include "budget/budgetmanager.h"
 #include "chain.h"
 #include "evo/deterministicmns.h"
+#include "llmq/quorums_blockprocessor.h"
 #include "masternodeman.h"
 #include "masternode-payments.h"
 #include "masternode-sync.h"
@@ -811,6 +812,8 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
         return false;
     case MSG_MASTERNODE_PING:
         return mnodeman.mapSeenMasternodePing.count(inv.hash);
+    case MSG_QUORUM_FINAL_COMMITMENT:
+        return llmq::quorumBlockProcessor->HasMinableCommitment(inv.hash);
     }
     // Don't know what it is, just say we already got one
     return true;
@@ -862,6 +865,16 @@ bool static PushTierTwoGetDataRequest(const CInv& inv,
             ss.reserve(1000);
             ss << mapSporks[inv.hash];
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SPORK, ss));
+            return true;
+        }
+    }
+
+    if (inv.type == MSG_QUORUM_FINAL_COMMITMENT) {
+        // Only respond if v6.0.0 is enforced.
+        if (!deterministicMNManager->IsDIP3Enforced()) return false;
+        llmq::CFinalCommitment o;
+        if (llmq::quorumBlockProcessor->GetMinableCommitmentByHash(inv.hash, o)) {
+            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::QFCOMMITMENT, o));
             return true;
         }
     }
@@ -1014,7 +1027,8 @@ bool static IsTierTwoInventoryTypeKnown(int type)
            type == MSG_BUDGET_FINALIZED ||
            type == MSG_BUDGET_FINALIZED_VOTE ||
            type == MSG_MASTERNODE_ANNOUNCE ||
-           type == MSG_MASTERNODE_PING;
+           type == MSG_MASTERNODE_PING ||
+           type == MSG_QUORUM_FINAL_COMMITMENT;
 }
 
 void static ProcessGetData(CNode* pfrom, CConnman* connman, const std::atomic<bool>& interruptMsgProc)
@@ -1392,6 +1406,16 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
                 static std::set<int> allowWhileInIBDObjs = {
                         MSG_SPORK
                 };
+
+                // Can be safely removed post v6.0.0 enforcement
+                // Disallowed inv request
+                static std::set<int> disallowedRequestsUntilV6 = {
+                        MSG_QUORUM_FINAL_COMMITMENT
+                };
+                if (disallowedRequestsUntilV6.count(inv.type) &&
+                    !deterministicMNManager->IsDIP3Enforced()) {
+                    continue; // Move to next inv
+                }
 
                 // If we don't have it, check if we should ask for it now or
                 // wait until we are sync
