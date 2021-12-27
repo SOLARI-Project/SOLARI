@@ -1089,9 +1089,9 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // 8) Mine the final valid qfc in a block.
     // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
 
-    // 1) Mine a null qfc before the mining phase, which should end up being rejected.
+    // 1) Mine a qfc with an invalid height, which should end up being rejected.
     CMutableTransaction nullQfcTx = CreateNullQfcTx(quorumHash, nHeight);
-    CScript coinsbaseScript = CScript() <<  ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+    CScript coinsbaseScript = GetScriptForRawPubKey(coinbaseKey.GetPubKey());
     auto pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
     ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-height", nHeight);
 
@@ -1130,7 +1130,8 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     CTransactionRef qcTx;
     BOOST_CHECK(llmq::quorumBlockProcessor->GetMinableCommitmentTx(Consensus::LLMQ_TEST, nHeight + 1, qcTx));
     CValidationState mempoolState;
-    BOOST_CHECK(!AcceptToMemoryPool(mempool, mempoolState, qcTx, true, nullptr));
+    BOOST_CHECK(!WITH_LOCK(cs_main, return AcceptToMemoryPool(mempool, mempoolState, qcTx, true, nullptr); ));
+    BOOST_CHECK_EQUAL(mempoolState.GetRejectReason(), "llmqcomm");
 
     // 7) Mine a qfc with an invalid quorum hash, which should end up being rejected.
     nullQfcTx = CreateNullQfcTx(chainTip->GetBlockHash(), nHeight + 1);
