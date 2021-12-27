@@ -10,13 +10,13 @@ from functools import reduce
 from test_framework.test_framework import PivxTestFramework
 from test_framework.util import assert_equal, assert_greater_than
 
-class SaplingkeyImportExportTest (PivxTestFramework):
+class SaplingkeyImportExportTest(PivxTestFramework):
 
     def set_test_params(self):
         self.num_nodes = 5
         self.setup_clean_chain = True
-        saplingUpgrade = ['-nuparams=v5_shield:1']
-        self.extra_args = [saplingUpgrade, saplingUpgrade, saplingUpgrade, saplingUpgrade, saplingUpgrade]
+        # whitelist all peers to speed up tx relay / mempool sync
+        self.extra_args = [['-nuparams=v5_shield:1', "-whitelist=127.0.0.1"]] * self.num_nodes
 
     def run_test(self):
         [alice, bob, charlie, david, miner] = self.nodes
@@ -25,7 +25,7 @@ class SaplingkeyImportExportTest (PivxTestFramework):
         def shielded_send(from_node, from_addr, to_addr, amount):
             txid = from_node.shieldsendmany(from_addr,
                                         [{"address": to_addr, "amount": Decimal(amount)}], 1)
-            self.sync_all()
+            self.sync_mempools()
             miner.generate(1)
             self.sync_all()
             return txid
@@ -51,9 +51,9 @@ class SaplingkeyImportExportTest (PivxTestFramework):
 
         # Seed Alice with some funds
         alice.generate(10)
-        self.sync_all()
+        self.sync_blocks()
         miner.generate(100)
-        self.sync_all()
+        self.sync_blocks()
         fromAddress = alice.listunspent()[0]['address']
         amountTo = 10 * 250 - 1
         # Shield Alice's coinbase funds to her shield_addr
