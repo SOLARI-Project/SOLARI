@@ -143,6 +143,8 @@ protected:
 
     CryptedKeyMap mapCryptedKeys;
 
+    static bool DecryptKey(const CKeyingMaterial& vMasterKey, const std::vector<unsigned char>& vchCryptedSecret, const CPubKey& vchPubKey, CKey& key);
+
     // Unlock Sapling keys
     bool UnlockSaplingKeys(const CKeyingMaterial& vMasterKeyIn, bool fDecryptionThoroughlyChecked);
 
