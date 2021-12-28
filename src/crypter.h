@@ -158,7 +158,7 @@ public:
 
     bool GetKey(const CKeyID& address, CKey& keyOut) const override;
     bool GetPubKey(const CKeyID& address, CPubKey& vchPubKeyOut) const override;
-    void GetKeys(std::set<CKeyID>& setAddress) const override;
+    std::set<CKeyID> GetKeys() const override;
 
     //! Sapling
     virtual bool AddCryptedSaplingSpendingKey(const libzcash::SaplingExtendedFullViewingKey& extfvk,

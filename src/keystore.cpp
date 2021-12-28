@@ -123,17 +123,14 @@ bool CBasicKeyStore::HaveKey(const CKeyID& address) const
     return result;
 }
 
-void CBasicKeyStore::GetKeys(std::set<CKeyID>& setAddress) const
+std::set<CKeyID> CBasicKeyStore::GetKeys() const
 {
-    setAddress.clear();
-    {
-        LOCK(cs_KeyStore);
-        KeyMap::const_iterator mi = mapKeys.begin();
-        while (mi != mapKeys.end()) {
-            setAddress.insert((*mi).first);
-            mi++;
-        }
+    LOCK(cs_KeyStore);
+    std::set<CKeyID> set_address;
+    for (const auto& mi : mapKeys) {
+        set_address.insert(mi.first);
     }
+    return set_address;
 }
 
 bool CBasicKeyStore::GetKey(const CKeyID& address, CKey& keyOut) const

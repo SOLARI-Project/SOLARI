@@ -231,19 +231,17 @@ bool CCryptoKeyStore::GetPubKey(const CKeyID& address, CPubKey& vchPubKeyOut) co
     return false;
 }
 
-void CCryptoKeyStore::GetKeys(std::set<CKeyID>& setAddress) const
+std::set<CKeyID> CCryptoKeyStore::GetKeys() const
 {
     LOCK(cs_KeyStore);
     if (!IsCrypted()) {
-        CBasicKeyStore::GetKeys(setAddress);
-        return;
+        return CBasicKeyStore::GetKeys();
     }
-    setAddress.clear();
-    CryptedKeyMap::const_iterator mi = mapCryptedKeys.begin();
-    while (mi != mapCryptedKeys.end()) {
-        setAddress.insert((*mi).first);
-        mi++;
+    std::set<CKeyID> set_address;
+    for (const auto& mi : mapCryptedKeys) {
+        set_address.insert(mi.first);
     }
+    return set_address;
 }
 
 bool CCryptoKeyStore::EncryptKeys(CKeyingMaterial& vMasterKeyIn)
