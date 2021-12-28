@@ -149,51 +149,16 @@ protected:
 public:
     CCryptoKeyStore() : fUseCrypto(false) { }
 
-    bool IsCrypted() const
-    {
-        return fUseCrypto;
-    }
-
-    bool IsLocked() const
-    {
-        if (!IsCrypted())
-            return false;
-        bool result;
-        {
-            LOCK(cs_KeyStore);
-            result = vMasterKey.empty();
-        }
-        return result;
-    }
+    bool IsCrypted() const { return fUseCrypto; }
+    bool IsLocked() const;
 
     virtual bool AddCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret);
-    bool AddKeyPubKey(const CKey& key, const CPubKey& pubkey);
-    bool HaveKey(const CKeyID& address) const
-    {
-        {
-            LOCK(cs_KeyStore);
-            if (!IsCrypted())
-                return CBasicKeyStore::HaveKey(address);
-            return mapCryptedKeys.count(address) > 0;
-        }
-        return false;
-    }
-    bool GetKey(const CKeyID& address, CKey& keyOut) const;
-    bool GetPubKey(const CKeyID& address, CPubKey& vchPubKeyOut) const;
-    void GetKeys(std::set<CKeyID>& setAddress) const
-    {
-        LOCK(cs_KeyStore);
-        if (!IsCrypted()) {
-            CBasicKeyStore::GetKeys(setAddress);
-            return;
-        }
-        setAddress.clear();
-        CryptedKeyMap::const_iterator mi = mapCryptedKeys.begin();
-        while (mi != mapCryptedKeys.end()) {
-            setAddress.insert((*mi).first);
-            mi++;
-        }
-    }
+    bool AddKeyPubKey(const CKey& key, const CPubKey& pubkey) override;
+    bool HaveKey(const CKeyID& address) const override;
+
+    bool GetKey(const CKeyID& address, CKey& keyOut) const override;
+    bool GetPubKey(const CKeyID& address, CPubKey& vchPubKeyOut) const override;
+    void GetKeys(std::set<CKeyID>& setAddress) const override;
 
     //! Sapling
     virtual bool AddCryptedSaplingSpendingKey(const libzcash::SaplingExtendedFullViewingKey& extfvk,

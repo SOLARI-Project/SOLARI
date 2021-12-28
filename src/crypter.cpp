@@ -132,6 +132,18 @@ bool CCryptoKeyStore::SetCrypted()
     return true;
 }
 
+bool CCryptoKeyStore::IsLocked() const
+{
+    if (!IsCrypted())
+        return false;
+    bool result;
+    {
+        LOCK(cs_KeyStore);
+        result = vMasterKey.empty();
+    }
+    return result;
+}
+
 bool CCryptoKeyStore::AddKeyPubKey(const CKey& key, const CPubKey& pubkey)
 {
     {
@@ -153,6 +165,17 @@ bool CCryptoKeyStore::AddKeyPubKey(const CKey& key, const CPubKey& pubkey)
     return true;
 }
 
+bool CCryptoKeyStore::HaveKey(const CKeyID& address) const
+{
+    {
+        LOCK(cs_KeyStore);
+        if (!IsCrypted()) {
+            return CBasicKeyStore::HaveKey(address);
+        }
+        return mapCryptedKeys.count(address) > 0;
+    }
+    return false;
+}
 
 bool CCryptoKeyStore::AddCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret)
 {
@@ -206,6 +229,21 @@ bool CCryptoKeyStore::GetPubKey(const CKeyID& address, CPubKey& vchPubKeyOut) co
         return CBasicKeyStore::GetPubKey(address, vchPubKeyOut);
     }
     return false;
+}
+
+void CCryptoKeyStore::GetKeys(std::set<CKeyID>& setAddress) const
+{
+    LOCK(cs_KeyStore);
+    if (!IsCrypted()) {
+        CBasicKeyStore::GetKeys(setAddress);
+        return;
+    }
+    setAddress.clear();
+    CryptedKeyMap::const_iterator mi = mapCryptedKeys.begin();
+    while (mi != mapCryptedKeys.end()) {
+        setAddress.insert((*mi).first);
+        mi++;
+    }
 }
 
 bool CCryptoKeyStore::EncryptKeys(CKeyingMaterial& vMasterKeyIn)
