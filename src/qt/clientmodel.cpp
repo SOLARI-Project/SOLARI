@@ -209,6 +209,11 @@ void ClientModel::updateNumConnections(int numConnections)
     Q_EMIT numConnectionsChanged(numConnections);
 }
 
+void ClientModel::updateNetworkActive(bool networkActive)
+{
+    Q_EMIT networkActiveChanged(networkActive);
+}
+
 void ClientModel::updateAlert()
 {
     Q_EMIT alertsChanged(getStatusBarWarnings());
@@ -229,6 +234,21 @@ enum BlockSource ClientModel::getBlockSource() const
         return BLOCK_SOURCE_NETWORK;
 
     return BLOCK_SOURCE_NONE;
+}
+
+void ClientModel::setNetworkActive(bool active)
+{
+    if (g_connman) {
+        g_connman->SetNetworkActive(active);
+    }
+}
+
+bool ClientModel::getNetworkActive() const
+{
+    if (g_connman) {
+        return g_connman->GetNetworkActive();
+    }
+    return false;
 }
 
 QString ClientModel::getStatusBarWarnings() const
@@ -318,6 +338,12 @@ static void NotifyNumConnectionsChanged(ClientModel* clientmodel, int newNumConn
         Q_ARG(int, newNumConnections));
 }
 
+static void NotifyNetworkActiveChanged(ClientModel *clientmodel, bool networkActive)
+{
+    QMetaObject::invokeMethod(clientmodel, "updateNetworkActive", Qt::QueuedConnection,
+                              Q_ARG(bool, networkActive));
+}
+
 static void NotifyAlertChanged(ClientModel* clientmodel)
 {
     qDebug() << "NotifyAlertChanged";
@@ -335,6 +361,7 @@ void ClientModel::subscribeToCoreSignals()
     // Connect signals to client
     m_handler_show_progress = interfaces::MakeHandler(uiInterface.ShowProgress.connect(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2)));
     m_handler_notify_num_connections_changed = interfaces::MakeHandler(uiInterface.NotifyNumConnectionsChanged.connect(std::bind(NotifyNumConnectionsChanged, this, std::placeholders::_1)));
+    m_handler_notify_net_activity_changed = interfaces::MakeHandler(uiInterface.NotifyNetworkActiveChanged.connect(std::bind(NotifyNetworkActiveChanged, this, std::placeholders::_1)));
     m_handler_notify_alert_changed = interfaces::MakeHandler(uiInterface.NotifyAlertChanged.connect(std::bind(NotifyAlertChanged, this)));
     m_handler_banned_list_changed = interfaces::MakeHandler(uiInterface.BannedListChanged.connect(std::bind(BannedListChanged, this)));
     m_handler_notify_block_tip = interfaces::MakeHandler(uiInterface.NotifyBlockTip.connect(std::bind(BlockTipChanged, this, std::placeholders::_1, std::placeholders::_2)));
@@ -345,6 +372,7 @@ void ClientModel::unsubscribeFromCoreSignals()
     // Disconnect signals from client
     m_handler_show_progress->disconnect();
     m_handler_notify_num_connections_changed->disconnect();
+    m_handler_notify_net_activity_changed->disconnect();
     m_handler_notify_alert_changed->disconnect();
     m_handler_banned_list_changed->disconnect();
     m_handler_notify_block_tip->disconnect();

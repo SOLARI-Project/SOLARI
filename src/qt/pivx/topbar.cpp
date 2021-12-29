@@ -19,7 +19,6 @@
 #include "addresstablemodel.h"
 
 #include "masternode-sync.h"
-#include "wallet/wallet.h"
 
 #include <QPixmap>
 
@@ -420,6 +419,7 @@ void TopBar::loadClientModel()
 
         setNumBlocks(clientModel->getNumBlocks());
         connect(clientModel, &ClientModel::numBlocksChanged, this, &TopBar::setNumBlocks);
+        connect(clientModel, &ClientModel::networkActiveChanged, this, &TopBar::setNetworkActive);
 
         timerStakingIcon = new QTimer(ui->pushButtonStack);
         connect(timerStakingIcon, &QTimer::timeout, this, &TopBar::updateStakingStatus);
@@ -464,6 +464,18 @@ void TopBar::setNumConnections(int count)
     }
 
     ui->pushButtonConnection->setButtonText(tr("%n active connection(s)", "", count));
+}
+
+void TopBar::setNetworkActive(bool active)
+{
+    if (!active) {
+        ui->pushButtonSync->setButtonText(tr("Network activity disabled"));
+        ui->pushButtonSync->setButtonClassStyle("cssClass", "btn-check-sync-inactive", true);
+    } else {
+        if (!clientModel) return;
+        setNumBlocks(clientModel->getLastBlockProcessedHeight());
+        ui->pushButtonSync->setButtonClassStyle("cssClass", "btn-check-sync", true);
+    }
 }
 
 void TopBar::setNumBlocks(int count)

@@ -173,6 +173,8 @@ public:
     bool Start(CScheduler& scheduler, const Options& options);
     void Stop();
     void Interrupt();
+    bool GetNetworkActive() const { return fNetworkActive; };
+    void SetNetworkActive(bool active);
     void OpenNetworkConnection(const CAddress& addrConnect, bool fCountFailure, CSemaphoreGrant* grantOutbound = nullptr, const char* strDest = nullptr, bool fOneShot = false, bool fFeeler = false, bool fAddnode = false);
     bool CheckIncomingNonce(uint64_t nonce);
 
@@ -389,6 +391,7 @@ private:
     unsigned int nReceiveFloodSize{0};
 
     std::vector<ListenSocket> vhListenSocket;
+    std::atomic<bool> fNetworkActive{true};
     banmap_t setBanned;
     RecursiveMutex cs_setBanned;
     bool setBannedIsDirty{false};

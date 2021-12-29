@@ -142,6 +142,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "sendtoaddress", 4, "subtract_fee" },
     { "setautocombinethreshold", 0, "enable" },
     { "setautocombinethreshold", 1, "threshold" },
+    { "setnetworkactive", 0, "active"},
     { "setban", 2, "bantime" },
     { "setban", 3, "absolute" },
     { "setgenerate", 0, "generate" },
