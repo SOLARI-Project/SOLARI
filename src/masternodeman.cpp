@@ -950,7 +950,6 @@ bool CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
 
 int CMasternodeMan::ProcessMessageInner(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
-    if (fLiteMode) return 0; //disable all Masternode related functionality
     if (!masternodeSync.IsBlockchainSynced()) return 0;
 
     // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
@@ -1156,8 +1155,6 @@ bool CMasternodeMan::IsWithinDepth(const uint256& nHash, int depth) const
 
 void ThreadCheckMasternodes()
 {
-    if (fLiteMode) return; //disable all Masternode related functionality
-
     // Make this thread recognisable as the wallet flushing thread
     util::ThreadRename("pivx-masternodeman");
     LogPrintf("Masternodes thread started\n");

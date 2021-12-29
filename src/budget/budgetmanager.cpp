@@ -1308,8 +1308,6 @@ bool CBudgetManager::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
 
 int CBudgetManager::ProcessMessageInner(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
-    // lite mode is not supported
-    if (fLiteMode) return 0;
     if (!masternodeSync.IsBlockchainSynced()) return 0;
 
     if (strCommand == NetMsgType::BUDGETVOTESYNC) {

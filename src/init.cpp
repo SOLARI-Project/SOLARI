@@ -18,8 +18,6 @@
 #include "addrman.h"
 #include "amount.h"
 #include "bls/bls_wrapper.h"
-#include "budget/budgetdb.h"
-#include "budget/budgetmanager.h"
 #include "checkpoints.h"
 #include "compat/sanity.h"
 #include "consensus/upgrades.h"
@@ -32,9 +30,7 @@
 #include "llmq/quorums_init.h"
 #include "key.h"
 #include "mapport.h"
-#include "masternode-payments.h"
 #include "masternodeconfig.h"
-#include "masternodeman.h"
 #include "miner.h"
 #include "netbase.h"
 #include "net_processing.h"
@@ -49,6 +45,7 @@
 #include "spork.h"
 #include "sporkdb.h"
 #include "evo/evodb.h"
+#include "tiertwo/init.h"
 #include "txdb.h"
 #include "torcontrol.h"
 #include "guiinterface.h"
@@ -93,7 +90,6 @@ static const bool DEFAULT_PROXYRANDOMIZE = true;
 static const bool DEFAULT_REST_ENABLE = false;
 static const bool DEFAULT_DISABLE_SAFEMODE = false;
 static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
-static const bool DEFAULT_MASTERNODE  = false;
 static const bool DEFAULT_MNCONFLOCK = true;
 
 std::unique_ptr<CConnman> g_connman;
@@ -229,9 +225,7 @@ void Shutdown()
     g_connman.reset();
     peerLogic.reset();
 
-    DumpMasternodes();
-    DumpBudgets(g_budgetman);
-    DumpMasternodePayments();
+    DumpTierTwo();
     if (::mempool.IsLoaded() && gArgs.GetBoolArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool(::mempool);
     }
@@ -522,7 +516,6 @@ std::string HelpMessage(HelpMessageMode mode)
     }
     strUsage += HelpMessageOpt("-shrinkdebugfile", "Shrink debug.log file on client startup (default: 1 when no -debug)");
     AppendParamsHelpMessages(strUsage, showDebug);
-    strUsage += HelpMessageOpt("-litemode=<n>", strprintf("Disable all PIVX specific functionality (Masternodes, Budgeting) (0-1, default: %u)", 0));
 
     strUsage += HelpMessageGroup("Masternode options:");
     strUsage += HelpMessageOpt("-masternode=<n>", strprintf("Enable the client to act as a masternode (0-1, default: %u)", DEFAULT_MASTERNODE));
@@ -948,19 +941,6 @@ bool InitNUParams()
 static std::string ResolveErrMsg(const char * const optname, const std::string& strBind)
 {
     return strprintf(_("Cannot resolve -%s address: '%s'"), optname, strBind);
-}
-
-// Sets the last CACHED_BLOCK_HASHES hashes into masternode manager cache
-static void LoadBlockHashesCache(CMasternodeMan& man)
-{
-    LOCK(cs_main);
-    const CBlockIndex* pindex = chainActive.Tip();
-    unsigned int inserted = 0;
-    while (pindex && inserted < CACHED_BLOCK_HASHES) {
-        man.CacheBlockHash(pindex);
-        pindex = pindex->pprev;
-        ++inserted;
-    }
 }
 
 void InitLogging()
@@ -1748,91 +1728,12 @@ bool AppInitMain()
 
     // ********************************************************* Step 10: setup layer 2 data
 
-    uiInterface.InitMessage(_("Loading masternode cache..."));
+    LoadTierTwo(chain_active_height);
+    if (!InitActiveMN()) return false;
+    RegisterTierTwoValidationInterface();
 
-    mnodeman.SetBestHeight(chain_active_height);
-    LoadBlockHashesCache(mnodeman);
-    CMasternodeDB mndb;
-    CMasternodeDB::ReadResult readResult = mndb.Read(mnodeman);
-    if (readResult == CMasternodeDB::FileError)
-        LogPrintf("Missing masternode cache file - mncache.dat, will try to recreate\n");
-    else if (readResult != CMasternodeDB::Ok) {
-        LogPrintf("Error reading mncache.dat - cached data discarded\n");
-    }
-
-    uiInterface.InitMessage(_("Loading budget cache..."));
-
-    CBudgetDB budgetdb;
-    const bool fDryRun = (chain_active_height <= 0);
-    if (!fDryRun) g_budgetman.SetBestHeight(chain_active_height);
-    CBudgetDB::ReadResult readResult2 = budgetdb.Read(g_budgetman, fDryRun);
-
-    if (readResult2 == CBudgetDB::FileError)
-        LogPrintf("Missing budget cache - budget.dat, will try to recreate\n");
-    else if (readResult2 != CBudgetDB::Ok) {
-        LogPrintf("Error reading budget.dat - cached data discarded\n");
-    }
-
-    //flag our cached items so we send them to our peers
-    g_budgetman.ResetSync();
-    g_budgetman.ReloadMapSeen();
-
-    RegisterValidationInterface(&g_budgetman);
-
-    uiInterface.InitMessage(_("Loading masternode payment cache..."));
-
-    CMasternodePaymentDB mnpayments;
-    CMasternodePaymentDB::ReadResult readResult3 = mnpayments.Read(masternodePayments);
-
-    RegisterValidationInterface(&masternodePayments);
-
-    if (readResult3 == CMasternodePaymentDB::FileError)
-        LogPrintf("Missing masternode payment cache - mnpayments.dat, will try to recreate\n");
-    else if (readResult3 != CMasternodePaymentDB::Ok) {
-        LogPrintf("Error reading mnpayments.dat - cached data discarded\n");
-    }
-
-    fMasterNode = gArgs.GetBoolArg("-masternode", DEFAULT_MASTERNODE);
-
-    if ((fMasterNode || masternodeConfig.getCount() > -1) && fTxIndex == false) {
-        return UIError(strprintf(_("Enabling Masternode support requires turning on transaction indexing."
-                                   "Please add %s to your configuration and start with %s"), "txindex=1", "-reindex"));
-    }
-
-    if (fMasterNode) {
-        const std::string& mnoperatorkeyStr = gArgs.GetArg("-mnoperatorprivatekey", "");
-        const bool fDeterministic = !mnoperatorkeyStr.empty();
-        LogPrintf("IS %sMASTERNODE\n", (fDeterministic ? "DETERMINISTIC " : ""));
-
-        if (fDeterministic) {
-            // Check enforcement
-            if (!deterministicMNManager->IsDIP3Enforced()) {
-                const std::string strError = strprintf(_("Cannot start deterministic masternode before enforcement. Remove %s to start as legacy masternode"), "-mnoperatorprivatekey");
-                LogPrintf("-- ERROR: %s\n", strError);
-                return UIError(strError);
-            }
-            // Create and register activeMasternodeManager
-            activeMasternodeManager = new CActiveDeterministicMasternodeManager();
-            auto res = activeMasternodeManager->SetOperatorKey(mnoperatorkeyStr);
-            if (!res) { return UIError(res.getError()); }
-            RegisterValidationInterface(activeMasternodeManager);
-            // Init active masternode
-            const CBlockIndex* pindexTip = WITH_LOCK(cs_main, return chainActive.Tip(); );
-            activeMasternodeManager->Init(pindexTip);
-        } else {
-            // Check enforcement
-            if (deterministicMNManager->LegacyMNObsolete()) {
-                const std::string strError = strprintf(_("Legacy masternode system disabled. Use %s to start as deterministic masternode"), "-mnoperatorprivatekey");
-                LogPrintf("-- ERROR: %s\n", strError);
-                return UIError(strError);
-            }
-            auto res = initMasternode(gArgs.GetArg("-masternodeprivkey", ""), gArgs.GetArg("-masternodeaddr", ""), true);
-            if (!res) { return UIError(res.getError()); }
-        }
-    }
-
-    //get the mode of budget voting for this masternode
-    g_budgetman.strBudgetMode = gArgs.GetArg("-budgetvotemode", "auto");
+    // set the mode of budget voting for this node
+    SetBudgetFinMode(gArgs.GetArg("-budgetvotemode", "auto"));
 
 #ifdef ENABLE_WALLET
     // !TODO: remove after complete transition to DMN
@@ -1859,16 +1760,8 @@ bool AppInitMain()
     }
 #endif
 
-    // lite mode disables all Masternode related functionality
-    fLiteMode = gArgs.GetBoolArg("-litemode", false);
-    if (fMasterNode && fLiteMode) {
-        return UIError(_("You can not start a masternode in litemode"));
-    }
-
-    LogPrintf("fLiteMode %d\n", fLiteMode);
-    LogPrintf("Budget Mode %s\n", g_budgetman.strBudgetMode.c_str());
-
-    threadGroup.create_thread(std::bind(&ThreadCheckMasternodes));
+    // Start tier two threads and jobs
+    StartTierTwoThreadsAndScheduleJobs(threadGroup, scheduler);
 
     if (ShutdownRequested()) {
         LogPrintf("Shutdown requested. Exiting.\n");
