@@ -173,7 +173,8 @@ CBlock TestChainSetup::CreateAndProcessBlock(const std::vector<CMutableTransacti
 CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns,
                                    const CScript& scriptPubKey,
                                    bool fNoMempoolTx,
-                                   bool fTestBlockValidity)
+                                   bool fTestBlockValidity,
+                                   bool fIncludeQfc)
 {
     std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(
             Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptPubKey,
@@ -181,7 +182,10 @@ CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns,
                                                             false,   // fProofOfStake
                                                             nullptr, // availableCoins
                                                             fNoMempoolTx,
-                                                            fTestBlockValidity);
+                                                            fTestBlockValidity,
+                                                            nullptr,
+                                                            true,
+                                                            fIncludeQfc);
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
 
     // Add passed-in txns:

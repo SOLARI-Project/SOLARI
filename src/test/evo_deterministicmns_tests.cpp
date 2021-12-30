@@ -21,6 +21,7 @@
 #include "primitives/transaction.h"
 #include "script/sign.h"
 #include "spork.h"
+#include "util/blocksutil.h"
 #include "validation.h"
 #include "validationinterface.h"
 
@@ -304,7 +305,7 @@ static bool IsMNPayeeInBlock(const CBlock& block, const CScript& expected)
     return false;
 }
 
-static void CheckPayments(std::map<uint256, int> mp, size_t mapSize, int minCount)
+static void CheckPayments(const std::map<uint256, int>& mp, size_t mapSize, int minCount)
 {
     BOOST_CHECK_EQUAL(mp.size(), mapSize);
     for (const auto& it : mp) {
@@ -954,6 +955,18 @@ static llmq::CFinalCommitment CreateFinalCommitment(std::vector<CBLSPublicKey>& 
     return qfl;
 }
 
+CMutableTransaction CreateNullQfcTx(const uint256& quorumHash, int nHeight)
+{
+    llmq::LLMQCommPL pl;
+    pl.commitment = llmq::CFinalCommitment(Params().GetConsensus().llmqs.at(Consensus::LLMQ_TEST), quorumHash);
+    pl.nHeight = nHeight;
+    CMutableTransaction tx;
+    tx.nVersion = CTransaction::TxVersion::SAPLING;
+    tx.nType = CTransaction::TxType::LLMQCOMM;
+    SetTxPayload(tx, pl);
+    return tx;
+}
+
 CService ip(uint32_t i)
 {
     struct in_addr s;
@@ -972,7 +985,8 @@ static void ProcessQuorum(llmq::CQuorumBlockProcessor* processor, const llmq::CF
 
 static NodeId id = 0;
 
-BOOST_FIXTURE_TEST_CASE(dkg_pose, TestChain400Setup)
+// future: split dkg_pose from qfc_invalid_paths test coverage.
+BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
 {
     auto utxos = BuildSimpleUtxoMap(coinbaseTxns);
 
@@ -1056,13 +1070,83 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose, TestChain400Setup)
     ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc, &dummyNode);
     BOOST_CHECK(llmq::quorumBlockProcessor->HasMinableCommitment(::SerializeHash(qfc)));
 
-    // mine final commitment (at block 450)
-    for (size_t i = 0; i < 23; i++) {
+    // Generate blocks up to be able to mine a null qfc at block 450
+    for (size_t i = 0; i < 21; i++) {
         CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
     }
-    BOOST_CHECK_EQUAL(nHeight, 450);
+    BOOST_CHECK_EQUAL(nHeight, 448);
+
+    // Coverage for the following qfc paths:
+    // 1) Mine a qfc with an invalid height, which should end up being rejected.
+    // 2) Mine a null qfc before the mining phase, which should end up being rejected.
+    // 3) Mine two qfc in the same block, which should end up being rejected.
+    // 4) Mine block without qfc during the mining phase, which should end up being rejected.
+    // 5) Mine two blocks with a null qfc.
+    // 6) Try to relay the valid qfc to the mempool, which should end up being rejected.
+    // 7) Mine a qfc with an invalid quorum hash, which should end up being rejected.
+    // 8) Mine the final valid qfc in a block.
+    // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
+
+    // 1) Mine a qfc with an invalid height, which should end up being rejected.
+    CMutableTransaction nullQfcTx = CreateNullQfcTx(quorumHash, nHeight);
+    CScript coinsbaseScript = GetScriptForRawPubKey(coinbaseKey.GetPubKey());
+    auto pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-height", nHeight);
+
+    // 2) Mine a null qfc before the mining phase, which should end up being rejected.
+    nullQfcTx = CreateNullQfcTx(quorumHash, nHeight + 1);
+    pblock_invalid = std::make_shared<CBlock>(
+            CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-not-allowed", nHeight);
+
+    // One more block, 449.
+    CreateAndProcessBlock({}, coinbaseKey);
+    chainTip = chainActive.Tip();
+    BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+
+    // 3) Mine two qfc in the same block, which should end up on a rejection. (one null, one valid)
+    nullQfcTx = CreateNullQfcTx(quorumHash, nHeight + 1);
+    pblock_invalid = std::make_shared<CBlock>(
+            CreateBlock({nullQfcTx}, coinsbaseScript, true, false, true));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-dup", nHeight);
+
+    // 4) Mine block without qfc during the mining phase, which should end up being rejected.
+    pblock_invalid = std::make_shared<CBlock>(CreateBlock({}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-missing", nHeight);
+
+    // 5) Mine two blocks with a null qfc.
+    for (int i = 0; i < 2; i++) {
+        const auto& block = CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false);
+        ProcessNewBlock(std::make_shared<const CBlock>(block), nullptr);
+        chainTip = chainActive.Tip();
+        BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+        nullQfcTx = CreateNullQfcTx(quorumHash, nHeight + 1);
+    }
+    BOOST_CHECK_EQUAL(nHeight, 451);
+
+    // 6) Try to relay the valid qfc to the mempool, which should end up on a rejection.
+    CTransactionRef qcTx;
+    BOOST_CHECK(llmq::quorumBlockProcessor->GetMinableCommitmentTx(Consensus::LLMQ_TEST, nHeight + 1, qcTx));
+    CValidationState mempoolState;
+    BOOST_CHECK(!WITH_LOCK(cs_main, return AcceptToMemoryPool(mempool, mempoolState, qcTx, true, nullptr); ));
+    BOOST_CHECK_EQUAL(mempoolState.GetRejectReason(), "llmqcomm");
+
+    // 7) Mine a qfc with an invalid quorum hash, which should end up being rejected.
+    nullQfcTx = CreateNullQfcTx(chainTip->GetBlockHash(), nHeight + 1);
+    pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-block", nHeight);
+
+    // 8) Mine the final valid qfc in a block.
+    CreateAndProcessBlock({}, coinbaseKey);
+    chainTip = chainActive.Tip();
+    BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+
+    // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
+    nullQfcTx = CreateNullQfcTx(chainTip->GetBlockHash(), nHeight + 1);
+    pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-not-allowed", nHeight);
 
     // final commitment has been mined
     llmq::CFinalCommitment ret;
@@ -1086,7 +1170,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose, TestChain400Setup)
     BOOST_CHECK_EQUAL(punished_mn->pdmnState->nPoSePenalty, 65);
 
     // New DKG starts at block 480. Mine till block 481 and create another valid 2-of-3 commitment
-    for (size_t i = 0; i < 30; i++) {
+    for (size_t i = 0; i < 28; i++) {
         CreateAndProcessBlock({}, coinbaseKey);
         chainTip = chainActive.Tip();
         BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);

@@ -162,7 +162,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                                                bool fNoMempoolTx,
                                                bool fTestValidity,
                                                CBlockIndex* prevBlock,
-                                               bool stopPoSOnNewBlock)
+                                               bool stopPoSOnNewBlock,
+                                               bool fIncludeQfc)
 {
     resetBlock();
 
@@ -193,7 +194,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // After v6 enforcement, add LLMQ commitments if needed
     const Consensus::Params& consensus = Params().GetConsensus();
-    if (consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0)) {
+    if (consensus.NetworkUpgradeActive(nHeight, Consensus::UPGRADE_V6_0) && fIncludeQfc) {
         LOCK(cs_main);
         for (const auto& p : Params().GetConsensus().llmqs) {
             CTransactionRef qcTx;

@@ -97,7 +97,8 @@ struct TestChainSetup : public TestingSetup
     CBlock CreateBlock(const std::vector<CMutableTransaction>& txns,
                        const CScript& scriptPubKey,
                        bool fNoMempoolTx = true,
-                       bool fTestBlockValidity = true);
+                       bool fTestBlockValidity = true,
+                       bool fIncludeQfc = true);
     CBlock CreateBlock(const std::vector<CMutableTransaction>& txns, const CKey& scriptKey, bool fTestBlockValidity = true);
 
     std::vector<CTransaction> coinbaseTxns; // For convenience, coinbase transactions
