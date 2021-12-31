@@ -20,9 +20,9 @@
 #include "test/util/blocksutil.h"
 
 #include <vector>
+#include <iostream>
 
 #include <boost/test/unit_test.hpp>
-#include <boost/tuple/tuple.hpp>
 
 
 BOOST_FIXTURE_TEST_SUITE(bloom_tests, BasicTestingSetup)
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(bloom_create_insert_serialize_with_tweak)
 
 BOOST_AUTO_TEST_CASE(bloom_create_insert_key)
 {
-    std::string strSecret = std::string("5Kg1gnAjaLfKiwhhPpGS3QfRg2m6awQvaj98JCZBZQ5SuS2F15C");
+    std::string strSecret = std::string("87vK7Vayi3QLsuiva5yWSuVwSMhMcRM9dBsaD6JXMD1P5vnjRFn");
     CKey key = KeyIO::DecodeSecret(strSecret);
     CPubKey pubkey = key.GetPubKey();
     std::vector<unsigned char> vchPubKey(pubkey.begin(), pubkey.end());
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(bloom_create_insert_key)
     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
     stream << filter;
 
-    std::vector<unsigned char> vch = ParseHex("038fc16b080000000000000001");
+    std::vector<unsigned char> vch = ParseHex("03962762080000000000000001");
     std::vector<char> expected(vch.size());
 
     for (unsigned int i = 0; i < vch.size(); i++)
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(bloom_match)
     CTransaction spendingTx(deserialize, spendStream);
 
     CBloomFilter filter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
-    filter.insert(uint256("0xb4749f017444b051c44dfd2720e88f314ff94f3dd6d56d40ef65854fcd7fff6b"));
+    filter.insert(uint256S("0xb4749f017444b051c44dfd2720e88f314ff94f3dd6d56d40ef65854fcd7fff6b"));
     BOOST_CHECK_MESSAGE(filter.IsRelevantAndUpdate(tx), "Simple Bloom filter didn't match tx hash");
 
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
@@ -149,11 +149,11 @@ BOOST_AUTO_TEST_CASE(bloom_match)
     BOOST_CHECK_MESSAGE(filter.IsRelevantAndUpdate(tx), "Simple Bloom filter didn't match output address");
 
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
-    filter.insert(COutPoint(uint256("0x90c122d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0));
+    filter.insert(COutPoint(uint256S("0x90c122d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0));
     BOOST_CHECK_MESSAGE(filter.IsRelevantAndUpdate(tx), "Simple Bloom filter didn't match COutPoint");
 
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
-    COutPoint prevOutPoint(uint256("0x90c122d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0);
+    COutPoint prevOutPoint(uint256S("0x90c122d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0);
     {
         std::vector<unsigned char> data(32 + sizeof(unsigned int));
         memcpy(data.data(), prevOutPoint.hash.begin(), 32);
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(bloom_match)
     BOOST_CHECK_MESSAGE(filter.IsRelevantAndUpdate(tx), "Simple Bloom filter didn't match manually serialized COutPoint");
 
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
-    filter.insert(uint256("00000009e784f32f62ef849763d4f45b98e07ba658647343b915ff832b110436"));
+    filter.insert(uint256S("00000009e784f32f62ef849763d4f45b98e07ba658647343b915ff832b110436"));
     BOOST_CHECK_MESSAGE(!filter.IsRelevantAndUpdate(tx), "Simple Bloom filter matched random tx hash");
 
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
@@ -171,11 +171,11 @@ BOOST_AUTO_TEST_CASE(bloom_match)
     BOOST_CHECK_MESSAGE(!filter.IsRelevantAndUpdate(tx), "Simple Bloom filter matched random address");
 
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
-    filter.insert(COutPoint(uint256("0x90c122d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 1));
+    filter.insert(COutPoint(uint256S("0x90c122d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 1));
     BOOST_CHECK_MESSAGE(!filter.IsRelevantAndUpdate(tx), "Simple Bloom filter matched COutPoint for an output we didn't care about");
 
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
-    filter.insert(COutPoint(uint256("0x000000d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0));
+    filter.insert(COutPoint(uint256S("0x000000d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0));
     BOOST_CHECK_MESSAGE(!filter.IsRelevantAndUpdate(tx), "Simple Bloom filter matched COutPoint for an output we didn't care about");
 }
 
@@ -184,7 +184,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_1)
     CBlock block = getBlock13b8a();
     CBloomFilter filter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
     // Match the last transaction
-    filter.insert(uint256("0x74d681e0e03bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"));
+    filter.insert(uint256S("0x74d681e0e03bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"));
 
     CMerkleBlock merkleBlock(block, filter);
     BOOST_CHECK_EQUAL(merkleBlock.header.GetHash().GetHex(), block.GetHash().GetHex());
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_1)
     BOOST_CHECK_EQUAL(merkleBlock.vMatchedTxn.size(), 1);
     std::pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256("0x74d681e0e03bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0x74d681e0e03bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 8);
 
     std::vector<uint256> vMatched;
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_1)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
 
     // Also match the 8th transaction
-    filter.insert(uint256("0xdd1fd2a6fc16404faf339881a90adbde7f4f728691ac62e8f168809cdfae1053"));
+    filter.insert(uint256S("0xdd1fd2a6fc16404faf339881a90adbde7f4f728691ac62e8f168809cdfae1053"));
     merkleBlock = CMerkleBlock(block, filter);
     BOOST_CHECK(merkleBlock.header.GetHash() == block.GetHash());
 
@@ -210,7 +210,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_1)
 
     BOOST_CHECK(merkleBlock.vMatchedTxn[1] == pair);
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256("0xdd1fd2a6fc16404faf339881a90adbde7f4f728691ac62e8f168809cdfae1053"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0xdd1fd2a6fc16404faf339881a90adbde7f4f728691ac62e8f168809cdfae1053"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 7);
 
     BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
@@ -229,15 +229,15 @@ BOOST_AUTO_TEST_CASE(merkle_block_2)
 
     CBloomFilter filter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
     // Match the first transaction
-    filter.insert(uint256("0xe980fe9f792d014e73b95203dc1335c5f9ce19ac537a419e6df5b47aecb93b70"));
+    filter.insert(uint256S("0xe980fe9f792d014e73b95203dc1335c5f9ce19ac537a419e6df5b47aecb93b70"));
 
     CMerkleBlock merkleBlock(block, filter);
     BOOST_CHECK(merkleBlock.header.GetHash() == block.GetHash());
 
     BOOST_CHECK(merkleBlock.vMatchedTxn.size() == 1);
-    pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
+    std::pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256("0xe980fe9f792d014e73b95203dc1335c5f9ce19ac537a419e6df5b47aecb93b70"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0xe980fe9f792d014e73b95203dc1335c5f9ce19ac537a419e6df5b47aecb93b70"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 0);
 
     std::vector<uint256> vMatched;
@@ -258,13 +258,13 @@ BOOST_AUTO_TEST_CASE(merkle_block_2)
 
     BOOST_CHECK(pair == merkleBlock.vMatchedTxn[0]);
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[1].second == uint256("0x28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[1].second == uint256S("0x28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[1].first == 1);
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[2].second == uint256("0x6b0f8a73a56c04b519f1883e8aafda643ba61a30bd1439969df21bea5f4e27e2"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[2].second == uint256S("0x6b0f8a73a56c04b519f1883e8aafda643ba61a30bd1439969df21bea5f4e27e2"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[2].first == 2);
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[3].second == uint256("0x3c1d7e82342158e4109df2e0b6348b6e84e403d8b4046d7007763ace63cddb23"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[3].second == uint256S("0x3c1d7e82342158e4109df2e0b6348b6e84e403d8b4046d7007663ace63cddb23"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[3].first == 3);
 
     BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
@@ -283,15 +283,15 @@ BOOST_AUTO_TEST_CASE(merkle_block_2_with_update_none)
 
     CBloomFilter filter(10, 0.000001, 0, BLOOM_UPDATE_NONE);
     // Match the first transaction
-    filter.insert(uint256("0xe980fe9f792d014e73b95203dc1335c5f9ce19ac537a419e6df5b47aecb93b70"));
+    filter.insert(uint256S("0xe980fe9f792d014e73b95203dc1335c5f9ce19ac537a419e6df5b47aecb93b70"));
 
     CMerkleBlock merkleBlock(block, filter);
     BOOST_CHECK(merkleBlock.header.GetHash() == block.GetHash());
 
     BOOST_CHECK(merkleBlock.vMatchedTxn.size() == 1);
-    pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
+    std::pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256("0xe980fe9f792d014e73b95203dc1335c5f9ce19ac537a419e6df5b47aecb93b70"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0xe980fe9f792d014e73b95203dc1335c5f9ce19ac537a419e6df5b47aecb93b70"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 0);
 
     std::vector<uint256> vMatched;
@@ -312,10 +312,10 @@ BOOST_AUTO_TEST_CASE(merkle_block_2_with_update_none)
 
     BOOST_CHECK(pair == merkleBlock.vMatchedTxn[0]);
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[1].second == uint256("0x28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[1].second == uint256S("0x28204cad1d7fc1d199e8ef4fa22f182de6258a3eaafe1bbe56ebdcacd3069a5f"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[1].first == 1);
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[2].second == uint256("0x3c1d7e82342158e4109df2e0b6348b6e84e403d8b4046d7007763ace63cddb23"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[2].second == uint256S("0x3c1d7e82342158e4109df2e0b6348b6e84e403d8b4046d7007663ace63cddb23"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[2].first == 3);
 
     BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched) == block.hashMerkleRoot);
@@ -334,14 +334,14 @@ BOOST_AUTO_TEST_CASE(merkle_block_3_and_serialize)
 
     CBloomFilter filter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
     // Match the only transaction
-    filter.insert(uint256("0x63194f18be0af63f2c6bc9dc0f777cbefed3d9415c4af83f3ee3a3d669c00cb5"));
+    filter.insert(uint256S("0x63194f18be0af63f2c6bc9dc0f777cbefed3d9415c4af83f3ee3a3d669c00cb5"));
 
     CMerkleBlock merkleBlock(block, filter);
     BOOST_CHECK(merkleBlock.header.GetHash() == block.GetHash());
 
     BOOST_CHECK(merkleBlock.vMatchedTxn.size() == 1);
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256("0x63194f18be0af63f2c6bc9dc0f777cbefed3d9415c4af83f3ee3a3d669c00cb5"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0x63194f18be0af63f2c6bc9dc0f777cbefed3d9415c4af83f3ee3a3d669c00cb5"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 0);
 
     std::vector<uint256> vMatched;
@@ -372,15 +372,15 @@ BOOST_AUTO_TEST_CASE(merkle_block_4)
 
     CBloomFilter filter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
     // Match the last transaction
-    filter.insert(uint256("0x0a2a92f0bda4727d0a13eaddf4dd9ac6b5c61a1429e6b2b818f19b15df0ac154"));
+    filter.insert(uint256S("0x0a2a92f0bda4727d0a13eaddf4dd9ac6b5c61a1429e6b2b818f19b15df0ac154"));
 
     CMerkleBlock merkleBlock(block, filter);
     BOOST_CHECK(merkleBlock.header.GetHash() == block.GetHash());
 
     BOOST_CHECK(merkleBlock.vMatchedTxn.size() == 1);
-    pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
+    std::pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256("0x0a2a92f0bda4727d0a13eaddf4dd9ac6b5c61a1429e6b2b818f19b15df0ac154"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0x0a2a92f0bda4727d0a13eaddf4dd9ac6b5c61a1429e6b2b818f19b15df0ac154"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 6);
 
     std::vector<uint256> vMatched;
@@ -390,13 +390,13 @@ BOOST_AUTO_TEST_CASE(merkle_block_4)
         BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
 
     // Also match the 4th transaction
-    filter.insert(uint256("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"));
+    filter.insert(uint256S("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"));
     merkleBlock = CMerkleBlock(block, filter);
     BOOST_CHECK(merkleBlock.header.GetHash() == block.GetHash());
 
     BOOST_CHECK(merkleBlock.vMatchedTxn.size() == 2);
 
-    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 3);
 
     BOOST_CHECK(merkleBlock.vMatchedTxn[1] == pair);
@@ -425,9 +425,9 @@ BOOST_AUTO_TEST_CASE(merkle_block_4_test_p2pubkey_only)
     BOOST_CHECK(merkleBlock.header.GetHash() == block.GetHash());
 
     // We should match the generation outpoint
-    BOOST_CHECK(filter.contains(COutPoint(uint256("0x147caa76786596590baa4e98f5d9f48b86c7765e489f7a6ff3360fe5c674360b"), 0)));
+    BOOST_CHECK(filter.contains(COutPoint(uint256S("0x147caa76786596590baa4e98f5d9f48b86c7765e489f7a6ff3360fe5c674360b"), 0)));
     // ... but not the 4th transaction's output (its not pay-2-pubkey)
-    BOOST_CHECK(!filter.contains(COutPoint(uint256("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"), 0)));
+    BOOST_CHECK(!filter.contains(COutPoint(uint256S("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"), 0)));
 }
 
 BOOST_AUTO_TEST_CASE(merkle_block_4_test_update_none)
@@ -448,19 +448,19 @@ BOOST_AUTO_TEST_CASE(merkle_block_4_test_update_none)
     BOOST_CHECK(merkleBlock.header.GetHash() == block.GetHash());
 
     // We shouldn't match any outpoints (UPDATE_NONE)
-    BOOST_CHECK(!filter.contains(COutPoint(uint256("0x147caa76786596590baa4e98f5d9f48b86c7765e489f7a6ff3360fe5c674360b"), 0)));
-    BOOST_CHECK(!filter.contains(COutPoint(uint256("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"), 0)));
+    BOOST_CHECK(!filter.contains(COutPoint(uint256S("0x147caa76786596590baa4e98f5d9f48b86c7765e489f7a6ff3360fe5c674360b"), 0)));
+    BOOST_CHECK(!filter.contains(COutPoint(uint256S("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"), 0)));
 }
 
 static std::vector<unsigned char> RandomData()
 {
-    uint256 r = GetRandHash();
+    uint256 r = InsecureRand256();
     return std::vector<unsigned char>(r.begin(), r.end());
 }
 
 BOOST_AUTO_TEST_CASE(rolling_bloom)
 {
-    SeedInsecureRand(/* deterministic */ true);
+    SeedInsecureRand(true);
     g_mock_deterministic_tests = true;
 
     // last-100-entry, 1% false positive:
@@ -488,7 +488,7 @@ BOOST_AUTO_TEST_CASE(rolling_bloom)
             ++nHits;
     }
     // Expect about 100 hits
-    BOOST_CHECK_EQUAL(nHits, 75);
+    BOOST_CHECK_EQUAL(nHits, 75U);
 
     BOOST_CHECK(rb1.contains(data[DATASIZE - 1]));
     rb1.reset();
@@ -516,7 +516,7 @@ BOOST_AUTO_TEST_CASE(rolling_bloom)
             ++nHits;
     }
     // Expect about 5 false positives
-    BOOST_CHECK_EQUAL(nHits, 6);
+    BOOST_CHECK_EQUAL(nHits, 6U);
 
     // last-1000-entry, 0.01% false positive:
     CRollingBloomFilter rb2(1000, 0.001);
