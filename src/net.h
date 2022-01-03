@@ -367,6 +367,7 @@ private:
     void ThreadOpenConnections(const std::vector<std::string> connect);
     void ThreadMessageHandler();
     void AcceptConnection(const ListenSocket& hListenSocket);
+    void DisconnectNodes();
     void NotifyNumConnectionsChanged();
     void ThreadSocketHandler();
     void ThreadDNSAddressSeed();
