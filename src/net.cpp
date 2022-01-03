@@ -1256,33 +1256,15 @@ void CConnman::InactivityCheck(CNode* pnode)
     }
 }
 
-void CConnman::SocketHandler()
+bool CConnman::GenerateSelectSet(std::set<SOCKET>& recv_set, std::set<SOCKET>& send_set, std::set<SOCKET>& error_set)
 {
-    //
-    // Find which sockets have data to receive
-    //
-    struct timeval timeout;
-    timeout.tv_sec  = 0;
-    timeout.tv_usec = SELECT_TIMEOUT_MILLISECONDS * 1000; // frequency to poll pnode->vSend
-
-    fd_set fdsetRecv;
-    fd_set fdsetSend;
-    fd_set fdsetError;
-    FD_ZERO(&fdsetRecv);
-    FD_ZERO(&fdsetSend);
-    FD_ZERO(&fdsetError);
-    SOCKET hSocketMax = 0;
-    bool have_fds = false;
-
     for (const ListenSocket& hListenSocket : vhListenSocket) {
-        FD_SET(hListenSocket.socket, &fdsetRecv);
-        hSocketMax = std::max(hSocketMax, hListenSocket.socket);
-        have_fds = true;
+        recv_set.insert(hListenSocket.socket);
     }
 
     {
         LOCK(cs_vNodes);
-        for (CNode* pnode : vNodes) {
+        for (CNode* pnode: vNodes) {
             // Implement the following logic:
             // * If there is data to send, select() for sending data. As this only
             //   happens when optimistic write failed, we choose to first drain the
@@ -1305,32 +1287,68 @@ void CConnman::SocketHandler()
             if (pnode->hSocket == INVALID_SOCKET)
                 continue;
 
-            FD_SET(pnode->hSocket, &fdsetError);
-            hSocketMax = std::max(hSocketMax, pnode->hSocket);
-            have_fds = true;
-
+            error_set.insert(pnode->hSocket);
             if (select_send) {
-                FD_SET(pnode->hSocket, &fdsetSend);
+                send_set.insert(pnode->hSocket);
                 continue;
             }
             if (select_recv) {
-                FD_SET(pnode->hSocket, &fdsetRecv);
+                recv_set.insert(pnode->hSocket);
             }
         }
     }
 
-    int nSelect = select(have_fds ? hSocketMax + 1 : 0,
-                         &fdsetRecv, &fdsetSend, &fdsetError, &timeout);
+    return !recv_set.empty() || !send_set.empty() || !error_set.empty();
+}
+
+void CConnman::SocketHandler()
+{
+    std::set<SOCKET> recv_select_set, send_select_set, error_select_set;
+    if (!GenerateSelectSet(recv_select_set, send_select_set, error_select_set)) {
+        interruptNet.sleep_for(std::chrono::milliseconds(SELECT_TIMEOUT_MILLISECONDS));
+        return;
+    }
+
+    //
+    // Find which sockets have data to receive
+    //
+    struct timeval timeout;
+    timeout.tv_sec  = 0;
+    timeout.tv_usec = SELECT_TIMEOUT_MILLISECONDS * 1000; // frequency to poll pnode->vSend
+
+    fd_set fdsetRecv;
+    fd_set fdsetSend;
+    fd_set fdsetError;
+    FD_ZERO(&fdsetRecv);
+    FD_ZERO(&fdsetSend);
+    FD_ZERO(&fdsetError);
+    SOCKET hSocketMax = 0;
+
+    for (SOCKET hSocket : recv_select_set) {
+        FD_SET(hSocket, &fdsetRecv);
+        hSocketMax = std::max(hSocketMax, hSocket);
+    }
+
+    for (SOCKET hSocket : send_select_set) {
+        FD_SET(hSocket, &fdsetSend);
+        hSocketMax = std::max(hSocketMax, hSocket);
+    }
+
+    for (SOCKET hSocket : error_select_set) {
+        FD_SET(hSocket, &fdsetError);
+        hSocketMax = std::max(hSocketMax, hSocket);
+    }
+
+    int nSelect = select(hSocketMax + 1, &fdsetRecv, &fdsetSend, &fdsetError, &timeout);
+
     if (interruptNet)
         return;
 
     if (nSelect == SOCKET_ERROR) {
-        if (have_fds) {
-            int nErr = WSAGetLastError();
-            LogPrintf("socket select error %s\n", NetworkErrorString(nErr));
-            for (unsigned int i = 0; i <= hSocketMax; i++)
-                FD_SET(i, &fdsetRecv);
-        }
+        int nErr = WSAGetLastError();
+        LogPrintf("socket select error %s\n", NetworkErrorString(nErr));
+        for (unsigned int i = 0; i <= hSocketMax; i++)
+            FD_SET(i, &fdsetRecv);
         FD_ZERO(&fdsetSend);
         FD_ZERO(&fdsetError);
         if (!interruptNet.sleep_for(std::chrono::milliseconds(SELECT_TIMEOUT_MILLISECONDS)))
@@ -1375,52 +1393,48 @@ void CConnman::SocketHandler()
             errorSet = FD_ISSET(pnode->hSocket, &fdsetError);
         }
         if (recvSet || errorSet) {
+            // typical socket buffer is 8K-64K
+            char pchBuf[0x10000];
+            int nBytes = 0;
             {
-                {
-                    // typical socket buffer is 8K-64K
-                    char pchBuf[0x10000];
-                    int nBytes = 0;
+                LOCK(pnode->cs_hSocket);
+                if (pnode->hSocket == INVALID_SOCKET)
+                    continue;
+                nBytes = recv(pnode->hSocket, pchBuf, sizeof(pchBuf), MSG_DONTWAIT);
+            }
+            if (nBytes > 0) {
+                bool notify = false;
+                if (!pnode->ReceiveMsgBytes(pchBuf, nBytes, notify))
+                    pnode->CloseSocketDisconnect();
+                RecordBytesRecv(nBytes);
+                if (notify) {
+                    size_t nSizeAdded = 0;
+                    auto it(pnode->vRecvMsg.begin());
+                    for (; it != pnode->vRecvMsg.end(); ++it) {
+                        if (!it->complete())
+                            break;
+                        nSizeAdded += it->vRecv.size() + CMessageHeader::HEADER_SIZE;
+                    }
                     {
-                        LOCK(pnode->cs_hSocket);
-                        if (pnode->hSocket == INVALID_SOCKET)
-                            continue;
-                        nBytes = recv(pnode->hSocket, pchBuf, sizeof(pchBuf), MSG_DONTWAIT);
+                        LOCK(pnode->cs_vProcessMsg);
+                        pnode->vProcessMsg.splice(pnode->vProcessMsg.end(), pnode->vRecvMsg, pnode->vRecvMsg.begin(), it);
+                        pnode->nProcessQueueSize += nSizeAdded;
+                        pnode->fPauseRecv = pnode->nProcessQueueSize > nReceiveFloodSize;
                     }
-                    if (nBytes > 0) {
-                        bool notify = false;
-                        if (!pnode->ReceiveMsgBytes(pchBuf, nBytes, notify))
-                            pnode->CloseSocketDisconnect();
-                        RecordBytesRecv(nBytes);
-                        if (notify) {
-                            size_t nSizeAdded = 0;
-                            auto it(pnode->vRecvMsg.begin());
-                            for (; it != pnode->vRecvMsg.end(); ++it) {
-                                if (!it->complete())
-                                    break;
-                                nSizeAdded += it->vRecv.size() + CMessageHeader::HEADER_SIZE;
-                            }
-                            {
-                                LOCK(pnode->cs_vProcessMsg);
-                                pnode->vProcessMsg.splice(pnode->vProcessMsg.end(), pnode->vRecvMsg, pnode->vRecvMsg.begin(), it);
-                                pnode->nProcessQueueSize += nSizeAdded;
-                                pnode->fPauseRecv = pnode->nProcessQueueSize > nReceiveFloodSize;
-                            }
-                            WakeMessageHandler();
-                        }
-                    } else if (nBytes == 0) {
-                        // socket closed gracefully
-                        if (!pnode->fDisconnect)
-                            LogPrint(BCLog::NET, "socket closed\n");
-                        pnode->CloseSocketDisconnect();
-                    } else if (nBytes < 0) {
-                        // error
-                        int nErr = WSAGetLastError();
-                        if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS) {
-                            if (!pnode->fDisconnect)
-                                LogPrintf("socket recv error %s\n", NetworkErrorString(nErr));
-                            pnode->CloseSocketDisconnect();
-                        }
-                    }
+                    WakeMessageHandler();
+                }
+            } else if (nBytes == 0) {
+                // socket closed gracefully
+                if (!pnode->fDisconnect)
+                    LogPrint(BCLog::NET, "socket closed\n");
+                pnode->CloseSocketDisconnect();
+            } else if (nBytes < 0) {
+                // error
+                int nErr = WSAGetLastError();
+                if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS) {
+                    if (!pnode->fDisconnect)
+                        LogPrintf("socket recv error %s\n", NetworkErrorString(nErr));
+                    pnode->CloseSocketDisconnect();
                 }
             }
         }
