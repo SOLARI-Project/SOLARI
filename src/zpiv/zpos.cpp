@@ -5,7 +5,7 @@
 #include "zpiv/zpos.h"
 
 #include "validation.h"
-#include "zpivchain.h"
+#include "zpiv/zpivmodule.h"
 
 
 /*
@@ -72,7 +72,7 @@ CLegacyZPivStake* CLegacyZPivStake::NewZPivStake(const CTxIn& txin, int nHeight)
     }
 
     // Check spend type
-    libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txin);
+    libzerocoin::CoinSpend spend = ZPIVModule::TxInToZerocoinSpend(txin);
     if (spend.getSpendType() != libzerocoin::SpendType::STAKE) {
         LogPrintf("%s : spend is using the wrong SpendType (%d)", __func__, (int)spend.getSpendType());
         return nullptr;

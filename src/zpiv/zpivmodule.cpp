@@ -8,7 +8,6 @@
 #include "libzerocoin/Commitment.h"
 #include "libzerocoin/Coin.h"
 #include "validation.h"
-#include "zpivchain.h"
 
 template <typename Stream>
 PublicCoinSpend::PublicCoinSpend(libzerocoin::ZerocoinParams* params, Stream& strm): pubCoin(params) {
@@ -93,6 +92,28 @@ const uint256 PublicCoinSpend::signatureHash() const
     return h.GetHash();
 }
 
+// 6 comes from OPCODE (1) + vch.size() (1) + BIGNUM size (4)
+#define SCRIPT_OFFSET 6
+
+static bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin, CValidationState& state)
+{
+    CBigNum publicZerocoin;
+    std::vector<unsigned char> vchZeroMint;
+    vchZeroMint.insert(vchZeroMint.end(), txout.scriptPubKey.begin() + SCRIPT_OFFSET,
+                       txout.scriptPubKey.begin() + txout.scriptPubKey.size());
+    publicZerocoin.setvch(vchZeroMint);
+
+    libzerocoin::CoinDenomination denomination = libzerocoin::AmountToZerocoinDenomination(txout.nValue);
+    LogPrint(BCLog::LEGACYZC, "%s : denomination %d for pubcoin %s\n", __func__, denomination, publicZerocoin.GetHex());
+    if (denomination == libzerocoin::ZQ_ERROR)
+        return state.DoS(100, error("%s: txout.nValue is not correct", __func__));
+
+    libzerocoin::PublicCoin checkPubCoin(Params().GetConsensus().Zerocoin_Params(false), publicZerocoin, denomination);
+    pubCoin = checkPubCoin;
+
+    return true;
+}
+
 namespace ZPIVModule {
 
     // Return stream of CoinSpend from tx input scriptsig
@@ -131,6 +152,12 @@ namespace ZPIVModule {
         spend.setDenom(spend.pubCoin.getDenomination());
         publicCoinSpend = spend;
         return true;
+    }
+
+    libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin)
+    {
+        CDataStream serializedCoinSpend = ScriptSigToSerializedSpend(txin.scriptSig);
+        return libzerocoin::CoinSpend(serializedCoinSpend);
     }
 
     bool validateInput(const CTxIn &in, const CTxOut &prevOut, const CTransaction &tx, PublicCoinSpend &publicSpend) {

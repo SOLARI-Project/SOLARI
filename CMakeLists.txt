@@ -242,7 +242,6 @@ set(SERVER_SOURCES
         ./src/txmempool.cpp
         ./src/validation.cpp
         ./src/validationinterface.cpp
-        ./src/zpivchain.cpp
         )
 add_library(SERVER_A STATIC ${BitcoinHeaders} ${SERVER_SOURCES})
 if(MINIUPNP_FOUND)

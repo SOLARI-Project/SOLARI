@@ -9,10 +9,7 @@
 #include "crypto/sha512.h"
 #include "script/script.h"
 #include "script/standard.h"
-#include "util/system.h"
 #include "uint256.h"
-
-#include "wallet/wallet.h"
 
 int CCrypter::BytesToKeySHA512AES(const std::vector<unsigned char>& chSalt, const SecureString& strKeyData, int count, unsigned char *key,unsigned char *iv) const
 {

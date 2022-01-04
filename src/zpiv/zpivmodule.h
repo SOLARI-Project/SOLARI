@@ -66,6 +66,7 @@ namespace ZPIVModule {
     CDataStream ScriptSigToSerializedSpend(const CScript& scriptSig);
     PublicCoinSpend parseCoinSpend(const CTxIn &in);
     bool parseCoinSpend(const CTxIn &in, const CTransaction& tx, const CTxOut &prevOut, PublicCoinSpend& publicCoinSpend);
+    libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin);
     bool validateInput(const CTxIn &in, const CTxOut &prevOut, const CTransaction& tx, PublicCoinSpend& ret);
 
     // Public zc spend parse

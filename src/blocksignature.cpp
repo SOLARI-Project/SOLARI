@@ -5,7 +5,7 @@
 #include "blocksignature.h"
 
 #include "script/standard.h"
-#include "zpivchain.h"
+#include "zpiv/zpivmodule.h"
 
 static bool GetKeyIDFromUTXO(const CTxOut& utxo, CKeyID& keyIDRet)
 {
@@ -72,7 +72,7 @@ bool CheckBlockSignature(const CBlock& block)
     CPubKey pubkey;
     bool fzPIVStake = block.vtx[1]->vin[0].IsZerocoinSpend();
     if (fzPIVStake) {
-        libzerocoin::CoinSpend spend = TxInToZerocoinSpend(block.vtx[1]->vin[0]);
+        libzerocoin::CoinSpend spend = ZPIVModule::TxInToZerocoinSpend(block.vtx[1]->vin[0]);
         pubkey = spend.getPubKey();
     } else {
         txnouttype whichType;

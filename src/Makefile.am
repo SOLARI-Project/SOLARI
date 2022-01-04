@@ -317,7 +317,6 @@ BITCOIN_CORE_H = \
   wallet/walletdb.h \
   wallet/walletutil.h \
   warnings.h \
-  zpivchain.h \
   zpiv/zpos.h \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h \
@@ -394,7 +393,6 @@ libbitcoin_server_a_SOURCES = \
   txmempool.cpp \
   validation.cpp \
   validationinterface.cpp \
-  zpivchain.cpp \
   $(BITCOIN_CORE_H) \
   $(LIBSAPLING_H)
 
