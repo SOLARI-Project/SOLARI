@@ -1091,7 +1091,8 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // 4) Mine block without qfc during the mining phase, which should end up being rejected.
     // 5) Mine two blocks with a null qfc.
     // 6) Try to relay the valid qfc to the mempool, which should end up being rejected.
-    // 7) Mine a qfc with an invalid quorum hash, which should end up being rejected.
+    // 7a) Mine a qfc with an invalid quorum hash (invalid height), which should end up being rejected.
+    // 7b) Mine a qfc with an invalid quorum hash (non-existent), which should end up being rejected.
     // 8) Mine the final valid qfc in a block.
     // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
 
@@ -1139,10 +1140,15 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     BOOST_CHECK(!WITH_LOCK(cs_main, return AcceptToMemoryPool(mempool, mempoolState, qcTx, true, nullptr); ));
     BOOST_CHECK_EQUAL(mempoolState.GetRejectReason(), "llmqcomm");
 
-    // 7) Mine a qfc with an invalid quorum hash, which should end up being rejected.
+    // 7a) Mine a qfc with an invalid quorum hash (invalid height), which should end up being rejected.
     nullQfcTx = CreateNullQfcTx(chainTip->GetBlockHash(), nHeight + 1);
     pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
-    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-block", nHeight);
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-height", nHeight);
+
+    // 7b) Mine a qfc with an invalid quorum hash (non-existent), which should end up being rejected.
+    nullQfcTx = CreateNullQfcTx(UINT256_ONE, nHeight + 1);
+    pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-hash", nHeight);
 
     // 8) Mine the final valid qfc in a block.
     CreateAndProcessBlock({}, coinbaseKey);
@@ -1150,7 +1156,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
 
     // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
-    nullQfcTx = CreateNullQfcTx(chainTip->GetBlockHash(), nHeight + 1);
+    nullQfcTx = CreateNullQfcTx(quorumHash, nHeight + 1);
     pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
     ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-not-allowed", nHeight);
 
