@@ -16,6 +16,7 @@
 #include "netmessagemaker.h"
 #include "shutdown.h"
 #include "spork.h"
+#include "tiertwo/tiertwo_sync_state.h"
 #include "validation.h"
 
 #include <boost/thread/thread.hpp>
@@ -261,7 +262,7 @@ int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
             std::map<uint256, CMasternodeBroadcast>::iterator it3 = mapSeenMasternodeBroadcast.begin();
             while (it3 != mapSeenMasternodeBroadcast.end()) {
                 if (it3->second.vin.prevout == it->first) {
-                    masternodeSync.mapSeenSyncMNB.erase((*it3).first);
+                    g_tiertwo_sync_state.EraseSeenMNB((*it3).first);
                     it3 = mapSeenMasternodeBroadcast.erase(it3);
                 } else {
                     ++it3;
@@ -330,7 +331,7 @@ int CMasternodeMan::CheckAndRemove(bool forceExpiredRemoval)
     std::map<uint256, CMasternodeBroadcast>::iterator it3 = mapSeenMasternodeBroadcast.begin();
     while (it3 != mapSeenMasternodeBroadcast.end()) {
         if ((*it3).second.lastPing.sigTime < GetTime() - (MasternodeRemovalSeconds() * 2)) {
-            masternodeSync.mapSeenSyncMNB.erase((*it3).second.GetHash());
+            g_tiertwo_sync_state.EraseSeenMNB((*it3).second.GetHash());
             it3 = mapSeenMasternodeBroadcast.erase(it3);
         } else {
             ++it3;
@@ -786,7 +787,7 @@ bool CMasternodeMan::CheckInputs(CMasternodeBroadcast& mnb, int nChainHeight, in
         LogPrint(BCLog::MASTERNODE,"mnb - Input must have at least %d confirmations\n", MasternodeCollateralMinConf());
         // maybe we miss few blocks, let this mnb to be checked again later
         mapSeenMasternodeBroadcast.erase(mnb.GetHash());
-        masternodeSync.mapSeenSyncMNB.erase(mnb.GetHash());
+        g_tiertwo_sync_state.EraseSeenMNB(mnb.GetHash());
         return false;
     }
 
@@ -807,7 +808,7 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
 {
     const uint256& mnbHash = mnb.GetHash();
     if (mapSeenMasternodeBroadcast.count(mnbHash)) { //seen
-        masternodeSync.AddedMasternodeList(mnbHash);
+        g_tiertwo_sync_state.AddedMasternodeList(mnbHash);
         return 0;
     }
 
@@ -843,13 +844,13 @@ int CMasternodeMan::ProcessMNBroadcast(CNode* pfrom, CMasternodeBroadcast& mnb)
     // Relay only if we are synchronized and if the mnb address is not local.
     // Makes no sense to relay MNBs to the peers from where we are syncing them.
     bool isLocal = (mnb.addr.IsRFC1918() || mnb.addr.IsLocal()) && !Params().IsRegTestNet();
-    if (!isLocal && masternodeSync.IsSynced()) mnb.Relay();
+    if (!isLocal && g_tiertwo_sync_state.IsSynced()) mnb.Relay();
 
     // Add it as a peer
     g_connman->AddNewAddress(CAddress(mnb.addr, NODE_NETWORK), pfrom->addr, 2 * 60 * 60);
 
     // Update sync status
-    masternodeSync.AddedMasternodeList(mnbHash);
+    g_tiertwo_sync_state.AddedMasternodeList(mnbHash);
 
     // All good
     return 0;
@@ -875,7 +876,7 @@ int CMasternodeMan::ProcessMNPing(CNode* pfrom, CMasternodePing& mnp)
 
     // something significant is broken or mn is unknown,
     // we might have to ask for the mn entry (while we aren't syncing).
-    if (masternodeSync.IsSynced()) {
+    if (g_tiertwo_sync_state.IsSynced()) {
         AskForMN(pfrom, mnp.vin);
     }
 
@@ -950,7 +951,7 @@ bool CMasternodeMan::ProcessMessage(CNode* pfrom, std::string& strCommand, CData
 
 int CMasternodeMan::ProcessMessageInner(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
-    if (!masternodeSync.IsBlockchainSynced()) return 0;
+    if (!g_tiertwo_sync_state.IsBlockchainSynced()) return 0;
 
     // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
     if (deterministicMNManager->LegacyMNObsolete()) {
@@ -1029,7 +1030,7 @@ void CMasternodeMan::UpdateMasternodeList(CMasternodeBroadcast& mnb)
 
     mapSeenMasternodePing.emplace(mnb.lastPing.GetHash(), mnb.lastPing);
     mapSeenMasternodeBroadcast.emplace(mnb.GetHash(), mnb);
-    masternodeSync.AddedMasternodeList(mnb.GetHash());
+    g_tiertwo_sync_state.AddedMasternodeList(mnb.GetHash());
 
     LogPrint(BCLog::MASTERNODE,"%s -- masternode=%s\n", __func__, mnb.vin.prevout.ToString());
 
@@ -1188,7 +1189,7 @@ void ThreadCheckMasternodes()
             // try to sync from all available nodes, one step at a time
             masternodeSync.Process();
 
-            if (masternodeSync.IsBlockchainSynced()) {
+            if (g_tiertwo_sync_state.IsBlockchainSynced()) {
                 c++;
 
                 // check if we should activate or ping every few minutes,

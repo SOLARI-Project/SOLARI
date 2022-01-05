@@ -16,6 +16,7 @@
 #include "rpc/server.h"
 #include "spork.h"
 #include "timedata.h"
+#include "tiertwo/tiertwo_sync_state.h"
 #include "util/system.h"
 #ifdef ENABLE_WALLET
 #include "wallet/rpcwallet.h"
@@ -197,10 +198,10 @@ UniValue mnsync(const JSONRPCRequest& request)
     if (strMode == "status") {
         UniValue obj(UniValue::VOBJ);
 
-        obj.pushKV("IsBlockchainSynced", masternodeSync.IsBlockchainSynced());
-        obj.pushKV("lastMasternodeList", masternodeSync.lastMasternodeList);
-        obj.pushKV("lastMasternodeWinner", masternodeSync.lastMasternodeWinner);
-        obj.pushKV("lastBudgetItem", masternodeSync.lastBudgetItem);
+        obj.pushKV("IsBlockchainSynced", g_tiertwo_sync_state.IsBlockchainSynced());
+        obj.pushKV("lastMasternodeList", g_tiertwo_sync_state.GetlastMasternodeList());
+        obj.pushKV("lastMasternodeWinner", g_tiertwo_sync_state.GetlastMasternodeWinner());
+        obj.pushKV("lastBudgetItem", g_tiertwo_sync_state.GetlastBudgetItem());
         obj.pushKV("lastFailure", masternodeSync.lastFailure);
         obj.pushKV("nCountFailures", masternodeSync.nCountFailures);
         obj.pushKV("sumMasternodeList", masternodeSync.sumMasternodeList);
@@ -211,7 +212,7 @@ UniValue mnsync(const JSONRPCRequest& request)
         obj.pushKV("countMasternodeWinner", masternodeSync.countMasternodeWinner);
         obj.pushKV("countBudgetItemProp", masternodeSync.countBudgetItemProp);
         obj.pushKV("countBudgetItemFin", masternodeSync.countBudgetItemFin);
-        obj.pushKV("RequestedMasternodeAssets", masternodeSync.RequestedMasternodeAssets);
+        obj.pushKV("RequestedMasternodeAssets", g_tiertwo_sync_state.GetSyncPhase());
         obj.pushKV("RequestedMasternodeAttempt", masternodeSync.RequestedMasternodeAttempt);
 
         return obj;
