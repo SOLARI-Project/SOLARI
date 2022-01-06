@@ -447,7 +447,7 @@ void CZerocoinDB::WipeAccChecksums()
         }
     }
 
-    LogPrintf("%s: % entries to delete. % entries deleted\n", __func__, setDelete.size(), deleted);
+    LogPrintf("%s: %d entries to delete. %d entries deleted\n", __func__, setDelete.size(), deleted);
 }
 
 namespace {
