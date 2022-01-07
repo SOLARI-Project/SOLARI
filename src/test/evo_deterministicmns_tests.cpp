@@ -1046,7 +1046,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     const CBlockIndex* quorumIndex = mapBlockIndex.at(quorumHash);
 
     // get quorum mns
-    auto members = llmq::utils::GetAllQuorumMembers(Consensus::LLMQ_TEST, quorumIndex);
+    auto members = deterministicMNManager->GetAllQuorumMembers(Consensus::LLMQ_TEST, quorumIndex);
     std::vector<CBLSPublicKey> pkeys;
     std::vector<CBLSSecretKey> skeys;
     for (size_t i = 0; i < members.size()-1; i++) {             // all, except the last one...
@@ -1058,12 +1058,18 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // create final commitment
     llmq::CFinalCommitment qfc = CreateFinalCommitment(pkeys, skeys, quorumHash);
     BOOST_CHECK(!qfc.IsNull());
-    BOOST_CHECK(qfc.Verify(quorumIndex));
-    // verify that it fails against different members
-    do {
-        quorumIndex = quorumIndex->pprev;
-    } while(llmq::utils::GetAllQuorumMembers(Consensus::LLMQ_TEST, quorumIndex) == members);
-    BOOST_CHECK(!qfc.Verify(quorumIndex));
+    {
+        LOCK(cs_main);
+        CValidationState state;
+        BOOST_CHECK(VerifyLLMQCommitment(qfc, chainTip, state));
+    }
+
+    // verify that it fails changing the key of one of the signers
+    std::vector<CBLSPublicKey> allkeys(pkeys);
+    allkeys.emplace_back(members.back()->pdmnState->pubKeyOperator.Get());
+    BOOST_CHECK(qfc.Verify(allkeys, params));   // already checked with VerifyLLMQCommitment
+    allkeys[0] = GetRandomBLSKey().GetPublicKey();
+    BOOST_CHECK(!qfc.Verify(allkeys, params));
 
     // receive final commitment message
     CNode dummyNode(id++, NODE_NETWORK, 0, INVALID_SOCKET, CAddress(ip(0xa0b0c001), NODE_NONE), 0, 0, "", true);
@@ -1085,7 +1091,8 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // 4) Mine block without qfc during the mining phase, which should end up being rejected.
     // 5) Mine two blocks with a null qfc.
     // 6) Try to relay the valid qfc to the mempool, which should end up being rejected.
-    // 7) Mine a qfc with an invalid quorum hash, which should end up being rejected.
+    // 7a) Mine a qfc with an invalid quorum hash (invalid height), which should end up being rejected.
+    // 7b) Mine a qfc with an invalid quorum hash (non-existent), which should end up being rejected.
     // 8) Mine the final valid qfc in a block.
     // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
 
@@ -1133,10 +1140,15 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     BOOST_CHECK(!WITH_LOCK(cs_main, return AcceptToMemoryPool(mempool, mempoolState, qcTx, true, nullptr); ));
     BOOST_CHECK_EQUAL(mempoolState.GetRejectReason(), "llmqcomm");
 
-    // 7) Mine a qfc with an invalid quorum hash, which should end up being rejected.
+    // 7a) Mine a qfc with an invalid quorum hash (invalid height), which should end up being rejected.
     nullQfcTx = CreateNullQfcTx(chainTip->GetBlockHash(), nHeight + 1);
     pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
-    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-block", nHeight);
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-height", nHeight);
+
+    // 7b) Mine a qfc with an invalid quorum hash (non-existent), which should end up being rejected.
+    nullQfcTx = CreateNullQfcTx(UINT256_ONE, nHeight + 1);
+    pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-hash", nHeight);
 
     // 8) Mine the final valid qfc in a block.
     CreateAndProcessBlock({}, coinbaseKey);
@@ -1144,7 +1156,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
 
     // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
-    nullQfcTx = CreateNullQfcTx(chainTip->GetBlockHash(), nHeight + 1);
+    nullQfcTx = CreateNullQfcTx(quorumHash, nHeight + 1);
     pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
     ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-not-allowed", nHeight);
 
@@ -1178,7 +1190,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     BOOST_CHECK_EQUAL(nHeight, 481);
     quorumHash = chainActive[nHeight - (nHeight % params.dkgInterval)]->GetBlockHash();
     quorumIndex = mapBlockIndex.at(quorumHash);
-    members = llmq::utils::GetAllQuorumMembers(Consensus::LLMQ_TEST, quorumIndex);
+    members = deterministicMNManager->GetAllQuorumMembers(Consensus::LLMQ_TEST, quorumIndex);
     pkeys.clear();
     skeys.clear();
     for (size_t i = 0; i < members.size(); i++) {
@@ -1189,7 +1201,11 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     std::vector<CBLSSecretKey> skeys2(skeys.begin(), skeys.end()-1);
     llmq::CFinalCommitment qfc2 = CreateFinalCommitment(pkeys2, skeys2, quorumHash);
     BOOST_CHECK(!qfc2.IsNull());
-    BOOST_CHECK(qfc2.Verify(quorumIndex));
+    {
+        LOCK(cs_main);
+        CValidationState state;
+        BOOST_CHECK(VerifyLLMQCommitment(qfc2, chainTip, state));
+    }
     ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc2, &dummyNode);
     // final commitment received and accepted
     BOOST_CHECK(llmq::quorumBlockProcessor->HasMinableCommitment(::SerializeHash(qfc2)));
@@ -1197,7 +1213,11 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // Now receive another commitment for the same quorum hash, but with all 3 signatures
     qfc = CreateFinalCommitment(pkeys, skeys, quorumHash);
     BOOST_CHECK(!qfc.IsNull());
-    BOOST_CHECK(qfc.Verify(quorumIndex));
+    {
+        LOCK(cs_main);
+        CValidationState state;
+        BOOST_CHECK(VerifyLLMQCommitment(qfc, chainTip, state));
+    }
     ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc, &dummyNode);
     BOOST_CHECK(qfc.CountSigners() > qfc2.CountSigners());
 

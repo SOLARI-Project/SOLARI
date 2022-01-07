@@ -48,7 +48,7 @@ public:
     bool IsNull() const;
     void ToJson(UniValue& obj) const;
 
-    bool Verify(const CBlockIndex* pQuorumIndex) const;
+    bool Verify(const std::vector<CBLSPublicKey>& allkeys, const Consensus::LLMQParams& params) const;
     bool VerifySizes(const Consensus::LLMQParams& params) const;
 
     SERIALIZE_METHODS(CFinalCommitment, obj)
@@ -85,8 +85,6 @@ public:
 
     void ToJson(UniValue& obj) const;
 };
-
-bool CheckLLMQCommitment(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state);
 
 } // namespace llmq
 

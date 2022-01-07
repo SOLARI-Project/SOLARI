@@ -8,7 +8,6 @@
 #include "chainparams.h"
 #include "llmq/quorums_utils.h"
 #include "logging.h"
-#include "validation.h"
 
 
 namespace llmq
@@ -65,25 +64,8 @@ static bool errorFinalCommitment(const char* fmt, const Args&... args)
     return false;
 }
 
-bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
+bool CFinalCommitment::Verify(const std::vector<CBLSPublicKey>& allkeys, const Consensus::LLMQParams& params) const
 {
-    if (nVersion == 0 || nVersion > CURRENT_VERSION) {
-        return errorFinalCommitment("version (%d)", nVersion);
-    }
-
-    if (!Params().GetConsensus().llmqs.count((Consensus::LLMQType)llmqType)) {
-        return errorFinalCommitment("type (%d)", llmqType);
-    }
-    const auto& params = Params().GetConsensus().llmqs.at((Consensus::LLMQType)llmqType);
-
-    if (!VerifySizes(params)) {
-        return errorFinalCommitment("sizes");
-    }
-
-    if (IsNull()) {
-        return true;
-    }
-
     int count_validmembers = CountValidMembers();
     if (count_validmembers < params.minSize) {
         return errorFinalCommitment("valid members count (%d < %d)", count_validmembers, params.minSize);
@@ -106,8 +88,7 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
         return errorFinalCommitment("quorumSig");
     }
 
-    auto members = utils::GetAllQuorumMembers(params.type, pQuorumIndex);
-    for (int i = members.size(); i < params.size; i++) {
+    for (int i = allkeys.size(); i < params.size; i++) {
         if (validMembers[i]) {
             return errorFinalCommitment("validMembers bitset (bit %d should not be set)", i);
         }
@@ -119,11 +100,11 @@ bool CFinalCommitment::Verify(const CBlockIndex* pQuorumIndex) const
     // check signatures
     uint256 commitmentHash = utils::BuildCommitmentHash(params.type, quorumHash, validMembers, quorumPublicKey, quorumVvecHash);
     std::vector<CBLSPublicKey> memberPubKeys;
-    for (size_t i = 0; i < members.size(); i++) {
+    for (size_t i = 0; i < allkeys.size(); i++) {
         if (!signers[i]) {
             continue;
         }
-        memberPubKeys.emplace_back(members[i]->pdmnState->pubKeyOperator.Get());
+        memberPubKeys.emplace_back(allkeys[i]);
     }
     if (!membersSig.VerifySecureAggregated(memberPubKeys, commitmentHash)) {
         return errorFinalCommitment("aggregated members signature");
@@ -155,48 +136,6 @@ void LLMQCommPL::ToJson(UniValue& obj) const
     UniValue qcObj;
     commitment.ToJson(qcObj);
     obj.pushKV("commitment", qcObj);
-}
-
-bool CheckLLMQCommitment(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
-{
-    LLMQCommPL pl;
-    if (!GetTxPayload(tx, pl)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-payload");
-    }
-
-    if (pl.nVersion == 0 || pl.nVersion > LLMQCommPL::CURRENT_VERSION) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-version");
-    }
-
-    if (!Params().GetConsensus().llmqs.count((Consensus::LLMQType)pl.commitment.llmqType)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-type");
-    }
-    const auto& params = Params().GetConsensus().llmqs.at((Consensus::LLMQType)pl.commitment.llmqType);
-
-    if (!pl.commitment.VerifySizes(params)) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid-sizes");
-    }
-
-    if (pindexPrev) {
-        if (pl.nHeight != (uint32_t)pindexPrev->nHeight + 1) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-height");
-        }
-
-        if (!mapBlockIndex.count(pl.commitment.quorumHash)) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
-        }
-        const CBlockIndex* pindexQuorum = mapBlockIndex.at(pl.commitment.quorumHash);
-        if (pindexQuorum != pindexPrev->GetAncestor(pindexQuorum->nHeight)) {
-            // not part of active chain
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
-        }
-
-        if (!pl.commitment.Verify(pindexQuorum)) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-invalid");
-        }
-    }
-
-    return true;
 }
 
 } // namespace llmq

@@ -10,6 +10,7 @@
 #include "consensus/validation.h"
 #include "llmq/quorums_utils.h"
 #include "evo/evodb.h"
+#include "evo/specialtx_validation.h"
 #include "net.h"
 #include "primitives/block.h"
 #include "validation.h"
@@ -56,37 +57,6 @@ void CQuorumBlockProcessor::ProcessMessage(CNode* pfrom, CDataStream& vRecv, int
         retMisbehavingScore = LogMisbehaving(pfrom, 100, "null commitment");
         return;
     }
-    if (!Params().GetConsensus().llmqs.count((Consensus::LLMQType)qc.llmqType)) {
-        retMisbehavingScore = LogMisbehaving(pfrom, 100, "invalid commitment type %d", qc.llmqType);
-        return;
-    }
-
-    auto type = (Consensus::LLMQType)qc.llmqType;
-    const auto& llmq_params = Params().GetConsensus().llmqs.at(type);
-
-    // Verify that quorumHash is part of the active chain and that it's the first block in the DKG interval
-    const CBlockIndex* pquorumIndex;
-    {
-        LOCK(cs_main);
-        auto it = mapBlockIndex.find(qc.quorumHash);
-        if (it == mapBlockIndex.end()) {
-            // can't really punish the node here, as we might simply be the one that is on the wrong chain or not
-            // fully synced
-            retMisbehavingScore = LogMisbehaving(pfrom, 0, "unknown block %s", qc.quorumHash.ToString());
-            return;
-        }
-        pquorumIndex = it->second;
-        if (chainActive.Tip()->GetAncestor(pquorumIndex->nHeight) != pquorumIndex) {
-            // same, can't punish
-            retMisbehavingScore = LogMisbehaving(pfrom, 0, "block %s not in active chain", qc.quorumHash.ToString());
-            return;
-        }
-        int quorumHeight = pquorumIndex->nHeight - (pquorumIndex->nHeight % llmq_params.dkgInterval);
-        if (quorumHeight != pquorumIndex->nHeight) {
-            retMisbehavingScore = LogMisbehaving(pfrom, 100, "block %s is not the first in the DKG interval", qc.quorumHash.ToString());
-            return;
-        }
-    }
 
     // Check if we already got a better one locally
     // We do this before verifying the commitment to avoid DoS
@@ -94,8 +64,13 @@ void CQuorumBlockProcessor::ProcessMessage(CNode* pfrom, CDataStream& vRecv, int
         return;
     }
 
-    if (!qc.Verify(pquorumIndex)) {
-        retMisbehavingScore = LogMisbehaving(pfrom, 100, "invalid commtiment for quorum", qc.quorumHash.ToString());
+    CValidationState state;
+    if (!WITH_LOCK(cs_main, return VerifyLLMQCommitment(qc, chainActive.Tip(), state); )) {
+        // can't really punish the node for "bad-qc-quorum-hash" here, as we might simply be
+        // the one that is on the wrong chain or not fully synced
+        int dos = (state.GetRejectReason() == "bad-qc-quorum-hash" ? 0 : state.GetDoSScore());
+        retMisbehavingScore = LogMisbehaving(pfrom, dos, "invalid commtiment for quorum %s: %s",
+                                             qc.quorumHash.ToString(), state.GetRejectReason());
         return;
     }
 
@@ -188,12 +163,10 @@ bool CQuorumBlockProcessor::ProcessCommitment(int nHeight, const uint256& blockH
         return true;
     }
 
-    const auto& params = Params().GetConsensus().llmqs.at((Consensus::LLMQType)qc.llmqType);
-
     // Store commitment in DB
-    auto cacheKey = std::make_pair(static_cast<uint8_t>(params.type), quorumHash);
+    auto cacheKey = std::make_pair(qc.llmqType, quorumHash);
     evoDb.Write(std::make_pair(DB_MINED_COMMITMENT, cacheKey), std::make_pair(qc, blockHash));
-    evoDb.Write(BuildInversedHeightKey(params.type, nHeight), quorumIndex->nHeight);
+    evoDb.Write(BuildInversedHeightKey((Consensus::LLMQType)qc.llmqType, nHeight), quorumIndex->nHeight);
 
     {
         LOCK(minableCommitmentsCs);

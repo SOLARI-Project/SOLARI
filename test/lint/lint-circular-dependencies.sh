@@ -15,7 +15,8 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chainparamsbase -> util/system -> chainparamsbase"
     "consensus/params -> consensus/upgrades -> consensus/params"
     "evo/deterministicmns -> masternodeman -> evo/deterministicmns"
-    "evo/deterministicmns -> llmq/quorums_utils -> evo/deterministicmns"
+    "evo/specialtx_validation -> llmq/quorums_blockprocessor -> evo/specialtx_validation"
+    "evo/specialtx_validation -> validation -> evo/specialtx_validation"
     "kernel -> validation -> kernel"
     "masternode -> masternodeman -> masternode"
     "masternode -> wallet/wallet -> masternode"
@@ -42,7 +43,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> validation -> chain"
     "chainparamsbase -> util/system -> logging -> chainparamsbase"
     "evo/deterministicmns -> masternode -> wallet/wallet -> evo/deterministicmns"
-    "evo/specialtx_validation -> llmq/quorums_blockprocessor -> validation -> evo/specialtx_validation"
     "kernel -> stakeinput -> wallet/wallet -> kernel"
     "legacy/validation_zerocoin_legacy -> wallet/wallet -> validation -> legacy/validation_zerocoin_legacy"
     "qt/askpassphrasedialog -> qt/pivx/pivxgui -> qt/pivx/topbar -> qt/askpassphrasedialog"
@@ -54,7 +54,7 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> validation -> checkpoints -> chain"
     "chain -> legacy/stakemodifier -> validation -> undo -> chain"
     "chain -> legacy/stakemodifier -> validation -> pow -> chain"
-    "evo/deterministicmns -> llmq/quorums_commitment -> validation -> validationinterface -> evo/deterministicmns"
+    "evo/deterministicmns -> masternodeman -> validation -> validationinterface -> evo/deterministicmns"
 )
 
 EXIT_CODE=0

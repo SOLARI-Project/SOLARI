@@ -808,7 +808,7 @@ void CDeterministicMNManager::HandleQuorumCommitment(llmq::CFinalCommitment& qc,
 {
     // The commitment has already been validated at this point so it's safe to use members of it
 
-    auto members = llmq::utils::GetAllQuorumMembers((Consensus::LLMQType)qc.llmqType, pindexQuorum);
+    auto members = GetAllQuorumMembers((Consensus::LLMQType)qc.llmqType, pindexQuorum);
 
     for (size_t i = 0; i < members.size(); i++) {
         if (!mnList.HasMN(members[i]->proTxHash)) {
@@ -971,4 +971,12 @@ void CDeterministicMNManager::CleanupCache(int nHeight)
     for (const auto& h : toDeleteDiffs) {
         mnListDiffsCache.erase(h);
     }
+}
+
+std::vector<CDeterministicMNCPtr> CDeterministicMNManager::GetAllQuorumMembers(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum)
+{
+    auto& params = Params().GetConsensus().llmqs.at(llmqType);
+    auto allMns = GetListForBlock(pindexQuorum);
+    auto modifier = ::SerializeHash(std::make_pair(static_cast<uint8_t>(llmqType), pindexQuorum->GetBlockHash()));
+    return allMns.CalculateQuorum(params.size, modifier);
 }
