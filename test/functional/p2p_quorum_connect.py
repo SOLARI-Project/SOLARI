@@ -6,16 +6,23 @@
 
 import time
 
+from random import getrandbits
 from test_framework.test_framework import PivxTestFramework
+from test_framework.mininode import P2PInterface
+from test_framework.messages import msg_version
 from test_framework.util import (
     assert_equal,
     assert_true,
     bytes_to_hex_str,
-    disconnect_nodes,
+    connect_nodes_clique,
     hash256,
     hex_str_to_bytes,
     wait_until,
 )
+
+class TestP2PConn(P2PInterface):
+    def on_version(self, message):
+        pass
 
 class DMNConnectionTest(PivxTestFramework):
 
@@ -47,7 +54,7 @@ class DMNConnectionTest(PivxTestFramework):
     def wait_until_mnsync_completed(self):
         SYNC_FINISHED = [999] * self.num_nodes
         synced = [-1] * self.num_nodes
-        timeout = time.time() + 160
+        timeout = time.time() + 240
         while synced != SYNC_FINISHED and time.time() < timeout:
             synced = [node.mnsync("status")["RequestedMasternodeAssets"]
                       for node in self.nodes]
@@ -57,6 +64,12 @@ class DMNConnectionTest(PivxTestFramework):
             raise AssertionError("Unable to complete mnsync: %s" % str(synced))
 
     def setup_phase(self):
+        # Disconnect every node and generate connections to all of them manually.
+        for node in self.nodes:
+            self.disconnect_peers(node)
+        connect_nodes_clique(self.nodes)
+        self.check_peers_count(14)
+
         # Mine 110 blocks
         self.log.info("Mining...")
         self.miner.generate(110)
@@ -83,11 +96,16 @@ class DMNConnectionTest(PivxTestFramework):
         self.log.info("All masternodes ready")
 
     def disconnect_peers(self, node):
-        for i in range(0, 7):
-            disconnect_nodes(node, i)
+        node.setnetworkactive(False)
+        time.sleep(3)
         assert_equal(len(node.getpeerinfo()), 0)
+        node.setnetworkactive(True)
 
-    def check_peer_info(self, peer_info, mn, is_iqr_conn, inbound = False):
+    def check_peers_count(self, expected_count):
+        for i in range(0, 7):
+            assert_equal(len(self.nodes[i].getpeerinfo()), expected_count)
+
+    def check_peer_info(self, peer_info, mn, is_iqr_conn, inbound=False):
         assert_equal(peer_info["masternode"], True)
         assert_equal(peer_info["verif_mn_proreg_tx_hash"], mn.proTx)
         assert_equal(peer_info["verif_mn_operator_pubkey_hash"], bytes_to_hex_str(hash256(hex_str_to_bytes(mn.operator_pk))))
@@ -96,7 +114,7 @@ class DMNConnectionTest(PivxTestFramework):
         if not inbound:
             assert_equal(peer_info["addr"], mn.ipport)
 
-    def check_peers_info(self, peers_info, quorum_members, is_iqr_conn, inbound = False):
+    def check_peers_info(self, peers_info, quorum_members, is_iqr_conn, inbound=False):
         for quorum_node in quorum_members:
             found = False
             for peer in peers_info:
@@ -180,7 +198,7 @@ class DMNConnectionTest(PivxTestFramework):
         ###########################################
         # 4) Now test the connections probe process
         ###########################################
-        self.log.info("3) Testing MN probe connection process..")
+        self.log.info("4) Testing MN probe connection process..")
         # Take mn6, disconnect all the nodes and try to probe connection to one of them
         mn6_node = self.nodes[mn6.idx]
         self.disconnect_peers(mn6_node)
@@ -189,6 +207,22 @@ class DMNConnectionTest(PivxTestFramework):
             assert mn_node.mnconnect("probe_conn", [mn5.proTx])
             time.sleep(10) # wait a bit until the connection gets established
         self.log.info("Completed MN connection probe!")
+
+        ###############################################################################
+        # 5) Now test regular node disconnecting after receiving an auth DMN connection
+        ###############################################################################
+        self.log.info("5) Testing regular node disconnection after receiving an auth DMN connection..")
+        self.disconnect_peers(self.miner)
+        no_version_node = self.miner.add_p2p_connection(TestP2PConn(), send_version=False, wait_for_verack=False)
+        assert_equal(len(self.miner.getpeerinfo()), 1)
+        # send the version as it would be a MN
+        mn_challenge = getrandbits(256)
+        with self.miner.assert_debug_log(["but we're not a masternode, disconnecting"]):
+            no_version_node.send_message(msg_version(mn_challenge))
+            time.sleep(2)
+        # as the miner is not a DMN, the miner should had dropped the connection.
+        assert_equal(len(self.miner.getpeerinfo()), 0)
+        self.log.info("Regular node disconnected auth connection successfully")
 
 
 if __name__ == '__main__':
