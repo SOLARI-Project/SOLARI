@@ -709,7 +709,7 @@ void CMasternodePayments::ProcessBlock(int nBlockHeight)
     LogPrintf("%s: Processing block %d\n", __func__, nBlockHeight);
 
     // No more mnw messages after transition to DMN
-    if (deterministicMNManager->LegacyMNObsolete()) {
+    if (deterministicMNManager->LegacyMNObsolete(nBlockHeight)) {
         return;
     }
     if (!fMasterNode) return;
