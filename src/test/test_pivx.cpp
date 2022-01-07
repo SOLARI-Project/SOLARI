@@ -174,7 +174,8 @@ CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns,
                                    const CScript& scriptPubKey,
                                    bool fNoMempoolTx,
                                    bool fTestBlockValidity,
-                                   bool fIncludeQfc)
+                                   bool fIncludeQfc,
+                                   CBlockIndex* customPrevBlock)
 {
     std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(
             Params(), DEFAULT_PRINTPRIORITY).CreateNewBlock(scriptPubKey,
@@ -183,7 +184,7 @@ CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns,
                                                             nullptr, // availableCoins
                                                             fNoMempoolTx,
                                                             fTestBlockValidity,
-                                                            nullptr,
+                                                            customPrevBlock,
                                                             true,
                                                             fIncludeQfc);
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>(pblocktemplate->block);
@@ -193,7 +194,8 @@ CBlock TestChainSetup::CreateBlock(const std::vector<CMutableTransaction>& txns,
         pblock->vtx.push_back(MakeTransactionRef(tx));
     }
 
-    const int nHeight = WITH_LOCK(cs_main, return chainActive.Height()) + 1;
+    const int nHeight = (customPrevBlock != nullptr ? customPrevBlock->nHeight + 1
+                                                    : WITH_LOCK(cs_main, return chainActive.Height()) + 1);
 
     // Re-compute sapling root
     pblock->hashFinalSaplingRoot = CalculateSaplingTreeRoot(pblock.get(), nHeight, Params());

@@ -66,9 +66,14 @@ void CQuorumBlockProcessor::ProcessMessage(CNode* pfrom, CDataStream& vRecv, int
 
     CValidationState state;
     if (!WITH_LOCK(cs_main, return VerifyLLMQCommitment(qc, chainActive.Tip(), state); )) {
-        // can't really punish the node for "bad-qc-quorum-hash" here, as we might simply be
-        // the one that is on the wrong chain or not fully synced
-        int dos = (state.GetRejectReason() == "bad-qc-quorum-hash" ? 0 : state.GetDoSScore());
+        // Not punishable reject reasons
+        static std::set<std::string> not_punishable_reasons = {
+                // can't really punish the node for "bad-qc-quorum-hash" here, as we might simply be
+                // the one that is on the wrong chain or not fully synced
+                "bad-qc-quorum-hash-not-found", "bad-qc-quorum-hash-not-active-chain"
+        };
+
+        int dos = (not_punishable_reasons.count(state.GetRejectReason()) ? 0 : state.GetDoSScore());
         retMisbehavingScore = LogMisbehaving(pfrom, dos, "invalid commtiment for quorum %s: %s",
                                              qc.quorumHash.ToString(), state.GetRejectReason());
         return;

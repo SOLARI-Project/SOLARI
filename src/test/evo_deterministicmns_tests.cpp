@@ -1093,6 +1093,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // 6) Try to relay the valid qfc to the mempool, which should end up being rejected.
     // 7a) Mine a qfc with an invalid quorum hash (invalid height), which should end up being rejected.
     // 7b) Mine a qfc with an invalid quorum hash (non-existent), which should end up being rejected.
+    // 7c) Mine a qfc with an invalid quorum hash (forked), which should end up being rejected.
     // 8) Mine the final valid qfc in a block.
     // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
 
@@ -1148,7 +1149,27 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // 7b) Mine a qfc with an invalid quorum hash (non-existent), which should end up being rejected.
     nullQfcTx = CreateNullQfcTx(UINT256_ONE, nHeight + 1);
     pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
-    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-hash", nHeight);
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-hash-not-found", nHeight);
+
+    // 7c) Mine a qfc with an invalid quorum hash (forked), which should end up being rejected.
+    // -- first create a secondary chain at height 420
+    CBlockIndex* pblock_419 = WITH_LOCK(cs_main, return mapBlockIndex.at(chainActive[419]->GetBlockHash()); );
+    auto pblock_forked = std::make_shared<CBlock>(CreateBlock({}, coinsbaseScript, true, false, false, pblock_419));
+    // increment nonce and re-solve to get a different block
+    pblock_forked->nNonce++;
+    BOOST_CHECK(SolveBlock(pblock_forked, 420));
+    BOOST_CHECK(ProcessNewBlock(pblock_forked, nullptr));
+    {
+        LOCK(cs_main);
+        const auto it = mapBlockIndex.find(pblock_forked->GetHash());
+        BOOST_CHECK(it != mapBlockIndex.end());
+        BOOST_CHECK(!chainActive.Contains(it->second));
+    }
+
+    // -- then mine a commitment referencing the quorum hash from the secondary chain
+    nullQfcTx = CreateNullQfcTx(pblock_forked->GetHash(), nHeight + 1);
+    pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-hash-not-active-chain", nHeight);
 
     // 8) Mine the final valid qfc in a block.
     CreateAndProcessBlock({}, coinbaseKey);
