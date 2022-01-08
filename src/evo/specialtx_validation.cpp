@@ -454,6 +454,11 @@ bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* 
             return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-height");
         }
 
+        // Check height limit
+        if (pindexPrev->nHeight - pindexQuorum->nHeight > params->cacheDkgInterval) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-height-old");
+        }
+
         if (pindexQuorum != pindexPrev->GetAncestor(pindexQuorum->nHeight)) {
             // not part of active chain
             return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash-not-active-chain");
