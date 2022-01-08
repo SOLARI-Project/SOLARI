@@ -181,11 +181,9 @@ CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& loc
     AssertLockHeld(cs_main);
     // Find the first block the caller has in the main chain
     for (const uint256& hash : locator.vHave) {
-        BlockMap::iterator mi = mapBlockIndex.find(hash);
-        if (mi != mapBlockIndex.end()) {
-            CBlockIndex* pindex = (*mi).second;
-            if (chain.Contains(pindex))
-                return pindex;
+        CBlockIndex* pindex = LookupBlockIndex(hash);
+        if (pindex && chain.Contains(pindex)) {
+            return pindex;
         }
     }
     return chain.Genesis();
@@ -1025,7 +1023,7 @@ bool CScriptCheck::operator()()
 int GetSpendHeight(const CCoinsViewCache& inputs)
 {
     LOCK(cs_main);
-    CBlockIndex* pindexPrev = mapBlockIndex.find(inputs.GetBestBlock())->second;
+    CBlockIndex* pindexPrev = LookupBlockIndex(inputs.GetBestBlock());
     return pindexPrev->nHeight + 1;
 }
 
@@ -2424,9 +2422,9 @@ CBlockIndex* AddToBlockIndex(const CBlock& block)
 
     // Check for duplicate
     uint256 hash = block.GetHash();
-    BlockMap::iterator it = mapBlockIndex.find(hash);
-    if (it != mapBlockIndex.end())
-        return it->second;
+    CBlockIndex* pindex = LookupBlockIndex(hash);
+    if (pindex)
+        return pindex;
 
     // Construct new block index object
     CBlockIndex* pindexNew = new CBlockIndex(block);
@@ -2437,9 +2435,9 @@ CBlockIndex* AddToBlockIndex(const CBlock& block)
     BlockMap::iterator mi = mapBlockIndex.emplace(hash, pindexNew).first;
 
     pindexNew->phashBlock = &((*mi).first);
-    BlockMap::iterator miPrev = mapBlockIndex.find(block.hashPrevBlock);
-    if (miPrev != mapBlockIndex.end()) {
-        pindexNew->pprev = (*miPrev).second;
+    CBlockIndex* pprev = LookupBlockIndex(block.hashPrevBlock);
+    if (pprev) {
+        pindexNew->pprev = pprev;
         pindexNew->nHeight = pindexNew->pprev->nHeight + 1;
         pindexNew->BuildSkip();
 
@@ -2728,11 +2726,10 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     if (pindexPrev != nullptr && block.hashPrevBlock != UINT256_ZERO) {
         if (pindexPrev->GetBlockHash() != block.hashPrevBlock) {
             //out of order
-            auto mi = mapBlockIndex.find(block.hashPrevBlock);
-            if (mi == mapBlockIndex.end()) {
+            CBlockIndex* pindexPrev = LookupBlockIndex(block.hashPrevBlock);
+            if (!pindexPrev) {
                 return state.Error("blk-out-of-order");
             }
-            pindexPrev = mi->second;
         }
         nHeight = pindexPrev->nHeight + 1;
 
@@ -2850,7 +2847,7 @@ bool CheckBlockTime(const CBlockHeader& block, CValidationState& state, CBlockIn
     return true;
 }
 
-//! Returns last CBlockIndex* in mapBlockIndex that is a checkpoint
+//! Returns last CBlockIndex* that is a checkpoint
 static const CBlockIndex* GetLastCheckpoint()
 {
     if (!Checkpoints::fEnabled)
@@ -2860,9 +2857,9 @@ static const CBlockIndex* GetLastCheckpoint()
 
     for (const auto& i : reverse_iterate(checkpoints)) {
         const uint256& hash = i.second;
-        BlockMap::const_iterator t = mapBlockIndex.find(hash);
-        if (t != mapBlockIndex.end())
-            return t->second;
+        CBlockIndex* pindex = LookupBlockIndex(hash);
+        if (pindex)
+            return pindex;
     }
     return nullptr;
 }
@@ -2965,12 +2962,11 @@ bool GetPrevIndex(const CBlock& block, CBlockIndex** pindexPrevRet, CValidationS
     CBlockIndex*& pindexPrev = *pindexPrevRet;
     pindexPrev = nullptr;
     if (block.GetHash() != Params().GetConsensus().hashGenesisBlock) {
-        BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-        if (mi == mapBlockIndex.end()) {
+        pindexPrev = LookupBlockIndex(block.hashPrevBlock);
+        if (!pindexPrev) {
             return state.DoS(0, error("%s : prev block %s not found", __func__, block.hashPrevBlock.GetHex()), 0,
                              "prevblk-not-found");
         }
-        pindexPrev = (*mi).second;
         if (pindexPrev->nStatus & BLOCK_FAILED_MASK) {
             //If this "invalid" block is an exact match from the checkpoints, then reconsider it
             if (Checkpoints::CheckBlock(pindexPrev->nHeight, block.hashPrevBlock, true)) {
@@ -2994,13 +2990,11 @@ bool AcceptBlockHeader(const CBlock& block, CValidationState& state, CBlockIndex
     AssertLockHeld(cs_main);
     // Check for duplicate
     const uint256& hash = block.GetHash();
-    BlockMap::iterator miSelf = mapBlockIndex.find(hash);
-    CBlockIndex* pindex = NULL;
+    CBlockIndex* pindex = LookupBlockIndex(hash);
 
     // TODO : ENABLE BLOCK CACHE IN SPECIFIC CASES
-    if (miSelf != mapBlockIndex.end()) {
+    if (pindex) {
         // Block header is already known.
-        pindex = miSelf->second;
         if (ppindex)
             *ppindex = pindex;
         if (pindex->nStatus & BLOCK_FAILED_MASK)
@@ -3601,11 +3595,11 @@ bool LoadChainTip(const CChainParams& chainparams)
     }
 
     // Load pointer to end of best chain
-    BlockMap::iterator it = mapBlockIndex.find(pcoinsTip->GetBestBlock());
-    if (it == mapBlockIndex.end()) {
+    CBlockIndex* pindex = LookupBlockIndex(pcoinsTip->GetBestBlock());
+    if (!pindex) {
         return false;
     }
-    chainActive.SetTip(it->second);
+    chainActive.SetTip(pindex);
 
     PruneBlockIndexCandidates();
 
@@ -3770,18 +3764,16 @@ bool ReplayBlocks(const CChainParams& params, CCoinsView* view)
     const CBlockIndex* pindexNew;            // New tip during the interrupted flush.
     const CBlockIndex* pindexFork = nullptr; // Latest block common to both the old and the new tip.
 
-    auto itIndexNew = mapBlockIndex.find(hashHeads[0]);
-    if (itIndexNew == mapBlockIndex.end()) {
+    pindexNew = LookupBlockIndex(hashHeads[0]);
+    if (!pindexNew) {
         return error("%s: reorganization to unknown block requested", __func__);
     }
-    pindexNew = itIndexNew->second;
 
     if (!hashHeads[1].IsNull()) { // The old tip is allowed to be 0, indicating it's the first flush.
-        auto it = mapBlockIndex.find(hashHeads[1]);
-        if (it == mapBlockIndex.end()) {
+        pindexOld = LookupBlockIndex(hashHeads[1]);
+        if (!pindexOld) {
             return error("%s: reorganization from unknown block requested", __func__);
         }
-        pindexOld = it->second;
         pindexFork = LastCommonAncestor(pindexOld, pindexNew);
         assert(pindexFork != nullptr);
     }
@@ -3953,7 +3945,7 @@ bool LoadExternalBlockFile(FILE* fileIn, FlatFilePos* dbp)
 
                 // detect out of order blocks, and store them for later
                 uint256 hash = block.GetHash();
-                if (hash != Params().GetConsensus().hashGenesisBlock && mapBlockIndex.find(block.hashPrevBlock) == mapBlockIndex.end()) {
+                if (hash != Params().GetConsensus().hashGenesisBlock && !LookupBlockIndex(block.hashPrevBlock)) {
                     LogPrint(BCLog::REINDEX, "%s: Out of order block %s, parent %s not known\n", __func__,
                             hash.GetHex(), block.hashPrevBlock.GetHex());
                     if (dbp)
@@ -3962,7 +3954,8 @@ bool LoadExternalBlockFile(FILE* fileIn, FlatFilePos* dbp)
                 }
 
                 // process in case the block isn't known yet
-                if (mapBlockIndex.count(hash) == 0 || (mapBlockIndex[hash]->nStatus & BLOCK_HAVE_DATA) == 0) {
+                CBlockIndex* pindex = LookupBlockIndex(hash);
+                if (!pindex || (pindex->nStatus & BLOCK_HAVE_DATA) == 0) {
                     std::shared_ptr<const CBlock> block_ptr = std::make_shared<const CBlock>(block);
                     stateCatcher.setBlockHash(block_ptr->GetHash());
                     if (ProcessNewBlock(block_ptr, dbp)) {
@@ -3971,8 +3964,8 @@ bool LoadExternalBlockFile(FILE* fileIn, FlatFilePos* dbp)
                     if (stateCatcher.stateErrorFound()) {
                         break;
                     }
-                } else if (hash != Params().GetConsensus().hashGenesisBlock && mapBlockIndex[hash]->nHeight % 1000 == 0) {
-                    LogPrint(BCLog::REINDEX, "Block Import: already had block %s at height %d\n", hash.ToString(), mapBlockIndex[hash]->nHeight);
+                } else if (hash != Params().GetConsensus().hashGenesisBlock && pindex->nHeight % 1000 == 0) {
+                    LogPrint(BCLog::REINDEX, "Block Import: already had block %s at height %d\n", hash.ToString(), pindex->nHeight);
                 }
 
                 // Recursively process earlier encountered successors of this block

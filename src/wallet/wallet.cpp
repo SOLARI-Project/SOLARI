@@ -998,8 +998,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
 // Internal function for now, this will be part of a chain interface class in the future.
 Optional<int> getTipBlockHeight(const uint256& hash)
 {
-    auto it = mapBlockIndex.find(hash);
-    CBlockIndex* pindex = it == mapBlockIndex.end() ? nullptr : it->second;
+    CBlockIndex* pindex = LookupBlockIndex(hash);
     if (pindex && chainActive.Contains(pindex)) {
         return Optional<int>(pindex->nHeight);
     }
@@ -3958,11 +3957,11 @@ void CWallet::GetKeyBirthTimes(std::map<CKeyID, int64_t>& mapKeyBirth) const
     std::vector<CKeyID> vAffected;
     for (const auto& entry : mapWallet) {
         // iterate over all wallet transactions...
-        const CWalletTx &wtx = entry.second;
-        BlockMap::const_iterator blit = mapBlockIndex.find(wtx.m_confirm.hashBlock);
-        if (blit != mapBlockIndex.end() && chainActive.Contains(blit->second)) {
+        const CWalletTx& wtx = entry.second;
+        CBlockIndex* pindex = LookupBlockIndex(wtx.m_confirm.hashBlock);
+        if (pindex && chainActive.Contains(pindex)) {
             // ... which are already in a block
-            int nHeight = blit->second->nHeight;
+            int nHeight = pindex->nHeight;
             for (const CTxOut& txout : wtx.tx->vout) {
                 // iterate over all their outputs
                 CAffectedKeysVisitor(*this, vAffected).Process(txout.scriptPubKey);
@@ -3970,7 +3969,7 @@ void CWallet::GetKeyBirthTimes(std::map<CKeyID, int64_t>& mapKeyBirth) const
                     // ... and all their affected keys
                     std::map<CKeyID, CBlockIndex*>::iterator rit = mapKeyFirstBlock.find(keyid);
                     if (rit != mapKeyFirstBlock.end() && nHeight < rit->second->nHeight)
-                        rit->second = blit->second;
+                        rit->second = pindex;
                 }
                 vAffected.clear();
             }

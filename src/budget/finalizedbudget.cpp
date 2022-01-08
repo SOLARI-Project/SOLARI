@@ -311,8 +311,8 @@ bool CFinalizedBudget::IsPaidAlready(const uint256& nProposalHash, const uint256
     // -> reject transaction so it gets paid to a masternode instead
     if (nBlockHash != nPaidBlockHash) {
         LOCK(cs_main);
-        auto it = mapBlockIndex.find(nPaidBlockHash);
-        return it != mapBlockIndex.end() && chainActive.Contains(it->second);
+        CBlockIndex* pindex = LookupBlockIndex(nPaidBlockHash);
+        return pindex && chainActive.Contains(pindex);
     }
 
     // Re-checking same block. Not a double payment.

@@ -1677,13 +1677,10 @@ bool CheckCollateral(const uint256& nTxCollateralHash, const uint256& nExpectedH
     int nProposalHeight = 0;
     {
         LOCK(cs_main);
-        BlockMap::iterator mi = mapBlockIndex.find(nBlockHash);
-        if (mi != mapBlockIndex.end() && (*mi).second) {
-            CBlockIndex* pindex = (*mi).second;
-            if (chainActive.Contains(pindex)) {
-                nProposalHeight = pindex->nHeight;
-                nTime = pindex->nTime;
-            }
+        CBlockIndex* pindex = LookupBlockIndex(nBlockHash);
+        if (pindex && chainActive.Contains(pindex)) {
+            nProposalHeight = pindex->nHeight;
+            nTime = pindex->nTime;
         }
     }
 

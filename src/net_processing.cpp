@@ -312,10 +312,10 @@ void ProcessBlockAvailability(NodeId nodeid)
     assert(state != nullptr);
 
     if (!state->hashLastUnknownBlock.IsNull()) {
-        BlockMap::iterator itOld = mapBlockIndex.find(state->hashLastUnknownBlock);
-        if (itOld != mapBlockIndex.end() && itOld->second->nChainWork > 0) {
-            if (state->pindexBestKnownBlock == NULL || itOld->second->nChainWork >= state->pindexBestKnownBlock->nChainWork)
-                state->pindexBestKnownBlock = itOld->second;
+        CBlockIndex* pindex = LookupBlockIndex(state->hashLastUnknownBlock);
+        if (pindex && pindex->nChainWork > 0) {
+            if (state->pindexBestKnownBlock == NULL || pindex->nChainWork >= state->pindexBestKnownBlock->nChainWork)
+                state->pindexBestKnownBlock = pindex;
             state->hashLastUnknownBlock.SetNull();
         }
     }
@@ -329,11 +329,11 @@ void UpdateBlockAvailability(NodeId nodeid, const uint256& hash)
 
     ProcessBlockAvailability(nodeid);
 
-    BlockMap::iterator it = mapBlockIndex.find(hash);
-    if (it != mapBlockIndex.end() && it->second->nChainWork > 0) {
+    CBlockIndex* pindex = LookupBlockIndex(hash);
+    if (pindex && pindex->nChainWork > 0) {
         // An actually better block was announced.
-        if (state->pindexBestKnownBlock == NULL || it->second->nChainWork >= state->pindexBestKnownBlock->nChainWork)
-            state->pindexBestKnownBlock = it->second;
+        if (state->pindexBestKnownBlock == NULL || pindex->nChainWork >= state->pindexBestKnownBlock->nChainWork)
+            state->pindexBestKnownBlock = pindex;
     } else {
         // An unknown block was announced; just assume that the latest one is the best one.
         state->hashLastUnknownBlock = hash;
@@ -625,9 +625,9 @@ static void CheckBlockSpam(NodeId nodeId, const uint256& hashBlock)
         nodestate = State(nodeId);
         if (!nodestate) { return; }
 
-        const auto it = mapBlockIndex.find(hashBlock);
-        if (it == mapBlockIndex.end()) { return; }
-        blockReceivedHeight = it->second->nHeight;
+        CBlockIndex* pindex = LookupBlockIndex(hashBlock);
+        if (!pindex) { return; }
+        blockReceivedHeight = pindex->nHeight;
     }
 
     nodestate->nodeBlocks.onBlockReceived(blockReceivedHeight);
@@ -766,7 +766,7 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     }
 
     case MSG_BLOCK:
-        return mapBlockIndex.count(inv.hash);
+        return LookupBlockIndex(inv.hash) != nullptr;
     case MSG_TXLOCK_REQUEST:
         // deprecated
         return true;
@@ -956,26 +956,26 @@ void static ProcessGetBlockData(CNode* pfrom, const CInv& inv, CConnman* connman
     CNetMsgMaker msgMaker(pfrom->GetSendVersion());
 
     bool send = false;
-    BlockMap::iterator mi = mapBlockIndex.find(inv.hash);
-    if (mi != mapBlockIndex.end()) {
-        if (chainActive.Contains(mi->second)) {
+    CBlockIndex* pindex = LookupBlockIndex(inv.hash);
+    if (pindex) {
+        if (chainActive.Contains(pindex)) {
             send = true;
         } else {
             // To prevent fingerprinting attacks, only send blocks outside of the active
             // chain if they are valid, and no more than a max reorg depth than the best header
             // chain we know about.
-            send = mi->second->IsValid(BLOCK_VALID_SCRIPTS) && (pindexBestHeader != NULL) &&
-                   (chainActive.Height() - mi->second->nHeight < gArgs.GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH));
+            send = pindex->IsValid(BLOCK_VALID_SCRIPTS) && (pindexBestHeader != NULL) &&
+                   (chainActive.Height() - pindex->nHeight < gArgs.GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH));
             if (!send) {
                 LogPrint(BCLog::NET, "ProcessGetData(): ignoring request from peer=%i for old block that isn't in the main chain\n", pfrom->GetId());
             }
         }
     }
     // Don't send not-validated blocks
-    if (send && (mi->second->nStatus & BLOCK_HAVE_DATA)) {
+    if (send && (pindex->nStatus & BLOCK_HAVE_DATA)) {
         // Send block from disk
         CBlock block;
-        if (!ReadBlockFromDisk(block, (*mi).second))
+        if (!ReadBlockFromDisk(block, pindex))
             assert(!"cannot load block from disk");
         if (inv.type == MSG_BLOCK)
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::BLOCK, block));
@@ -1512,10 +1512,9 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         CBlockIndex* pindex = NULL;
         if (locator.IsNull()) {
             // If locator is null, return the hashStop block
-            BlockMap::iterator mi = mapBlockIndex.find(hashStop);
-            if (mi == mapBlockIndex.end())
+            CBlockIndex* pindex = LookupBlockIndex(hashStop);
+            if (!pindex)
                 return true;
-            pindex = (*mi).second;
         } else {
             // Find the last block the caller has in the main chain
             pindex = FindForkInGlobalIndex(chainActive, locator);
