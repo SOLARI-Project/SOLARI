@@ -92,10 +92,10 @@ void RequestDialog::accept()
         }
 
         int displayUnit = walletModel->getOptionsModel()->getDisplayUnit();
-        auto value = ui->lineEditAmount->text().isEmpty() ? -1 :
+        auto value = ui->lineEditAmount->text().isEmpty() ? 0 :
                 GUIUtil::parseValue(ui->lineEditAmount->text(), displayUnit);
 
-        if (value <= 0) {
+        if (value <= 0 && this->isPaymentRequest) {
             inform(tr("Invalid amount"));
             return;
         }
