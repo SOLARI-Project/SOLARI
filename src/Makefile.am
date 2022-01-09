@@ -180,7 +180,7 @@ BITCOIN_CORE_H = \
   core_io.h \
   cuckoocache.h \
   crypter.h \
-  ctpl.h \
+  ctpl_stl.h \
   cyclingvector.h \
   evo/deterministicmns.h \
   evo/evodb.h \
