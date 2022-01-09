@@ -541,7 +541,7 @@ static bool canScheduleMN(bool fFilterSigTime, const MasternodeRef& mn, int minP
 MasternodeRef CMasternodeMan::GetNextMasternodeInQueueForPayment(int nBlockHeight, bool fFilterSigTime, int& nCount, const CBlockIndex* pChainTip) const
 {
     // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
-    if (deterministicMNManager->LegacyMNObsolete()) {
+    if (deterministicMNManager->LegacyMNObsolete(nBlockHeight)) {
         LogPrintf("%s: ERROR - called after legacy system disabled\n", __func__);
         return nullptr;
     }
@@ -1024,7 +1024,6 @@ void CMasternodeMan::UpdateMasternodeList(CMasternodeBroadcast& mnb)
 {
     // Skip after legacy obsolete. !TODO: remove when transition to DMN is complete
     if (deterministicMNManager->LegacyMNObsolete()) {
-        LogPrint(BCLog::MASTERNODE, "Removing all legacy mn due to SPORK 21\n");
         return;
     }
 
