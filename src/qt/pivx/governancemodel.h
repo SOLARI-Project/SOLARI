@@ -30,22 +30,22 @@ public:
     uint256 id;
     std::string name;
     std::string url;
-    int votesYes;
-    int votesNo;
+    int votesYes{0};
+    int votesNo{0};
     /** Payment script destination */
     std::string recipientAdd;
     /** Amount of PIV paid per month */
-    CAmount amount;
+    CAmount amount{0};
     /** Amount of times that the proposal will be paid */
-    int totalPayments;
+    int totalPayments{0};
     /** Amount of times that the proposal was paid already */
-    int remainingPayments;
+    int remainingPayments{0};
     /** Proposal state */
-    Status status;
+    Status status{WAITING_FOR_APPROVAL};
     /** Start superblock height */
-    int startBlock;
+    int startBlock{0};
     /** End superblock height */
-    int endBlock;
+    int endBlock{0};
 
     ProposalInfo() {}
     explicit ProposalInfo(const uint256& _id, std::string  _name, std::string  _url,
