@@ -351,9 +351,9 @@ void AskPassphraseDialog::warningMessage()
     openStandardDialog(
             tr("Wallet encrypted"),
             "<qt>" +
-            tr("%1 will close now to finish the encryption process. "
+            tr("Your wallet is now encrypted. "
                "Remember that encrypting your wallet cannot fully protect "
-               "your PIVs from being stolen by malware infecting your computer.").arg(PACKAGE_NAME) +
+               "your PIVs from being stolen by malware infecting your computer.") +
             "<br><br><b>" +
             tr("IMPORTANT: Any previous backups you have made of your wallet file "
                "should be replaced with the newly generated, encrypted wallet file. "
@@ -362,7 +362,6 @@ void AskPassphraseDialog::warningMessage()
             "</b></qt>",
             tr("OK")
             );
-    QApplication::quit();
 }
 
 void AskPassphraseDialog::errorEncryptingWallet()
