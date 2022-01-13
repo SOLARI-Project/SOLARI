@@ -444,7 +444,7 @@ bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* 
         // Get quorum index
         auto it = mapBlockIndex.find(qfc.quorumHash);
         if (it == mapBlockIndex.end()) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash-not-found");
         }
         const CBlockIndex* pindexQuorum = it->second;
 
@@ -456,7 +456,7 @@ bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* 
 
         if (pindexQuorum != pindexPrev->GetAncestor(pindexQuorum->nHeight)) {
             // not part of active chain
-            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash");
+            return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash-not-active-chain");
         }
 
         // Get members and check signatures (for not-null commitments)
