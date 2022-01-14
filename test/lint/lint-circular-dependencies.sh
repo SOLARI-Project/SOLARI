@@ -43,7 +43,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> stakeinput -> chain"
     "chain -> legacy/stakemodifier -> validation -> chain"
     "chainparamsbase -> util/system -> logging -> chainparamsbase"
-    "evo/deterministicmns -> masternode -> wallet/wallet -> evo/deterministicmns"
     "kernel -> stakeinput -> wallet/wallet -> kernel"
     "legacy/validation_zerocoin_legacy -> wallet/wallet -> validation -> legacy/validation_zerocoin_legacy"
     "qt/askpassphrasedialog -> qt/pivx/pivxgui -> qt/pivx/topbar -> qt/askpassphrasedialog"
