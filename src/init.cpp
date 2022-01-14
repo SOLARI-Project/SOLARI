@@ -511,11 +511,6 @@ std::string HelpMessage(HelpMessageMode mode)
     AppendParamsHelpMessages(strUsage, showDebug);
 
     strUsage += GetTierTwoHelpString(showDebug);
-    if (showDebug) {
-        strUsage += HelpMessageOpt("-pushversion",
-                                   strprintf("Modifies the mnauth serialization if the version is lower than %d."
-                                             "testnet/regtest only; ", MNAUTH_NODE_VER_VERSION));
-    }
 
     strUsage += HelpMessageGroup("Node relay options:");
     if (showDebug) {

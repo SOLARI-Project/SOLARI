@@ -29,6 +29,11 @@ std::string GetTierTwoHelpString(bool showDebug)
     strUsage += HelpMessageOpt("-masternodeaddr=<n>", strprintf("Set external address:port to get to this masternode (example: %s)", "128.127.106.235:51472"));
     strUsage += HelpMessageOpt("-budgetvotemode=<mode>", "Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)");
     strUsage += HelpMessageOpt("-mnoperatorprivatekey=<WIF>", "Set the masternode operator private key. Only valid with -masternode=1. When set, the masternode acts as a deterministic masternode.");
+    if (showDebug) {
+        strUsage += HelpMessageOpt("-pushversion", strprintf("Modifies the mnauth serialization if the version is lower than %d."
+                                                             "testnet/regtest only; ", MNAUTH_NODE_VER_VERSION));
+        strUsage += HelpMessageOpt("-disabledkg", "Disable the DKG sessions process threads for the entire lifecycle. testnet/regtest only.");
+    }
     return strUsage;
 }
 
@@ -235,8 +240,17 @@ bool InitActiveMN()
 void StartTierTwoThreadsAndScheduleJobs(boost::thread_group& threadGroup, CScheduler& scheduler)
 {
     threadGroup.create_thread(std::bind(&ThreadCheckMasternodes));
-    // start LLMQ system
-    llmq::StartLLMQSystem();
+
+    // Start LLMQ system
+    if (gArgs.GetBoolArg("-disabledkg", false)) {
+        if (Params().NetworkIDString() == CBaseChainParams::MAIN) {
+            throw std::runtime_error("DKG system can be disabled only on testnet/regtest");
+        } else {
+            LogPrintf("DKG system disabled.\n");
+        }
+    } else {
+        llmq::StartLLMQSystem();
+    }
 }
 
 void StopTierTwoThreads()

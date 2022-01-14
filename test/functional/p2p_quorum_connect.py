@@ -32,7 +32,7 @@ class DMNConnectionTest(PivxTestFramework):
         self.minerPos = 0
         self.controllerPos = 1
         self.setup_clean_chain = True
-        self.extra_args = [["-nuparams=v5_shield:1", "-nuparams=v6_evo:101"]] * self.num_nodes
+        self.extra_args = [["-nuparams=v5_shield:1", "-nuparams=v6_evo:101", "-disabledkg"]] * self.num_nodes
         self.extra_args[0].append("-sporkkey=932HEevBSujW2ud7RfB1YF91AFygbBRQj3de3LyaCRqNzKKgWXi")
 
     def add_new_dmn(self, mns, strType, op_keys=None, from_out=None):
