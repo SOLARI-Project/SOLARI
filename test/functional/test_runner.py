@@ -115,6 +115,7 @@ BASE_SCRIPTS= [
     'rpc_deprecated.py',                        # ~ 80 sec
     'interface_bitcoin_cli.py',                 # ~ 80 sec
     'mempool_packages.py',                      # ~ 63 sec
+    'sapling_wallet_encryption.py',
 
     # vv Tests less than 60s vv
     'rpc_users.py',
@@ -237,6 +238,7 @@ LEGACY_SKIP_TESTS = [
     'wallet_importmulti.py',
     'wallet_import_rescan.py',
     'wallet_multiwallet.py',
+    'sapling_wallet_encryption.py'
 ]
 
 # Place the lists with the longest tests (on average) first
