@@ -100,6 +100,8 @@ fs::path GetDefaultDataDir();
 // The blocks directory is always net specific.
 const fs::path &GetBlocksDir();
 const fs::path &GetDataDir(bool fNetSpecific = true);
+// Return true if -datadir option points to a valid directory or is not specified.
+bool CheckDataDirOption();
 // Sapling network dir
 const fs::path &ZC_GetParamsDir();
 // Init sapling library
