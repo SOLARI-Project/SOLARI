@@ -26,7 +26,7 @@ public:
         bool m_has_specified_outgoing;
     };
 
-    TierTwoConnMan(CConnman* _connman);
+    explicit TierTwoConnMan(CConnman* _connman);
     ~TierTwoConnMan();
 
     // Add or update quorum nodes

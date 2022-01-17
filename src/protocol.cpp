@@ -54,8 +54,8 @@ const char* FINALBUDGETVOTE = "fbvote";
 const char* SYNCSTATUSCOUNT = "ssc";
 const char* GETMNLIST = "dseg";
 const char* QFCOMMITMENT = "qfcommit";
-const char* QSENDRECSIGS="qsendrecsigs";
-const char* MNAUTH="mnauth";
+const char* QSENDRECSIGS = "qsendrecsigs";
+const char* MNAUTH = "mnauth";
 }; // namespace NetMsgType
 
 /** All known message types. Keep this in the same order as the list of

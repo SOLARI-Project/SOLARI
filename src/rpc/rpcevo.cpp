@@ -696,10 +696,12 @@ static UniValue ToJson(const CMasternodeMetaInfoPtr& info)
 {
     UniValue ret(UniValue::VOBJ);
     auto now = GetAdjustedTime();
-    ret.pushKV("last_outbound_attempt", info->GetLastOutboundAttempt());
-    ret.pushKV("last_outbound_attempt_elapsed", now - info->GetLastOutboundAttempt());
-    ret.pushKV("last_outbound_success", info->GetLastOutboundSuccess());
-    ret.pushKV("last_outbound_success_elapsed", now - info->GetLastOutboundSuccess());
+    auto lastAttempt = info->GetLastOutboundAttempt();
+    auto lastSuccess = info->GetLastOutboundSuccess();
+    ret.pushKV("last_outbound_attempt", lastAttempt);
+    ret.pushKV("last_outbound_attempt_elapsed", now - lastAttempt);
+    ret.pushKV("last_outbound_success", lastSuccess);
+    ret.pushKV("last_outbound_success_elapsed", now - lastSuccess);
     return ret;
 }
 

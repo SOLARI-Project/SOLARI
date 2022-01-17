@@ -772,9 +772,8 @@ UniValue mnconnect(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 4) {
         throw std::runtime_error(
-                // todo: complete me..
-                "mnconnect \"op_type\" \"[pro_tx_hash, pro_tx_hash,..]\"\n"
-                // todo: complete me..
+                "mnconnect \"op_type\" \"[pro_tx_hash, pro_tx_hash,..]\" (llmq_type \"quorum_hash\")\n"
+                "\nAdd manual quorum members connections for internal testing purposes of the tier two p2p network layer\n"
         );
     }
 
@@ -782,10 +781,23 @@ UniValue mnconnect(const JSONRPCRequest& request)
     if (!chainparams.IsRegTestNet())
         throw std::runtime_error("mnconnect for regression testing (-regtest mode) only");
 
+    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR});
+
+    Consensus::LLMQType llmq_type = Consensus::LLMQ_NONE;
+    if (request.params.size() > 2) {
+        RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
+        llmq_type = (Consensus::LLMQType)request.params[2].get_int();
+    }
+
+    uint256 quorum_hash;
+    if (request.params.size() > 3) {
+        RPCTypeCheckArgument(request.params[3], UniValue::VSTR);
+        quorum_hash = uint256S(request.params[3].get_str());
+    }
+
     // First obtain the connection type
     const std::string& op_type = request.params[0].get_str();
     // Check provided mn_list
-    if (!request.params[1].isArray()) throw std::runtime_error("error: mnconnect arg1 must be an array of proreg txes hashes");
     const auto& array{request.params[1].get_array()};
     std::set<uint256> set_dmn_protxhash;
     for (unsigned int i = 0; i < array.size(); i++) {
@@ -801,13 +813,9 @@ UniValue mnconnect(const JSONRPCRequest& request)
         }
         return true;
     } else if (op_type == QUORUM_MEMBERS_CONN) {
-        Consensus::LLMQType llmq_type = (Consensus::LLMQType) request.params[2].get_int();
-        const uint256& quorum_hash = uint256S(request.params[3].get_str());
         mn_connan->setQuorumNodes(llmq_type, quorum_hash, set_dmn_protxhash);
         return true;
     } else if (op_type == IQR_MEMBERS_CONN) {
-        Consensus::LLMQType llmq_type = (Consensus::LLMQType) request.params[2].get_int();
-        const uint256& quorum_hash = uint256S(request.params[3].get_str());
         mn_connan->setMasternodeQuorumRelayMembers(llmq_type, quorum_hash, set_dmn_protxhash);
         return true;
     } else if (op_type == PROBE_CONN) {
