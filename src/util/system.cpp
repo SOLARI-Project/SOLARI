@@ -845,7 +845,7 @@ void ArgsManager::ReadConfigFile(const std::string& confPath)
 
     // If datadir is changed in .conf file:
     ClearDatadirCache();
-    if (!fs::is_directory(GetDataDir(false))) {
+    if (!CheckDataDirOption()) {
         throw std::runtime_error(strprintf("specified data directory \"%s\" does not exist.", gArgs.GetArg("-datadir", "").c_str()));
     }
 }
