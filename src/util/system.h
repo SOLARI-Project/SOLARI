@@ -107,10 +107,6 @@ void initZKSNARKS();
 void ClearDatadirCache();
 fs::path GetConfigFile(const std::string& confPath);
 fs::path GetMasternodeConfigFile();
-#ifndef WIN32
-fs::path GetPidFile();
-void CreatePidFile(const fs::path& path, pid_t pid);
-#endif
 #ifdef WIN32
 fs::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
 #endif

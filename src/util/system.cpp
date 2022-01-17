@@ -79,7 +79,6 @@
 #endif
 
 const char * const PIVX_CONF_FILENAME = "pivx.conf";
-const char * const PIVX_PID_FILENAME = "pivx.pid";
 const char * const PIVX_MASTERNODE_CONF_FILENAME = "masternode.conf";
 
 
@@ -866,23 +865,6 @@ std::string ArgsManager::GetChainName() const
         return CBaseChainParams::TESTNET;
     return CBaseChainParams::MAIN;
 }
-
-#ifndef WIN32
-fs::path GetPidFile()
-{
-    fs::path pathPidFile(gArgs.GetArg("-pid", PIVX_PID_FILENAME));
-    return AbsPathForConfigVal(pathPidFile);
-}
-
-void CreatePidFile(const fs::path& path, pid_t pid)
-{
-    FILE* file = fsbridge::fopen(path, "w");
-    if (file) {
-        fprintf(file, "%d\n", pid);
-        fclose(file);
-    }
-}
-#endif
 
 bool RenameOver(fs::path src, fs::path dest)
 {

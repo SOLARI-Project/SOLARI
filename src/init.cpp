@@ -70,6 +70,8 @@
 #include <memory>
 
 #ifndef WIN32
+#include <attributes.h>
+#include <cerrno>
 #include <signal.h>
 #include <sys/stat.h>
 #endif
@@ -113,6 +115,29 @@ static const char* DEFAULT_ASMAP_FILENAME="ip_asn.map";
 
 static const char* FEE_ESTIMATES_FILENAME = "fee_estimates.dat";
 CClientUIInterface uiInterface;  // Declared but not defined in guiinterface.h
+
+/**
+ * The PID file facilities.
+ */
+const char * const PIVX_PID_FILENAME = "pivx.pid";
+
+fs::path GetPidFile()
+{
+    fs::path pathPidFile(gArgs.GetArg("-pid", PIVX_PID_FILENAME));
+    return AbsPathForConfigVal(pathPidFile);
+}
+
+NODISCARD static bool CreatePidFile()
+{
+    FILE* file = fsbridge::fopen(GetPidFile(), "w");
+    if (file) {
+        fprintf(file, "%d\n", getpid());
+        fclose(file);
+        return true;
+    } else {
+        return UIError(strprintf(_("Unable to create the PID file '%s': %s"), GetPidFile().string(), std::strerror(errno)));
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -309,7 +334,7 @@ void Shutdown()
             LogPrintf("%s: Unable to remove PID file: File does not exist\n", __func__);
         }
     } catch (const fs::filesystem_error& e) {
-        LogPrintf("%s: Unable to remove pidfile: %s\n", __func__, e.what());
+        LogPrintf("%s: Unable to remove PID file: %s\n", __func__, e.what());
     }
 #endif
 
@@ -1168,7 +1193,10 @@ bool AppInitMain()
     }
 
 #ifndef WIN32
-    CreatePidFile(GetPidFile(), getpid());
+    if (!CreatePidFile()) {
+        // Detailed error printed inside CreatePidFile().
+        return false;
+    }
 #endif
     if (g_logger->m_print_to_file) {
         if (gArgs.GetBoolArg("-shrinkdebugfile", g_logger->DefaultShrinkDebugFile()))
