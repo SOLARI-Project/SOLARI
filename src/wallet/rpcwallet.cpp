@@ -83,7 +83,7 @@ void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
     if (confirms > 0) {
         entry.pushKV("blockhash", wtx.m_confirm.hashBlock.GetHex());
         entry.pushKV("blockindex", wtx.m_confirm.nIndex);
-        entry.pushKV("blocktime", mapBlockIndex[wtx.m_confirm.hashBlock]->GetBlockTime());
+        entry.pushKV("blocktime", LookupBlockIndex(wtx.m_confirm.hashBlock)->GetBlockTime());
     } else {
         entry.pushKV("trusted", wtx.IsTrusted());
     }
@@ -3201,9 +3201,7 @@ UniValue listsinceblock(const JSONRPCRequest& request)
         uint256 blockId;
 
         blockId.SetHex(request.params[0].get_str());
-        BlockMap::iterator it = mapBlockIndex.find(blockId);
-        if (it != mapBlockIndex.end())
-            pindex = it->second;
+        pindex = LookupBlockIndex(blockId);
     }
 
     if (request.params.size() > 1) {

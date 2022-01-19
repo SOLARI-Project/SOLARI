@@ -442,11 +442,10 @@ bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* 
 
     if (pindexPrev) {
         // Get quorum index
-        auto it = mapBlockIndex.find(qfc.quorumHash);
-        if (it == mapBlockIndex.end()) {
+        CBlockIndex* pindexQuorum = LookupBlockIndex(qfc.quorumHash);
+        if (!pindexQuorum) {
             return state.DoS(100, false, REJECT_INVALID, "bad-qc-quorum-hash-not-found");
         }
-        const CBlockIndex* pindexQuorum = it->second;
 
         // Check height
         if (pindexQuorum->nHeight % params->dkgInterval != 0) {
