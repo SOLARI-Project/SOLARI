@@ -9,6 +9,7 @@
 #include "budget/budgetmanager.h"
 #include "chain.h"
 #include "evo/deterministicmns.h"
+#include "evo/mnauth.h"
 #include "llmq/quorums_blockprocessor.h"
 #include "masternodeman.h"
 #include "masternode-payments.h"
@@ -265,8 +266,19 @@ void PushNodeVersion(CNode* pnode, CConnman* connman, int64_t nTime)
     CAddress addrYou = (addr.IsRoutable() && !IsProxy(addr) ? addr : CAddress(CService(), addr.nServices));
     CAddress addrMe = CAddress(CService(), nLocalNodeServices);
 
-    connman->PushMessage(pnode, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::VERSION, PROTOCOL_VERSION, (uint64_t)nLocalNodeServices, nTime, addrYou, addrMe,
-            nonce, strSubVersion, nNodeStartingHeight, true));
+    // Create the version message
+    auto version_msg = CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::VERSION, PROTOCOL_VERSION, (uint64_t)nLocalNodeServices, nTime, addrYou, addrMe,
+                                          nonce, strSubVersion, nNodeStartingHeight, true);
+
+    // DMN-to-DMN, set auth connection type and create challenge.
+    if (pnode->m_masternode_connection) {
+        uint256 mnauthChallenge;
+        GetRandBytes(mnauthChallenge.begin(), (int) mnauthChallenge.size());
+        WITH_LOCK(pnode->cs_mnauth, pnode->sentMNAuthChallenge = mnauthChallenge);
+        CVectorWriter{SER_NETWORK, 0 | INIT_PROTO_VERSION, version_msg.data, version_msg.data.size(), pnode->sentMNAuthChallenge};
+    }
+
+    connman->PushMessage(pnode, std::move(version_msg));
 
     if (fLogIPs)
         LogPrint(BCLog::NET, "send version message: version %d, blocks=%d, us=%s, them=%s, peer=%d\n", PROTOCOL_VERSION, nNodeStartingHeight, addrMe.ToString(), addrYou.ToString(), nodeid);
@@ -702,6 +714,10 @@ void PeerLogicValidation::UpdatedBlockTip(const CBlockIndex* pindexNew, const CB
         const uint256& hashNewTip = pindexNew->GetBlockHash();
         // Relay inventory, but don't relay old inventory during initial block download.
         connman->ForEachNode([nNewHeight, hashNewTip](CNode* pnode) {
+            // Don't sync from MN only connections.
+            if (!pnode->CanRelay()) {
+                return;
+            }
             if (nNewHeight > (pnode->nStartingHeight != -1 ? pnode->nStartingHeight - 2000 : 0)) {
                 pnode->PushInventory(CInv(MSG_BLOCK, hashNewTip));
             }
@@ -1159,6 +1175,22 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         if (!vRecv.empty()) {
             vRecv >> fRelay;
         }
+        // Check if this is a quorum connection
+        if (!vRecv.empty()) {
+            WITH_LOCK(pfrom->cs_mnauth, vRecv >> pfrom->receivedMNAuthChallenge;);
+            bool fOtherMasternode = !pfrom->receivedMNAuthChallenge.IsNull();
+            if (pfrom->fInbound) {
+                pfrom->m_masternode_connection = fOtherMasternode;
+                if (fOtherMasternode) {
+                    LogPrint(BCLog::NET, "peer=%d is an inbound masternode connection, not relaying anything to it\n", pfrom->GetId());
+                    if (!fMasterNode) { // global MN flag
+                        LogPrint(BCLog::NET, "but we're not a masternode, disconnecting\n");
+                        pfrom->fDisconnect = true;
+                        return true;
+                    }
+                }
+            }
+        }
 
         // Disconnect if we connected to ourself
         if (pfrom->fInbound && !connman->CheckIncomingNonce(nNonce)) {
@@ -1297,10 +1329,17 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
             LOCK(cs_main);
             State(pfrom->GetId())->fCurrentlyConnected = true;
         }
+
+        if (pfrom->nVersion >= MNAUTH_NODE_VER_VERSION && !pfrom->m_masternode_probe_connection) {
+            // Only relayed if this is a mn connection
+            CMNAuth::PushMNAUTH(pfrom, *connman);
+        }
+
         pfrom->fSuccessfullyConnected = true;
         LogPrintf("New outbound peer connected: version: %d, blocks=%d, peer=%d%s\n",
                   pfrom->nVersion.load(), pfrom->nStartingHeight, pfrom->GetId(),
                   (fLogIPs ? strprintf(", peeraddr=%s", pfrom->addr.ToString()) : ""));
+        return true;
     }
 
     else if (strCommand == NetMsgType::SENDADDRV2) {
@@ -1316,8 +1355,41 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
         return false;
     }
 
+    else if (strCommand == NetMsgType::QSENDRECSIGS) {
+        bool b;
+        vRecv >> b;
+        if (pfrom->m_wants_recsigs == b) return true;
+        // Only accept recsigs messages every 20 min to prevent spam.
+        int64_t nNow = GetAdjustedTime();
+        if (pfrom->m_last_wants_recsigs_recv > 0 &&
+            nNow - pfrom->m_last_wants_recsigs_recv < 20 * 60) {
+            LOCK(cs_main);
+            Misbehaving(pfrom->GetId(), 20, "sendrecssigs msg is only accepted every 20 minutes");
+            return false;
+        }
+        pfrom->m_wants_recsigs = b;
+        pfrom->m_last_wants_recsigs_recv = nNow;
+        // Check if this is a iqr connection, and update the value
+        // if we haven't updated the connection during:
+        // (1) the relay quorum set function call, and (2) the verack receive.
+        connman->UpdateQuorumRelayMemberIfNeeded(pfrom);
+        return true;
+    }
 
-    else if (strCommand == NetMsgType::ADDR || strCommand == NetMsgType::ADDRV2) {
+    if (strCommand != NetMsgType::GETSPORKS &&
+        strCommand != NetMsgType::SPORK &&
+        !pfrom->fFirstMessageReceived.exchange(true)) {
+        // First message after VERSION/VERACK (without counting the GETSPORKS/SPORK messages)
+        pfrom->fFirstMessageReceived = true;
+        pfrom->fFirstMessageIsMNAUTH = strCommand == NetMsgType::MNAUTH;
+        if (pfrom->m_masternode_probe_connection && !pfrom->fFirstMessageIsMNAUTH) {
+            LogPrint(BCLog::NET, "masternode probe connection first received message is not a MNAUTH, disconnecting peer=%d\n", pfrom->GetId());
+            pfrom->fDisconnect = true;
+            return false;
+        }
+    }
+
+    if (strCommand == NetMsgType::ADDR || strCommand == NetMsgType::ADDRV2) {
         int stream_version = vRecv.GetVersion();
         if (strCommand == NetMsgType::ADDRV2) {
             // Add ADDRV2_FORMAT to the version so that the CNetAddr and CAddress
@@ -1456,6 +1528,13 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
 
 
     else if (strCommand == NetMsgType::GETBLOCKS || strCommand == NetMsgType::GETHEADERS) {
+
+        // Don't relay blocks inv to masternode-only connections
+        if (!pfrom->CanRelay()) {
+            LogPrint(BCLog::NET, "getblocks, don't relay blocks inv to masternode connection. peer=%d\n", pfrom->GetId());
+            return true;
+        }
+
         CBlockLocator locator;
         uint256 hashStop;
         vRecv >> locator >> hashStop;
@@ -1977,6 +2056,15 @@ bool static ProcessMessage(CNode* pfrom, std::string strCommand, CDataStream& vR
                     WITH_LOCK(cs_main, Misbehaving(pfrom->GetId(), dosScore));
                     return false;
                 }
+
+                CValidationState mnauthState;
+                if (!CMNAuth::ProcessMessage(pfrom, strCommand, vRecv, *connman, mnauthState)) {
+                    int dosScore{0};
+                    if (mnauthState.IsInvalid(dosScore) && dosScore > 0) {
+                        LOCK(cs_main);
+                        Misbehaving(pfrom->GetId(), dosScore, mnauthState.GetRejectReason());
+                    }
+                }
             }
         } else {
             // Ignore unknown commands for extensibility
@@ -2221,7 +2309,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
         if (pindexBestHeader == NULL)
             pindexBestHeader = chainActive.Tip();
         bool fFetch = state.fPreferredDownload || (nPreferredDownload == 0 && !pto->fClient && !pto->fOneShot); // Download if this is a nice peer, or we have no nice peers and this one might do.
-        if (!state.fSyncStarted && !pto->fClient && !fImporting && !fReindex) {
+        if (!state.fSyncStarted && !pto->fClient && !fImporting && !fReindex && pto->CanRelay()) {
             // Only actively request headers from a single peer, unless we're close to end of initial download.
             if ((nSyncStarted == 0 && fFetch) || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - 6 * 60 * 60) { // NOTE: was "close to today" and 24h in Bitcoin
                 state.fSyncStarted = true;
@@ -2383,7 +2471,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
         // Message: getdata (blocks)
         //
         std::vector<CInv> vGetData;
-        if (!pto->fClient && fFetch && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
+        if (!pto->fClient && pto->CanRelay() && fFetch && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
             std::vector<const CBlockIndex*> vToDownload;
             NodeId staller = -1;
             FindNextBlocksToDownload(pto->GetId(), MAX_BLOCKS_IN_TRANSIT_PER_PEER - state.nBlocksInFlight, vToDownload, staller);

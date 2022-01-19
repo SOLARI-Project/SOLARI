@@ -39,6 +39,7 @@ class CAddrMan;
 class CBlockIndex;
 class CScheduler;
 class CNode;
+class TierTwoConnMan;
 
 /** Time between pings automatically sent out for latency probing and keepalive (in seconds). */
 static const int PING_INTERVAL = 2 * 60;
@@ -60,6 +61,8 @@ static const unsigned int MAX_SUBVERSION_LENGTH = 256;
 static const int MAX_OUTBOUND_CONNECTIONS = 16;
 /** Maximum number of addnode outgoing nodes */
 static const int MAX_ADDNODE_CONNECTIONS = 16;
+/** Eviction protection time for incoming connections  */
+static const int INBOUND_EVICTION_PROTECTION_TIME = 1;
 /** -listen default */
 static const bool DEFAULT_LISTEN = true;
 /** The maximum number of entries in mapAskFor */
@@ -175,10 +178,30 @@ public:
     void Interrupt();
     bool GetNetworkActive() const { return fNetworkActive; };
     void SetNetworkActive(bool active);
-    void OpenNetworkConnection(const CAddress& addrConnect, bool fCountFailure, CSemaphoreGrant* grantOutbound = nullptr, const char* strDest = nullptr, bool fOneShot = false, bool fFeeler = false, bool fAddnode = false);
+    void OpenNetworkConnection(const CAddress& addrConnect,
+                               bool fCountFailure,
+                               CSemaphoreGrant* grantOutbound = nullptr,
+                               const char* strDest = nullptr,
+                               bool fOneShot = false,
+                               bool fFeeler = false,
+                               bool fAddnode = false,
+                               bool masternode_connection = false,
+                               bool masternode_probe_connection = false);
     bool CheckIncomingNonce(uint64_t nonce);
 
+    struct CFullyConnectedOnly {
+        bool operator() (const CNode* pnode) const {
+            return NodeFullyConnected(pnode);
+        }
+    };
+    struct CAllNodes {
+        bool operator() (const CNode*) const {return true;}
+    };
+    constexpr static const CFullyConnectedOnly FullyConnectedOnly{};
+    constexpr static const CAllNodes AllNodes{};
+
     bool ForNode(NodeId id, std::function<bool(CNode* pnode)> func);
+    bool ForNode(const CService& addr, const std::function<bool(const CNode* pnode)>& cond, const std::function<bool(CNode* pnode)>& func);
 
     void PushMessage(CNode* pnode, CSerializedNetMsg&& msg);
 
@@ -302,6 +325,7 @@ public:
     std::vector<AddedNodeInfo> GetAddedNodeInfo();
 
     size_t GetNodeCount(NumConnections num);
+    size_t GetMaxOutboundNodeCount();
     void GetNodeStats(std::vector<CNodeStats>& vstats);
     bool DisconnectNode(const std::string& node);
     bool DisconnectNode(NodeId id);
@@ -322,6 +346,10 @@ public:
     unsigned int GetReceiveFloodSize() const;
 
     void SetAsmap(std::vector<bool> asmap) { addrman.m_asmap = std::move(asmap); }
+    /** Unique tier two connections manager */
+    TierTwoConnMan* GetTierTwoConnMan() { return m_tiertwo_conn_man.get(); };
+    /** Update the node to be a iqr member if needed */
+    void UpdateQuorumRelayMemberIfNeeded(CNode* pnode);
 private:
     struct ListenSocket {
         SOCKET socket;
@@ -439,6 +467,8 @@ private:
     std::thread threadOpenAddedConnections;
     std::thread threadOpenConnections;
     std::thread threadMessageHandler;
+
+    std::unique_ptr<TierTwoConnMan> m_tiertwo_conn_man;
 };
 extern std::unique_ptr<CConnman> g_connman;
 void Discover();
@@ -535,6 +565,16 @@ public:
     double dPingWait;
     std::string addrLocal;
     uint32_t m_mapped_as;
+    // In case this is a MN-only connection.
+    bool m_masternode_connection{false};
+    // If 'true' this node will be disconnected after MNAUTH
+    bool m_masternode_probe_connection{false};
+    // If 'true', we identified it as an intra-quorum relay connection
+    bool m_masternode_iqr_connection{false};
+    // In case this is a verified MN, this value is the proTx of the MN
+    uint256 verifiedProRegTxHash;
+    // In case this is a verified MN, this value is the hashed operator pubkey of the MN
+    uint256 verifiedPubKeyHash;
 };
 
 
@@ -626,6 +666,10 @@ public:
     bool fFeeler;      // If true this node is being used as a short lived feeler.
     bool fOneShot;
     bool fAddnode;
+    std::atomic<bool> m_masternode_connection{false}; // If true this node is only used for quorum related messages.
+    std::atomic<bool> m_masternode_probe_connection{false}; // If true this will be disconnected right after the verack.
+    std::atomic<bool> m_masternode_iqr_connection{false}; // If 'true', we identified it as an intra-quorum relay connection.
+    std::atomic<int64_t> m_last_wants_recsigs_recv{0}; // the last time that a recsigs msg was received, used to avoid spam.
     bool fClient;
     const bool fInbound;
     /**
@@ -648,6 +692,13 @@ public:
     const uint64_t nKeyedNetGroup;
     std::atomic_bool fPauseRecv;
     std::atomic_bool fPauseSend;
+
+    // If true, we will announce/send him plain recovered sigs (usually true for full nodes)
+    std::atomic<bool> m_wants_recsigs{false};
+    // True when the first message after the verack is received
+    std::atomic<bool> fFirstMessageReceived{false};
+    // True only if the first message received after verack is a mnauth
+    std::atomic<bool> fFirstMessageIsMNAUTH{false};
 protected:
     mapMsgCmdSize mapSendBytesPerMsgCmd;
     mapMsgCmdSize mapRecvBytesPerMsgCmd;
@@ -699,6 +750,13 @@ public:
     std::atomic<int64_t> nMinPingUsecTime;
     // Whether a ping is requested.
     std::atomic<bool> fPingQueued;
+
+    // Challenge sent in VERSION to be answered with MNAUTH (only happens between MNs)
+    mutable Mutex cs_mnauth;
+    uint256 sentMNAuthChallenge;
+    uint256 receivedMNAuthChallenge;
+    uint256 verifiedProRegTxHash; // MN provider register tx hash
+    uint256 verifiedPubKeyHash; // MN operator pubkey hash
 
     CNode(NodeId id, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn, SOCKET hSocketIn, const CAddress& addrIn, uint64_t nKeyedNetGroupIn, uint64_t nLocalHostNonceIn, const std::string& addrNameIn = "", bool fInboundIn = false);
     ~CNode();
@@ -866,6 +924,8 @@ public:
     std::string GetAddrName() const;
     //! Sets the addrName only if it was not previously set
     void MaybeSetAddrName(const std::string& addrNameIn);
+
+    bool CanRelay() const { return !m_masternode_connection || m_masternode_iqr_connection; }
 };
 
 class CExplicitNetCleanup

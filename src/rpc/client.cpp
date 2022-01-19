@@ -169,6 +169,8 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "waitfornewblock", 0, "timeout" },
     { "walletpassphrase", 1, "timeout" },
     { "walletpassphrase", 2, "staking_only" },
+    { "mnconnect", 1, "mn_list" },
+    { "mnconnect", 2, "llmq_type" },
     // Echo with conversion (For testing only)
     { "echojson", 0, "arg0" },
     { "echojson", 1, "arg1" },

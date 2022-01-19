@@ -184,13 +184,17 @@ BITCOIN_CORE_H = \
   cyclingvector.h \
   evo/deterministicmns.h \
   evo/evodb.h \
+  evo/mnauth.h \
   evo/evonotificationinterface.h \
   evo/providertx.h \
   evo/specialtx_validation.h \
+  flatdb.h \
   llmq/quorums_blockprocessor.h \
   llmq/quorums_commitment.h \
   llmq/quorums_init.h \
   llmq/quorums_utils.h \
+  tiertwo/masternode_meta_manager.h \
+  tiertwo/net_masternodes.h \
   addressbook.h \
   wallet/db.h \
   flatfile.h \
@@ -350,12 +354,15 @@ libbitcoin_server_a_SOURCES = \
   evo/deterministicmns.cpp \
   evo/evodb.cpp \
   evo/evonotificationinterface.cpp \
+  evo/mnauth.cpp \
   evo/providertx.cpp \
   evo/specialtx_validation.cpp \
   llmq/quorums_blockprocessor.cpp \
   llmq/quorums_commitment.cpp \
   llmq/quorums_init.cpp \
   llmq/quorums_utils.cpp \
+  tiertwo/masternode_meta_manager.cpp \
+  tiertwo/net_masternodes.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \

@@ -5,11 +5,13 @@
 #include "tiertwo/init.h"
 
 #include "budget/budgetdb.h"
+#include "flatdb.h"
 #include "guiinterface.h"
 #include "guiinterfaceutil.h"
 #include "masternodeman.h"
 #include "masternode-payments.h"
 #include "masternodeconfig.h"
+#include "tiertwo/masternode_meta_manager.h"
 #include "validation.h"
 
 #include <boost/thread.hpp>
@@ -27,7 +29,7 @@ static void LoadBlockHashesCache(CMasternodeMan& man)
     }
 }
 
-bool LoadTierTwo(int chain_active_height)
+bool LoadTierTwo(int chain_active_height, bool fReindexChainState)
 {
     // ################################# //
     // ## Legacy Masternodes Manager ### //
@@ -77,6 +79,24 @@ bool LoadTierTwo(int chain_active_height)
         LogPrintf("Error reading mnpayments.dat - cached data discarded\n");
     }
 
+    // ############################## //
+    // ## Net MNs Metadata Manager ## //
+    // ############################## //
+    bool fLoadCacheFiles = !(fReindex || fReindexChainState);
+    fs::path pathDB = GetDataDir();
+    uiInterface.InitMessage(_("Loading masternode cache..."));
+    CFlatDB<CMasternodeMetaMan> metadb(MN_META_CACHE_FILENAME, MN_META_CACHE_FILE_ID);
+    if (fLoadCacheFiles) {
+        if (!metadb.Load(g_mmetaman)) {
+            return UIError(strprintf(_("Failed to load masternode metadata cache from: %s"), metadb.GetDbPath().string()));
+        }
+    } else {
+        CMasternodeMetaMan mmetamanTmp;
+        if (!metadb.Dump(mmetamanTmp)) {
+            return UIError(strprintf(_("Failed to clear masternode metadata cache at: %s"), metadb.GetDbPath().string()));
+        }
+    }
+
     return true;
 }
 
@@ -92,6 +112,7 @@ void DumpTierTwo()
     DumpMasternodes();
     DumpBudgets(g_budgetman);
     DumpMasternodePayments();
+    CFlatDB<CMasternodeMetaMan>("mnmetacache.dat", "magicMasternodeMetaCache").Dump(g_mmetaman);
 }
 
 void SetBudgetFinMode(const std::string& mode)
@@ -109,6 +130,11 @@ bool InitActiveMN()
     }
 
     if (fMasterNode) {
+
+        if (gArgs.IsArgSet("-connect") && gArgs.GetArgs("-connect").size() > 0) {
+            return UIError(_("Cannot be a masternode and only connect to specific nodes"));
+        }
+
         const std::string& mnoperatorkeyStr = gArgs.GetArg("-mnoperatorprivatekey", "");
         const bool fDeterministic = !mnoperatorkeyStr.empty();
         LogPrintf("IS %s MASTERNODE\n", (fDeterministic ? "DETERMINISTIC " : ""));

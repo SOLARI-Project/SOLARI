@@ -54,6 +54,8 @@ const char* FINALBUDGETVOTE = "fbvote";
 const char* SYNCSTATUSCOUNT = "ssc";
 const char* GETMNLIST = "dseg";
 const char* QFCOMMITMENT = "qfcommit";
+const char* QSENDRECSIGS = "qsendrecsigs";
+const char* MNAUTH = "mnauth";
 }; // namespace NetMsgType
 
 /** All known message types. Keep this in the same order as the list of
@@ -103,7 +105,9 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::GETSPORKS,
     NetMsgType::SYNCSTATUSCOUNT,
     NetMsgType::MNBROADCAST2,
-    NetMsgType::QFCOMMITMENT
+    NetMsgType::QFCOMMITMENT,
+    NetMsgType::QSENDRECSIGS,
+    NetMsgType::MNAUTH
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes + ARRAYLEN(allNetMessageTypes));
 const static std::vector<std::string> tiertwoNetMessageTypesVec(std::find(allNetMessageTypesVec.begin(), allNetMessageTypesVec.end(), NetMsgType::SPORK), allNetMessageTypesVec.end());

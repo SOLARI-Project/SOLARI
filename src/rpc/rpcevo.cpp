@@ -19,6 +19,7 @@
 #include "pubkey.h" // COMPACT_SIGNATURE_SIZE
 #include "rpc/server.h"
 #include "script/sign.h"
+#include "tiertwo/masternode_meta_manager.h"
 #include "util/validation.h"
 #include "utilmoneystr.h"
 
@@ -691,6 +692,19 @@ static bool CheckWalletOwnsScript(CWallet* pwallet, const CScript& script)
 #endif
 }
 
+static UniValue ToJson(const CMasternodeMetaInfoPtr& info)
+{
+    UniValue ret(UniValue::VOBJ);
+    auto now = GetAdjustedTime();
+    auto lastAttempt = info->GetLastOutboundAttempt();
+    auto lastSuccess = info->GetLastOutboundSuccess();
+    ret.pushKV("last_outbound_attempt", lastAttempt);
+    ret.pushKV("last_outbound_attempt_elapsed", now - lastAttempt);
+    ret.pushKV("last_outbound_success", lastSuccess);
+    ret.pushKV("last_outbound_success_elapsed", now - lastSuccess);
+    return ret;
+}
+
 static void AddDMNEntryToList(UniValue& ret, CWallet* pwallet, const CDeterministicMNCPtr& dmn, bool fVerbose, bool fFromWallet)
 {
     assert(!fFromWallet || pwallet);
@@ -725,10 +739,13 @@ static void AddDMNEntryToList(UniValue& ret, CWallet* pwallet, const CDeterminis
         UniValue o = DmnToJson(dmn);
         int confs = WITH_LOCK(cs_main, return pcoinsTip->GetCoinDepthAtHeight(dmn->collateralOutpoint, chainActive.Height()); );
         o.pushKV("confirmations", confs);
-        o.pushKV("hasOwnerKey", hasOwnerKey);
-        o.pushKV("hasVotingKey", hasVotingKey);
-        o.pushKV("ownsCollateral", ownsCollateral);
-        o.pushKV("ownsPayeeScript", ownsPayeeScript);
+        o.pushKV("has_owner_key", hasOwnerKey);
+        o.pushKV("has_voting_key", hasVotingKey);
+        o.pushKV("owns_collateral", ownsCollateral);
+        o.pushKV("owns_payee_script", ownsPayeeScript);
+        // net info
+        auto metaInfo = g_mmetaman.GetMetaInfo(dmn->proTxHash);
+        if (metaInfo) o.pushKV("metaInfo", ToJson(metaInfo));
         ret.push_back(o);
     } else {
         ret.push_back(dmn->proTxHash.ToString());
