@@ -306,7 +306,7 @@ CAmount GetShieldedTxMinFee(const CTransaction& tx)
  * and instead just erase from the mempool as needed.
  */
 
-void UpdateMempoolForReorg(DisconnectedBlockTransactions &disconnectpool, bool fAddToMempool)
+static void UpdateMempoolForReorg(DisconnectedBlockTransactions &disconnectpool, bool fAddToMempool) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(mempool.cs);
@@ -363,9 +363,9 @@ static bool IsCurrentForFeeEstimation()
     return true;
 }
 
-bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const CTransactionRef& _tx, bool fLimitFree,
+static bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const CTransactionRef& _tx, bool fLimitFree,
                               bool* pfMissingInputs, int64_t nAcceptTime, bool fOverrideMempoolLimit, bool fRejectAbsurdFee, bool ignoreFees,
-                              std::vector<COutPoint>& coins_to_uncache)
+                              std::vector<COutPoint>& coins_to_uncache) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
     const CTransaction& tx = *_tx;
@@ -625,6 +625,8 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 bool AcceptToMemoryPoolWithTime(CTxMemPool& pool, CValidationState &state, const CTransactionRef& tx, bool fLimitFree,
                         bool* pfMissingInputs, int64_t nAcceptTime, bool fOverrideMempoolLimit, bool fRejectAbsurdFee, bool fIgnoreFees)
 {
+    AssertLockHeld(cs_main);
+
     std::vector<COutPoint> coins_to_uncache;
     bool res = AcceptToMemoryPoolWorker(pool, state, tx, fLimitFree, pfMissingInputs, nAcceptTime, fOverrideMempoolLimit, fRejectAbsurdFee, fIgnoreFees, coins_to_uncache);
     if (!res) {
@@ -1404,7 +1406,7 @@ static int64_t nTimeTotal = 0;
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
  *  can fail if those validity checks fail (among other reasons). */
-static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool fJustCheck = false)
+static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
     // Check it again in case a previous version let a bad block in
@@ -1995,7 +1997,7 @@ public:
  *
  * The block is added to connectTrace if connection succeeds.
  */
-bool static ConnectTip(CValidationState& state, CBlockIndex* pindexNew, const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace, DisconnectedBlockTransactions &disconnectpool)
+bool static ConnectTip(CValidationState& state, CBlockIndex* pindexNew, const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace, DisconnectedBlockTransactions &disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(mempool.cs);
@@ -2150,7 +2152,7 @@ static void PruneBlockIndexCandidates()
  * Try to make some progress towards making pindexMostWork the active block.
  * pblock is either NULL or a pointer to a CBlock corresponding to pindexMostWork.
  */
-static bool ActivateBestChainStep(CValidationState& state, CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound, ConnectTrace& connectTrace)
+static bool ActivateBestChainStep(CValidationState& state, CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound, ConnectTrace& connectTrace) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(mempool.cs);
@@ -2416,7 +2418,7 @@ bool ReconsiderBlock(CValidationState& state, CBlockIndex* pindex)
     return true;
 }
 
-CBlockIndex* AddToBlockIndex(const CBlock& block)
+static CBlockIndex* AddToBlockIndex(const CBlock& block) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
 
@@ -2662,6 +2664,8 @@ static unsigned int GetTotalShieldedTxSize(const CBlock& block)
 
 bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig)
 {
+    AssertLockHeld(cs_main);
+
     if (block.fChecked)
         return true;
 
@@ -2848,8 +2852,10 @@ bool CheckBlockTime(const CBlockHeader& block, CValidationState& state, CBlockIn
 }
 
 //! Returns last CBlockIndex* that is a checkpoint
-static const CBlockIndex* GetLastCheckpoint()
+static const CBlockIndex* GetLastCheckpoint() EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
+    AssertLockHeld(cs_main);
+
     if (!Checkpoints::fEnabled)
         return nullptr;
 
@@ -2866,6 +2872,8 @@ static const CBlockIndex* GetLastCheckpoint()
 
 bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex* const pindexPrev)
 {
+    AssertLockHeld(cs_main);
+
     const Consensus::Params& consensus = Params().GetConsensus();
     uint256 hash = block.GetHash();
 
@@ -2957,8 +2965,10 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
 }
 
 // Get the index of previous block of given CBlock
-bool GetPrevIndex(const CBlock& block, CBlockIndex** pindexPrevRet, CValidationState& state)
+static bool GetPrevIndex(const CBlock& block, CBlockIndex** pindexPrevRet, CValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
+    AssertLockHeld(cs_main);
+
     CBlockIndex*& pindexPrev = *pindexPrevRet;
     pindexPrev = nullptr;
     if (block.GetHash() != Params().GetConsensus().hashGenesisBlock) {
@@ -3208,7 +3218,7 @@ static bool IsSpentOnActiveChain(std::unordered_set<COutPoint, SaltedOutpointHas
     return outpoints.empty();
 }
 
-static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppindex, const FlatFilePos* dbp)
+static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockIndex** ppindex, const FlatFilePos* dbp) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
 
@@ -3253,8 +3263,6 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, CBlockInde
     int nHeight = pindex->nHeight;
 
     if (isPoS) {
-        LOCK(cs_main);
-
         // Blocks arrives in order, so if prev block is not the tip then we are on a fork.
         // Extra info: duplicated blocks are skipping this checks, so we don't have to worry about those here.
         bool isBlockFromFork = pindexPrev != nullptr && chainActive.Tip() != pindexPrev;
@@ -3451,7 +3459,7 @@ fs::path GetBlockPosFilename(const FlatFilePos &pos)
     return BlockFileSeq().FileName(pos);
 }
 
-CBlockIndex* InsertBlockIndex(uint256 hash)
+CBlockIndex* InsertBlockIndex(const uint256& hash)
 {
     AssertLockHeld(cs_main);
 
@@ -3472,8 +3480,10 @@ CBlockIndex* InsertBlockIndex(uint256 hash)
     return pindexNew;
 }
 
-bool static LoadBlockIndexDB(std::string& strError)
+bool static LoadBlockIndexDB(std::string& strError) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
+    AssertLockHeld(cs_main);
+
     if (!pblocktree->LoadBlockIndexGuts(InsertBlockIndex))
         return false;
 
@@ -3717,8 +3727,10 @@ bool CVerifyDB::VerifyDB(CCoinsView* coinsview, int nCheckLevel, int nCheckDepth
 }
 
 /** Apply the effects of a block on the utxo cache, ignoring that it may already have been applied. */
-static bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params)
+static bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
+    AssertLockHeld(cs_main);
+
     // TODO: merge with ConnectBlock
     CBlock block;
     if (!ReadBlockFromDisk(block, pindex)) {
@@ -3839,6 +3851,8 @@ void UnloadBlockIndex()
 
 bool LoadBlockIndex(std::string& strError)
 {
+    AssertLockHeld(cs_main);
+
     bool needs_init = fReindex;
     if (!fReindex) {
         if (!LoadBlockIndexDB(strError))
@@ -3943,18 +3957,23 @@ bool LoadExternalBlockFile(FILE* fileIn, FlatFilePos* dbp)
                 blkdat >> block;
                 nRewind = blkdat.GetPos();
 
-                // detect out of order blocks, and store them for later
                 uint256 hash = block.GetHash();
-                if (hash != Params().GetConsensus().hashGenesisBlock && !LookupBlockIndex(block.hashPrevBlock)) {
-                    LogPrint(BCLog::REINDEX, "%s: Out of order block %s, parent %s not known\n", __func__,
-                            hash.GetHex(), block.hashPrevBlock.GetHex());
-                    if (dbp)
-                        mapBlocksUnknownParent.emplace(block.hashPrevBlock, *dbp);
-                    continue;
+                CBlockIndex* pindex{nullptr};
+                {
+                    LOCK(cs_main);
+                    // detect out of order blocks, and store them for later
+                    if (hash != Params().GetConsensus().hashGenesisBlock && !LookupBlockIndex(block.hashPrevBlock)) {
+                        LogPrint(BCLog::REINDEX, "%s: Out of order block %s, parent %s not known\n", __func__,
+                                hash.ToString(), block.hashPrevBlock.ToString());
+                        if (dbp)
+                            mapBlocksUnknownParent.emplace(block.hashPrevBlock, *dbp);
+                        continue;
+                    }
+
+                    pindex = LookupBlockIndex(hash);
                 }
 
                 // process in case the block isn't known yet
-                CBlockIndex* pindex = LookupBlockIndex(hash);
                 if (!pindex || (pindex->nStatus & BLOCK_HAVE_DATA) == 0) {
                     std::shared_ptr<const CBlock> block_ptr = std::make_shared<const CBlock>(block);
                     stateCatcher.setBlockHash(block_ptr->GetHash());

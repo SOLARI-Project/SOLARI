@@ -996,8 +996,10 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
 }
 
 // Internal function for now, this will be part of a chain interface class in the future.
-Optional<int> getTipBlockHeight(const uint256& hash)
+static Optional<int> getTipBlockHeight(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
+    AssertLockHeld(cs_main);
+
     CBlockIndex* pindex = LookupBlockIndex(hash);
     if (pindex && chainActive.Contains(pindex)) {
         return Optional<int>(pindex->nHeight);
@@ -4414,6 +4416,8 @@ bool CWalletTx::IsInMainChainImmature() const
 
 bool CWalletTx::AcceptToMemoryPool(CValidationState& state)
 {
+    AssertLockHeld(cs_main);
+
     // Quick check to avoid re-setting fInMempool to false
     if (mempool.exists(tx->GetHash())) {
         return false;
