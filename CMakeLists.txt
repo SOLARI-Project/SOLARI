@@ -111,9 +111,35 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/config/pivx-config.h")
 else()
     execute_process(COMMAND cat config.log WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     message(FATAL_ERROR "configure script didn't finish properly see config.log output above")
-
 endif()
 add_definitions(-DHAVE_CONFIG_H)
+
+# Option to enable debug flags. append `-DDEBUG=ON` to your cmake command
+# Ex: `cmake -DDEBUG=ON ..`
+option(DEBUG "Use debug compiler flags and macros" OFF)
+if(DEBUG)
+    add_definitions(-DDEBUG -DDEBUG_LOCKORDER)
+endif()
+
+# Check for thread_local support in the compiler.
+# This is required for DEBUG_LOCKCONTENTION
+include(CheckCXXSourceCompiles)
+CHECK_CXX_SOURCE_COMPILES("
+#if defined(_MSC_VER) && !defined(__thread)
+#define __thread __declspec(thread)
+#endif
+int main() {
+  static __thread int tls;
+  (void)tls;
+}
+" HAVE_THREAD_LOCAL)
+if(HAVE_THREAD_LOCAL)
+    add_definitions(-DHAVE_THREAD_LOCAL)
+    if(DEBUG)
+        add_definitions(-DDEBUG_LOCKCONTENTION)
+    endif()
+endif()
+unset(DEBUG CACHE)
 
 ExternalProject_Add (
         libunivalue
