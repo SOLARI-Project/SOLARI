@@ -325,7 +325,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(std::function<CBlockIndex*(const uint256&)
 
                 if (!Params().GetConsensus().NetworkUpgradeActive(pindexNew->nHeight, Consensus::UPGRADE_POS)) {
                     if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits))
-                        return error("LoadBlockIndex() : CheckProofOfWork failed: %s", pindexNew->ToString());
+                        return error("%s : CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
                 }
 
                 pcursor->Next();

@@ -73,8 +73,10 @@ void EnsureWalletIsUnlocked(CWallet* const pwallet, bool fAllowAnonOnly)
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
 }
 
-void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
+static void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
+    AssertLockHeld(cs_main);
+
     int confirms = wtx.GetDepthInMainChain();
     entry.pushKV("confirmations", confirms);
     entry.pushKV("bcconfirmations", confirms);      // DEPRECATED in 4.3.99
@@ -2958,8 +2960,10 @@ static void MaybePushAddress(UniValue & entry, const CTxDestination &dest)
         entry.pushKV("address", EncodeDestination(dest));
 }
 
-static void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue& ret, const isminefilter& filter)
+static void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, int nMinDepth, bool fLong, UniValue& ret, const isminefilter& filter) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
+    AssertLockHeld(cs_main);
+
     CAmount nFee;
     std::list<COutputEntry> listReceived;
     std::list<COutputEntry> listSent;

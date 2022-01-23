@@ -17,7 +17,6 @@
 #include "primitives/transaction.h"
 #include "primitives/block.h"
 #include "script/standard.h"
-#include "validation.h" // needed by CheckLLMQCommitment (!TODO: remove)
 
 /* -- Helper static functions -- */
 
@@ -473,7 +472,7 @@ bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* 
     return true;
 }
 
-static bool CheckLLMQCommitmentTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state)
+static bool CheckLLMQCommitmentTx(const CTransaction& tx, const CBlockIndex* pindexPrev, CValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
 
@@ -541,6 +540,8 @@ static bool CheckSpecialTxBasic(const CTransaction& tx, CValidationState& state)
 // - pindexPrev=pindex->pprev: ConnectBlock-->ProcessSpecialTxsInBlock-->CheckSpecialTx
 bool CheckSpecialTx(const CTransaction& tx, const CBlockIndex* pindexPrev, const CCoinsViewCache* view, CValidationState& state)
 {
+    AssertLockHeld(cs_main);
+
     if (!CheckSpecialTxBasic(tx, state)) {
         // pass the state returned by the function above
         return false;
@@ -592,6 +593,8 @@ bool CheckSpecialTxNoContext(const CTransaction& tx, CValidationState& state)
 
 bool ProcessSpecialTxsInBlock(const CBlock& block, const CBlockIndex* pindex, const CCoinsViewCache* view, CValidationState& state, bool fJustCheck)
 {
+    AssertLockHeld(cs_main);
+
     // check special txes
     for (const CTransactionRef& tx: block.vtx) {
         if (!CheckSpecialTx(*tx, pindex->pprev, view, state)) {

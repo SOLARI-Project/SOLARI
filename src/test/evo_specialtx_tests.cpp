@@ -130,6 +130,8 @@ static bool EqualCommitments(const llmq::CFinalCommitment& a, const llmq::CFinal
 
 BOOST_AUTO_TEST_CASE(protx_validation_test)
 {
+    LOCK(cs_main);
+
     CMutableTransaction mtx;
     CValidationState state;
 

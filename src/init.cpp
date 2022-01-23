@@ -1489,6 +1489,8 @@ bool AppInitMain()
         bool fReset = fReindex;
         std::string strLoadError;
 
+        LOCK(cs_main);
+
         do {
             const int64_t load_block_index_start_time = GetTimeMillis();
 
@@ -1593,7 +1595,6 @@ bool AppInitMain()
 
                 if (Params().NetworkIDString() == CBaseChainParams::MAIN) {
                     // Prune zerocoin invalid outs if they were improperly stored in the coins database
-                    LOCK(cs_main);
                     int chainHeight = chainActive.Height();
                     bool fZerocoinActive = chainHeight > 0 && consensus.NetworkUpgradeActive(chainHeight, Consensus::UPGRADE_ZC);
 
@@ -1617,16 +1618,13 @@ bool AppInitMain()
 
                 if (!is_coinsview_empty) {
                     uiInterface.InitMessage(_("Verifying blocks..."));
-                    {
-                        LOCK(cs_main);
-                        CBlockIndex *tip = chainActive.Tip();
-                        RPCNotifyBlockChange(true, tip);
-                        if (tip && tip->nTime > GetAdjustedTime() + 2 * 60 * 60) {
-                            strLoadError = _("The block database contains a block which appears to be from the future. "
-                                             "This may be due to your computer's date and time being set incorrectly. "
-                                             "Only rebuild the block database if you are sure that your computer's date and time are correct");
-                            break;
-                        }
+                    CBlockIndex *tip = chainActive.Tip();
+                    RPCNotifyBlockChange(true, tip);
+                    if (tip && tip->nTime > GetAdjustedTime() + 2 * 60 * 60) {
+                        strLoadError = _("The block database contains a block which appears to be from the future. "
+                                         "This may be due to your computer's date and time being set incorrectly. "
+                                         "Only rebuild the block database if you are sure that your computer's date and time are correct");
+                        break;
                     }
 
                     if (!CVerifyDB().VerifyDB(pcoinsdbview.get(), gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),

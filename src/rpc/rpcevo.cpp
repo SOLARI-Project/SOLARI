@@ -370,7 +370,7 @@ static std::string SignAndSendSpecialTx(CWallet* const pwallet, CMutableTransact
 
     CValidationState state;
     CCoinsViewCache view(pcoinsTip.get());
-    if (!CheckSpecialTx(tx, GetChainTip(), &view, state)) {
+    if (!WITH_LOCK(cs_main, return CheckSpecialTx(tx, GetChainTip(), &view, state); )) {
         throw JSONRPCError(RPC_MISC_ERROR, FormatStateMessage(state));
     }
 

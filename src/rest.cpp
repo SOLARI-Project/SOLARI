@@ -223,7 +223,7 @@ static bool rest_block(HTTPRequest* req,
     }
 
     case RF_JSON: {
-        UniValue objBlock = blockToJSON(block, pblockindex, showTxDetails);
+        UniValue objBlock = WITH_LOCK(cs_main, return blockToJSON(block, pblockindex, showTxDetails); );
         std::string strJSON = objBlock.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
@@ -353,7 +353,7 @@ static bool rest_tx(HTTPRequest* req, const std::string& strURIPart)
 
     case RF_JSON: {
         UniValue objTx(UniValue::VOBJ);
-        TxToJSON(nullptr, *tx, hashBlock, objTx);
+        WITH_LOCK(cs_main, TxToJSON(nullptr, *tx, hashBlock, objTx); );
         std::string strJSON = objTx.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);

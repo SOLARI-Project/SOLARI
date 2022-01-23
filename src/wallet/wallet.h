@@ -564,7 +564,7 @@ public:
     bool IsCoinStake() const { return tx->IsCoinStake(); }
 
     /** Pass this transaction to the mempool. Fails if absolute fee exceeds absurd fee. */
-    bool AcceptToMemoryPool(CValidationState& state);
+    bool AcceptToMemoryPool(CValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 };
 
 
@@ -1004,7 +1004,7 @@ public:
     bool EncryptWallet(const SecureString& strWalletPassphrase);
 
     std::vector<CKeyID> GetAffectedKeys(const CScript& spk);
-    void GetKeyBirthTimes(std::map<CKeyID, int64_t>& mapKeyBirth) const;
+    void GetKeyBirthTimes(std::map<CKeyID, int64_t>& mapKeyBirth) const EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     /**
      * Increment the next transaction order id

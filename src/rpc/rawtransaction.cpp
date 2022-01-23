@@ -69,8 +69,10 @@ static void PayloadToJSON(const CTransaction& tx, UniValue& entry)
 }
 
 // pwallet can be nullptr. If not null, the json could include information available only to the wallet.
-void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
+void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const uint256 hashBlock, UniValue& entry) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
+    AssertLockHeld(cs_main);
+
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
     // Blockchain contextual information (confirmations and blocktime) is not
