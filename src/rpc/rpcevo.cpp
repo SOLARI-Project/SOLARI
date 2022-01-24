@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "activemasternode.h"
+#include "bls/key_io.h"
 #include "bls/bls_wrapper.h"
 #include "core_io.h"
 #include "destination_io.h"
@@ -212,28 +213,28 @@ static CKeyID ParsePubKeyIDFromAddress(const std::string& strAddress)
     return *keyID;
 }
 
-static CBLSPublicKey ParseBLSPubKey(const std::string& hexKey)
+static CBLSPublicKey ParseBLSPubKey(const CChainParams& params, const std::string& strKey)
 {
-    CBLSPublicKey pubKey;
-    if (!pubKey.SetHexStr(hexKey)) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid BLS public key: %s", hexKey));
+    auto opKey = bls::DecodePublic(params, strKey);
+    if (!opKey) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid BLS public key: %s", strKey));
     }
-    return pubKey;
+    return *opKey;
 }
 
-static CBLSSecretKey ParseBLSSecretKey(const std::string& hexKey)
+static CBLSSecretKey ParseBLSSecretKey(const CChainParams& params, const std::string& strKey)
 {
-    CBLSSecretKey secKey;
-    if (!secKey.SetHexStr(hexKey)) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid BLS secret key: %s", hexKey));
+    auto opKey = bls::DecodeSecret(params, strKey);
+    if (!opKey) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid BLS secret key: %s", strKey));
     }
-    return secKey;
+    return *opKey;
 }
 
-static CBLSSecretKey GetBLSSecretKey(const std::string& hexKey)
+static CBLSSecretKey GetBLSSecretKey(const CChainParams& params, const std::string& hexKey)
 {
     if (!hexKey.empty()) {
-        return ParseBLSSecretKey(hexKey);
+        return ParseBLSSecretKey(params, hexKey);
     }
     // If empty, get the active masternode key
     CBLSSecretKey sk; CTxIn vin;
@@ -390,12 +391,13 @@ static ProRegPL ParseProRegPLParams(const UniValue& params, unsigned int paramId
 {
     assert(params.size() > paramIdx + 4);
     assert(params.size() < paramIdx + 8);
+    const auto& chainparams = Params();
     ProRegPL pl;
 
     // ip and port
     const std::string& strIpPort = params[paramIdx].get_str();
     if (!strIpPort.empty()) {
-        if (!Lookup(strIpPort, pl.addr, Params().GetDefaultPort(), false)) {
+        if (!Lookup(strIpPort, pl.addr, chainparams.GetDefaultPort(), false)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid network address %s", strIpPort));
         }
     }
@@ -405,7 +407,7 @@ static ProRegPL ParseProRegPLParams(const UniValue& params, unsigned int paramId
     const std::string& strPubKeyOperator = params[paramIdx + 2].get_str();
     const std::string& strAddVoting = params[paramIdx + 3].get_str();
     pl.keyIDOwner = ParsePubKeyIDFromAddress(strAddOwner);
-    pl.pubKeyOperator = ParseBLSPubKey(strPubKeyOperator);
+    pl.pubKeyOperator = ParseBLSPubKey(chainparams, strPubKeyOperator);
     pl.keyIDVoting = pl.keyIDOwner;
     if (!strAddVoting.empty()) {
         pl.keyIDVoting = ParsePubKeyIDFromAddress(strAddVoting);
@@ -857,9 +859,10 @@ UniValue protx_update_service(const JSONRPCRequest& request)
     if (!dmn) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("masternode with hash %s not found", pl.proTxHash.ToString()));
     }
+    const auto& chainparams = Params();
     const std::string& addrStr = request.params[1].get_str();
     if (!addrStr.empty()) {
-        if (!Lookup(addrStr.c_str(), pl.addr, Params().GetDefaultPort(), false)) {
+        if (!Lookup(addrStr.c_str(), pl.addr, chainparams.GetDefaultPort(), false)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("invalid network address %s", addrStr));
         }
     } else {
@@ -878,7 +881,7 @@ UniValue protx_update_service(const JSONRPCRequest& request)
     }
 
     const std::string& strOpKey = request.params.size() > 3 ? request.params[3].get_str() : "";
-    const CBLSSecretKey& operatorKey = GetBLSSecretKey(strOpKey);
+    const CBLSSecretKey& operatorKey = GetBLSSecretKey(chainparams, strOpKey);
 
     CMutableTransaction tx;
     tx.nVersion = CTransaction::TxVersion::SAPLING;
@@ -926,6 +929,7 @@ UniValue protx_update_registrar(const JSONRPCRequest& request)
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
+    const auto& chainparams = Params();
 
     ProUpRegPL pl;
     pl.nVersion = ProUpServPL::CURRENT_VERSION;
@@ -937,7 +941,7 @@ UniValue protx_update_registrar(const JSONRPCRequest& request)
     }
     const std::string& strPubKeyOperator = request.params[1].get_str();
     pl.pubKeyOperator = strPubKeyOperator.empty() ? dmn->pdmnState->pubKeyOperator.Get()
-                                                  : ParseBLSPubKey(strPubKeyOperator);
+                                                  : ParseBLSPubKey(chainparams, strPubKeyOperator);
 
     const std::string& strVotingAddress = request.params[2].get_str();
     pl.keyIDVoting = strVotingAddress.empty() ? dmn->pdmnState->keyIDVoting
@@ -995,6 +999,7 @@ UniValue protx_revoke(const JSONRPCRequest& request)
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
+    const auto& chainparams = Params();
 
     ProUpRevPL pl;
     pl.nVersion = ProUpServPL::CURRENT_VERSION;
@@ -1006,7 +1011,7 @@ UniValue protx_revoke(const JSONRPCRequest& request)
     }
 
     const std::string& strOpKey = request.params.size() > 1 ? request.params[1].get_str() : "";
-    const CBLSSecretKey& operatorKey = GetBLSSecretKey(strOpKey);
+    const CBLSSecretKey& operatorKey = GetBLSSecretKey(chainparams, strOpKey);
 
     pl.nReason = ProUpRevPL::RevocationReason::REASON_NOT_SPECIFIED;
     if (request.params.size() > 2) {
@@ -1046,11 +1051,12 @@ UniValue generateblskeypair(const JSONRPCRequest& request)
         );
     }
 
+    const auto& params = Params();
     CBLSSecretKey sk;
     sk.MakeNewKey();
     UniValue ret(UniValue::VOBJ);
-    ret.pushKV("secret", sk.ToString());
-    ret.pushKV("public", sk.GetPublicKey().ToString());
+    ret.pushKV("secret", bls::EncodeSecret(params, sk));
+    ret.pushKV("public", bls::EncodePublic(params, sk.GetPublicKey()));
     return ret;
 }
 
