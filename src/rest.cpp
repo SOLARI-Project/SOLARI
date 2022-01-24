@@ -56,7 +56,7 @@ struct CCoin {
     }
 };
 
-extern void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
+extern void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const CBlockIndex* tip, const CBlockIndex* blockindex, UniValue& entry);
 extern UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, bool txDetails = false);
 extern UniValue mempoolInfoToJSON();
 extern UniValue mempoolToJSON(bool fVerbose = false);
@@ -127,7 +127,7 @@ static bool rest_headers(HTTPRequest* req,
     if (!ParseHashStr(hashStr, hash))
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid hash: " + hashStr);
 
-    const CBlockIndex* tip = nullptr;
+    const CBlockIndex* tip;
     std::vector<const CBlockIndex *> headers;
     headers.reserve(count);
     {
@@ -192,8 +192,8 @@ static bool rest_block(HTTPRequest* req,
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid hash: " + hashStr);
 
     CBlock block;
-    CBlockIndex* pblockindex = nullptr;
-    CBlockIndex* tip = nullptr;
+    const CBlockIndex* pblockindex;
+    const CBlockIndex* tip;
     {
         LOCK(cs_main);
         tip = chainActive.Tip();
@@ -357,8 +357,15 @@ static bool rest_tx(HTTPRequest* req, const std::string& strURIPart)
     }
 
     case RF_JSON: {
+        const CBlockIndex* pblockindex;
+        const CBlockIndex* tip;
+        {
+            LOCK(cs_main);
+            tip = chainActive.Tip();
+            pblockindex = LookupBlockIndex(hashBlock);
+        }
         UniValue objTx(UniValue::VOBJ);
-        WITH_LOCK(cs_main, TxToJSON(nullptr, *tx, hashBlock, objTx); );
+        TxToJSON(nullptr, *tx, tip, pblockindex, objTx);
         std::string strJSON = objTx.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);

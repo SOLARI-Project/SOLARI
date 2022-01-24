@@ -68,11 +68,17 @@ static void PayloadToJSON(const CTransaction& tx, UniValue& entry)
     }
 }
 
-// pwallet can be nullptr. If not null, the json could include information available only to the wallet.
-void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const uint256 hashBlock, UniValue& entry) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
-{
-    AssertLockHeld(cs_main);
+extern int ComputeNextBlockAndDepth(const CBlockIndex* tip, const CBlockIndex* blockindex, const CBlockIndex*& next);
 
+static int ComputeConfirmations(const CBlockIndex* tip, const CBlockIndex* blockindex)
+{
+    const CBlockIndex* next{nullptr};
+    return ComputeNextBlockAndDepth(tip, blockindex, next);
+}
+
+// pwallet can be nullptr. If not null, the json could include information available only to the wallet.
+void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const CBlockIndex* tip, const CBlockIndex* blockindex, UniValue& entry)
+{
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
     // Blockchain contextual information (confirmations and blocktime) is not
@@ -99,17 +105,15 @@ void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const uint256 hash
         PayloadToJSON(tx, entry);
     }
 
-    if (!hashBlock.IsNull()) {
-        entry.pushKV("blockhash", hashBlock.GetHex());
-        CBlockIndex* pindex = LookupBlockIndex(hashBlock);
-        if (pindex) {
-            if (chainActive.Contains(pindex)) {
-                entry.pushKV("confirmations", 1 + chainActive.Height() - pindex->nHeight);
-                entry.pushKV("time", pindex->GetBlockTime());
-                entry.pushKV("blocktime", pindex->GetBlockTime());
-            }
-            else
-                entry.pushKV("confirmations", 0);
+    if (blockindex && tip) {
+        entry.pushKV("blockhash", blockindex->GetBlockHash().ToString());
+        int confirmations = ComputeConfirmations(tip, blockindex);
+        if (confirmations != -1) {
+            entry.pushKV("confirmations", confirmations);
+            entry.pushKV("time", blockindex->GetBlockTime());
+            entry.pushKV("blocktime", blockindex->GetBlockTime());
+        } else {
+            entry.pushKV("confirmations", 0);
         }
     }
 }
@@ -267,8 +271,9 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
     if (blockindex) result.pushKV("in_active_chain", in_active_chain);
+    else blockindex = LookupBlockIndex(hash_block);
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
-    TxToJSON(pwallet, *tx, hash_block, result);
+    TxToJSON(pwallet, *tx, chainActive.Tip(), blockindex, result);
     return result;
 }
 
@@ -437,7 +442,7 @@ UniValue decoderawtransaction(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
-    TxToJSON(pwallet, CTransaction(std::move(mtx)), UINT256_ZERO, result);
+    TxToJSON(pwallet, CTransaction(std::move(mtx)), nullptr, nullptr, result);
 
     return result;
 }
