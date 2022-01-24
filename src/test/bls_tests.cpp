@@ -4,6 +4,7 @@
 
 #include "test/test_pivx.h"
 #include "bls/bls_ies.h"
+#include "bls/key_io.h"
 #include "bls/bls_worker.h"
 #include "bls/bls_wrapper.h"
 #include "random.h"
@@ -248,6 +249,60 @@ BOOST_AUTO_TEST_CASE(bls_ies_tests)
     GetRandBytes(iesEnc.iv, sizeof(iesEnc.iv));
     iesEnc.Decrypt(bobSk, decrypted_message2, PROTOCOL_VERSION);
     BOOST_CHECK(decrypted_message2 != message);
+}
+
+BOOST_AUTO_TEST_CASE(bls_sk_io_tests)
+{
+    const auto& params = Params();
+
+    CBLSSecretKey sk;
+    sk.SetHexStr("2eb071f4c520b3102e8cb9f520783da252d33993dba0313b501d69d113af9d39");
+    BOOST_ASSERT(sk.IsValid());
+
+    // Basic encoding-decoding roundtrip
+    std::string encodedSk = bls::EncodeSecret(params, sk);
+    auto opSk2 = bls::DecodeSecret(params, encodedSk);
+    BOOST_CHECK(opSk2 != nullopt);
+    CBLSSecretKey sk2 = *opSk2;
+    BOOST_CHECK(sk == sk2);
+
+    // Invalid sk, one extra char
+    encodedSk.push_back('f');
+    auto opSk3 = bls::DecodeSecret(params, encodedSk);
+    BOOST_CHECK(opSk3 == nullopt);
+
+    // Invalid sk, one less char
+    encodedSk.pop_back();
+    encodedSk.pop_back();
+    auto opSk4 = bls::DecodeSecret(params, encodedSk);
+    BOOST_CHECK(opSk4 == nullopt);
+}
+
+BOOST_AUTO_TEST_CASE(bls_pk_io_tests)
+{
+    const auto& params = Params();
+
+    CBLSPublicKey pk;
+    pk.SetHexStr("901138a12a352c7e30408c071b1ec097f32ab735a12c8dbb43c637612a3f805668a6bb73894982366d287cf0b02aaf5b");
+    BOOST_ASSERT(pk.IsValid());
+
+    // Basic encoding-decoding roundtrip
+    std::string encodedPk = bls::EncodePublic(params, pk);
+    auto opPk2 = bls::DecodePublic(params, encodedPk);
+    BOOST_CHECK(opPk2 != nullopt);
+    CBLSPublicKey pk2 = *opPk2;
+    BOOST_CHECK(pk == pk2);
+
+    // Invalid pk, one extra char
+    encodedPk.push_back('f');
+    auto oppk3 = bls::DecodePublic(params, encodedPk);
+    BOOST_CHECK(oppk3 == nullopt);
+
+    // Invalid pk, one less char
+    encodedPk.pop_back();
+    encodedPk.pop_back();
+    auto oppk4 = bls::DecodePublic(params, encodedPk);
+    BOOST_CHECK(oppk4 == nullopt);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
