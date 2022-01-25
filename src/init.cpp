@@ -21,13 +21,11 @@
 #include "checkpoints.h"
 #include "compat/sanity.h"
 #include "consensus/upgrades.h"
-#include "evo/deterministicmns.h"
 #include "evo/evonotificationinterface.h"
 #include "fs.h"
 #include "httpserver.h"
 #include "httprpc.h"
 #include "invalid.h"
-#include "llmq/quorums_init.h"
 #include "key.h"
 #include "mapport.h"
 #include "masternodeconfig.h"
@@ -44,7 +42,6 @@
 #include "shutdown.h"
 #include "spork.h"
 #include "sporkdb.h"
-#include "evo/evodb.h"
 #include "tiertwo/init.h"
 #include "txdb.h"
 #include "torcontrol.h"
@@ -91,7 +88,6 @@ static const bool DEFAULT_PROXYRANDOMIZE = true;
 static const bool DEFAULT_REST_ENABLE = false;
 static const bool DEFAULT_DISABLE_SAFEMODE = false;
 static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
-static const bool DEFAULT_MNCONFLOCK = true;
 
 std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<PeerLogicValidation> peerLogic;
@@ -222,7 +218,7 @@ void Shutdown()
     StopREST();
     StopRPC();
     StopHTTPServer();
-    llmq::StopLLMQSystem();
+    StopTierTwoThreads();
 #ifdef ENABLE_WALLET
     for (CWalletRef pwallet : vpwallets) {
         pwallet->Flush(false);
@@ -294,9 +290,7 @@ void Shutdown()
         zerocoinDB.reset();
         accumulatorCache.reset();
         pSporkDB.reset();
-        llmq::DestroyLLMQSystem();
-        deterministicMNManager.reset();
-        evoDb.reset();
+        DeleteTierTwo();
     }
 #ifdef ENABLE_WALLET
     for (CWalletRef pwallet : vpwallets) {
@@ -541,19 +535,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-shrinkdebugfile", "Shrink debug.log file on client startup (default: 1 when no -debug)");
     AppendParamsHelpMessages(strUsage, showDebug);
 
-    strUsage += HelpMessageGroup("Masternode options:");
-    strUsage += HelpMessageOpt("-masternode=<n>", strprintf("Enable the client to act as a masternode (0-1, default: %u)", DEFAULT_MASTERNODE));
-    strUsage += HelpMessageOpt("-mnconf=<file>", strprintf("Specify masternode configuration file (default: %s)", PIVX_MASTERNODE_CONF_FILENAME));
-    strUsage += HelpMessageOpt("-mnconflock=<n>", strprintf("Lock masternodes from masternode configuration file (default: %u)", DEFAULT_MNCONFLOCK));
-    strUsage += HelpMessageOpt("-masternodeprivkey=<n>", "Set the masternode private key");
-    strUsage += HelpMessageOpt("-masternodeaddr=<n>", strprintf("Set external address:port to get to this masternode (example: %s)", "128.127.106.235:51472"));
-    strUsage += HelpMessageOpt("-budgetvotemode=<mode>", "Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)");
-    strUsage += HelpMessageOpt("-mnoperatorprivatekey=<WIF>", "Set the masternode operator private key. Only valid with -masternode=1. When set, the masternode acts as a deterministic masternode.");
-    if (showDebug) {
-        strUsage += HelpMessageOpt("-pushversion",
-                                   strprintf("Modifies the mnauth serialization if the version is lower than %d."
-                                             "testnet/regtest only; ", MNAUTH_NODE_VER_VERSION));
-    }
+    strUsage += GetTierTwoHelpString(showDebug);
 
     strUsage += HelpMessageGroup("Node relay options:");
     if (showDebug) {
@@ -1475,7 +1457,6 @@ bool AppInitMain()
     nCoinDBCache = std::min(nCoinDBCache, nMaxCoinsDBCache << 20); // cap total coins db cache
     nTotalCache -= nCoinDBCache;
     nCoinCacheUsage = nTotalCache; // the rest goes to in-memory cache
-    int64_t nEvoDbCache = 1024 * 1024 * 16; // TODO
     LogPrintf("Cache configuration:\n");
     LogPrintf("* Using %.1fMiB for block index database\n", nBlockTreeDBCache * (1.0 / 1024 / 1024));
     LogPrintf("* Using %.1fMiB for chain state database\n", nCoinDBCache * (1.0 / 1024 / 1024));
@@ -1506,10 +1487,7 @@ bool AppInitMain()
                 pSporkDB.reset(new CSporkDB(0, false, false));
                 accumulatorCache.reset(new AccumulatorCache(zerocoinDB.get()));
 
-                deterministicMNManager.reset();
-                evoDb.reset();
-                evoDb.reset(new CEvoDB(nEvoDbCache, false, fReindex));
-                deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
+                InitTierTwoPreChainLoad(fReindex);
 
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
@@ -1580,8 +1558,7 @@ bool AppInitMain()
                 // The on-disk coinsdb is now in a good state, create the cache
                 pcoinsTip.reset(new CCoinsViewCache(pcoinscatcher.get()));
 
-                // Initialize LLMQ system
-                llmq::InitLLMQSystem(*evoDb);
+                InitTierTwoPostCoinsCacheLoad();
 
                 bool is_coinsview_empty = fReset || fReindexChainState || pcoinsTip->GetBestBlock().IsNull();
                 if (!is_coinsview_empty) {
@@ -1766,31 +1743,6 @@ bool AppInitMain()
     // set the mode of budget voting for this node
     SetBudgetFinMode(gArgs.GetArg("-budgetvotemode", "auto"));
 
-#ifdef ENABLE_WALLET
-    // !TODO: remove after complete transition to DMN
-    // use only the first wallet here. This section can be removed after transition to DMN
-    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK) && !vpwallets.empty() && vpwallets[0]) {
-        LOCK(vpwallets[0]->cs_wallet);
-        LogPrintf("Locking Masternodes collateral utxo:\n");
-        uint256 mnTxHash;
-        for (const auto& mne : masternodeConfig.getEntries()) {
-            mnTxHash.SetHex(mne.getTxHash());
-            COutPoint outpoint = COutPoint(mnTxHash, (unsigned int) std::stoul(mne.getOutputIndex()));
-            vpwallets[0]->LockCoin(outpoint);
-            LogPrintf("Locked collateral, MN: %s, tx hash: %s, output index: %s\n",
-                      mne.getAlias(), mne.getTxHash(), mne.getOutputIndex());
-        }
-    }
-
-    // automatic lock for DMN
-    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK)) {
-        const auto& mnList = deterministicMNManager->GetListAtChainTip();
-        for (CWallet* pwallet : vpwallets) {
-            pwallet->ScanMasternodeCollateralsAndLock(mnList);
-        }
-    }
-#endif
-
     // Start tier two threads and jobs
     StartTierTwoThreadsAndScheduleJobs(threadGroup, scheduler);
 
@@ -1798,9 +1750,6 @@ bool AppInitMain()
         LogPrintf("Shutdown requested. Exiting.\n");
         return false;
     }
-
-    // start LLMQ system
-    llmq::StartLLMQSystem();
 
     // ********************************************************* Step 11: start node
 

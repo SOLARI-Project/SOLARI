@@ -5,16 +5,52 @@
 #include "tiertwo/init.h"
 
 #include "budget/budgetdb.h"
+#include "evo/evodb.h"
 #include "flatdb.h"
 #include "guiinterface.h"
 #include "guiinterfaceutil.h"
 #include "masternodeman.h"
 #include "masternode-payments.h"
 #include "masternodeconfig.h"
+#include "llmq/quorums_init.h"
 #include "tiertwo/masternode_meta_manager.h"
 #include "validation.h"
+#include "wallet/wallet.h"
 
 #include <boost/thread.hpp>
+
+std::string GetTierTwoHelpString(bool showDebug)
+{
+    std::string strUsage = HelpMessageGroup("Masternode options:");
+    strUsage += HelpMessageOpt("-masternode=<n>", strprintf("Enable the client to act as a masternode (0-1, default: %u)", DEFAULT_MASTERNODE));
+    strUsage += HelpMessageOpt("-mnconf=<file>", strprintf("Specify masternode configuration file (default: %s)", PIVX_MASTERNODE_CONF_FILENAME));
+    strUsage += HelpMessageOpt("-mnconflock=<n>", strprintf("Lock masternodes from masternode configuration file (default: %u)", DEFAULT_MNCONFLOCK));
+    strUsage += HelpMessageOpt("-masternodeprivkey=<n>", "Set the masternode private key");
+    strUsage += HelpMessageOpt("-masternodeaddr=<n>", strprintf("Set external address:port to get to this masternode (example: %s)", "128.127.106.235:51472"));
+    strUsage += HelpMessageOpt("-budgetvotemode=<mode>", "Change automatic finalized budget voting behavior. mode=auto: Vote for only exact finalized budget match to my generated budget. (string, default: auto)");
+    strUsage += HelpMessageOpt("-mnoperatorprivatekey=<WIF>", "Set the masternode operator private key. Only valid with -masternode=1. When set, the masternode acts as a deterministic masternode.");
+    if (showDebug) {
+        strUsage += HelpMessageOpt("-pushversion", strprintf("Modifies the mnauth serialization if the version is lower than %d."
+                                                             "testnet/regtest only; ", MNAUTH_NODE_VER_VERSION));
+        strUsage += HelpMessageOpt("-disabledkg", "Disable the DKG sessions process threads for the entire lifecycle. testnet/regtest only.");
+    }
+    return strUsage;
+}
+
+void InitTierTwoPreChainLoad(bool fReindex)
+{
+    int64_t nEvoDbCache = 1024 * 1024 * 16; // TODO
+    deterministicMNManager.reset();
+    evoDb.reset();
+    evoDb.reset(new CEvoDB(nEvoDbCache, false, fReindex));
+    deterministicMNManager.reset(new CDeterministicMNManager(*evoDb));
+}
+
+void InitTierTwoPostCoinsCacheLoad()
+{
+    // Initialize LLMQ system
+    llmq::InitLLMQSystem(*evoDb);
+}
 
 // Sets the last CACHED_BLOCK_HASHES hashes into masternode manager cache
 static void LoadBlockHashesCache(CMasternodeMan& man)
@@ -169,6 +205,34 @@ bool InitActiveMN()
             if (!res) { return UIError(res.getError()); }
         }
     }
+
+#ifdef ENABLE_WALLET
+    // !TODO: remove after complete transition to DMN
+    // use only the first wallet here. This section can be removed after transition to DMN
+    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK) && !vpwallets.empty() && vpwallets[0]) {
+        LOCK(vpwallets[0]->cs_wallet);
+        LogPrintf("Locking Masternodes collateral utxo:\n");
+        uint256 mnTxHash;
+        for (const auto& mne : masternodeConfig.getEntries()) {
+            mnTxHash.SetHex(mne.getTxHash());
+            COutPoint outpoint = COutPoint(mnTxHash, (unsigned int) std::stoul(mne.getOutputIndex()));
+            vpwallets[0]->LockCoin(outpoint);
+            LogPrintf("Locked collateral, MN: %s, tx hash: %s, output index: %s\n",
+                      mne.getAlias(), mne.getTxHash(), mne.getOutputIndex());
+        }
+    }
+
+    // automatic lock for DMN
+    if (gArgs.GetBoolArg("-mnconflock", DEFAULT_MNCONFLOCK)) {
+        LogPrintf("Locking masternode collaterals...\n");
+        const auto& mnList = deterministicMNManager->GetListAtChainTip();
+        mnList.ForEachMN(false, [&](const CDeterministicMNCPtr& dmn) {
+            for (CWallet* pwallet : vpwallets) {
+                pwallet->LockOutpointIfMineWithMutex(nullptr, dmn->collateralOutpoint);
+            }
+        });
+    }
+#endif
     // All good
     return true;
 }
@@ -176,4 +240,27 @@ bool InitActiveMN()
 void StartTierTwoThreadsAndScheduleJobs(boost::thread_group& threadGroup, CScheduler& scheduler)
 {
     threadGroup.create_thread(std::bind(&ThreadCheckMasternodes));
+
+    // Start LLMQ system
+    if (gArgs.GetBoolArg("-disabledkg", false)) {
+        if (Params().NetworkIDString() == CBaseChainParams::MAIN) {
+            throw std::runtime_error("DKG system can be disabled only on testnet/regtest");
+        } else {
+            LogPrintf("DKG system disabled.\n");
+        }
+    } else {
+        llmq::StartLLMQSystem();
+    }
+}
+
+void StopTierTwoThreads()
+{
+    llmq::StopLLMQSystem();
+}
+
+void DeleteTierTwo()
+{
+    llmq::DestroyLLMQSystem();
+    deterministicMNManager.reset();
+    evoDb.reset();
 }
