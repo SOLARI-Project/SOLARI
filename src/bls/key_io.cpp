@@ -15,7 +15,7 @@ static std::string EncodeBLS(const CChainParams& params,
                              const BLSKey& key,
                              CChainParams::Bech32Type type)
 {
-    assert(key.IsValid());
+    if (!key.IsValid()) return "";
     auto vec{key.ToByteVector()};
     // ConvertBits requires unsigned char, but CDataStream uses char
     std::vector<unsigned char> ss(vec.begin(), vec.end());
