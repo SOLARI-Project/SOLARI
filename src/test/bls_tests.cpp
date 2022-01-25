@@ -13,24 +13,6 @@
 
 BOOST_FIXTURE_TEST_SUITE(bls_tests, BasicTestingSetup)
 
-BOOST_AUTO_TEST_CASE(bls_sethexstr_tests)
-{
-    CBLSSecretKey sk;
-    std::string strValidSecret = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
-    // Note: invalid string passed to SetHexStr() should cause it to fail and reset key internal data
-    BOOST_CHECK(sk.SetHexStr(strValidSecret));
-    BOOST_CHECK(!sk.SetHexStr("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1g")); // non-hex
-    BOOST_CHECK(!sk.IsValid());
-    BOOST_CHECK(sk == CBLSSecretKey());
-    // Try few more invalid strings
-    BOOST_CHECK(sk.SetHexStr(strValidSecret));
-    BOOST_CHECK(!sk.SetHexStr("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e")); // hex but too short
-    BOOST_CHECK(!sk.IsValid());
-    BOOST_CHECK(sk.SetHexStr(strValidSecret));
-    BOOST_CHECK(!sk.SetHexStr("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")); // hex but too long
-    BOOST_CHECK(!sk.IsValid());
-}
-
 BOOST_AUTO_TEST_CASE(bls_sig_tests)
 {
     CBLSSecretKey sk1, sk2;
@@ -251,12 +233,19 @@ BOOST_AUTO_TEST_CASE(bls_ies_tests)
     BOOST_CHECK(decrypted_message2 != message);
 }
 
+template<typename BLSKey>
+BLSKey FromHex(const std::string& str)
+{
+    BLSKey k;
+    k.SetByteVector(ParseHex(str));
+    return k;
+}
+
 BOOST_AUTO_TEST_CASE(bls_sk_io_tests)
 {
     const auto& params = Params();
 
-    CBLSSecretKey sk;
-    sk.SetHexStr("2eb071f4c520b3102e8cb9f520783da252d33993dba0313b501d69d113af9d39");
+    CBLSSecretKey sk = FromHex<CBLSSecretKey>("2eb071f4c520b3102e8cb9f520783da252d33993dba0313b501d69d113af9d39");
     BOOST_ASSERT(sk.IsValid());
 
     // Basic encoding-decoding roundtrip
@@ -282,8 +271,7 @@ BOOST_AUTO_TEST_CASE(bls_pk_io_tests)
 {
     const auto& params = Params();
 
-    CBLSPublicKey pk;
-    pk.SetHexStr("901138a12a352c7e30408c071b1ec097f32ab735a12c8dbb43c637612a3f805668a6bb73894982366d287cf0b02aaf5b");
+    CBLSPublicKey pk = FromHex<CBLSPublicKey>("901138a12a352c7e30408c071b1ec097f32ab735a12c8dbb43c637612a3f805668a6bb73894982366d287cf0b02aaf5b");
     BOOST_ASSERT(pk.IsValid());
 
     // Basic encoding-decoding roundtrip
