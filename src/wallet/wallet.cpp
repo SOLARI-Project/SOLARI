@@ -415,18 +415,8 @@ bool CWallet::Unlock(const CKeyingMaterial& vMasterKeyIn)
         for (; mi != mapCryptedKeys.end(); ++mi) {
             const CPubKey& vchPubKey = (*mi).second.first;
             const std::vector<unsigned char>& vchCryptedSecret = (*mi).second.second;
-            CKeyingMaterial vchSecret;
-            if (!DecryptSecret(vMasterKeyIn, vchCryptedSecret, vchPubKey.GetHash(), vchSecret)) {
-                keyFail = true;
-                break;
-            }
-            if (vchSecret.size() != 32) {
-                keyFail = true;
-                break;
-            }
             CKey key;
-            key.Set(vchSecret.begin(), vchSecret.end(), vchPubKey.IsCompressed());
-            if (key.GetPubKey() != vchPubKey) {
+            if (!DecryptKey(vMasterKeyIn, vchCryptedSecret, vchPubKey, key)) {
                 keyFail = true;
                 break;
             }
@@ -3943,13 +3933,10 @@ void CWallet::GetKeyBirthTimes(std::map<CKeyID, int64_t>& mapKeyBirth) const
     // map in which we'll infer heights of other keys
     CBlockIndex* pindexMax = chainActive[std::max(0, chainActive.Height() - 144)]; // the tip can be reorganised; use a 144-block safety margin
     std::map<CKeyID, CBlockIndex*> mapKeyFirstBlock;
-    std::set<CKeyID> setKeys;
-    GetKeys(setKeys);
-    for (const CKeyID& keyid : setKeys) {
+    for (const CKeyID& keyid : GetKeys()) {
         if (mapKeyBirth.count(keyid) == 0)
             mapKeyFirstBlock[keyid] = pindexMax;
     }
-    setKeys.clear();
 
     // if there are no such keys, we're done
     if (mapKeyFirstBlock.empty())
