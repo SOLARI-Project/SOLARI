@@ -57,7 +57,7 @@ std::string EncodeSecret(const CChainParams& params, const CBLSSecretKey& key)
 
 std::string EncodePublic(const CChainParams& params, const CBLSPublicKey& pk)
 {
-    return EncodeBLS(params, pk, CChainParams::BLS_PUBLIC_KEY);
+    return EncodeBLS<CBLSPublicKey>(params, pk, CChainParams::BLS_PUBLIC_KEY);
 }
 
 const size_t ConvertedBlsSkSize = (BLS_CURVE_SECKEY_SIZE * 8 + 4) / 5;

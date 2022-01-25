@@ -5,6 +5,7 @@
 
 #include "evo/providertx.h"
 
+#include "bls/key_io.h"
 #include "key_io.h"
 
 std::string ProRegPL::MakeSignString() const
@@ -28,7 +29,7 @@ std::string ProRegPL::ToString() const
     std::string payee = ExtractDestination(scriptPayout, dest) ?
                         EncodeDestination(dest) : "unknown";
     return strprintf("ProRegPL(nVersion=%d, collateralOutpoint=%s, addr=%s, nOperatorReward=%f, ownerAddress=%s, operatorPubKey=%s, votingAddress=%s, scriptPayout=%s)",
-        nVersion, collateralOutpoint.ToStringShort(), addr.ToString(), (double)nOperatorReward / 100, EncodeDestination(keyIDOwner), pubKeyOperator.ToString(), EncodeDestination(keyIDVoting), payee);
+        nVersion, collateralOutpoint.ToStringShort(), addr.ToString(), (double)nOperatorReward / 100, EncodeDestination(keyIDOwner), bls::EncodePublic(Params(), pubKeyOperator), EncodeDestination(keyIDVoting), payee);
 }
 
 void ProRegPL::ToJson(UniValue& obj) const
@@ -40,7 +41,7 @@ void ProRegPL::ToJson(UniValue& obj) const
     obj.pushKV("collateralIndex", (int)collateralOutpoint.n);
     obj.pushKV("service", addr.ToString());
     obj.pushKV("ownerAddress", EncodeDestination(keyIDOwner));
-    obj.pushKV("operatorPubKey", pubKeyOperator.ToString());
+    obj.pushKV("operatorPubKey", bls::EncodePublic(Params(), pubKeyOperator));
     obj.pushKV("votingAddress", EncodeDestination(keyIDVoting));
 
     CTxDestination dest1;
@@ -84,7 +85,7 @@ std::string ProUpRegPL::ToString() const
     std::string payee = ExtractDestination(scriptPayout, dest) ?
                         EncodeDestination(dest) : "unknown";
     return strprintf("ProUpRegPL(nVersion=%d, proTxHash=%s, operatorPubKey=%s, votingAddress=%s, payoutAddress=%s)",
-        nVersion, proTxHash.ToString(), pubKeyOperator.ToString(), EncodeDestination(keyIDVoting), payee);
+        nVersion, proTxHash.ToString(), bls::EncodePublic(Params(), pubKeyOperator), EncodeDestination(keyIDVoting), payee);
 }
 
 void ProUpRegPL::ToJson(UniValue& obj) const
@@ -98,7 +99,7 @@ void ProUpRegPL::ToJson(UniValue& obj) const
     if (ExtractDestination(scriptPayout, dest)) {
         obj.pushKV("payoutAddress", EncodeDestination(dest));
     }
-    obj.pushKV("operatorPubKey", pubKeyOperator.ToString());
+    obj.pushKV("operatorPubKey", bls::EncodePublic(Params(), pubKeyOperator));
     obj.pushKV("inputsHash", inputsHash.ToString());
 }
 

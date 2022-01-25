@@ -173,7 +173,9 @@ public:
         }
         return true;
     }
-
+    
+    // hex-encoding. Used only for signatures.
+    // For secret/public keys use bls::EncodeSecret/EncodePublic
     inline std::string ToString() const
     {
         std::vector<uint8_t> buf = ToByteVector();
