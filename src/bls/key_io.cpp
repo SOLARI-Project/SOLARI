@@ -16,15 +16,12 @@ static std::string EncodeBLS(const CChainParams& params,
                              CChainParams::Bech32Type type)
 {
     if (!key.IsValid()) return "";
-    auto vec{key.ToByteVector()};
-    // ConvertBits requires unsigned char, but CDataStream uses char
-    std::vector<unsigned char> ss(vec.begin(), vec.end());
+    std::vector<unsigned char> vec{key.ToByteVector()};
     std::vector<unsigned char> data;
-    // See calculation comment below
-    data.reserve((ss.size() * 8 + 4) / 5);
-    ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, ss.begin(), ss.end());
+    data.reserve((vec.size() * 8 + 4) / 5);
+    ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, vec.begin(), vec.end());
     auto res = bech32::Encode(params.Bech32HRP(type), data);
-    memory_cleanse(ss.data(), ss.size());
+    memory_cleanse(vec.data(), vec.size());
     memory_cleanse(data.data(), data.size());
     return res;
 }
