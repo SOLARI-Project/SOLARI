@@ -21,14 +21,12 @@
 #include "checkpoints.h"
 #include "compat/sanity.h"
 #include "consensus/upgrades.h"
-#include "evo/evonotificationinterface.h"
 #include "fs.h"
 #include "httpserver.h"
 #include "httprpc.h"
 #include "invalid.h"
 #include "key.h"
 #include "mapport.h"
-#include "masternodeconfig.h"
 #include "miner.h"
 #include "netbase.h"
 #include "net_processing.h"
@@ -95,8 +93,6 @@ std::unique_ptr<PeerLogicValidation> peerLogic;
 #if ENABLE_ZMQ
 static CZMQNotificationInterface* pzmqNotificationInterface = NULL;
 #endif
-
-static EvoNotificationInterface* pEvoNotificationInterface = nullptr;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -298,17 +294,8 @@ void Shutdown()
     }
 #endif
 
-    if (pEvoNotificationInterface) {
-        UnregisterValidationInterface(pEvoNotificationInterface);
-        delete pEvoNotificationInterface;
-        pEvoNotificationInterface = nullptr;
-    }
-
-    if (activeMasternodeManager) {
-        UnregisterValidationInterface(activeMasternodeManager);
-        delete activeMasternodeManager;
-        activeMasternodeManager = nullptr;
-    }
+    // Tier two
+    ResetTierTwoInterfaces();
 
 #if ENABLE_ZMQ
     if (pzmqNotificationInterface) {
@@ -709,9 +696,8 @@ void ThreadImport(const std::vector<fs::path>& vImportFiles)
         StartShutdown();
     }
 
-    // force UpdatedBlockTip to initialize nCachedBlockHeight for DS, MN payments and budgets
-    // but don't call it directly to prevent triggering of other listeners like zmq etc.
-    pEvoNotificationInterface->InitializeCurrentBlockTip();
+    // tier two
+    InitTierTwoChainTip();
 
     if (gArgs.GetBoolArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         LoadMempool(::mempool);
@@ -1443,8 +1429,7 @@ bool AppInitMain()
     }
 #endif
 
-    pEvoNotificationInterface = new EvoNotificationInterface();
-    RegisterValidationInterface(pEvoNotificationInterface);
+    InitTierTwoInterfaces();
 
     // ********************************************************* Step 7: load block chain
 
