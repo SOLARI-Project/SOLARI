@@ -133,6 +133,7 @@ BASE_SCRIPTS= [
     'wallet_disable.py',                        # ~ 50 sec
     'wallet_autocombine.py',                    # ~ 49 sec
     'mining_v5_upgrade.py',                     # ~ 48 sec
+    'p2p_timeouts.py',
     'p2p_mempool.py',                           # ~ 46 sec
     'rpc_named_arguments.py',                   # ~ 45 sec
     'p2p_leak.py',
@@ -189,7 +190,6 @@ EXTENDED_SCRIPTS = [
     'feature_fee_estimation.py',                # ~ 360 sec
     # vv Tests less than 5m vv
     # vv Tests less than 2m vv
-    #'p2p_timeouts.py',
     # vv Tests less than 60s vv
     #'p2p_feefilter.py',
     'feature_abortnode.py',
