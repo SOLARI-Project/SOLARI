@@ -79,8 +79,8 @@ class BlockchainTest(PivxTestFramework):
     def _test_getblockheader(self):
         node = self.nodes[0]
 
-        assert_raises_rpc_error(-5, "Block not found",
-                              node.getblockheader, "nonsense")
+        assert_raises_rpc_error(-8, "blockhash must be of length 64 (not 8, for 'nonsense')",
+                                node.getblockheader, "nonsense")
 
         besthash = node.getbestblockhash()
         secondbesthash = node.getblockhash(199)

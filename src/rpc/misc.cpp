@@ -791,8 +791,7 @@ UniValue mnconnect(const JSONRPCRequest& request)
 
     uint256 quorum_hash;
     if (request.params.size() > 3) {
-        RPCTypeCheckArgument(request.params[3], UniValue::VSTR);
-        quorum_hash = uint256S(request.params[3].get_str());
+        quorum_hash = ParseHashV(request.params[3], "quorum_hash");
     }
 
     // First obtain the connection type
@@ -801,7 +800,7 @@ UniValue mnconnect(const JSONRPCRequest& request)
     const auto& array{request.params[1].get_array()};
     std::set<uint256> set_dmn_protxhash;
     for (unsigned int i = 0; i < array.size(); i++) {
-        set_dmn_protxhash.emplace(uint256S(array[i].get_str()));
+        set_dmn_protxhash.emplace(ParseHashV(array[i], strprintf("pro_tx_hash (index %d)", i)));
     }
 
     const auto& mn_connan =  g_connman->GetTierTwoConnMan();
