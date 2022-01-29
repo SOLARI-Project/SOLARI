@@ -974,13 +974,13 @@ CService ip(uint32_t i)
     return CService(CNetAddr(s), Params().GetDefaultPort());
 }
 
-static void ProcessQuorum(llmq::CQuorumBlockProcessor* processor, const llmq::CFinalCommitment& qfc, CNode* node)
+static void ProcessQuorum(llmq::CQuorumBlockProcessor* processor, const llmq::CFinalCommitment& qfc, CNode* node, int expected_banscore = 0)
 {
     CDataStream vRecv(SER_NETWORK, PROTOCOL_VERSION);
     vRecv << qfc;
     int banScore{0};
     processor->ProcessMessage(node, vRecv, banScore);
-    BOOST_CHECK_EQUAL(banScore, 0);
+    BOOST_CHECK_EQUAL(banScore, expected_banscore);
 }
 
 static NodeId id = 0;
@@ -1094,6 +1094,7 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     // 7a) Mine a qfc with an invalid quorum hash (invalid height), which should end up being rejected.
     // 7b) Mine a qfc with an invalid quorum hash (non-existent), which should end up being rejected.
     // 7c) Mine a qfc with an invalid quorum hash (forked), which should end up being rejected.
+    // 7d) Mine a qfc with an old quorum hash, which should end up being rejected.
     // 8) Mine the final valid qfc in a block.
     // 9) Mine a null qfc after mining a valid qfc, which should end up being rejected.
 
@@ -1170,6 +1171,17 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
     nullQfcTx = CreateNullQfcTx(pblock_forked->GetHash(), nHeight + 1);
     pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
     ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-hash-not-active-chain", nHeight);
+
+    // 7d) Mine a qfc with an old quorum hash, which should end up being rejected.
+    int old_quorum_hash_height = nHeight - (nHeight % params.dkgInterval) - params.dkgInterval * 4;
+    uint256 old_quorum_hash = chainActive[old_quorum_hash_height]->GetBlockHash();
+    nullQfcTx = CreateNullQfcTx(old_quorum_hash, nHeight + 1);
+    pblock_invalid = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-quorum-height-old", nHeight);
+
+    // Now check the message over the wire. future: add error rejection code.
+    auto old_qfc = CreateFinalCommitment(pkeys, skeys, old_quorum_hash);
+    ProcessQuorum(llmq::quorumBlockProcessor.get(), old_qfc, &dummyNode, 100);
 
     // 8) Mine the final valid qfc in a block.
     CreateAndProcessBlock({}, coinbaseKey);

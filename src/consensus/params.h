@@ -158,6 +158,9 @@ struct LLMQParams {
 
     // How many members should we try to send all sigShares to before we give up.
     int recoveryMembers;
+
+    // The limit of blocks up until where the dkg qfc will be accepted.
+    int cacheDkgInterval;
 };
 
 /**

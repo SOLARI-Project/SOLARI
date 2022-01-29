@@ -77,6 +77,8 @@ static Consensus::LLMQParams llmq_test = {
 
         .keepOldConnections = 3,
         .recoveryMembers = 3,
+
+        .cacheDkgInterval = 180,
 };
 
 static Consensus::LLMQParams llmq50_60 = {
@@ -96,6 +98,8 @@ static Consensus::LLMQParams llmq50_60 = {
 
         .keepOldConnections = 25,
         .recoveryMembers = 25,
+
+        .cacheDkgInterval = 600,
 };
 
 static Consensus::LLMQParams llmq400_60 = {
@@ -115,6 +119,8 @@ static Consensus::LLMQParams llmq400_60 = {
 
         .keepOldConnections = 5,
         .recoveryMembers = 100,
+
+        .cacheDkgInterval = 60 * 12 * 10, // dkgInterval * 10
 };
 
 // Used for deployment and min-proto-version signaling, so it needs a higher threshold
@@ -135,6 +141,8 @@ static Consensus::LLMQParams llmq400_85 = {
 
         .keepOldConnections = 5,
         .recoveryMembers = 100,
+
+        .cacheDkgInterval = 60 * 24 * 10, // dkgInterval * 10
 };
 
 /**
