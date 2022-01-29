@@ -114,6 +114,34 @@ static bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubC
     return true;
 }
 
+// TODO: do not create g_coinspends_cache if the node passed the last zc checkpoint.
+class CoinSpendCache {
+private:
+    mutable Mutex cs;
+    std::map<CScript, libzerocoin::CoinSpend> cache_coinspend;
+    std::map<CScript, PublicCoinSpend> cache_public_coinspend;
+
+    template<typename T>
+    Optional<T> Get(const CScript& in, const std::map<CScript, T>& map) const {
+        LOCK(cs);
+        auto it = map.find(in);
+        return it != map.end() ? Optional<T>{it->second} : nullopt;
+    }
+
+public:
+    void Add(const CScript& in, libzerocoin::CoinSpend& spend) { WITH_LOCK(cs, cache_coinspend.emplace(in, spend)); }
+    void AddPub(const CScript& in, PublicCoinSpend& spend) { WITH_LOCK(cs, cache_public_coinspend.emplace(in, spend)); }
+
+    Optional<libzerocoin::CoinSpend> Get(const CScript& in) const { return Get<libzerocoin::CoinSpend>(in, cache_coinspend); }
+    Optional<PublicCoinSpend> GetPub(const CScript& in) const { return Get<PublicCoinSpend>(in, cache_public_coinspend); }
+    void Clear() {
+        LOCK(cs);
+        cache_coinspend.clear();
+        cache_public_coinspend.clear();
+    }
+};
+std::unique_ptr<CoinSpendCache> g_coinspends_cache = std::make_unique<CoinSpendCache>();
+
 namespace ZPIVModule {
 
     // Return stream of CoinSpend from tx input scriptsig
@@ -134,6 +162,11 @@ namespace ZPIVModule {
     }
 
     bool parseCoinSpend(const CTxIn &in, const CTransaction &tx, const CTxOut &prevOut, PublicCoinSpend &publicCoinSpend) {
+        if (auto op = g_coinspends_cache->GetPub(in.scriptSig)) {
+            publicCoinSpend = *op;
+            return true;
+        }
+
         if (!in.IsZerocoinPublicSpend() || !prevOut.IsZerocoinMint())
             return error("%s: invalid argument/s", __func__);
 
@@ -151,13 +184,17 @@ namespace ZPIVModule {
 
         spend.setDenom(spend.pubCoin.getDenomination());
         publicCoinSpend = spend;
+        g_coinspends_cache->AddPub(in.scriptSig, publicCoinSpend);
         return true;
     }
 
     libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin)
     {
+        if (auto op = g_coinspends_cache->Get(txin.scriptSig)) return *op;
         CDataStream serializedCoinSpend = ScriptSigToSerializedSpend(txin.scriptSig);
-        return libzerocoin::CoinSpend(serializedCoinSpend);
+        libzerocoin::CoinSpend spend(serializedCoinSpend);
+        g_coinspends_cache->Add(txin.scriptSig, spend);
+        return spend;
     }
 
     bool validateInput(const CTxIn &in, const CTxOut &prevOut, const CTransaction &tx, PublicCoinSpend &publicSpend) {
@@ -184,5 +221,10 @@ namespace ZPIVModule {
                                        tx.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-zpiv");
         }
         return true;
+    }
+
+    void CleanCoinSpendsCache()
+    {
+        g_coinspends_cache->Clear();
     }
 }

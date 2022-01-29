@@ -78,6 +78,9 @@ namespace ZPIVModule {
      * @return true if everything went ok
      */
     bool ParseZerocoinPublicSpend(const CTxIn &in, const CTransaction& tx, CValidationState& state, PublicCoinSpend& publicCoinSpend);
+
+    // Clear the coinspend cache
+    void CleanCoinSpendsCache();
 };
 
 
