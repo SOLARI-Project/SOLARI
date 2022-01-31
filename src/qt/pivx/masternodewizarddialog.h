@@ -5,14 +5,13 @@
 #ifndef MASTERNODEWIZARDDIALOG_H
 #define MASTERNODEWIZARDDIALOG_H
 
-#include "walletmodel.h"
 #include "qt/pivx/focuseddialog.h"
 #include "qt/pivx/snackbar.h"
 #include "masternodeconfig.h"
 #include "qt/pivx/pwidget.h"
 
+class MNModel;
 class WalletModel;
-class ClientModel;
 
 namespace Ui {
 class MasterNodeWizardDialog;
@@ -25,9 +24,9 @@ class MasterNodeWizardDialog : public FocusedDialog, public PWidget::Translator
 
 public:
     explicit MasterNodeWizardDialog(WalletModel* walletMode,
-                                    ClientModel* clientModel,
+                                    MNModel* mnModel,
                                     QWidget *parent = nullptr);
-    ~MasterNodeWizardDialog();
+    ~MasterNodeWizardDialog() override;
     void showEvent(QShowEvent *event) override;
     QString translate(const char *msg) override { return tr(msg); }
 
@@ -47,10 +46,9 @@ private:
     int pos = 0;
 
     WalletModel* walletModel{nullptr};
-    ClientModel* clientModel{nullptr};
+    MNModel* mnModel{nullptr};
     bool createMN();
-    void inform(QString text);
-    void initBtn(std::initializer_list<QPushButton*> args);
+    void inform(const QString& text);
 };
 
 #endif // MASTERNODEWIZARDDIALOG_H
