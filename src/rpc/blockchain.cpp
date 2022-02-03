@@ -43,7 +43,7 @@ static std::mutex cs_blockchange;
 static std::condition_variable cond_blockchange;
 static CUpdatedBlock latestblock;
 
-extern void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
+extern void TxToJSON(CWallet* const pwallet, const CTransaction& tx, const CBlockIndex* tip, const CBlockIndex* blockindex, UniValue& entry);
 
 UniValue syncwithvalidationinterfacequeue(const JSONRPCRequest& request)
 {
@@ -99,14 +99,22 @@ static UniValue ValuePoolDesc(
     return rv;
 }
 
-UniValue blockheaderToJSON(const CBlockIndex* blockindex)
+int ComputeNextBlockAndDepth(const CBlockIndex* tip, const CBlockIndex* blockindex, const CBlockIndex*& next)
+{
+    next = tip->GetAncestor(blockindex->nHeight + 1);
+    if (next && next->pprev == blockindex) {
+        return tip->nHeight - blockindex->nHeight + 1;
+    }
+    next = nullptr;
+    return blockindex == tip ? 1 : -1;
+}
+
+UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex)
 {
     UniValue result(UniValue::VOBJ);
     result.pushKV("hash", blockindex->GetBlockHash().GetHex());
-    int confirmations = -1;
-    // Only report confirmations if the block is on the main chain
-    if (chainActive.Contains(blockindex))
-        confirmations = chainActive.Height() - blockindex->nHeight + 1;
+    const CBlockIndex* pnext;
+    int confirmations = ComputeNextBlockAndDepth(tip, blockindex, pnext);
     result.pushKV("confirmations", confirmations);
     result.pushKV("height", blockindex->nHeight);
     result.pushKV("version", blockindex->nVersion);
@@ -122,22 +130,17 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.pushKV("shield_pool_value", ValuePoolDesc(blockindex->nChainSaplingValue, blockindex->nSaplingValue));
     if (blockindex->pprev)
         result.pushKV("previousblockhash", blockindex->pprev->GetBlockHash().GetHex());
-    CBlockIndex *pnext = chainActive.Next(blockindex);
     if (pnext)
         result.pushKV("nextblockhash", pnext->GetBlockHash().GetHex());
     return result;
 }
 
-UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool txDetails = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, bool txDetails = false)
 {
-    AssertLockHeld(cs_main);
-
     UniValue result(UniValue::VOBJ);
     result.pushKV("hash", block.GetHash().GetHex());
-    int confirmations = -1;
-    // Only report confirmations if the block is on the main chain
-    if (chainActive.Contains(blockindex))
-        confirmations = chainActive.Height() - blockindex->nHeight + 1;
+    const CBlockIndex* pnext;
+    int confirmations = ComputeNextBlockAndDepth(tip, blockindex, pnext);
     result.pushKV("confirmations", confirmations);
     result.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));
     result.pushKV("height", blockindex->nHeight);
@@ -150,7 +153,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
         const CTransaction& tx = *txIn;
         if (txDetails) {
             UniValue objTx(UniValue::VOBJ);
-            TxToJSON(nullptr, tx, UINT256_ZERO, objTx);
+            TxToJSON(nullptr, tx, nullptr, nullptr, objTx);
             txs.push_back(objTx);
         } else
             txs.push_back(tx.GetHash().GetHex());
@@ -165,7 +168,6 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
 
     if (blockindex->pprev)
         result.pushKV("previousblockhash", blockindex->pprev->GetBlockHash().GetHex());
-    CBlockIndex* pnext = chainActive.Next(blockindex);
     if (pnext)
         result.pushKV("nextblockhash", pnext->GetBlockHash().GetHex());
 
@@ -574,12 +576,11 @@ UniValue getblock(const JSONRPCRequest& request)
     if (request.params.size() > 1)
         fVerbose = request.params[1].get_bool();
 
-    if (mapBlockIndex.count(hash) == 0)
+    CBlockIndex* pblockindex = LookupBlockIndex(hash);
+    if (pblockindex == nullptr)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
 
     CBlock block;
-    CBlockIndex* pblockindex = mapBlockIndex[hash];
-
     if (!ReadBlockFromDisk(block, pblockindex))
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
 
@@ -590,7 +591,7 @@ UniValue getblock(const JSONRPCRequest& request)
         return strHex;
     }
 
-    return blockToJSON(block, pblockindex);
+    return blockToJSON(block, chainActive.Tip(), pblockindex);
 }
 
 UniValue getblockheader(const JSONRPCRequest& request)
@@ -629,6 +630,8 @@ UniValue getblockheader(const JSONRPCRequest& request)
             HelpExampleCli("getblockheader", "\"00000000000fd08c2fb661d2fcb0d49abb3a91e5f27082ce64feed3b4dede2e2\"") +
             HelpExampleRpc("getblockheader", "\"00000000000fd08c2fb661d2fcb0d49abb3a91e5f27082ce64feed3b4dede2e2\""));
 
+    LOCK(cs_main);
+
     std::string strHash = request.params[0].get_str();
     uint256 hash(uint256S(strHash));
 
@@ -636,10 +639,9 @@ UniValue getblockheader(const JSONRPCRequest& request)
     if (request.params.size() > 1)
         fVerbose = request.params[1].get_bool();
 
-    if (mapBlockIndex.count(hash) == 0)
+    CBlockIndex* pblockindex = LookupBlockIndex(hash);
+    if (pblockindex == nullptr)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
-
-    CBlockIndex* pblockindex = mapBlockIndex[hash];
 
     if (!fVerbose) {
         CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION);
@@ -648,7 +650,7 @@ UniValue getblockheader(const JSONRPCRequest& request)
         return strHex;
     }
 
-    return blockheaderToJSON(pblockindex);
+    return blockheaderToJSON(chainActive.Tip(), pblockindex);
 }
 
 UniValue getsupplyinfo(const JSONRPCRequest& request)
