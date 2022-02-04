@@ -6,6 +6,7 @@
 #include "activemasternode.h"
 
 #include "addrman.h"
+#include "bls/key_io.h"
 #include "bls/bls_wrapper.h"
 #include "masternode.h"
 #include "masternodeconfig.h"
@@ -61,9 +62,12 @@ OperationResult CActiveDeterministicMasternodeManager::SetOperatorKey(const std:
     if (strMNOperatorPrivKey.empty()) {
         return errorOut("ERROR: Masternode operator priv key cannot be empty.");
     }
-    if (!info.keyOperator.SetHexStr(strMNOperatorPrivKey)) {
+
+    auto opSk = bls::DecodeSecret(Params(), strMNOperatorPrivKey);
+    if (!opSk) {
         return errorOut(_("Invalid mnoperatorprivatekey. Please see the documentation."));
     }
+    info.keyOperator = *opSk;
     info.pubKeyOperator = info.keyOperator.GetPublicKey();
     return OperationResult(true);
 }

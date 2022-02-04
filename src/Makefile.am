@@ -153,6 +153,7 @@ BITCOIN_CORE_H = \
   bls/bls_ies.h \
   bls/bls_worker.h \
   bls/bls_wrapper.h \
+  bls/key_io.h \
   chain.h \
   chainparams.h \
   chainparamsbase.h \
@@ -345,6 +346,7 @@ libbitcoin_server_a_SOURCES = \
   bls/bls_ies.cpp \
   bls/bls_worker.cpp \
   bls/bls_wrapper.cpp \
+  bls/key_io.cpp \
   chain.cpp \
   checkpoints.cpp \
   consensus/params.cpp \

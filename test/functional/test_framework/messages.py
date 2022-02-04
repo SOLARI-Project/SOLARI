@@ -1492,7 +1492,7 @@ class Masternode(object):
 
     def revoked(self):
         self.ipport = "[::]:0"
-        self.operator_pk = "0" * 96
+        self.operator_pk = ""
         self.operator_sk = None
 
     def __repr__(self):

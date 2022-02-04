@@ -62,6 +62,9 @@ public:
         SAPLING_EXTENDED_SPEND_KEY,
         SAPLING_EXTENDED_FVK,
 
+        BLS_SECRET_KEY,
+        BLS_PUBLIC_KEY,
+
         MAX_BECH32_TYPES
     };
 

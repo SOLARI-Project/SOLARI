@@ -5,6 +5,7 @@
 
 #include "llmq/quorums_blockprocessor.h"
 
+#include "bls/key_io.h"
 #include "chain.h"
 #include "chainparams.h"
 #include "consensus/validation.h"
@@ -181,7 +182,7 @@ bool CQuorumBlockProcessor::ProcessCommitment(int nHeight, const uint256& blockH
     }
 
     LogPrintf("%s: processed commitment from block. type=%d, quorumHash=%s, signers=%s, validMembers=%d, quorumPublicKey=%s\n", __func__,
-              qc.llmqType, quorumHash.ToString(), qc.CountSigners(), qc.CountValidMembers(), ""/*qc.quorumPublicKey.ToString()*/);
+              qc.llmqType, quorumHash.ToString(), qc.CountSigners(), qc.CountValidMembers(), bls::EncodePublic(Params(), qc.quorumPublicKey));
 
     return true;
 }

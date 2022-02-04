@@ -201,6 +201,43 @@ def hash256(byte_str):
 def hex_str_to_bytes(hex_str):
     return unhexlify(hex_str.encode('ascii'))
 
+def convertbits(data, frombits, tobits, pad=True):
+    """General power-of-2 base conversion."""
+    acc = 0
+    bits = 0
+    ret = []
+    maxv = (1 << tobits) - 1
+    max_acc = (1 << (frombits + tobits - 1)) - 1
+    for value in data:
+        if value < 0 or (value >> frombits):
+            return None
+        acc = ((acc << frombits) | value) & max_acc
+        bits += frombits
+        while bits >= tobits:
+            bits -= tobits
+            ret.append((acc >> bits) & maxv)
+    if pad:
+        if bits:
+            ret.append((acc << (tobits - bits)) & maxv)
+    elif bits >= frombits or ((acc << (tobits - bits)) & maxv):
+        return None
+    return ret
+
+def bech32_str_to_bytes(bech_str):
+    BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+    bech_str = bech_str.lower()
+    pos = bech_str.rfind('1')
+    if pos < 1 or pos + 7 > len(bech_str):
+        return None
+    if not all(x in BECH32_CHARSET for x in bech_str[pos+1:]):
+        return None
+    # !TODO: verify checksum
+    data = [BECH32_CHARSET.find(x) for x in bech_str[pos+1:]]
+    decoded = convertbits(data[:-6], 5, 8, False)
+    if decoded is None:
+        return None
+    return bytes(decoded)
+
 def str_to_b64str(string):
     return b64encode(string.encode('utf-8')).decode('ascii')
 

@@ -129,21 +129,6 @@ public:
         return cachedHash;
     }
 
-    bool SetHexStr(const std::string& str)
-    {
-        if (!IsHex(str)) {
-            Reset();
-            return false;
-        }
-        auto b = ParseHex(str);
-        if (b.size() != SerSize) {
-            Reset();
-            return false;
-        }
-        SetByteVector(b);
-        return IsValid();
-    }
-
 public:
     template <typename Stream>
     inline void Serialize(Stream& s) const
@@ -174,6 +159,8 @@ public:
         return true;
     }
 
+    // hex-encoding. Used only for signatures.
+    // For secret/public keys use bls::EncodeSecret/EncodePublic
     inline std::string ToString() const
     {
         std::vector<uint8_t> buf = ToByteVector();

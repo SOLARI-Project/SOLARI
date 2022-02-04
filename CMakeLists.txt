@@ -397,6 +397,7 @@ set(COMMON_SOURCES
         ./src/bls/bls_ies.cpp
         ./src/bls/bls_worker.cpp
         ./src/bls/bls_wrapper.cpp
+        ./src/bls/key_io.cpp
         ./src/budget/budgetdb.cpp
         ./src/budget/budgetmanager.cpp
         ./src/budget/budgetproposal.cpp

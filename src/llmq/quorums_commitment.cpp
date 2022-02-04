@@ -5,6 +5,7 @@
 
 #include "llmq/quorums_commitment.h"
 
+#include "bls/key_io.h"
 #include "chainparams.h"
 #include "llmq/quorums_utils.h"
 #include "logging.h"
@@ -47,7 +48,7 @@ void CFinalCommitment::ToJson(UniValue& obj) const
     obj.pushKV("signers", utils::ToHexStr(signers));
     obj.pushKV("validMembersCount", CountValidMembers());
     obj.pushKV("validMembers", utils::ToHexStr(validMembers));
-    obj.pushKV("quorumPublicKey", quorumPublicKey.ToString());
+    obj.pushKV("quorumPublicKey", bls::EncodePublic(Params(), quorumPublicKey));
     obj.pushKV("quorumVvecHash", quorumVvecHash.ToString());
     obj.pushKV("quorumSig", quorumSig.ToString());
     obj.pushKV("membersSig", membersSig.ToString());
