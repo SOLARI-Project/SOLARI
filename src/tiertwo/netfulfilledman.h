@@ -43,6 +43,7 @@ public:
     void Clear();
 
     std::string ToString() const;
+    int Size() const { return WITH_LOCK(cs_mapFulfilledRequests, return mapFulfilledRequests.size();); }
 
     void DoMaintenance();
 };
