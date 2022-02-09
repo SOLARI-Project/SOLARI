@@ -8,15 +8,12 @@
 #include "activemasternode.h"
 #include "chainparams.h"
 #include "cxxtimer.hpp"
-#include "evo/specialtx_validation.h"
 #include "init.h"
 #include "llmq/quorums_connections.h"
 #include "llmq/quorums_commitment.h"
 #include "llmq/quorums_debug.h"
 #include "llmq/quorums_dkgsessionmgr.h"
 #include "net.h"
-#include "netmessagemaker.h"
-#include "spork.h"
 #include "tiertwo/masternode_meta_manager.h"
 #include "univalue.h"
 #include "validation.h"
@@ -293,7 +290,7 @@ void CDKGSession::ReceiveMessage(const uint256& hash, const CDKGContribution& qc
         if (member->contributions.size() > 1) {
             // don't do any further processing if we got more than 1 contribution. we already relayed it,
             // so others know about his bad behavior
-            MarkBadMember(member->idx);
+            MarkBadMember(member);
             logger.Batch("%s did send multiple contributions", member->dmn->proTxHash.ToString());
             return;
         }
@@ -431,7 +428,7 @@ void CDKGSession::VerifyAndComplain(CDKGPendingMessages& pendingMessages)
         }
         if (m->contributions.empty()) {
             logger.Batch("%s did not send any contribution", m->dmn->proTxHash.ToString());
-            MarkBadMember(m->idx);
+            MarkBadMember(m.get());
             continue;
         }
     }
@@ -595,7 +592,7 @@ void CDKGSession::ReceiveMessage(const uint256& hash, const CDKGComplaint& qc, b
         if (member->complaints.size() > 1) {
             // don't do any further processing if we got more than 1 complaint. we already relayed it,
             // so others know about his bad behavior
-            MarkBadMember(member->idx);
+            MarkBadMember(member);
             logger.Batch("%s did send multiple complaints", member->dmn->proTxHash.ToString());
             return;
         }
@@ -645,7 +642,7 @@ void CDKGSession::VerifyAndJustify(CDKGPendingMessages& pendingMessages)
         }
         if (m->badMemberVotes.size() >= (size_t)params.dkgBadVotesThreshold) {
             logger.Batch("%s marked as bad as %d other members voted for this", m->dmn->proTxHash.ToString(), m->badMemberVotes.size());
-            MarkBadMember(m->idx);
+            MarkBadMember(m.get());
             continue;
         }
         if (m->complaints.empty()) {
@@ -653,7 +650,7 @@ void CDKGSession::VerifyAndJustify(CDKGPendingMessages& pendingMessages)
         }
         if (m->complaints.size() != 1) {
             logger.Batch("%s sent multiple complaints", m->dmn->proTxHash.ToString());
-            MarkBadMember(m->idx);
+            MarkBadMember(m.get());
             continue;
         }
 
@@ -810,7 +807,7 @@ void CDKGSession::ReceiveMessage(const uint256& hash, const CDKGJustification& q
             // don't do any further processing if we got more than 1 justification. we already relayed it,
             // so others know about his bad behavior
             logger.Batch("%s did send multiple justifications", member->dmn->proTxHash.ToString());
-            MarkBadMember(member->idx);
+            MarkBadMember(member);
             return;
         }
 
@@ -827,7 +824,7 @@ void CDKGSession::ReceiveMessage(const uint256& hash, const CDKGJustification& q
         if (!member->complaintsFromOthers.count(member2->dmn->proTxHash)) {
             logger.Batch("got justification from %s for %s even though he didn't complain",
                             member->dmn->proTxHash.ToString(), member2->dmn->proTxHash.ToString());
-            MarkBadMember(member->idx);
+            MarkBadMember(member);
         }
     }
     if (member->bad) {
@@ -852,7 +849,7 @@ void CDKGSession::ReceiveMessage(const uint256& hash, const CDKGJustification& q
         bool result = (resultIt++)->get();
         if (!result) {
             logger.Batch("  %s did send an invalid justification for %s", member->dmn->proTxHash.ToString(), member2->dmn->proTxHash.ToString());
-            MarkBadMember(member->idx);
+            MarkBadMember(member);
         } else {
             logger.Batch("  %s justified for %s", member->dmn->proTxHash.ToString(), member2->dmn->proTxHash.ToString());
             if (AreWeMember() && member2->id == myId) {
@@ -898,7 +895,7 @@ void CDKGSession::VerifyAndCommit(CDKGPendingMessages& pendingMessages)
             continue;
         }
         if (!m->complaintsFromOthers.empty()) {
-            MarkBadMember(m->idx);
+            MarkBadMember(m.get());
             openComplaintMembers.emplace_back(m->idx);
         }
     }
@@ -1299,13 +1296,12 @@ CDKGMember* CDKGSession::GetMember(const uint256& proTxHash) const
     return members[it->second].get();
 }
 
-void CDKGSession::MarkBadMember(size_t idx)
+void CDKGSession::MarkBadMember(CDKGMember* member)
 {
-    auto member = members.at(idx).get();
     if (member->bad) {
         return;
     }
-    quorumDKGDebugManager->UpdateLocalMemberStatus(params.type, idx, [&](CDKGDebugMemberStatus& status) {
+    quorumDKGDebugManager->UpdateLocalMemberStatus(params.type, member->idx, [&](CDKGDebugMemberStatus& status) {
         status.bad = true;
         return true;
     });
