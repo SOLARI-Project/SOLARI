@@ -1077,14 +1077,9 @@ static const CRPCCommand commands[] =
 #endif  //ENABLE_WALLET
 };
 
-void RegisterEvoRPCCommands(CRPCTable &tableRPC)
+void RegisterEvoRPCCommands(CRPCTable& _tableRPC)
 {
-    if (!Params().IsRegTestNet()) {
-        // Disabled before PIVX v6.0
-        return;
-    }
-
-    for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++) {
-        tableRPC.appendCommand(commands[vcidx].name, &commands[vcidx]);
+    for (const auto& command : commands) {
+        _tableRPC.appendCommand(command.name, &command);
     }
 }
