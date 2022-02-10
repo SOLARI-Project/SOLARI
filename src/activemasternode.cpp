@@ -76,7 +76,7 @@ OperationResult CActiveDeterministicMasternodeManager::SetOperatorKey(const std:
     }
     info.keyOperator = *opSk;
     info.pubKeyOperator = info.keyOperator.GetPublicKey();
-    return OperationResult(true);
+    return {true};
 }
 
 OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CBLSSecretKey& key, CDeterministicMNCPtr& dmn) const
@@ -93,7 +93,7 @@ OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CBLSSecret
     }
     // return key
     key = info.keyOperator;
-    return OperationResult(true);
+    return {true};
 }
 
 void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
@@ -266,7 +266,7 @@ OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const s
         return errorOut(strprintf(_("Invalid -masternodeaddr port %d, only %d is supported on %s-net."),
                                            nPort, nDefaultPort, Params().NetworkIDString()));
     }
-    CService addrTest(LookupNumeric(strHost.c_str(), nPort));
+    CService addrTest(LookupNumeric(strHost, nPort));
     if (!addrTest.IsValid()) {
         return errorOut(strprintf(_("Invalid -masternodeaddr address: %s"), _strMasterNodeAddr));
     }
@@ -295,7 +295,7 @@ OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const s
         if (pmn) activeMasternode.EnableHotColdMasterNode(pmn->vin, pmn->addr);
     }
 
-    return OperationResult(true);
+    return {true};
 }
 
 //
@@ -426,7 +426,7 @@ bool CActiveMasternode::SendMasternodePing(std::string& errorMessage)
 
     // Update lastPing for our masternode in Masternode list
     CMasternode* pmn = mnodeman.Find(vin->prevout);
-    if (pmn != NULL) {
+    if (pmn != nullptr) {
         if (pmn->IsPingedWithin(MasternodePingSeconds(), mnp.sigTime)) {
             errorMessage = "Too early to send Masternode Ping";
             return false;
@@ -473,7 +473,7 @@ bool CActiveMasternode::EnableHotColdMasterNode(CTxIn& newVin, CService& newServ
     return true;
 }
 
-void CActiveMasternode::GetKeys(CKey& _privKeyMasternode, CPubKey& _pubKeyMasternode)
+void CActiveMasternode::GetKeys(CKey& _privKeyMasternode, CPubKey& _pubKeyMasternode) const
 {
     if (!privKeyMasternode.IsValid() || !pubKeyMasternode.IsValid()) {
         throw std::runtime_error("Error trying to get masternode keys");

@@ -52,8 +52,8 @@ private:
     CActiveMasternodeInfo info;
 
 public:
-    virtual ~CActiveDeterministicMasternodeManager() = default;
-    virtual void UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload);
+    ~CActiveDeterministicMasternodeManager() override = default;
+    void UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex* pindexFork, bool fInitialDownload) override;
 
     void Init(const CBlockIndex* pindexTip);
     void Reset(masternode_state_t _state, const CBlockIndex* pindexTip);
@@ -106,7 +106,7 @@ public:
     /// Enable cold wallet mode (run a Masternode with no funds)
     bool EnableHotColdMasterNode(CTxIn& vin, CService& addr);
 
-    void GetKeys(CKey& privKeyMasternode, CPubKey& pubKeyMasternode);
+    void GetKeys(CKey& privKeyMasternode, CPubKey& pubKeyMasternode) const;
 };
 
 // Compatibility code: get vin and keys for either legacy or deterministic masternode
