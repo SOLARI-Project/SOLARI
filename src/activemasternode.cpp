@@ -158,7 +158,7 @@ void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
     SOCKET hSocket = CreateSocket(info.service);
     if (hSocket == INVALID_SOCKET) {
         state = MASTERNODE_ERROR;
-        strError = "Could not create socket to connect to " + info.service.ToString();
+        strError = "DMN connectivity check failed, could not create socket to DMN running at " + strService;
         LogPrintf("%s -- ERROR: %s\n", __func__, strError);
         return;
     }
@@ -167,7 +167,8 @@ void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
 
     if (!fConnected) {
         state = MASTERNODE_ERROR;
-        LogPrintf("%s ERROR: Could not connect to %s\n", __func__, strService);
+        strError = "DMN connectivity check failed, could not connect to DMN running at " + strService;
+        LogPrintf("%s ERROR: %s\n", __func__, strError);
         return;
     }
 
