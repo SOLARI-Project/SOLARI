@@ -144,9 +144,6 @@ void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
 
     LogPrintf("%s: proTxHash=%s, proTx=%s\n", __func__, dmn->proTxHash.ToString(), dmn->ToString());
 
-    info.proTxHash = dmn->proTxHash;
-    g_connman->GetTierTwoConnMan()->setLocalDMN(info.proTxHash);
-
     if (info.service != dmn->pdmnState->addr) {
         state = MASTERNODE_ERROR;
         strError = strprintf("Local address %s does not match the address from ProTx (%s)",
@@ -155,21 +152,27 @@ void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
         return;
     }
 
-    if (!Params().IsRegTestNet()) {
-        // Check socket connectivity
-        const std::string& strService = info.service.ToString();
-        LogPrintf("%s: Checking inbound connection to '%s'\n", __func__, strService);
-        SOCKET hSocket = INVALID_SOCKET;
-        bool fConnected = ConnectSocketDirectly(info.service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
-        CloseSocket(hSocket);
+    // Check socket connectivity
+    const std::string& strService = info.service.ToString();
+    LogPrintf("%s: Checking inbound connection to '%s'\n", __func__, strService);
+    SOCKET hSocket = CreateSocket(info.service);
+    if (hSocket == INVALID_SOCKET) {
+        state = MASTERNODE_ERROR;
+        strError = "Could not create socket to connect to " + info.service.ToString();
+        LogPrintf("%s -- ERROR: %s\n", __func__, strError);
+        return;
+    }
+    bool fConnected = ConnectSocketDirectly(info.service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
+    CloseSocket(hSocket);
 
-        if (!fConnected) {
-            state = MASTERNODE_ERROR;
-            LogPrintf("%s ERROR: Could not connect to %s\n", __func__, strService);
-            return;
-        }
+    if (!fConnected) {
+        state = MASTERNODE_ERROR;
+        LogPrintf("%s ERROR: Could not connect to %s\n", __func__, strService);
+        return;
     }
 
+    info.proTxHash = dmn->proTxHash;
+    g_connman->GetTierTwoConnMan()->setLocalDMN(info.proTxHash);
     state = MASTERNODE_READY;
 }
 
