@@ -8,6 +8,7 @@
 
 #include "sync.h"
 #include "random.h"
+#include "tinyformat.h"
 #include "util/string.h"
 #include "util/system.h"
 #include "utilstrencodings.h"
@@ -519,7 +520,17 @@ SOCKET CreateSocket(const CService& addrConnect)
     return hSocket;
 }
 
-bool ConnectSocketDirectly(const CService& addrConnect, const SOCKET& hSocket, int nTimeout)
+template<typename... Args>
+static void LogConnectFailure(bool manual_connection, const char* fmt, const Args&... args) {
+    std::string error_message = tfm::format(fmt, args...);
+    if (manual_connection) {
+        LogPrintf("%s\n", error_message);
+    } else {
+        LogPrint(BCLog::NET, "%s\n", error_message);
+    }
+}
+
+bool ConnectSocketDirectly(const CService& addrConnect, const SOCKET& hSocket, int nTimeout, bool manual_connection)
 {
     struct sockaddr_storage sockaddr;
     socklen_t len = sizeof(sockaddr);
@@ -562,7 +573,7 @@ bool ConnectSocketDirectly(const CService& addrConnect, const SOCKET& hSocket, i
                 return false;
             }
             if (nRet != 0) {
-                LogPrintf("connect() to %s failed after select(): %s\n", addrConnect.ToString(), NetworkErrorString(nRet));
+                LogConnectFailure(manual_connection, "connect() to %s failed after select(): %s", addrConnect.ToString(), NetworkErrorString(nRet));
                 return false;
             }
         }
@@ -572,7 +583,7 @@ bool ConnectSocketDirectly(const CService& addrConnect, const SOCKET& hSocket, i
         else
 #endif
         {
-            LogPrintf("connect() to %s failed: %s\n", addrConnect.ToString(), NetworkErrorString(WSAGetLastError()));
+            LogConnectFailure(manual_connection, "connect() to %s failed: %s", addrConnect.ToString(), NetworkErrorString(WSAGetLastError()));
             return false;
         }
     }
@@ -636,7 +647,7 @@ bool IsProxy(const CNetAddr& addr)
 bool ConnectThroughProxy(const proxyType &proxy, const std::string& strDest, int port, const SOCKET& hSocket, int nTimeout, bool *outProxyConnectionFailed)
 {
     // first connect to proxy server
-    if (!ConnectSocketDirectly(proxy.proxy, hSocket, nTimeout)) {
+    if (!ConnectSocketDirectly(proxy.proxy, hSocket, nTimeout, true)) {
         if (outProxyConnectionFailed)
             *outProxyConnectionFailed = true;
         return false;

@@ -162,7 +162,7 @@ void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
         LogPrintf("%s -- ERROR: %s\n", __func__, strError);
         return;
     }
-    bool fConnected = ConnectSocketDirectly(info.service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
+    bool fConnected = ConnectSocketDirectly(info.service, hSocket, nConnectTimeout, true) && IsSelectableSocket(hSocket);
     CloseSocket(hSocket);
 
     if (!fConnected) {

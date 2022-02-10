@@ -343,7 +343,7 @@ bool CConnman::CheckIncomingNonce(uint64_t nonce)
     return true;
 }
 
-CNode* CConnman::ConnectNode(CAddress addrConnect, const char* pszDest, bool fCountFailure)
+CNode* CConnman::ConnectNode(CAddress addrConnect, const char* pszDest, bool fCountFailure, bool manual_connection)
 {
     if (pszDest == nullptr) {
         if (IsLocal(addrConnect)) {
@@ -396,7 +396,7 @@ CNode* CConnman::ConnectNode(CAddress addrConnect, const char* pszDest, bool fCo
             if (hSocket == INVALID_SOCKET) {
                 return nullptr;
             }
-            connected = ConnectSocketDirectly(addrConnect, hSocket, nConnectTimeout);
+            connected = ConnectSocketDirectly(addrConnect, hSocket, nConnectTimeout, manual_connection);
         }
         if (!proxyConnectionFailed) {
             // If a connection to the node was attempted, and failure (if any) is not caused by a problem connecting to
@@ -1916,7 +1916,7 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
     } else if (FindNode(pszDest))
         return;
 
-    CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure);
+    CNode* pnode = ConnectNode(addrConnect, pszDest, fCountFailure, fAddnode);
 
     if (!pnode)
         return;
@@ -2769,9 +2769,9 @@ bool CConnman::IsNodeConnected(const CAddress& addr)
     return FindNode(addr.ToStringIPPort());
 }
 
-CNode* CConnman::ConnectNode(CAddress addrConnect)
+CNode* CConnman::ConnectNode(const CAddress& addrConnect)
 {
-    return ConnectNode(addrConnect, nullptr, true);
+    return ConnectNode(addrConnect, nullptr, true, true);
 }
 
 // valid, reachable and routable address (except for RegTest)
