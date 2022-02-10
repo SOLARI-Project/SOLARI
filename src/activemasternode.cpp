@@ -23,14 +23,21 @@ CActiveDeterministicMasternodeManager* activeMasternodeManager{nullptr};
 
 static bool GetLocalAddress(CService& addrRet)
 {
-    // First try to find whatever local address is specified by externalip option
-    bool fFound = GetLocal(addrRet) && CActiveDeterministicMasternodeManager::IsValidNetAddr(addrRet);
+    // First try to find whatever our own local address is known internally.
+    // Addresses could be specified via 'externalip' or 'bind' option, discovered via UPnP
+    // or added by TorController. Use some random dummy IPv4 peer to prefer the one
+    // reachable via IPv4.
+    CNetAddr addrDummyPeer;
+    bool fFound{false};
+    if (LookupHost("8.8.8.8", addrDummyPeer, false)) {
+        fFound = GetLocal(addrRet, &addrDummyPeer) && CActiveDeterministicMasternodeManager::IsValidNetAddr(addrRet);
+    }
     if (!fFound && Params().IsRegTestNet()) {
         if (Lookup("127.0.0.1", addrRet, GetListenPort(), false)) {
             fFound = true;
         }
     }
-    if(!fFound) {
+    if (!fFound) {
         // If we have some peers, let's try to find our local address from one of them
         g_connman->ForEachNodeContinueIf([&fFound, &addrRet](CNode* pnode) {
             if (pnode->addr.IsIPv4())
