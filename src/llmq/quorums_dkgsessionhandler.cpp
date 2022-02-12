@@ -110,7 +110,7 @@ void CDKGSessionHandler::UpdatedBlockTip(const CBlockIndex* pindexNew)
     LOCK(cs);
 
     int quorumStageInt = pindexNew->nHeight % params.dkgInterval;
-    const CBlockIndex* pindexQuorum = pindexNew->GetAncestor(pindexNew->nHeight - quorumStageInt);
+    const CBlockIndex* pindexQuorum = chainActive[pindexNew->nHeight - quorumStageInt];
 
     currentHeight = pindexNew->nHeight;
     quorumHeight = pindexQuorum->nHeight;
