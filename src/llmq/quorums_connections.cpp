@@ -53,6 +53,10 @@ std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>&
             size_t idx = (i + gap) % mns.size();
             auto& otherDmn = mns[idx];
             if (otherDmn->proTxHash == proTxHash) {
+                if (gap_max == 0 && k == 1) {
+                    // special case, two members quorum.
+                    break;
+                }
                 continue;
             }
             r.emplace(otherDmn->proTxHash);

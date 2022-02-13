@@ -25,6 +25,10 @@ std::set<uint256> GetQuorumRelayMembers(const std::vector<uint256>& mnList,
         size_t idx = (forMemberIndex + gap) % mnList.size();
         auto& otherDmnId = mnList[idx];
         if (otherDmnId == forMember) {
+            if (gap_max == 0 && k == 1) {
+                // special case, two members quorum.
+                break;
+            }
             continue;
         }
         r.emplace(otherDmnId);
