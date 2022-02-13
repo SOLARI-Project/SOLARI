@@ -65,11 +65,9 @@ std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>&
     return calcOutbound(mnList, forMemberIndex, forMember);
 }
 
-static std::set<uint256> GetQuorumConnections(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum, const uint256& forMember, bool onlyOutbound)
+static std::set<uint256> GetQuorumConnections(const std::vector<CDeterministicMNCPtr>& mns, const uint256& forMember, bool onlyOutbound)
 {
-    auto mns = deterministicMNManager->GetAllQuorumMembers(llmqType, pindexQuorum);
     std::set<uint256> result;
-
     for (auto& dmn : mns) {
         if (dmn->proTxHash == forMember) {
             continue;
@@ -120,7 +118,7 @@ void EnsureQuorumConnections(Consensus::LLMQType llmqType, const CBlockIndex* pi
     std::set<uint256> connections;
     std::set<uint256> relayMembers;
     if (isMember) {
-        connections = GetQuorumConnections(llmqType, pindexQuorum, myProTxHash, true);
+        connections = GetQuorumConnections(members, myProTxHash, true);
         unsigned int memberIndex = itMember - members.begin();
         relayMembers = GetQuorumRelayMembers(members, myProTxHash, memberIndex);
     } else {
