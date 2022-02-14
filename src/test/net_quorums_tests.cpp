@@ -13,6 +13,10 @@ BOOST_AUTO_TEST_SUITE(net_quorums_tests)
 std::set<uint256> GetQuorumRelayMembers(const std::vector<uint256>& mnList,
                                         unsigned int forMemberIndex)
 {
+    // Special case
+    if (mnList.size() == 2) {
+        return {mnList[(forMemberIndex + 1) % 2]};
+    }
     // Relay to nodes at indexes (i+2^k)%n, where
     //   k: 0..max(1, floor(log2(n-1))-1)
     //   n: size of the quorum/ring
@@ -52,10 +56,12 @@ void checkQuorumRelayMembers(const std::vector<uint256>& list, unsigned int expe
 
 BOOST_FIXTURE_TEST_CASE(get_quorum_relay_members, BasicTestingSetup)
 {
-    SeedInsecureRand(SeedRand::ZEROS);
-    std::vector<uint256> list = createMNList(1200);
+    // 1) Test special case of 2 members
+    std::vector<uint256> list = createMNList(2);
+    checkQuorumRelayMembers(list, 1);
 
-    // Test quorum sizes 3 to 1200
+    // 2) Test quorum sizes 3 to 1200
+    list = createMNList(1200);
     size_t expectedRet = 2;
     for (size_t i = 3; i < 1201; i++) {
         std::vector<uint256> copyList = list;
