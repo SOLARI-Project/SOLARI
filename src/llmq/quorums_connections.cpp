@@ -38,10 +38,9 @@ uint256 DeterministicOutboundConnection(const uint256& proTxHash1, const uint256
 }
 
 std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>& mnList,
-                                        const uint256& forMember,
                                         unsigned int forMemberIndex)
 {
-    auto calcOutbound = [](const std::vector<CDeterministicMNCPtr>& mns, size_t i, const uint256& proTxHash) {
+    auto calcOutbound = [](const std::vector<CDeterministicMNCPtr>& mns, size_t i) {
         // Relay to nodes at indexes (i+2^k)%n, where
         //   k: 0..max(1, floor(log2(n-1))-1)
         //   n: size of the quorum/ring
@@ -51,22 +50,14 @@ std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>&
         int k = 0;
         while ((gap_max >>= 1) || k <= 1) {
             size_t idx = (i + gap) % mns.size();
-            auto& otherDmn = mns[idx];
-            if (otherDmn->proTxHash == proTxHash) {
-                if (gap_max == 0 && k == 1) {
-                    // special case, two members quorum.
-                    break;
-                }
-                continue;
-            }
-            r.emplace(otherDmn->proTxHash);
+            r.emplace(mns[idx]->proTxHash);
             gap <<= 1;
             k++;
         }
         return r;
     };
 
-    return calcOutbound(mnList, forMemberIndex, forMember);
+    return calcOutbound(mnList, forMemberIndex);
 }
 
 static std::set<uint256> GetQuorumConnections(const std::vector<CDeterministicMNCPtr>& mns, const uint256& forMember, bool onlyOutbound)
@@ -124,7 +115,7 @@ void EnsureQuorumConnections(Consensus::LLMQType llmqType, const CBlockIndex* pi
     if (isMember) {
         connections = GetQuorumConnections(members, myProTxHash, true);
         unsigned int memberIndex = itMember - members.begin();
-        relayMembers = GetQuorumRelayMembers(members, myProTxHash, memberIndex);
+        relayMembers = GetQuorumRelayMembers(members, memberIndex);
     } else {
         auto cindexes = CalcDeterministicWatchConnections(llmqType, pindexQuorum, members.size(), 1);
         for (auto idx : cindexes) {

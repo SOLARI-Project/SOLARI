@@ -18,7 +18,7 @@ namespace llmq {
 uint256 DeterministicOutboundConnection(const uint256& proTxHash1, const uint256& proTxHash2);
 
 // Return the outbound quorum relay members for 'forMember' (proTxHash)
-std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>& mnList, const uint256& forMember, unsigned int forMemberIndex);
+std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>& mnList, unsigned int forMemberIndex);
 std::set<size_t> CalcDeterministicWatchConnections(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum, size_t memberCount, size_t connectionCount);
 
 void EnsureQuorumConnections(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum, const uint256& myProTxHash);
