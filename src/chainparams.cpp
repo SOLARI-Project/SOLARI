@@ -352,6 +352,9 @@ public:
         consensus.llmqs[Consensus::LLMQ_400_85] = llmq400_85;
 
         nLLMQConnectionRetryTimeout = 60;
+
+        // Tier two
+        nFulfilledRequestExpireTime = 60 * 60; // fulfilled requests expire in 1 hour
     }
 
     const CCheckpointData& Checkpoints() const
@@ -490,6 +493,9 @@ public:
         consensus.llmqs[Consensus::LLMQ_400_85] = llmq400_85;
 
         nLLMQConnectionRetryTimeout = 60;
+
+        // Tier two
+        nFulfilledRequestExpireTime = 60 * 60; // fulfilled requests expire in 1 hour
     }
 
     const CCheckpointData& Checkpoints() const
@@ -625,6 +631,9 @@ public:
         // long living quorum params
         consensus.llmqs[Consensus::LLMQ_TEST] = llmq_test;
         nLLMQConnectionRetryTimeout = 5;
+
+        // Tier two
+        nFulfilledRequestExpireTime = 60 * 60; // fulfilled requests expire in 1 hour
     }
 
     const CCheckpointData& Checkpoints() const

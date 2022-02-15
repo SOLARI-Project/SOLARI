@@ -6,6 +6,7 @@
 #define PIVX_TIERTWO_INIT_H
 
 #include <string>
+#include "fs.h"
 
 static const bool DEFAULT_MASTERNODE  = false;
 static const bool DEFAULT_MNCONFLOCK = true;
@@ -33,7 +34,7 @@ void InitTierTwoPostCoinsCacheLoad();
 void InitTierTwoChainTip();
 
 /** Loads from disk all the tier two related objects */
-bool LoadTierTwo(int chain_active_height, bool fReindexChainState);
+bool LoadTierTwo(int chain_active_height, bool load_cache_files);
 
 /** Register all tier two objects */
 void RegisterTierTwoValidationInterface();
