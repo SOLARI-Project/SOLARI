@@ -6,6 +6,7 @@
 
 import time
 
+from test_framework.authproxy import JSONRPCException
 from test_framework.test_framework import PivxDMNTestFramework, ExpectedDKGMessages
 from test_framework.util import (
     assert_equal,
@@ -24,6 +25,18 @@ class DkgPoseTest(PivxDMNTestFramework):
         node.setnetworkactive(False)
         wait_until(lambda: node.getconnectioncount() == 0)
 
+    def wait_for_spork22(self, fEnabled):
+        time.sleep(1)
+        for i in range(self.num_nodes):
+            wait_until(lambda: self.is_spork_active(i, "SPORK_22_LLMQ_DKG_MAINTENANCE") == fEnabled, timeout=5)
+
+    def set_spork_22(self, fEnabled):
+        if fEnabled:
+            self.activate_spork(self.minerPos, "SPORK_22_LLMQ_DKG_MAINTENANCE")
+        else:
+            self.deactivate_spork(self.minerPos, "SPORK_22_LLMQ_DKG_MAINTENANCE")
+        self.wait_for_spork22(fEnabled)
+
     def run_test(self):
         miner = self.nodes[self.minerPos]
 
@@ -31,9 +44,23 @@ class DkgPoseTest(PivxDMNTestFramework):
         self.setup_test()
         assert_equal(len(self.mns), 6)
 
+        # Set DKG maintenance (SPORK 22) and verify that the mined commitment is null
+        self.log.info("Activating SPORK 22...")
+        self.set_spork_22(True)
+        try:
+            self.mine_quorum()
+            raise Exception("Non-null commitment mined with SPORK 22")
+        except JSONRPCException as e:
+            assert_equal(e.error["code"], -8)
+            assert_equal(e.error["message"], "mined commitment not found")
+            self.log.info("Null commitment mined")
+
+        self.log.info("Deactivating SPORK 22...")
+        self.set_spork_22(False)
+
         # Mine a LLMQ final commitment regularly with 3 signers
         qfc, bad_mnode = self.mine_quorum()
-        assert_equal(171, miner.getblockcount())
+        assert_equal(191, miner.getblockcount())
         assert bad_mnode is None
         self.check_final_commitment(qfc, valid=[1, 1, 1], signers=[1, 1, 1])
 
@@ -42,7 +69,7 @@ class DkgPoseTest(PivxDMNTestFramework):
                                         r_contrib=2, r_complaint=2, r_justif=0, r_commit=2) for _ in range(2)]
         qfc, bad_mnode = self.mine_quorum(invalidate_func=self.disable_network_for_node,
                                           skip_bad_member_sync=True, expected_messages=dkg_msgs)
-        assert_equal(191, miner.getblockcount())
+        assert_equal(211, miner.getblockcount())
         assert bad_mnode is not None
         self.check_final_commitment(qfc, valid=[1, 1, 0], signers=[1, 1, 0])
 
@@ -69,8 +96,6 @@ class DkgPoseTest(PivxDMNTestFramework):
             time.sleep(1)
         # timeout
         raise Exception("Node not banned after 10 minutes")
-
-
 
 if __name__ == '__main__':
     DkgPoseTest().main()

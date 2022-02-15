@@ -955,16 +955,21 @@ static llmq::CFinalCommitment CreateFinalCommitment(std::vector<CBLSPublicKey>& 
     return qfl;
 }
 
-CMutableTransaction CreateNullQfcTx(const uint256& quorumHash, int nHeight)
+CMutableTransaction CreateQfcTx(const uint256& quorumHash, int nHeight, Optional<llmq::CFinalCommitment> opt_qfc)
 {
     llmq::LLMQCommPL pl;
-    pl.commitment = llmq::CFinalCommitment(Params().GetConsensus().llmqs.at(Consensus::LLMQ_TEST), quorumHash);
+    pl.commitment = opt_qfc ? *opt_qfc : llmq::CFinalCommitment(Params().GetConsensus().llmqs.at(Consensus::LLMQ_TEST), quorumHash);
     pl.nHeight = nHeight;
     CMutableTransaction tx;
     tx.nVersion = CTransaction::TxVersion::SAPLING;
     tx.nType = CTransaction::TxType::LLMQCOMM;
     SetTxPayload(tx, pl);
     return tx;
+}
+
+CMutableTransaction CreateNullQfcTx(const uint256& quorumHash, int nHeight)
+{
+    return CreateQfcTx(quorumHash, nHeight, nullopt);
 }
 
 CService ip(uint32_t i)
@@ -1254,6 +1259,76 @@ BOOST_FIXTURE_TEST_CASE(dkg_pose_and_qfc_invalid_paths, TestChain400Setup)
 
     // final commitment received, accepted, and replaced the previous one (with less memebers)
     BOOST_CHECK(llmq::quorumBlockProcessor->HasMinableCommitment(::SerializeHash(qfc)));
+
+    // activate spork 22 and try to mine a non-null commitment
+    nTime = GetTime() - 10;
+    sporkManager.AddOrUpdateSporkMessage(CSporkMessage(SPORK_22_LLMQ_DKG_MAINTENANCE, nTime + 1, nTime));
+    BOOST_CHECK(sporkManager.IsSporkActive(SPORK_22_LLMQ_DKG_MAINTENANCE));
+    auto qtx = CreateQfcTx(quorumHash, nHeight + 1, Optional<llmq::CFinalCommitment>(qfc2));
+    pblock_invalid = std::make_shared<CBlock>(CreateBlock({qtx}, coinsbaseScript, true, false, false));
+    ProcessBlockAndCheckRejectionReason(pblock_invalid, "bad-qc-not-null-spork22", nHeight);
+
+    // mine a null commitment
+    for (size_t i = 0; i < 8; i++) {
+        CreateAndProcessBlock({}, coinbaseKey);
+    }
+    nHeight = WITH_LOCK(cs_main, return chainActive.Height(); );
+    BOOST_CHECK_EQUAL(nHeight, 449);
+    nullQfcTx = CreateNullQfcTx(quorumHash, nHeight + 1);
+    auto pblock = std::make_shared<CBlock>(CreateBlock({nullQfcTx}, coinsbaseScript, true, false, false));
+    ProcessNewBlock(pblock, nullptr);
+    chainTip = WITH_LOCK(cs_main, return chainActive.Tip(); );
+    BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+
+    for (size_t i = 0; i < 19; i++) {
+        CreateAndProcessBlock({}, coinbaseKey);
+        chainTip = WITH_LOCK(cs_main, return chainActive.Tip(); );
+        BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+    }
+    BOOST_CHECK_EQUAL(nHeight, 469);
+
+    // test rejection of non-null commitments over the wire
+    {
+        LOCK(cs_main);
+        quorumHash = chainActive[nHeight - (nHeight % params.dkgInterval)]->GetBlockHash();
+        quorumIndex = mapBlockIndex.at(quorumHash);
+    }
+    members = deterministicMNManager->GetAllQuorumMembers(Consensus::LLMQ_TEST, quorumIndex);
+    pkeys.clear();
+    skeys.clear();
+    for (size_t i = 0; i < members.size(); i++) {
+        pkeys.emplace_back(members[i]->pdmnState->pubKeyOperator.Get());
+        skeys.emplace_back(operatorKeys.at(members[i]->proTxHash));
+    }
+    llmq::CFinalCommitment qfc3 = CreateFinalCommitment(pkeys, skeys, quorumHash);
+    BOOST_CHECK(!qfc3.IsNull());
+    {
+        LOCK(cs_main);
+        CValidationState state;
+        BOOST_CHECK(!VerifyLLMQCommitment(qfc3, chainTip, state));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-qc-not-null-spork22");
+    }
+    // final commitment not accepted
+    uint256 qfc3_hash = ::SerializeHash(qfc3);
+    ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc3, &dummyNode, 50);
+    BOOST_CHECK(!llmq::quorumBlockProcessor->HasMinableCommitment(qfc3_hash));
+
+    // disable spork 22 and accept it
+    sporkManager.AddOrUpdateSporkMessage(CSporkMessage(SPORK_22_LLMQ_DKG_MAINTENANCE, 4070908800ULL, GetTime()));
+    BOOST_CHECK(!sporkManager.IsSporkActive(SPORK_22_LLMQ_DKG_MAINTENANCE));
+    ProcessQuorum(llmq::quorumBlockProcessor.get(), qfc3, &dummyNode);
+    BOOST_CHECK(llmq::quorumBlockProcessor->HasMinableCommitment(qfc3_hash));
+
+    // and mine it
+    CreateAndProcessBlock({}, coinbaseKey);
+    chainTip = WITH_LOCK(cs_main, return chainActive.Tip(); );
+    BOOST_CHECK_EQUAL(chainTip->nHeight, ++nHeight);
+    BOOST_CHECK(llmq::quorumBlockProcessor->GetMinedCommitment(Consensus::LLMQ_TEST, quorumHash, ret, retMinedBlockHash));
+    BOOST_CHECK(chainTip->GetBlockHash() == retMinedBlockHash);
+    BOOST_CHECK(qfc3.quorumPublicKey == ret.quorumPublicKey);
+    BOOST_CHECK(qfc3.quorumVvecHash == ret.quorumVvecHash);
+    BOOST_CHECK(qfc3.quorumSig == ret.quorumSig);
+    BOOST_CHECK(qfc3.membersSig == ret.membersSig);
 
     UpdateNetworkUpgradeParameters(Consensus::UPGRADE_V6_0, Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT);
 }
