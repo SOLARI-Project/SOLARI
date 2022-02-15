@@ -4,73 +4,56 @@
 
 #include "test/test_pivx.h"
 
+#include "evo/deterministicmns.h"
+#include "llmq/quorums_connections.h"
+
 #include <boost/test/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(net_quorums_tests)
 
-// Simplified copy of quorums_connections.h/cpp, GetQuorumRelayMembers function.
-// (merely without the CDeterministicMNCPtr as it's not needed to test the algorithm)
-std::set<uint256> GetQuorumRelayMembers(const std::vector<uint256>& mnList,
-                                        unsigned int forMemberIndex)
+std::vector<CDeterministicMNCPtr> createMNList(unsigned int size)
 {
-    assert(forMemberIndex < mnList.size());
-
-    // Special case
-    if (mnList.size() == 2) {
-        return {mnList[1 - forMemberIndex]};
-    }
-
-    // Relay to nodes at indexes (i+2^k)%n, where
-    //   k: 0..max(1, floor(log2(n-1))-1)
-    //   n: size of the quorum/ring
-    std::set<uint256> r;
-    int gap = 1;
-    int gap_max = (int)mnList.size() - 1;
-    int k = 0;
-    while ((gap_max >>= 1) || k <= 1) {
-        size_t idx = (forMemberIndex + gap) % mnList.size();
-        r.emplace(mnList[idx]);
-        gap <<= 1;
-        k++;
-    }
-    return r;
-}
-
-std::vector<uint256> createMNList(unsigned int size)
-{
-    std::vector<uint256> mns;
+    std::vector<CDeterministicMNCPtr> mns;
     for (size_t i = 0; i < size; i++) {
-        uint256 item;
-        do { item = g_insecure_rand_ctx.rand256(); } while (std::find(mns.begin(), mns.end(), item) != mns.end());
-        mns.emplace_back(item);
+        CDeterministicMN dmn(i);
+        uint256 newProTxHash;
+        do {
+            newProTxHash = g_insecure_rand_ctx.rand256();
+        } while (std::find_if(mns.begin(), mns.end(),
+                [&newProTxHash](CDeterministicMNCPtr mn){ return mn->proTxHash == newProTxHash; }) != mns.end());
+        dmn.proTxHash = newProTxHash;
+        mns.emplace_back(std::make_shared<const CDeterministicMN>(dmn));
     }
     return mns;
 }
 
-void checkQuorumRelayMembers(const std::vector<uint256>& list, unsigned int expectedResSize)
+void checkQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>& list, unsigned int expectedResSize)
 {
     for (size_t i = 0; i < list.size(); i++) {
-        const auto& set = GetQuorumRelayMembers(list, i);
+        const auto& set = llmq::GetQuorumRelayMembers(list, i);
         BOOST_CHECK_MESSAGE(set.size() == expectedResSize,
                             strprintf("size %d, expected ret size %d, ret size %d ", list.size(), expectedResSize, set.size()));
-        BOOST_CHECK(set.count(list[i]) == 0);
+        BOOST_CHECK(set.count(list[i]->proTxHash) == 0);
     }
 }
 
 BOOST_FIXTURE_TEST_CASE(get_quorum_relay_members, BasicTestingSetup)
 {
-    // 1) Test special case of 2 members
-    std::vector<uint256> list = createMNList(2);
-    checkQuorumRelayMembers(list, 1);
+    size_t list_size = 2000;    // n
+    size_t relay_memb = 10;     // floor(log2(n-1))
 
-    // 2) Test quorum sizes 3 to 1200
-    list = createMNList(1200);
-    size_t expectedRet = 2;
-    for (size_t i = 3; i < 1201; i++) {
-        std::vector<uint256> copyList = list;
-        copyList.resize(i);
-        if ((2 << expectedRet) < (int)i) expectedRet++;
-        checkQuorumRelayMembers(copyList, expectedRet);
+    std::vector<CDeterministicMNCPtr> masternodes = createMNList(list_size);
+
+    // Test quorum sizes 2000 to 2
+    while (true) {
+        checkQuorumRelayMembers(masternodes, relay_memb);
+
+        masternodes.resize(--list_size);
+        if (list_size == 1) break;
+        // n=2 is a special case (1 relay member)
+        // Otherwise relay members are 1 + max(1, floor(log2(n-1))-1)
+        else if (list_size == 2 ||
+                (list_size > 4 && (1 << relay_memb) >= (int)list_size)) relay_memb--;
     }
 }
 
