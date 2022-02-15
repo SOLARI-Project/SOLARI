@@ -226,6 +226,11 @@ bool InitActiveMN()
             return UIError(_("Cannot be a masternode and only connect to specific nodes"));
         }
 
+        if (gArgs.GetArg("-maxconnections", DEFAULT_MAX_PEER_CONNECTIONS) < DEFAULT_MAX_PEER_CONNECTIONS) {
+            return UIError(strprintf(_("Masternode must be able to handle at least %d connections, set %s=%d"),
+                                     DEFAULT_MAX_PEER_CONNECTIONS, "-maxconnections", DEFAULT_MAX_PEER_CONNECTIONS));
+        }
+
         const std::string& mnoperatorkeyStr = gArgs.GetArg("-mnoperatorprivatekey", "");
         const bool fDeterministic = !mnoperatorkeyStr.empty();
         LogPrintf("IS %s MASTERNODE\n", (fDeterministic ? "DETERMINISTIC " : ""));
