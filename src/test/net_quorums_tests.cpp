@@ -13,10 +13,13 @@ BOOST_AUTO_TEST_SUITE(net_quorums_tests)
 std::set<uint256> GetQuorumRelayMembers(const std::vector<uint256>& mnList,
                                         unsigned int forMemberIndex)
 {
+    assert(forMemberIndex < mnList.size());
+
     // Special case
     if (mnList.size() == 2) {
-        return {mnList[(forMemberIndex + 1) % 2]};
+        return {mnList[1 - forMemberIndex]};
     }
+
     // Relay to nodes at indexes (i+2^k)%n, where
     //   k: 0..max(1, floor(log2(n-1))-1)
     //   n: size of the quorum/ring

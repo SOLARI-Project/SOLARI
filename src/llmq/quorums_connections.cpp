@@ -40,9 +40,11 @@ uint256 DeterministicOutboundConnection(const uint256& proTxHash1, const uint256
 std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>& mnList,
                                         unsigned int forMemberIndex)
 {
+    assert(forMemberIndex < mnList.size());
+
     // Special case
     if (mnList.size() == 2) {
-        return {mnList[(forMemberIndex + 1) % 2]->proTxHash};
+        return {mnList[1 - forMemberIndex]->proTxHash};
     }
 
     auto calcOutbound = [](const std::vector<CDeterministicMNCPtr>& mns, size_t i) {
