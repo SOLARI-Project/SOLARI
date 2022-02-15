@@ -47,24 +47,20 @@ std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>&
         return {mnList[1 - forMemberIndex]->proTxHash};
     }
 
-    auto calcOutbound = [](const std::vector<CDeterministicMNCPtr>& mns, size_t i) {
-        // Relay to nodes at indexes (i+2^k)%n, where
-        //   k: 0..max(1, floor(log2(n-1))-1)
-        //   n: size of the quorum/ring
-        std::set<uint256> r;
-        int gap = 1;
-        int gap_max = (int)mns.size() - 1;
-        int k = 0;
-        while ((gap_max >>= 1) || k <= 1) {
-            size_t idx = (i + gap) % mns.size();
-            r.emplace(mns[idx]->proTxHash);
-            gap <<= 1;
-            k++;
-        }
-        return r;
-    };
-
-    return calcOutbound(mnList, forMemberIndex);
+    // Relay to nodes at indexes (i+2^k)%n, where
+    //   k: 0..max(1, floor(log2(n-1))-1)
+    //   n: size of the quorum/ring
+    std::set<uint256> r;
+    int gap = 1;
+    int gap_max = (int)mnList.size() - 1;
+    int k = 0;
+    while ((gap_max >>= 1) || k <= 1) {
+        size_t idx = (forMemberIndex + gap) % mnList.size();
+        r.emplace(mnList[idx]->proTxHash);
+        gap <<= 1;
+        k++;
+    }
+    return r;
 }
 
 static std::set<uint256> GetQuorumConnections(const std::vector<CDeterministicMNCPtr>& mns, const uint256& forMember, bool onlyOutbound)
