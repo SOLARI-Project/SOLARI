@@ -175,6 +175,7 @@ void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
     info.proTxHash = dmn->proTxHash;
     g_connman->GetTierTwoConnMan()->setLocalDMN(info.proTxHash);
     state = MASTERNODE_READY;
+    LogPrintf("Deterministic Masternode initialized\n");
 }
 
 void CActiveDeterministicMasternodeManager::Reset(masternode_state_t _state, const CBlockIndex* pindexTip)
