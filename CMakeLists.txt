@@ -255,6 +255,7 @@ set(SERVER_SOURCES
         ./src/rpc/net.cpp
         ./src/rpc/rawtransaction.cpp
         ./src/rpc/rpcevo.cpp
+        ./src/rpc/rpcquorums.cpp
         ./src/rpc/server.cpp
         ./src/script/sigcache.cpp
         ./src/script/ismine.cpp
@@ -418,6 +419,11 @@ set(COMMON_SOURCES
         ./src/evo/specialtx_validation.cpp
         ./src/llmq/quorums_blockprocessor.cpp
         ./src/llmq/quorums_commitment.cpp
+        ./src/llmq/quorums_connections.cpp
+        ./src/llmq/quorums_debug.cpp
+        ./src/llmq/quorums_dkgsessionhandler.cpp
+        ./src/llmq/quorums_dkgsessionmgr.cpp
+        ./src/llmq/quorums_dkgsession.cpp
         ./src/llmq/quorums_init.cpp
         ./src/llmq/quorums_utils.cpp
         ./src/consensus/merkle.cpp

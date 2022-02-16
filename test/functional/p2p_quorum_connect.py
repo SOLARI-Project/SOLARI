@@ -7,14 +7,13 @@
 import time
 
 from random import getrandbits
-from test_framework.test_framework import PivxTestFramework
+from test_framework.test_framework import PivxDMNTestFramework
 from test_framework.mininode import P2PInterface
 from test_framework.messages import msg_version
 from test_framework.util import (
     assert_equal,
-    assert_true,
     bytes_to_hex_str,
-    connect_nodes_clique,
+    connect_nodes,
     hash256,
     bech32_str_to_bytes,
     wait_until,
@@ -24,76 +23,12 @@ class TestP2PConn(P2PInterface):
     def on_version(self, message):
         pass
 
-class DMNConnectionTest(PivxTestFramework):
+class DMNConnectionTest(PivxDMNTestFramework):
 
     def set_test_params(self):
-        # 1 miner, 1 controller, 6 remote dmns
-        self.num_nodes = 8
-        self.minerPos = 0
-        self.controllerPos = 1
-        self.setup_clean_chain = True
+        self.set_base_test_params()
         self.extra_args = [["-nuparams=v5_shield:1", "-nuparams=v6_evo:101", "-disabledkg"]] * self.num_nodes
         self.extra_args[0].append("-sporkkey=932HEevBSujW2ud7RfB1YF91AFygbBRQj3de3LyaCRqNzKKgWXi")
-
-    def add_new_dmn(self, mns, strType, op_keys=None, from_out=None):
-        mn = self.register_new_dmn(2 + len(mns),
-                                   self.minerPos,
-                                   self.controllerPos,
-                                   strType,
-                                   outpoint=from_out,
-                                   op_blskeys=op_keys)
-        mns.append(mn)
-        return mn
-
-    def check_mn_enabled_count(self, enabled, total):
-        for node in self.nodes:
-            node_count = node.getmasternodecount()
-            assert_equal(node_count['enabled'], enabled)
-            assert_equal(node_count['total'], total)
-
-    def wait_until_mnsync_completed(self):
-        SYNC_FINISHED = [999] * self.num_nodes
-        synced = [-1] * self.num_nodes
-        timeout = time.time() + 240
-        while synced != SYNC_FINISHED and time.time() < timeout:
-            synced = [node.mnsync("status")["RequestedMasternodeAssets"]
-                      for node in self.nodes]
-            if synced != SYNC_FINISHED:
-                time.sleep(5)
-        if synced != SYNC_FINISHED:
-            raise AssertionError("Unable to complete mnsync: %s" % str(synced))
-
-    def setup_phase(self):
-        # Disconnect every node and generate connections to all of them manually.
-        for node in self.nodes:
-            self.disconnect_peers(node)
-        connect_nodes_clique(self.nodes)
-        self.check_peers_count(14)
-
-        # Mine 110 blocks
-        self.log.info("Mining...")
-        self.miner.generate(110)
-        assert_equal("success", self.set_spork(self.minerPos, "SPORK_21_LEGACY_MNS_MAX_HEIGHT", 105))
-        self.sync_blocks()
-        self.assert_equal_for_all(110, "getblockcount")
-
-        # -- DIP3 enforced and SPORK_21 active here --
-        self.wait_until_mnsync_completed()
-
-        # Create 6 DMNs and init the remote nodes
-        for i in range(6):
-            mn = self.add_new_dmn(self.mns, "fund")
-            self.nodes[mn.idx].initmasternode(mn.operator_sk, "", True)
-            time.sleep(1)
-        self.miner.generate(1)
-        self.sync_blocks()
-
-        # enabled/total masternodes: 6/6
-        self.check_mn_enabled_count(6, 6)
-        # Check status from remote nodes
-        assert_equal([self.nodes[idx].getmasternodestatus()['status'] for idx in range(2, self.num_nodes)],
-                     ["Ready"] * (self.num_nodes - 2))
-        self.log.info("All masternodes ready")
 
     def disconnect_peers(self, node):
         node.setnetworkactive(False)
@@ -101,9 +36,9 @@ class DMNConnectionTest(PivxTestFramework):
         assert_equal(len(node.getpeerinfo()), 0)
         node.setnetworkactive(True)
 
-    def check_peers_count(self, expected_count):
-        for i in range(0, 7):
-            assert_equal(len(self.nodes[i].getpeerinfo()), expected_count)
+    def wait_for_peers_count(self, nodes, expected_count):
+        wait_until(lambda: [len(n.getpeerinfo()) for n in nodes] == [expected_count] * len(nodes),
+                   timeout=120)
 
     def check_peer_info(self, peer_info, mn, is_iqr_conn, inbound=False):
         assert_equal(peer_info["masternode"], True)
@@ -114,28 +49,37 @@ class DMNConnectionTest(PivxTestFramework):
         if not inbound:
             assert_equal(peer_info["addr"], mn.ipport)
 
-    def check_peers_info(self, peers_info, quorum_members, is_iqr_conn, inbound=False):
-        for quorum_node in quorum_members:
-            found = False
-            for peer in peers_info:
-                if "verif_mn_proreg_tx_hash" in peer and peer["verif_mn_proreg_tx_hash"] == quorum_node.proTx:
-                    self.check_peer_info(peer, quorum_node, is_iqr_conn, inbound)
-                    found = True
-                    break
-            if not found:
-                print(peers_info)
-            assert_true(found, "MN connection not found for ip: " + str(quorum_node.ipport))
+    def wait_for_peers_info(self, node, quorum_members, is_iqr_conn, inbound=False):
+        def find_peer():
+            for m in quorum_members:
+                for p in node.getpeerinfo():
+                    if "verif_mn_proreg_tx_hash" in p and p["verif_mn_proreg_tx_hash"] == m.proTx:
+                        self.check_peer_info(p, m, is_iqr_conn, inbound)
+                        return True
+            return False
 
-    def has_mn_auth_connection(self, node, expected_proreg_tx_hash):
+        wait_until(find_peer, timeout=120)
+
+
+    def wait_for_auth_connections(self, node, expected_proreg_txes):
+        wait_until(lambda: [pi["verif_mn_proreg_tx_hash"] for pi in node.getpeerinfo()
+                            if "verif_mn_proreg_tx_hash" in pi] == expected_proreg_txes, timeout=120)
+
+    def has_single_regular_connection(self, node):
         peer_info = node.getpeerinfo()
-        return (len(peer_info) == 1) and (peer_info[0]["verif_mn_proreg_tx_hash"] == expected_proreg_tx_hash)
+        return len(peer_info) == 1 and "verif_mn_proreg_tx_hash" not in peer_info[0]
+
+    def clean_conns_and_disconnect(self, node):
+        node.mnconnect("clear_conn")
+        self.disconnect_peers(node)
+        wait_until(lambda: len(node.getpeerinfo()) == 0, timeout=30)
 
     def run_test(self):
-        self.disable_mocktime()
         self.miner = self.nodes[self.minerPos]
-        self.mns = []
-        # Create and start 6 DMN
-        self.setup_phase()
+
+        # initialize and start masternodes
+        self.setup_test()
+        assert_equal(len(self.mns), 6)
 
         ##############################################################
         # 1) Disconnect peers from DMN and add a direct DMN connection
@@ -149,14 +93,12 @@ class DMNConnectionTest(PivxTestFramework):
         # Now try to connect to the second DMN only
         mn2 = self.mns[1]
         assert mn1_node.mnconnect("single_conn", [mn2.proTx])
-        wait_until(lambda: self.has_mn_auth_connection(mn1_node, mn2.proTx), timeout=60)
-        peer_info = mn1_node.getpeerinfo()[0]
+        self.wait_for_auth_connections(mn1_node, [mn2.proTx])
         # Check connected peer info: same DMN and mnauth succeeded
-        self.check_peer_info(peer_info, mn2, is_iqr_conn=False)
+        self.wait_for_peers_info(mn1_node, [mn2], is_iqr_conn=False)
         # Same for the the other side
         mn2_node = self.nodes[mn2.idx]
-        peers_info = mn2_node.getpeerinfo()
-        self.check_peers_info(peers_info, [mn1], is_iqr_conn=False, inbound=True)
+        self.wait_for_peers_info(mn2_node, [mn1], is_iqr_conn=False, inbound=True)
         self.log.info("Completed DMN-to-DMN authenticated connection!")
 
         ################################################################
@@ -169,17 +111,16 @@ class DMNConnectionTest(PivxTestFramework):
         mn6 = self.mns[5]
         quorum_nodes = [mn3, mn4, mn5, mn6]
         self.disconnect_peers(mn2_node)
+        self.wait_for_peers_count([mn2_node], 0)
         self.log.info("disconnected, connecting to quorum members..")
         quorum_members = [mn2.proTx, mn3.proTx, mn4.proTx, mn5.proTx, mn6.proTx]
         assert mn2_node.mnconnect("quorum_members_conn", quorum_members, 1, mn2_node.getbestblockhash())
         # Check connected peer info: same quorum members and mnauth succeeded
-        wait_until(lambda: len(mn2_node.getpeerinfo()) == 4, timeout=90)
-        time.sleep(5) # wait a bit more to receive the mnauth
-        peers_info = mn2_node.getpeerinfo()
-        self.check_peers_info(peers_info, quorum_nodes, is_iqr_conn=False)
+        self.wait_for_peers_count([mn2_node], 4)
+        self.wait_for_peers_info(mn2_node, quorum_nodes, is_iqr_conn=False)
         # Same for the other side (MNs receiving the new connection)
         for mn_node in [self.nodes[mn3.idx], self.nodes[mn4.idx], self.nodes[mn5.idx], self.nodes[mn6.idx]]:
-            self.check_peers_info(mn_node.getpeerinfo(), [mn2], is_iqr_conn=False, inbound=True)
+            self.wait_for_peers_info(mn_node, [mn2], is_iqr_conn=False, inbound=True)
         self.log.info("Completed DMN-to-quorum connections!")
 
         ##################################################################################
@@ -187,12 +128,12 @@ class DMNConnectionTest(PivxTestFramework):
         ##################################################################################
         self.log.info("3) Testing connections update to be intra-quorum relay connections")
         assert mn2_node.mnconnect("iqr_members_conn", quorum_members, 1, mn2_node.getbestblockhash())
-        peers_info = mn2_node.getpeerinfo()
-        self.check_peers_info(peers_info, quorum_nodes, is_iqr_conn=True)
+        time.sleep(2)
+        self.wait_for_peers_info(mn2_node, quorum_nodes, is_iqr_conn=True)
         # Same for the other side (MNs receiving the new connection)
         for mn_node in [self.nodes[mn3.idx], self.nodes[mn4.idx], self.nodes[mn5.idx], self.nodes[mn6.idx]]:
             assert mn_node.mnconnect("iqr_members_conn", quorum_members, 1, mn2_node.getbestblockhash())
-            self.check_peers_info(mn_node.getpeerinfo(), [mn2], is_iqr_conn=True, inbound=True)
+            self.wait_for_peers_info(mn_node, [mn2], is_iqr_conn=True, inbound=True)
         self.log.info("Completed update to quorum relay members!")
 
         ###########################################
@@ -214,7 +155,7 @@ class DMNConnectionTest(PivxTestFramework):
         self.log.info("5) Testing regular node disconnection after receiving an auth DMN connection..")
         self.disconnect_peers(self.miner)
         no_version_node = self.miner.add_p2p_connection(TestP2PConn(), send_version=False, wait_for_verack=False)
-        assert_equal(len(self.miner.getpeerinfo()), 1)
+        self.wait_for_peers_count([self.miner], 1)
         # send the version as it would be a MN
         mn_challenge = getrandbits(256)
         with self.miner.assert_debug_log(["but we're not a masternode, disconnecting"]):
@@ -224,6 +165,29 @@ class DMNConnectionTest(PivxTestFramework):
         assert_equal(len(self.miner.getpeerinfo()), 0)
         self.log.info("Regular node disconnected auth connection successfully")
 
+        ##############################################################################
+        # 6) Now test regular connection refresh after selecting peer as quorum member
+        ##############################################################################
+        self.log.info("6) Now test regular connection refresh after selecting peer as quorum member..")
+        # Cleaning internal data first
+        mn5_node = self.nodes[mn5.idx]
+        self.clean_conns_and_disconnect(mn5_node)
+        self.clean_conns_and_disconnect(mn6_node)
+
+        # Create the regular connection
+        connect_nodes(mn5_node, mn6.idx)
+        self.wait_for_peers_count([mn5_node], 1)
+        assert self.has_single_regular_connection(mn5_node)
+        assert self.has_single_regular_connection(mn6_node)
+
+        # Now refresh it to be a quorum member connection
+        quorum_hash = mn5_node.getbestblockhash()
+        assert mn5_node.mnconnect("quorum_members_conn", [mn6.proTx], 1, quorum_hash)
+        assert mn5_node.mnconnect("iqr_members_conn", [mn6.proTx], 1, quorum_hash)
+        assert mn6_node.mnconnect("iqr_members_conn", [mn5.proTx], 1, quorum_hash)
+
+        self.wait_for_auth_connections(mn5_node, [mn6.proTx])
+        self.log.info("Connection refreshed!")
 
 if __name__ == '__main__':
     DMNConnectionTest().main()

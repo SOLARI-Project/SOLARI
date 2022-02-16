@@ -67,10 +67,10 @@ static Consensus::LLMQParams llmq_test = {
         .minSize = 2,
         .threshold = 2,
 
-        .dkgInterval = 60, // one DKG per hour
-        .dkgPhaseBlocks = 6,
-        .dkgMiningWindowStart = 30, // dkgPhaseBlocks * 5 = after finalization
-        .dkgMiningWindowEnd = 40,
+        .dkgInterval = 20, // one every 20 minutes
+        .dkgPhaseBlocks = 2,
+        .dkgMiningWindowStart = 10, // dkgPhaseBlocks * 5 = after finalization
+        .dkgMiningWindowEnd = 15,
         .dkgBadVotesThreshold = 2,
 
         .signingActiveQuorumCount = 2, // just a few ones to allow easier testing
@@ -78,7 +78,7 @@ static Consensus::LLMQParams llmq_test = {
         .keepOldConnections = 3,
         .recoveryMembers = 3,
 
-        .cacheDkgInterval = 180,
+        .cacheDkgInterval = 60,
 };
 
 static Consensus::LLMQParams llmq50_60 = {
@@ -630,7 +630,7 @@ public:
 
         // long living quorum params
         consensus.llmqs[Consensus::LLMQ_TEST] = llmq_test;
-        nLLMQConnectionRetryTimeout = 5;
+        nLLMQConnectionRetryTimeout = 10;
 
         // Tier two
         nFulfilledRequestExpireTime = 60 * 60; // fulfilled requests expire in 1 hour

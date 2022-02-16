@@ -41,13 +41,15 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "chain -> legacy/stakemodifier -> validation -> chain"
     "kernel -> stakeinput -> wallet/wallet -> kernel"
     "legacy/validation_zerocoin_legacy -> wallet/wallet -> validation -> legacy/validation_zerocoin_legacy"
+    "llmq/quorums_dkgsession -> llmq/quorums_dkgsessionmgr -> llmq/quorums_dkgsessionhandler -> llmq/quorums_dkgsession"
+    "llmq/quorums_dkgsessionhandler -> net_processing -> llmq/quorums_dkgsessionmgr -> llmq/quorums_dkgsessionhandler"
     "chain -> legacy/stakemodifier -> validation -> validationinterface -> chain"
     "chain -> legacy/stakemodifier -> stakeinput -> txdb -> chain"
     "chain -> legacy/stakemodifier -> validation -> checkpoints -> chain"
     "chain -> legacy/stakemodifier -> validation -> undo -> chain"
     "chain -> legacy/stakemodifier -> validation -> pow -> chain"
+    "evo/deterministicmns -> masternodeman -> net -> tiertwo/net_masternodes -> evo/deterministicmns"
     "evo/deterministicmns -> masternodeman -> validation -> validationinterface -> evo/deterministicmns"
-    "evo/deterministicmns -> llmq/quorums_utils -> net -> tiertwo/net_masternodes -> evo/deterministicmns"
 )
 
 EXIT_CODE=0

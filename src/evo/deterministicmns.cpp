@@ -14,7 +14,6 @@
 #include "core_io.h"
 #include "key_io.h"
 #include "guiinterface.h"
-#include "llmq/quorums_utils.h"
 #include "masternodeman.h" // for mnodeman (!TODO: remove)
 #include "script/standard.h"
 #include "spork.h"
@@ -980,3 +979,5 @@ std::vector<CDeterministicMNCPtr> CDeterministicMNManager::GetAllQuorumMembers(C
     auto modifier = ::SerializeHash(std::make_pair(static_cast<uint8_t>(llmqType), pindexQuorum->GetBlockHash()));
     return allMns.CalculateQuorum(params.size, modifier);
 }
+
+

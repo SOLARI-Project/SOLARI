@@ -61,7 +61,8 @@ from .util import (
     set_node_times,
     SPORK_ACTIVATION_TIME,
     SPORK_DEACTIVATION_TIME,
-    satoshi_round
+    satoshi_round,
+    wait_until,
 )
 
 class TestStatus(Enum):
@@ -1336,7 +1337,6 @@ class PivxTestFramework():
         assert_equal(pl["operatorPubKey"], dmn.operator_pk)
         assert_equal(pl["payoutAddress"], dmn.payee)
 
-
 # ------------------------------------------------------
 
 class SkipTest(Exception):
@@ -1348,6 +1348,273 @@ class SkipTest(Exception):
 '''
 PivxTestFramework extensions
 '''
+
+class ExpectedDKGMessages:
+    def __init__(self,
+                 s_contrib=True, s_complaint=False, s_justif=False, s_commit=True,
+                 r_contrib=3, r_complaint=0, r_justif=0, r_commit=3):
+        self.sent_contrib = s_contrib
+        self.sent_complaint = s_complaint
+        self.sent_justif = s_justif
+        self.sent_commit = s_commit
+        self.recv_contrib = r_contrib
+        self.recv_complaint = r_complaint
+        self.recv_justif = r_justif
+        self.recv_commit = r_commit
+
+class PivxDMNTestFramework(PivxTestFramework):
+
+    def set_base_test_params(self):
+        # 1 miner, 1 controller, 6 remote mns
+        self.num_nodes = 8
+        self.minerPos = 0
+        self.controllerPos = 1
+        self.setup_clean_chain = True
+
+    def add_new_dmn(self, strType, op_keys=None, from_out=None):
+        self.mns.append(self.register_new_dmn(2 + len(self.mns),
+                                             self.minerPos,
+                                             self.controllerPos,
+                                             strType,
+                                             outpoint=from_out,
+                                             op_blskeys=op_keys))
+
+    def check_mn_list(self):
+        for i in range(self.num_nodes):
+            self.check_mn_list_on_node(i, self.mns)
+        self.log.info("Deterministic list contains %d masternodes for all peers." % len(self.mns))
+
+    def check_mn_enabled_count(self, enabled, total):
+        for node in self.nodes:
+            node_count = node.getmasternodecount()
+            assert_equal(node_count['enabled'], enabled)
+            assert_equal(node_count['total'], total)
+
+    def wait_until_mnsync_completed(self):
+        SYNC_FINISHED = [999] * self.num_nodes
+        synced = [-1] * self.num_nodes
+        timeout = time.time() + 120
+        while synced != SYNC_FINISHED and time.time() < timeout:
+            synced = [node.mnsync("status")["RequestedMasternodeAssets"]
+                      for node in self.nodes]
+            if synced != SYNC_FINISHED:
+                time.sleep(5)
+        if synced != SYNC_FINISHED:
+            raise AssertionError("Unable to complete mnsync: %s" % str(synced))
+
+    def setup_test(self):
+        self.mns = []
+        self.disable_mocktime()
+        connect_nodes_clique(self.nodes)
+
+        # Enforce mn payments and reject legacy mns at block 131
+        self.activate_spork(0, "SPORK_8_MASTERNODE_PAYMENT_ENFORCEMENT")
+        assert_equal("success", self.set_spork(self.minerPos, "SPORK_21_LEGACY_MNS_MAX_HEIGHT", 130))
+        time.sleep(1)
+        assert_equal([130] * self.num_nodes, [self.get_spork(x, "SPORK_21_LEGACY_MNS_MAX_HEIGHT")
+                                              for x in range(self.num_nodes)])
+
+        # Mine 130 blocks
+        self.log.info("Mining...")
+        self.nodes[self.minerPos].generate(10)
+        self.sync_blocks()
+        self.wait_until_mnsync_completed()
+        self.nodes[self.minerPos].generate(120)
+        self.sync_blocks()
+        self.assert_equal_for_all(130, "getblockcount")
+
+        # enabled/total masternodes: 0/0
+        self.check_mn_enabled_count(0, 0)
+
+        # Create 6 DMNs and init the remote nodes
+        self.log.info("Initializing masternodes...")
+        for _ in range(2):
+            self.add_new_dmn("internal")
+            self.add_new_dmn("external")
+            self.add_new_dmn("fund")
+        assert_equal(len(self.mns), 6)
+        for mn in self.mns:
+            self.nodes[mn.idx].initmasternode(mn.operator_sk, "", True)
+            time.sleep(1)
+        self.nodes[self.minerPos].generate(1)
+        self.sync_blocks()
+
+        # enabled/total masternodes: 6/6
+        self.check_mn_enabled_count(6, 6)
+        self.check_mn_list()
+
+        # Check status from remote nodes
+        assert_equal([self.nodes[idx].getmasternodestatus()['status'] for idx in range(2, self.num_nodes)],
+                     ["Ready"] * (self.num_nodes - 2))
+        self.log.info("All masternodes ready.")
+
+    # LLMQ functions
+
+    def get_quorum_connections(self, node, members):
+        conn = []
+        for peer in [p for p in node.getpeerinfo() if p["masternode"]]:
+            x = [m for m in members if m.proTx == peer["verif_mn_proreg_tx_hash"]]
+            if len(x) > 0:
+                conn.append(x[0].idx)
+        return conn
+
+    def wait_for_mn_connections(self, members):
+        def count_mn_conn(n):
+            return len(self.get_quorum_connections(n, members))
+        ql = len(members)
+        wait_until(lambda: [count_mn_conn(self.nodes[mn.idx]) for mn in members] == [ql - 1] * ql)
+        for mn in members:
+            conn = self.get_quorum_connections(self.nodes[mn.idx], members)
+            self.log.info("Authenticated connections to node %d: %s" % (mn.idx, conn))
+
+    def wait_for_dkg_phase(self, phase, quorum_hash, quorum_height, members_online, expected_msgs_list):
+        assert_equal(len(members_online), len(expected_msgs_list))
+
+        def check_phase():
+            status = [self.nodes[mn.idx].quorumdkgstatus()["session"]
+                      for mn in members_online]
+            for i, s in enumerate(status):
+                if "llmq_test" not in s:
+                    return False
+                s = s["llmq_test"]
+                msgs = expected_msgs_list[i]
+                if (s["quorumHash"] != quorum_hash
+                        or s["quorumHeight"] != quorum_height
+                        or s["phase"] != phase
+                        or s["sentContributions"] != (phase != 1 and msgs.sent_contrib)
+                        or s["sentComplaint"] != (phase > 2 and msgs.sent_complaint)
+                        or s["sentJustification"] != (phase > 3 and msgs.sent_justif)
+                        or s["sentPrematureCommitment"] != (phase > 4 and msgs.sent_commit)
+                        or s["receivedContributions"] != (0 if phase == 1 else msgs.recv_contrib)
+                        or s["receivedComplaints"] != (0 if phase <= 2 else msgs.recv_complaint)
+                        or s["receivedJustifications"] != (0 if phase <= 3 else msgs.recv_justif)
+                        or s["receivedPrematureCommitments"] != (0 if phase <= 4 else msgs.recv_commit)):
+                    return False
+            return True
+
+        timeout = time.time() + 30
+        while time.time() < timeout:
+            if check_phase():
+                return  # all good
+            time.sleep(6)
+
+        # Timeout: print the cause
+        self.log.error("Cannot reach phase %d" % phase)
+        for i, mo in enumerate(members_online):
+            msgs = expected_msgs_list[i]
+            self.log.error("Checking node %d..." % mo.idx)
+            conn = self.get_quorum_connections(self.nodes[mo.idx], members_online)
+            self.log.error("Connected to: %s" % str(conn))
+            fs = self.nodes[mo.idx].quorumdkgstatus()["session"]
+            assert "llmq_test" in fs
+            fs = fs["llmq_test"]
+            assert_equal(fs["quorumHash"], quorum_hash)
+            assert_equal(fs["quorumHeight"], quorum_height)
+            assert_equal(fs["phase"], phase)
+            assert_equal(fs["sentContributions"], (phase != 1 and msgs.sent_contrib))
+            assert_equal(fs["sentComplaint"], (phase > 2 and msgs.sent_complaint))
+            assert_equal(fs["sentJustification"], (phase > 3 and msgs.sent_justif))
+            assert_equal(fs["sentPrematureCommitment"], (phase > 4 and msgs.sent_commit))
+            assert_equal(fs["receivedContributions"], (0 if phase == 1 else msgs.recv_contrib))
+            assert_equal(fs["receivedComplaints"], (0 if phase <= 2 else msgs.recv_complaint))
+            assert_equal(fs["receivedJustifications"], (0 if phase <= 3 else msgs.recv_justif))
+            assert_equal(fs["receivedPrematureCommitments"], (0 if phase <= 4 else msgs.recv_commit))
+
+    def get_quorum_members(self, quorum_hash):
+        members = []
+        # preserve getquorummembers order
+        for protx in self.nodes[self.minerPos].getquorummembers(100, quorum_hash):
+            members.append(next(mn for mn in self.mns if mn.proTx == protx))
+        return members
+
+    def check_final_commitment(self, qfc, valid, signers):
+        signersCount = 0
+        signersBitStr = 0
+        for i, s in enumerate(signers):
+            signersCount += s
+            signersBitStr += (s << i)
+        signersBitStr = "0%d" % signersBitStr
+        validCount = 0
+        validBitStr = 0
+        for i, s in enumerate(valid):
+            validCount += s
+            validBitStr += (s << i)
+        validBitStr = "0%d" % validBitStr
+        assert_equal(qfc['version'], 1)
+        assert_equal(qfc['llmqType'], 100)
+        assert_equal(qfc['signersCount'], signersCount)
+        assert_equal(qfc['signers'], signersBitStr)
+        assert_equal(qfc['validMembersCount'], validCount)
+        assert_equal(qfc['validMembers'], validBitStr)
+
+    """
+    Returns pair (qfc, bad_member)
+    qfc        : quorum final commitment json object
+    bad_member : Masternode object for non participating node
+                 (or None if all members participated)
+    """
+    def mine_quorum(self, invalidate_func=None, invalidated_idx=None, skip_bad_member_sync=False,
+                    expected_messages=[ExpectedDKGMessages() for _ in range(3)]):
+        nodes_to_sync = self.nodes.copy()
+        if invalidated_idx is not None:
+            assert invalidate_func is None
+            if skip_bad_member_sync:
+                nodes_to_sync.pop(invalidated_idx)
+        miner = self.nodes[self.minerPos]
+        session_blocks = miner.getblockcount() % 20
+        if session_blocks != 0:
+            miner.generate(20 - session_blocks)
+            self.sync_blocks(nodes_to_sync)
+        quorum_height = miner.getblockcount()
+        self.log.info("New DKG starts at block %d..." % quorum_height)
+        quorum_hash = miner.getblockhash(quorum_height)
+        members = self.get_quorum_members(quorum_hash)
+        self.log.info("members: %s" % str([m.idx for m in members]))
+        bad_member = None
+        if invalidate_func is not None:
+            assert invalidated_idx is None
+            bad_member = members[-1]
+            invalidate_func(self.nodes[bad_member.idx])
+            if skip_bad_member_sync:
+                nodes_to_sync.pop(bad_member.idx)
+        elif invalidated_idx in [m.idx for m in members]:
+            bad_member = next(m for m in members if m.idx == invalidated_idx)
+        if bad_member is not None:
+            if skip_bad_member_sync:
+                members.remove(bad_member)
+            self.log.info("Node %d selected as bad" % bad_member.idx)
+        else:
+            # No bad member selected with invalidated_idx set (the invalidated
+            # masternode is not part of the current quorum): reset expected messages
+            if invalidated_idx is not None:
+                expected_messages = [ExpectedDKGMessages() for _ in range(len(members))]
+
+        self.wait_for_mn_connections(members)
+        phase_string = [
+            "1 (Initialization)",
+            "2 (Contribution)",
+            "3 (Complaining)",
+            "4 (Justification)",
+            "5 (Commitment/Finalization)",
+            "6 (Mining)"
+        ]
+        for phase in range(1, 7):
+            self.log.info("Phase %s - block %d" % (phase_string[phase-1], miner.getblockcount()))
+            self.wait_for_dkg_phase(phase,
+                                    quorum_hash,
+                                    quorum_height,
+                                    members,
+                                    expected_messages)
+            miner.generate(2 if phase != 6 else 1)
+            self.sync_all(nodes_to_sync)
+            time.sleep(1 if phase != 5 else 2)  # sleep a bit more during finalization
+        assert_equal(quorum_height + 11, miner.getblockcount())
+        qfc = miner.getminedcommitment(100, quorum_hash)
+        comm_height = miner.getblock(qfc['block_hash'], True)['height']
+        assert_equal(comm_height, quorum_height + 11)
+        self.log.info("Final commitment correctly mined on chain")
+        return qfc, bad_member
+
 # !TODO: remove after obsoleting legacy system
 class PivxTier2TestFramework(PivxTestFramework):
 

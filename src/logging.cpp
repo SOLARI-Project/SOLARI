@@ -107,11 +107,7 @@ const CLogCategoryDesc LogCategories[] = {
         {BCLog::RPC,            "rpc"},
         {BCLog::ESTIMATEFEE,    "estimatefee"},
         {BCLog::ADDRMAN,        "addrman"},
-        {BCLog::SELECTCOINS,    "selectcoins"},
         {BCLog::REINDEX,        "reindex"},
-        {BCLog::CMPCTBLOCK,     "cmpctblock"},
-        {BCLog::RANDOM,         "rand"},
-        {BCLog::PRUNE,          "prune"},
         {BCLog::PROXY,          "proxy"},
         {BCLog::MEMPOOLREJ,     "mempoolrej"},
         {BCLog::LIBEVENT,       "libevent"},
@@ -128,6 +124,7 @@ const CLogCategoryDesc LogCategories[] = {
         {BCLog::VALIDATION,     "validation"},
         {BCLog::LLMQ,           "llmq"},
         {BCLog::NET_MN,         "net_mn"},
+        {BCLog::DKG,            "dkg"},
         {BCLog::ALL,            "1"},
         {BCLog::ALL,            "all"},
 };
@@ -263,4 +260,28 @@ void BCLog::Logger::ShrinkDebugFile()
         }
     } else if (file != NULL)
         fclose(file);
+}
+
+/// PIVX
+
+CBatchedLogger::CBatchedLogger(BCLog::Logger* _logger, BCLog::LogFlags _category, const std::string& _header) :
+    logger(_logger),
+    accept(LogAcceptCategory(_category)),
+    header(_header)
+{}
+
+CBatchedLogger::~CBatchedLogger()
+{
+    Flush();
+}
+
+void CBatchedLogger::Flush()
+{
+    if (!accept || msg.empty()) {
+        return;
+    }
+    if (logger && logger->Enabled()) {
+        logger->LogPrintStr(strprintf("%s:\n%s", header, msg));
+    msg.clear();
+    }
 }

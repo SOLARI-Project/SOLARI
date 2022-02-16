@@ -1,10 +1,11 @@
-// Copyright (c) 2020 The PIVX developers
+// Copyright (c) 2020-2022 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
 #include "masternode-sync.h"
 
 #include "llmq/quorums_blockprocessor.h"
+#include "llmq/quorums_dkgsessionmgr.h"
 #include "masternodeman.h"          // for mnodeman
 #include "netmessagemaker.h"
 #include "net_processing.h"         // for Misbehaving
@@ -55,6 +56,16 @@ bool CMasternodeSync::MessageDispatcher(CNode* pfrom, std::string& strCommand, C
         llmq::quorumBlockProcessor->ProcessMessage(pfrom, vRecv, retMisbehavingScore);
         if (retMisbehavingScore > 0) {
             WITH_LOCK(cs_main, Misbehaving(pfrom->GetId(), retMisbehavingScore));
+        }
+        return true;
+    }
+
+    if (strCommand == NetMsgType::QCONTRIB
+        || strCommand == NetMsgType::QCOMPLAINT
+        || strCommand == NetMsgType::QJUSTIFICATION
+        || strCommand == NetMsgType::QPCOMMITMENT) {
+        if (!llmq::quorumDKGSessionManager->ProcessMessage(pfrom, strCommand, vRecv)) {
+            WITH_LOCK(cs_main, Misbehaving(pfrom->GetId(), 100));
         }
         return true;
     }
