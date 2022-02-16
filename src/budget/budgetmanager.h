@@ -42,10 +42,6 @@ protected:
     // Memory Only. Updated in NewBlock (blocks arrive in order)
     std::atomic<int> nBestHeight;
 
-    // Spam protection
-    // who's asked for the complete budget sync and the last time
-    std::map<CNetAddr, int64_t> mAskedUsForBudgetSync; // guarded by cs_budgets and cs_proposals.
-
     struct HighestFinBudget {
         const CFinalizedBudget* m_budget_fin{nullptr};
         int m_vote_count{0};
@@ -114,7 +110,6 @@ public:
     bool ProcessMessage(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, int& banScore);
     /// Process the message and returns the ban score (0 if no banning is needed)
     int ProcessMessageInner(CNode* pfrom, std::string& strCommand, CDataStream& vRecv);
-    void NewBlock();
 
     int ProcessBudgetVoteSync(const uint256& nProp, CNode* pfrom);
     int ProcessProposal(CBudgetProposal& proposal);

@@ -10,6 +10,7 @@
 #include "masternodeman.h"
 #include "netmessagemaker.h"
 #include "tiertwo/tiertwo_sync_state.h"
+#include "tiertwo/netfulfilledman.h"
 #include "util/validation.h"
 #include "validation.h"   // GetTransaction, cs_main
 
@@ -17,8 +18,10 @@
 #include "wallet/wallet.h" // future: use interface instead.
 #endif
 
-// Peers can only request complete budget sync once per hour.
+
 #define BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS (60 * 60) // One hour.
+// Request type used in the net requests manager to block peers asking budget sync too often
+static const std::string BUDGET_SYNC_REQUEST_RECV = "budget-sync-recv";
 
 CBudgetManager g_budgetman;
 
@@ -959,11 +962,6 @@ bool CBudgetManager::AddAndRelayProposalVote(const CBudgetVote& vote, std::strin
 
 void CBudgetManager::UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload)
 {
-    NewBlock();
-}
-
-void CBudgetManager::NewBlock()
-{
     if (g_tiertwo_sync_state.GetSyncPhase() <= MASTERNODE_SYNC_BUDGET) return;
 
     if (strBudgetMode == "suggest") { //suggest the budget we see
@@ -1017,20 +1015,6 @@ void CBudgetManager::NewBlock()
         }
     }
 
-    {
-        // Clean peers who asked for budget votes sync after an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS)
-        LOCK2(cs_budgets, cs_proposals);
-        int64_t currentTime = GetTime();
-        auto itAskedBudSync = mAskedUsForBudgetSync.begin();
-        while (itAskedBudSync != mAskedUsForBudgetSync.end()) {
-            if ((*itAskedBudSync).second < currentTime) {
-                itAskedBudSync = mAskedUsForBudgetSync.erase(itAskedBudSync);
-            } else {
-                ++itAskedBudSync;
-            }
-        }
-    }
-
     int64_t now = GetTime();
     const auto cleanOrphans = [now](auto& mutex, auto& mapOrphans, auto& mapSeen) {
         LOCK(mutex);
@@ -1067,12 +1051,9 @@ int CBudgetManager::ProcessBudgetVoteSync(const uint256& nProp, CNode* pfrom)
     if (nProp.IsNull()) {
         LOCK2(cs_budgets, cs_proposals);
         if (!(pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal())) {
-            auto itLastRequest = mAskedUsForBudgetSync.find(pfrom->addr);
-            if (itLastRequest != mAskedUsForBudgetSync.end() && GetTime() < (*itLastRequest).second) {
+            if (g_netfulfilledman.HasFulfilledRequest(pfrom->addr, BUDGET_SYNC_REQUEST_RECV)) {
                 LogPrint(BCLog::MASTERNODE, "budgetsync - peer %i already asked for budget sync\n", pfrom->GetId());
-                // The peers sync requests information is not stored on disk (for now), so
-                // the budget sync could be re-requested in less than the allowed time (due a node restart for example).
-                // So, for now, let's not be so hard with the node.
+                // let's not be so hard with the node for now.
                 return 10;
             }
         }
@@ -1475,11 +1456,9 @@ void CBudgetManager::Sync(CNode* pfrom, bool fPartial)
     relayInventoryItems<CFinalizedBudget>(pfrom, cs_budgets, mapFinalizedBudgets, fPartial, MSG_BUDGET_FINALIZED, MASTERNODE_SYNC_BUDGET_FIN);
 
     if (!fPartial) {
-        // Now that budget full sync request was handled, mark it as completed.
-        // We are not going to answer full budget sync requests for an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS).
+        // We are not going to answer full budget sync requests for an hour (chainparams.FulfilledRequestExpireTime()).
         // The remote peer can still do single prop and mnv sync requests if needed.
-        LOCK2(cs_budgets, cs_proposals);
-        mAskedUsForBudgetSync[pfrom->addr] = GetTime() + BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS;
+        g_netfulfilledman.AddFulfilledRequest(pfrom->addr, BUDGET_SYNC_REQUEST_RECV);
     }
 }
 
