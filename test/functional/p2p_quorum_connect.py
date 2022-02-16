@@ -8,6 +8,7 @@ import time
 
 from random import getrandbits
 from test_framework.test_framework import PivxDMNTestFramework
+from test_framework.bech32 import bech32_str_to_bytes
 from test_framework.mininode import P2PInterface
 from test_framework.messages import msg_version
 from test_framework.util import (
@@ -15,7 +16,6 @@ from test_framework.util import (
     bytes_to_hex_str,
     connect_nodes,
     hash256,
-    bech32_str_to_bytes,
     wait_until,
 )
 
