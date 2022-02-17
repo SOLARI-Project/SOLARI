@@ -772,7 +772,7 @@ const char* CLEAR_CONN = "clear_conn";
 **/
 UniValue mnconnect(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 4) {
+    if (request.fHelp || request.params.empty() || request.params.size() > 4) {
         throw std::runtime_error(
                 "mnconnect \"op_type\" (\"[pro_tx_hash, pro_tx_hash,..]\" llmq_type \"quorum_hash\")\n"
                 "\nAdd manual quorum members connections for internal testing purposes of the tier two p2p network layer\n"

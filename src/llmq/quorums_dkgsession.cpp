@@ -8,7 +8,7 @@
 #include "activemasternode.h"
 #include "bls/key_io.h"
 #include "chainparams.h"
-#include "cxxtimer.hpp"
+#include "cxxtimer.h"
 #include "init.h"
 #include "llmq/quorums_connections.h"
 #include "llmq/quorums_commitment.h"
