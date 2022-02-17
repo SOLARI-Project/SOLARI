@@ -63,7 +63,7 @@ public:
     mutable RecursiveMutex cs_votes;
 
     // budget finalization
-    std::string strBudgetMode = "";
+    std::string strBudgetMode;
 
     CBudgetManager() {}
 
@@ -178,11 +178,6 @@ public:
             mapSeenFinalizedBudgetVotes.clear();
             mapOrphanFinalizedBudgetVotes.clear();
         }
-        {
-            LOCK2(cs_budgets, cs_proposals);
-            mAskedUsForBudgetSync.clear();
-        }
-
         LogPrintf("Budget object cleared\n");
     }
     void CheckAndRemove();

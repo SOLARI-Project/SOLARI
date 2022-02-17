@@ -19,13 +19,11 @@
 #endif
 
 
-#define BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS (60 * 60) // One hour.
+#define BUDGET_ORPHAN_VOTES_CLEANUP_SECONDS (60 * 60) // One hour.
 // Request type used in the net requests manager to block peers asking budget sync too often
 static const std::string BUDGET_SYNC_REQUEST_RECV = "budget-sync-recv";
 
 CBudgetManager g_budgetman;
-
-std::map<uint256, int64_t> askedForSourceProposalOrBudget;
 
 // Used to check both proposals and finalized-budgets collateral txes
 bool CheckCollateral(const uint256& nTxCollateralHash, const uint256& nExpectedHash, std::string& strError, int64_t& nTime, int nCurrentHeight, bool fBudgetFinalization);
@@ -991,15 +989,6 @@ void CBudgetManager::UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockI
     // remove expired/heavily downvoted budgets
     CheckAndRemove();
 
-    //remove invalid (from non-active masternode) votes once in a while
-    LogPrint(BCLog::MNBUDGET,"%s:  askedForSourceProposalOrBudget cleanup - size: %d\n", __func__, askedForSourceProposalOrBudget.size());
-    for (auto it = askedForSourceProposalOrBudget.begin(); it !=  askedForSourceProposalOrBudget.end(); ) {
-        if (it->second <= GetTime() - (60 * 60 * 24)) {
-            it = askedForSourceProposalOrBudget.erase(it);
-        } else {
-            it++;
-        }
-    }
     {
         LOCK(cs_proposals);
         LogPrint(BCLog::MNBUDGET,"%s:  mapProposals cleanup - size: %d\n", __func__, mapProposals.size());
@@ -1020,7 +1009,7 @@ void CBudgetManager::UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockI
         LOCK(mutex);
         for (auto it = mapOrphans.begin() ; it != mapOrphans.end();) {
             int64_t lastReceivedVoteTime = it->second.second;
-            if (lastReceivedVoteTime + BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS < now) {
+            if (lastReceivedVoteTime + BUDGET_ORPHAN_VOTES_CLEANUP_SECONDS < now) {
                 // Clean seen votes
                 for (const auto& voteIt : it->second.first) {
                     mapSeen.erase(voteIt.GetHash());
@@ -1507,9 +1496,9 @@ bool CBudgetManager::UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::
                 TryAppendOrphanVoteMap<CBudgetVote>(vote, nProposalHash, mapOrphanProposalVotes, mapSeenProposalVotes);
             }
 
-            if (!askedForSourceProposalOrBudget.count(nProposalHash)) {
+            if (!g_netfulfilledman.HasItemRequest(pfrom->addr, nProposalHash)) {
                 g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, nProposalHash));
-                askedForSourceProposalOrBudget[nProposalHash] = GetTime();
+                g_netfulfilledman.AddItemRequest(pfrom->addr, nProposalHash);
             }
         }
 
@@ -1538,9 +1527,9 @@ bool CBudgetManager::UpdateFinalizedBudget(const CFinalizedBudgetVote& vote, CNo
                 TryAppendOrphanVoteMap<CFinalizedBudgetVote>(vote, nBudgetHash, mapOrphanFinalizedBudgetVotes, mapSeenFinalizedBudgetVotes);
             }
 
-            if (!askedForSourceProposalOrBudget.count(nBudgetHash)) {
+            if (!g_netfulfilledman.HasItemRequest(pfrom->addr, nBudgetHash)) {
                 g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, nBudgetHash));
-                askedForSourceProposalOrBudget[nBudgetHash] = GetTime();
+                g_netfulfilledman.AddItemRequest(pfrom->addr, nBudgetHash);
             }
         }
 
