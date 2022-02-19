@@ -4377,10 +4377,17 @@ bool CWalletTx::AcceptToMemoryPool(CValidationState& state)
     // user could call sendmoney in a loop and hit spurious out of funds errors
     // because we think that the transaction they just generated's change is
     // unavailable as we're not yet aware its in mempool.
-    bool fAccepted = ::AcceptToMemoryPool(mempool, state, tx, true, nullptr, false, true, false);
+    bool fMissingInputs;
+    bool fAccepted = ::AcceptToMemoryPool(mempool, state, tx, true, &fMissingInputs, false, true, false);
     fInMempool = fAccepted;
-    if (!fAccepted)
+    if (!fAccepted) {
+        if (fMissingInputs) {
+            // For now, "missing inputs" error is not returning the proper state, so need to set it manually here.
+            // TODO: clean this setting the proper invalid state inside AcceptToMemoryPool (btc#15921).
+            state.Invalid(false, REJECT_INVALID, "Missing inputs");
+        }
         LogPrintf("%s : %s\n", __func__, state.GetRejectReason());
+    }
     return fAccepted;
 }
 
