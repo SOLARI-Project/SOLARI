@@ -1434,7 +1434,7 @@ class PivxDMNTestFramework(PivxTestFramework):
             self.add_new_dmn("fund")
         assert_equal(len(self.mns), 6)
         for mn in self.mns:
-            self.nodes[mn.idx].initmasternode(mn.operator_sk, "", True)
+            self.nodes[mn.idx].initmasternode(mn.operator_sk)
             time.sleep(1)
         self.nodes[self.minerPos].generate(1)
         self.sync_blocks()
@@ -1734,7 +1734,7 @@ class PivxTier2TestFramework(PivxTestFramework):
         remoteTwoPort = p2p_port(self.remoteTwoPos)
         self.remoteOne.initmasternode(self.mnOnePrivkey, "127.0.0.1:"+str(remoteOnePort))
         self.remoteTwo.initmasternode(self.mnTwoPrivkey, "127.0.0.1:"+str(remoteTwoPort))
-        self.remoteDMN1.initmasternode(self.dmn1Privkey, "", True)
+        self.remoteDMN1.initmasternode(self.dmn1Privkey)
 
         # wait until mnsync complete on all nodes
         self.stake(1)

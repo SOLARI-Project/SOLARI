@@ -130,7 +130,7 @@ class MasternodeCompatibilityTest(PivxTier2TestFramework):
             self.remoteDMN2Pos,
             "internal"
         )
-        self.remoteDMN2.initmasternode(self.dmn2Privkey, "", True)
+        self.remoteDMN2.initmasternode(self.dmn2Privkey)
 
         # check list and status
         self.check_mn_enabled_count(4, 4) # 2 legacy + 2 DMN
@@ -162,7 +162,7 @@ class MasternodeCompatibilityTest(PivxTier2TestFramework):
         # The remote node is shutting down the pinging service
         self.send_3_pings()
 
-        self.remoteDMN3.initmasternode(self.dmn3Privkey, "", True)
+        self.remoteDMN3.initmasternode(self.dmn3Privkey)
 
         # The legacy masternode must no longer be in the list
         # and the DMN must have taken its place

@@ -72,27 +72,28 @@ UniValue mnping(const JSONRPCRequest& request)
 
 UniValue initmasternode(const JSONRPCRequest& request)
 {
-    if (request.fHelp || (request.params.size() < 2|| request.params.size() > 3)) {
+    if (request.fHelp || (request.params.size() < 1 || request.params.size() > 2)) {
         throw std::runtime_error(
-                "initmasternode ( \"privkey\" \"address\" deterministic )\n"
+                "initmasternode \"privkey\" ( \"address\" )\n"
                 "\nInitialize masternode on demand if it's not already initialized.\n"
                 "\nArguments:\n"
                 "1. privkey          (string, required) The masternode private key.\n"
-                "2. address          (string, required) The IP:Port of this masternode.\n"
-                "3. deterministic    (boolean, optional, default=false) Init as DMN.\n"
+                "2. address          (string, optional) The IP:Port of the masternode. (Only needed for legacy masternodes)\n"
 
                 "\nResult:\n"
-                " success                      (string) if the masternode initialization succeeded.\n"
+                " success            (string) if the masternode initialization succeeded.\n"
 
                 "\nExamples:\n" +
                 HelpExampleCli("initmasternode", "\"9247iC59poZmqBYt9iDh9wDam6v9S1rW5XekjLGyPnDhrDkP4AK\" \"187.24.32.124:51472\"") +
-                HelpExampleRpc("initmasternode", "\"9247iC59poZmqBYt9iDh9wDam6v9S1rW5XekjLGyPnDhrDkP4AK\" \"187.24.32.124:51472\""));
+                HelpExampleRpc("initmasternode", "\"bls-sk1xye8es37kk7y2mz7mad6yz7fdygttexqwhypa0u86hzw2crqgxfqy29ajm\""));
     }
 
     std::string _strMasterNodePrivKey = request.params[0].get_str();
-    std::string _strMasterNodeAddr = request.params[1].get_str();
-    bool fDeterministic = request.params.size() > 2 && request.params[2].get_bool();
-    if (fDeterministic) {
+    if (_strMasterNodePrivKey.empty()) throw JSONRPCError(RPC_INVALID_PARAMETER, "Masternode key cannot be empty.");
+
+    const auto& params = Params();
+    bool isDeterministic = _strMasterNodePrivKey.find(params.Bech32HRP(CChainParams::BLS_SECRET_KEY)) != std::string::npos;
+    if (isDeterministic) {
         if (!activeMasternodeManager) {
             activeMasternodeManager = new CActiveDeterministicMasternodeManager();
             RegisterValidationInterface(activeMasternodeManager);
@@ -107,6 +108,8 @@ UniValue initmasternode(const JSONRPCRequest& request)
         return "success";
     }
     // legacy
+    if (request.params.size() < 2) throw JSONRPCError(RPC_INVALID_PARAMETER, "Must specify the IP address for legacy mn");
+    std::string _strMasterNodeAddr = request.params[1].get_str();
     auto res = initMasternode(_strMasterNodePrivKey, _strMasterNodeAddr, false);
     if (!res) throw std::runtime_error(res.getError());
     return "success";
