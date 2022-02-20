@@ -280,7 +280,7 @@ public:
     void RelayInv(CInv& inv);
     bool IsNodeConnected(const CAddress& addr);
     // Retrieves a connected peer (if connection success). Used only to check peer address availability for now.
-    CNode* ConnectNode(CAddress addrConnect);
+    CNode* ConnectNode(const CAddress& addrConnect);
 
     // Addrman functions
     void SetServices(const CService &addr, ServiceFlags nServices);
@@ -386,7 +386,7 @@ private:
     CNode* FindNode(const CService& addr);
 
     bool AttemptToEvictConnection(bool fPreferNewConnection);
-    CNode* ConnectNode(CAddress addrConnect, const char* pszDest, bool fCountFailure);
+    CNode* ConnectNode(CAddress addrConnect, const char* pszDest, bool fCountFailure, bool manual_connection);
     bool IsWhitelistedRange(const CNetAddr &addr);
 
     void DeleteNode(CNode* pnode);

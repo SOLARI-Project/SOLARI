@@ -23,14 +23,21 @@ CActiveDeterministicMasternodeManager* activeMasternodeManager{nullptr};
 
 static bool GetLocalAddress(CService& addrRet)
 {
-    // First try to find whatever local address is specified by externalip option
-    bool fFound = GetLocal(addrRet) && CActiveDeterministicMasternodeManager::IsValidNetAddr(addrRet);
+    // First try to find whatever our own local address is known internally.
+    // Addresses could be specified via 'externalip' or 'bind' option, discovered via UPnP
+    // or added by TorController. Use some random dummy IPv4 peer to prefer the one
+    // reachable via IPv4.
+    CNetAddr addrDummyPeer;
+    bool fFound{false};
+    if (LookupHost("8.8.8.8", addrDummyPeer, false)) {
+        fFound = GetLocal(addrRet, &addrDummyPeer) && CActiveDeterministicMasternodeManager::IsValidNetAddr(addrRet);
+    }
     if (!fFound && Params().IsRegTestNet()) {
         if (Lookup("127.0.0.1", addrRet, GetListenPort(), false)) {
             fFound = true;
         }
     }
-    if(!fFound) {
+    if (!fFound) {
         // If we have some peers, let's try to find our local address from one of them
         g_connman->ForEachNodeContinueIf([&fFound, &addrRet](CNode* pnode) {
             if (pnode->addr.IsIPv4())
@@ -69,7 +76,7 @@ OperationResult CActiveDeterministicMasternodeManager::SetOperatorKey(const std:
     }
     info.keyOperator = *opSk;
     info.pubKeyOperator = info.keyOperator.GetPublicKey();
-    return OperationResult(true);
+    return {true};
 }
 
 OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CBLSSecretKey& key, CDeterministicMNCPtr& dmn) const
@@ -86,7 +93,7 @@ OperationResult CActiveDeterministicMasternodeManager::GetOperatorKey(CBLSSecret
     }
     // return key
     key = info.keyOperator;
-    return OperationResult(true);
+    return {true};
 }
 
 void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
@@ -137,9 +144,6 @@ void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
 
     LogPrintf("%s: proTxHash=%s, proTx=%s\n", __func__, dmn->proTxHash.ToString(), dmn->ToString());
 
-    info.proTxHash = dmn->proTxHash;
-    g_connman->GetTierTwoConnMan()->setLocalDMN(info.proTxHash);
-
     if (info.service != dmn->pdmnState->addr) {
         state = MASTERNODE_ERROR;
         strError = strprintf("Local address %s does not match the address from ProTx (%s)",
@@ -148,21 +152,28 @@ void CActiveDeterministicMasternodeManager::Init(const CBlockIndex* pindexTip)
         return;
     }
 
-    if (!Params().IsRegTestNet()) {
-        // Check socket connectivity
-        const std::string& strService = info.service.ToString();
-        LogPrintf("%s: Checking inbound connection to '%s'\n", __func__, strService);
-        SOCKET hSocket = INVALID_SOCKET;
-        bool fConnected = ConnectSocketDirectly(info.service, hSocket, nConnectTimeout) && IsSelectableSocket(hSocket);
-        CloseSocket(hSocket);
+    // Check socket connectivity
+    const std::string& strService = info.service.ToString();
+    LogPrintf("%s: Checking inbound connection to '%s'\n", __func__, strService);
+    SOCKET hSocket = CreateSocket(info.service);
+    if (hSocket == INVALID_SOCKET) {
+        state = MASTERNODE_ERROR;
+        strError = "DMN connectivity check failed, could not create socket to DMN running at " + strService;
+        LogPrintf("%s -- ERROR: %s\n", __func__, strError);
+        return;
+    }
+    bool fConnected = ConnectSocketDirectly(info.service, hSocket, nConnectTimeout, true) && IsSelectableSocket(hSocket);
+    CloseSocket(hSocket);
 
-        if (!fConnected) {
-            state = MASTERNODE_ERROR;
-            LogPrintf("%s ERROR: Could not connect to %s\n", __func__, strService);
-            return;
-        }
+    if (!fConnected) {
+        state = MASTERNODE_ERROR;
+        strError = "DMN connectivity check failed, could not connect to DMN running at " + strService;
+        LogPrintf("%s ERROR: %s\n", __func__, strError);
+        return;
     }
 
+    info.proTxHash = dmn->proTxHash;
+    g_connman->GetTierTwoConnMan()->setLocalDMN(info.proTxHash);
     state = MASTERNODE_READY;
 }
 
@@ -256,7 +267,7 @@ OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const s
         return errorOut(strprintf(_("Invalid -masternodeaddr port %d, only %d is supported on %s-net."),
                                            nPort, nDefaultPort, Params().NetworkIDString()));
     }
-    CService addrTest(LookupNumeric(strHost.c_str(), nPort));
+    CService addrTest(LookupNumeric(strHost, nPort));
     if (!addrTest.IsValid()) {
         return errorOut(strprintf(_("Invalid -masternodeaddr address: %s"), _strMasterNodeAddr));
     }
@@ -285,7 +296,7 @@ OperationResult initMasternode(const std::string& _strMasterNodePrivKey, const s
         if (pmn) activeMasternode.EnableHotColdMasterNode(pmn->vin, pmn->addr);
     }
 
-    return OperationResult(true);
+    return {true};
 }
 
 //
@@ -416,7 +427,7 @@ bool CActiveMasternode::SendMasternodePing(std::string& errorMessage)
 
     // Update lastPing for our masternode in Masternode list
     CMasternode* pmn = mnodeman.Find(vin->prevout);
-    if (pmn != NULL) {
+    if (pmn != nullptr) {
         if (pmn->IsPingedWithin(MasternodePingSeconds(), mnp.sigTime)) {
             errorMessage = "Too early to send Masternode Ping";
             return false;
@@ -463,7 +474,7 @@ bool CActiveMasternode::EnableHotColdMasterNode(CTxIn& newVin, CService& newServ
     return true;
 }
 
-void CActiveMasternode::GetKeys(CKey& _privKeyMasternode, CPubKey& _pubKeyMasternode)
+void CActiveMasternode::GetKeys(CKey& _privKeyMasternode, CPubKey& _pubKeyMasternode) const
 {
     if (!privKeyMasternode.IsValid() || !pubKeyMasternode.IsValid()) {
         throw std::runtime_error("Error trying to get masternode keys");
