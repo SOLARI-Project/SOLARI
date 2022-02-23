@@ -9,13 +9,16 @@
 #include "consensus/params.h"
 
 class CBlockIndex;
+class CDeterministicMN;
+typedef std::shared_ptr<const CDeterministicMN> CDeterministicMNCPtr;
 
 namespace llmq {
 
 // Deterministically selects which node should initiate the mnauth process
 uint256 DeterministicOutboundConnection(const uint256& proTxHash1, const uint256& proTxHash2);
 
-std::set<uint256> GetQuorumRelayMembers(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum, const uint256& forMember, bool onlyOutbound);
+// Return the outbound quorum relay members for 'forMember' (proTxHash)
+std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>& mnList, unsigned int forMemberIndex);
 std::set<size_t> CalcDeterministicWatchConnections(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum, size_t memberCount, size_t connectionCount);
 
 void EnsureQuorumConnections(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum, const uint256& myProTxHash);

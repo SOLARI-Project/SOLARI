@@ -22,7 +22,6 @@ class CDKGSessionManager
 private:
     CEvoDB& evoDb;
     CBLSWorker& blsWorker;
-    ctpl::thread_pool messageHandlerPool;
 
     std::map<Consensus::LLMQType, CDKGSessionHandler> dkgSessionHandlers;
 

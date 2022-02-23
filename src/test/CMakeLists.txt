@@ -145,6 +145,7 @@ set(BITCOIN_TESTS
         ${CMAKE_CURRENT_SOURCE_DIR}/net_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/netbase_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/netfulfilledman_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/net_quorums_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pmt_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/policyestimator_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/prevector_tests.cpp

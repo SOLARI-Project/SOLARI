@@ -130,7 +130,7 @@ bool CDKGSession::Init(const CBlockIndex* _pindexQuorum, const std::vector<CDete
         LogPrint(BCLog::DKG, "CDKGSession::%s: initialized as observer. mns=%d\n", __func__, mns.size());
     } else {
         quorumDKGDebugManager->InitLocalSessionStatus(params.type, pindexQuorum->GetBlockHash(), pindexQuorum->nHeight);
-        relayMembers = GetQuorumRelayMembers(params.type, pindexQuorum, myProTxHash, true);
+        relayMembers = GetQuorumRelayMembers(mns, myIdx);
         LogPrint(BCLog::DKG, "CDKGSession::%s: initialized as member. mns=%d\n", __func__, mns.size());
     }
 

@@ -37,53 +37,35 @@ uint256 DeterministicOutboundConnection(const uint256& proTxHash1, const uint256
     return proTxHash2;
 }
 
-std::set<uint256> GetQuorumRelayMembers(Consensus::LLMQType llmqType, const CBlockIndex *pindexQuorum, const uint256 &forMember, bool onlyOutbound)
+std::set<uint256> GetQuorumRelayMembers(const std::vector<CDeterministicMNCPtr>& mnList,
+                                        unsigned int forMemberIndex)
 {
-    auto mns = deterministicMNManager->GetAllQuorumMembers(llmqType, pindexQuorum);
-    std::set<uint256> result;
+    assert(forMemberIndex < mnList.size());
 
-    auto calcOutbound = [&](size_t i, const uint256 proTxHash) {
-        // Relay to nodes at indexes (i+2^k)%n, where
-        //   k: 0..max(1, floor(log2(n-1))-1)
-        //   n: size of the quorum/ring
-        std::set<uint256> r;
-        int gap = 1;
-        int gap_max = (int)mns.size() - 1;
-        int k = 0;
-        while ((gap_max >>= 1) || k <= 1) {
-            size_t idx = (i + gap) % mns.size();
-            auto& otherDmn = mns[idx];
-            if (otherDmn->proTxHash == proTxHash) {
-                continue;
-            }
-            r.emplace(otherDmn->proTxHash);
-            gap <<= 1;
-            k++;
-        }
-        return r;
-    };
-
-    for (size_t i = 0; i < mns.size(); i++) {
-        auto& dmn = mns[i];
-        if (dmn->proTxHash == forMember) {
-            auto r = calcOutbound(i, dmn->proTxHash);
-            result.insert(r.begin(), r.end());
-        } else if (!onlyOutbound) {
-            auto r = calcOutbound(i, dmn->proTxHash);
-            if (r.count(forMember)) {
-                result.emplace(dmn->proTxHash);
-            }
-        }
+    // Special case
+    if (mnList.size() == 2) {
+        return {mnList[1 - forMemberIndex]->proTxHash};
     }
 
-    return result;
+    // Relay to nodes at indexes (i+2^k)%n, where
+    //   k: 0..max(1, floor(log2(n-1))-1)
+    //   n: size of the quorum/ring
+    std::set<uint256> r;
+    int gap = 1;
+    int gap_max = (int)mnList.size() - 1;
+    int k = 0;
+    while ((gap_max >>= 1) || k <= 1) {
+        size_t idx = (forMemberIndex + gap) % mnList.size();
+        r.emplace(mnList[idx]->proTxHash);
+        gap <<= 1;
+        k++;
+    }
+    return r;
 }
 
-static std::set<uint256> GetQuorumConnections(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum, const uint256& forMember, bool onlyOutbound)
+static std::set<uint256> GetQuorumConnections(const std::vector<CDeterministicMNCPtr>& mns, const uint256& forMember, bool onlyOutbound)
 {
-    auto mns = deterministicMNManager->GetAllQuorumMembers(llmqType, pindexQuorum);
     std::set<uint256> result;
-
     for (auto& dmn : mns) {
         if (dmn->proTxHash == forMember) {
             continue;
@@ -123,8 +105,9 @@ std::set<size_t> CalcDeterministicWatchConnections(Consensus::LLMQType llmqType,
 
 void EnsureQuorumConnections(Consensus::LLMQType llmqType, const CBlockIndex* pindexQuorum, const uint256& myProTxHash)
 {
-    auto members = deterministicMNManager->GetAllQuorumMembers(llmqType, pindexQuorum);
-    bool isMember = std::find_if(members.begin(), members.end(), [&](const CDeterministicMNCPtr& dmn) { return dmn->proTxHash == myProTxHash; }) != members.end();
+    const auto& members = deterministicMNManager->GetAllQuorumMembers(llmqType, pindexQuorum);
+    auto itMember = std::find_if(members.begin(), members.end(), [&](const CDeterministicMNCPtr& dmn) { return dmn->proTxHash == myProTxHash; });
+    bool isMember = itMember != members.end();
 
     if (!isMember) { // && !CLLMQUtils::IsWatchQuorumsEnabled()) {
         return;
@@ -133,8 +116,9 @@ void EnsureQuorumConnections(Consensus::LLMQType llmqType, const CBlockIndex* pi
     std::set<uint256> connections;
     std::set<uint256> relayMembers;
     if (isMember) {
-        connections = GetQuorumConnections(llmqType, pindexQuorum, myProTxHash, true);
-        relayMembers = GetQuorumRelayMembers(llmqType, pindexQuorum, myProTxHash, true);
+        connections = GetQuorumConnections(members, myProTxHash, true);
+        unsigned int memberIndex = itMember - members.begin();
+        relayMembers = GetQuorumRelayMembers(members, memberIndex);
     } else {
         auto cindexes = CalcDeterministicWatchConnections(llmqType, pindexQuorum, members.size(), 1);
         for (auto idx : cindexes) {

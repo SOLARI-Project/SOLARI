@@ -110,7 +110,7 @@ void CDKGSessionHandler::UpdatedBlockTip(const CBlockIndex* pindexNew)
     LOCK(cs);
 
     int quorumStageInt = pindexNew->nHeight % params.dkgInterval;
-    const CBlockIndex* pindexQuorum = pindexNew->GetAncestor(pindexNew->nHeight - quorumStageInt);
+    const CBlockIndex* pindexQuorum = chainActive[pindexNew->nHeight - quorumStageInt];
 
     currentHeight = pindexNew->nHeight;
     quorumHeight = pindexQuorum->nHeight;
@@ -179,10 +179,10 @@ bool CDKGSessionHandler::InitNewQuorum(const CBlockIndex* pindexQuorum)
     return true;
 }
 
-std::pair<QuorumPhase, uint256> CDKGSessionHandler::GetPhaseAndQuorumHash() const
+CDKGSessionHandler::QuorumPhaseAndHash CDKGSessionHandler::GetPhaseAndQuorumHash() const
 {
     LOCK(cs);
-    return std::make_pair(phase, quorumHash);
+    return {phase, quorumHash};
 }
 
 class AbortPhaseException : public std::exception {
@@ -199,14 +199,14 @@ void CDKGSessionHandler::WaitForNextPhase(QuorumPhase curPhase,
         if (stopRequested || ShutdownRequested()) {
             throw AbortPhaseException();
         }
-        auto p = GetPhaseAndQuorumHash();
-        if (!expectedQuorumHash.IsNull() && p.second != expectedQuorumHash) {
+        auto currState = GetPhaseAndQuorumHash();
+        if (!expectedQuorumHash.IsNull() && currState.quorumHash != expectedQuorumHash) {
             throw AbortPhaseException();
         }
-        if (p.first == nextPhase) {
+        if (currState.phase == nextPhase) {
             break;
         }
-        if (curPhase != QuorumPhase_None && p.first != curPhase) {
+        if (curPhase != QuorumPhase_None && currState.phase != curPhase) {
             LogPrint(BCLog::DKG, "CDKGSessionHandler::%s -- %s - aborting due unexpected phase change\n", __func__, params.name);
             throw AbortPhaseException();
         }
@@ -237,8 +237,8 @@ void CDKGSessionHandler::WaitForNewQuorum(const uint256& oldQuorumHash)
         if (stopRequested || ShutdownRequested()) {
             throw AbortPhaseException();
         }
-        auto p = GetPhaseAndQuorumHash();
-        if (p.second != oldQuorumHash) {
+        auto currState = GetPhaseAndQuorumHash();
+        if (currState.quorumHash != oldQuorumHash) {
             break;
         }
         MilliSleep(100);
