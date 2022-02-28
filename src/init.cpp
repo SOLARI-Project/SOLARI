@@ -1725,7 +1725,6 @@ bool AppInitMain()
     }
 
     LoadTierTwo(chain_active_height, load_cache_files);
-    if (!InitActiveMN()) return false;
     RegisterTierTwoValidationInterface();
 
     // set the mode of budget voting for this node
@@ -1839,6 +1838,9 @@ bool AppInitMain()
         threadGroup.create_thread(std::bind(&ThreadStakeMinter));
     }
 #endif
+
+    // Enable active MN
+    if (!InitActiveMN()) return false;
 
     // ********************************************************* Step 12: finished
 

@@ -251,6 +251,9 @@ bool InitActiveMN()
             // Init active masternode
             const CBlockIndex* pindexTip = WITH_LOCK(cs_main, return chainActive.Tip(););
             activeMasternodeManager->Init(pindexTip);
+            if (activeMasternodeManager->GetState() == CActiveDeterministicMasternodeManager::MASTERNODE_ERROR) {
+                return UIError(activeMasternodeManager->GetStatus()); // state logged internally
+            }
         } else {
             // Check enforcement
             if (deterministicMNManager->LegacyMNObsolete()) {
