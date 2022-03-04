@@ -14,6 +14,7 @@
 #include "evo/specialtx_validation.h"
 #include "net.h"
 #include "primitives/block.h"
+#include "spork.h"
 #include "validation.h"
 
 namespace llmq
@@ -404,9 +405,11 @@ void CQuorumBlockProcessor::AddAndRelayMinableCommitment(const CFinalCommitment&
         // add new commitment
         minableCommitments.emplace(commitmentHash, fqc);
     }
-    // relay commitment inv
-    CInv inv(MSG_QUORUM_FINAL_COMMITMENT, commitmentHash);
-    g_connman->RelayInv(inv);
+    // relay commitment inv (if DKG is not in maintenance)
+    if (!sporkManager.IsSporkActive(SPORK_22_LLMQ_DKG_MAINTENANCE)) {
+        CInv inv(MSG_QUORUM_FINAL_COMMITMENT, commitmentHash);
+        g_connman->RelayInv(inv);
+    }
 }
 
 bool CQuorumBlockProcessor::GetMinableCommitmentByHash(const uint256& commitmentHash, llmq::CFinalCommitment& ret)
@@ -432,6 +435,12 @@ bool CQuorumBlockProcessor::GetMinableCommitment(Consensus::LLMQType llmqType, i
     uint256 quorumHash = GetQuorumBlockHash(llmqType, nHeight);
     if (quorumHash.IsNull()) {
         return false;
+    }
+
+    if (sporkManager.IsSporkActive(SPORK_22_LLMQ_DKG_MAINTENANCE)) {
+        // null commitment required
+        ret = CFinalCommitment(Params().GetConsensus().llmqs.at(llmqType), quorumHash);
+        return true;
     }
 
     LOCK(minableCommitmentsCs);

@@ -21,6 +21,7 @@
 #include "netmessagemaker.h"
 #include "primitives/block.h"
 #include "primitives/transaction.h"
+#include "spork.h"
 #include "sporkdb.h"
 #include "streams.h"
 #include "tiertwo/tiertwo_sync_state.h"
@@ -900,8 +901,9 @@ bool static PushTierTwoGetDataRequest(const CInv& inv,
     }
 
     if (inv.type == MSG_QUORUM_FINAL_COMMITMENT) {
-        // Only respond if v6.0.0 is enforced.
+        // Only respond if v6.0.0 is enforced and SPORK 22 is not active
         if (!deterministicMNManager->IsDIP3Enforced()) return false;
+        if (sporkManager.IsSporkActive(SPORK_22_LLMQ_DKG_MAINTENANCE)) return false;
         llmq::CFinalCommitment o;
         if (llmq::quorumBlockProcessor->GetMinableCommitmentByHash(inv.hash, o)) {
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::QFCOMMITMENT, o));

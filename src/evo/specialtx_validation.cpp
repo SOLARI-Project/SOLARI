@@ -17,6 +17,7 @@
 #include "primitives/transaction.h"
 #include "primitives/block.h"
 #include "script/standard.h"
+#include "spork.h"
 
 /* -- Helper static functions -- */
 
@@ -422,6 +423,14 @@ static bool CheckProUpRevTx(const CTransaction& tx, const CBlockIndex* pindexPre
 bool VerifyLLMQCommitment(const llmq::CFinalCommitment& qfc, const CBlockIndex* pindexPrev, CValidationState& state)
 {
     AssertLockHeld(cs_main);
+
+    // Check DKG maintenance mode
+    if (sporkManager.IsSporkActive(SPORK_22_LLMQ_DKG_MAINTENANCE) && !IsInitialBlockDownload()) {
+        // only null commitments are accepted
+        if (!qfc.IsNull()) {
+            return state.DoS(50, false, REJECT_INVALID, "bad-qc-not-null-spork22");
+        }
+    }
 
     // Check version
     if (qfc.nVersion == 0 || qfc.nVersion > llmq::CFinalCommitment::CURRENT_VERSION) {
