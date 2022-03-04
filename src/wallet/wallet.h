@@ -1096,6 +1096,8 @@ public:
     };
     CWallet::CommitResult CommitTransaction(CTransactionRef tx, CReserveKey& opReservekey, CConnman* connman);
     CWallet::CommitResult CommitTransaction(CTransactionRef tx, CReserveKey* reservekey, CConnman* connman, mapValue_t* extraValues=nullptr);
+
+    bool CreateCoinstakeOuts(const CPivStake& stakeInput, std::vector<CTxOut>& vout, CAmount nTotal) const;
     bool CreateCoinStake(const CBlockIndex* pindexPrev,
                          unsigned int nBits,
                          CMutableTransaction& txNew,

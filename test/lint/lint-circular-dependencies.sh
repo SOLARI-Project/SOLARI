@@ -39,7 +39,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "wallet/wallet -> wallet/walletdb -> wallet/wallet"
     "chain -> legacy/stakemodifier -> stakeinput -> chain"
     "chain -> legacy/stakemodifier -> validation -> chain"
-    "kernel -> stakeinput -> wallet/wallet -> kernel"
     "legacy/validation_zerocoin_legacy -> wallet/wallet -> validation -> legacy/validation_zerocoin_legacy"
     "llmq/quorums_dkgsession -> llmq/quorums_dkgsessionmgr -> llmq/quorums_dkgsessionhandler -> llmq/quorums_dkgsession"
     "llmq/quorums_dkgsessionhandler -> net_processing -> llmq/quorums_dkgsessionmgr -> llmq/quorums_dkgsessionhandler"

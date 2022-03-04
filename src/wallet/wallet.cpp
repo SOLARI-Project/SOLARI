@@ -161,7 +161,7 @@ const CWalletTx* CWallet::GetWalletTx(const uint256& hash) const
     LOCK(cs_wallet);
     std::map<uint256, CWalletTx>::const_iterator it = mapWallet.find(hash);
     if (it == mapWallet.end())
-        return NULL;
+        return nullptr;
     return &(it->second);
 }
 
@@ -3266,6 +3266,48 @@ int CWallet::GetLastBlockHeightLockWallet() const
     return WITH_LOCK(cs_wallet, return m_last_block_processed_height;);
 }
 
+bool CWallet::CreateCoinstakeOuts(const CPivStake& stakeInput, std::vector<CTxOut>& vout, CAmount nTotal) const
+{
+    std::vector<valtype> vSolutions;
+    txnouttype whichType;
+    CTxOut stakePrevout;
+    if (!stakeInput.GetTxOutFrom(stakePrevout)) {
+        return error("%s: failed to get stake input", __func__);
+    }
+    CScript scriptPubKeyKernel = stakePrevout.scriptPubKey;
+    if (!Solver(scriptPubKeyKernel, whichType, vSolutions))
+        return error("%s: failed to parse kernel", __func__);
+
+    if (whichType != TX_PUBKEY && whichType != TX_PUBKEYHASH && whichType != TX_COLDSTAKE)
+        return error("%s: type=%d (%s) not supported for scriptPubKeyKernel", __func__, whichType, GetTxnOutputType(whichType));
+
+    CKey key;
+    if (whichType == TX_PUBKEYHASH || whichType == TX_COLDSTAKE) {
+        // if P2PKH or P2CS check that we have the input private key
+        if (!GetKey(CKeyID(uint160(vSolutions[0])), key))
+            return error("%s: Unable to get staking private key", __func__);
+    }
+
+    vout.emplace_back(0, scriptPubKeyKernel);
+
+    // Calculate if we need to split the output
+    if (nStakeSplitThreshold > 0) {
+        int nSplit = static_cast<int>(nTotal / nStakeSplitThreshold);
+        if (nSplit > 1) {
+            // if nTotal is twice or more of the threshold; create more outputs
+            int txSizeMax = MAX_STANDARD_TX_SIZE >> 11; // limit splits to <10% of the max TX size (/2048)
+            if (nSplit > txSizeMax)
+                nSplit = txSizeMax;
+            for (int i = nSplit; i > 1; i--) {
+                LogPrintf("%s: StakeSplit: nTotal = %d; adding output %d of %d\n", __func__, nTotal, (nSplit-i)+2, nSplit);
+                vout.emplace_back(0, scriptPubKeyKernel);
+            }
+        }
+    }
+
+    return true;
+}
+
 bool CWallet::CreateCoinStake(
         const CBlockIndex* pindexPrev,
         unsigned int nBits,
@@ -3335,7 +3377,7 @@ bool CWallet::CreateCoinStake(
 
         // Create the output transaction(s)
         std::vector<CTxOut> vout;
-        if (!stakeInput.CreateTxOuts(this, vout, nCredit)) {
+        if (!CreateCoinstakeOuts(stakeInput, vout, nCredit)) {
             LogPrintf("%s : failed to create output\n", __func__);
             it++;
             continue;

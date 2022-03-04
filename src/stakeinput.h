@@ -46,7 +46,6 @@ public:
     CAmount GetValue() const override;
     CDataStream GetUniqueness() const override;
     CTxIn GetTxIn() const;
-    bool CreateTxOuts(const CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) const;
     bool IsZPIV() const override { return false; }
 };
 
