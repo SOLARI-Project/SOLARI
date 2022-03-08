@@ -181,7 +181,7 @@ bool LoadTierTwo(int chain_active_height, bool load_cache_files)
             LogPrintf("Failed to load network requests cache from %s", netRequestsDb.GetDbPath().string());
         }
     } else {
-        CNetFulfilledRequestManager netfulfilledmanTmp;
+        CNetFulfilledRequestManager netfulfilledmanTmp(0);
         if (!netRequestsDb.Dump(netfulfilledmanTmp)) {
             LogPrintf("Failed to clear network requests cache at %s", netRequestsDb.GetDbPath().string());
         }

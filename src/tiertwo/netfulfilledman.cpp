@@ -9,7 +9,15 @@
 #include "shutdown.h"
 #include "utiltime.h"
 
-CNetFulfilledRequestManager g_netfulfilledman;
+CNetFulfilledRequestManager g_netfulfilledman(DEFAULT_ITEMS_FILTER_SIZE);
+
+CNetFulfilledRequestManager::CNetFulfilledRequestManager(unsigned int _itemsFilterSize)
+{
+    itemsFilterSize = _itemsFilterSize;
+    if (itemsFilterSize != 0) {
+        itemsFilter = std::make_unique<CBloomFilter>(itemsFilterSize, 0.001, 0, BLOOM_UPDATE_ALL);
+    }
+}
 
 void CNetFulfilledRequestManager::AddFulfilledRequest(const CService& addr, const std::string& strRequest)
 {
@@ -30,6 +38,29 @@ bool CNetFulfilledRequestManager::HasFulfilledRequest(const CService& addr, cons
     return false;
 }
 
+static std::vector<unsigned char> convertElement(const CService& addr, const uint256& itemHash)
+{
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << addr.GetAddrBytes();
+    stream << itemHash;
+    return {stream.begin(), stream.end()};
+}
+
+void CNetFulfilledRequestManager::AddItemRequest(const CService& addr, const uint256& itemHash)
+{
+    LOCK(cs_mapFulfilledRequests);
+    assert(itemsFilter);
+    itemsFilter->insert(convertElement(addr, itemHash));
+    itemsFilterCount++;
+}
+
+bool CNetFulfilledRequestManager::HasItemRequest(const CService& addr, const uint256& itemHash) const
+{
+    LOCK(cs_mapFulfilledRequests);
+    assert(itemsFilter);
+    return itemsFilter->contains(convertElement(addr, itemHash));
+}
+
 void CNetFulfilledRequestManager::CheckAndRemove()
 {
     LOCK(cs_mapFulfilledRequests);
@@ -47,6 +78,12 @@ void CNetFulfilledRequestManager::CheckAndRemove()
         } else {
             it++;
         }
+    }
+
+    if (now > lastFilterCleanup ||  itemsFilterCount >= itemsFilterSize) {
+        itemsFilter->clear();
+        itemsFilterCount = 0;
+        lastFilterCleanup = now + filterCleanupTime;
     }
 }
 

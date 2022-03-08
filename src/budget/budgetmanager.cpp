@@ -10,6 +10,7 @@
 #include "masternodeman.h"
 #include "netmessagemaker.h"
 #include "tiertwo/tiertwo_sync_state.h"
+#include "tiertwo/netfulfilledman.h"
 #include "util/validation.h"
 #include "validation.h"   // GetTransaction, cs_main
 
@@ -17,12 +18,12 @@
 #include "wallet/wallet.h" // future: use interface instead.
 #endif
 
-// Peers can only request complete budget sync once per hour.
-#define BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS (60 * 60) // One hour.
+
+#define BUDGET_ORPHAN_VOTES_CLEANUP_SECONDS (60 * 60) // One hour.
+// Request type used in the net requests manager to block peers asking budget sync too often
+static const std::string BUDGET_SYNC_REQUEST_RECV = "budget-sync-recv";
 
 CBudgetManager g_budgetman;
-
-std::map<uint256, int64_t> askedForSourceProposalOrBudget;
 
 // Used to check both proposals and finalized-budgets collateral txes
 bool CheckCollateral(const uint256& nTxCollateralHash, const uint256& nExpectedHash, std::string& strError, int64_t& nTime, int nCurrentHeight, bool fBudgetFinalization);
@@ -959,11 +960,6 @@ bool CBudgetManager::AddAndRelayProposalVote(const CBudgetVote& vote, std::strin
 
 void CBudgetManager::UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload)
 {
-    NewBlock();
-}
-
-void CBudgetManager::NewBlock()
-{
     if (g_tiertwo_sync_state.GetSyncPhase() <= MASTERNODE_SYNC_BUDGET) return;
 
     if (strBudgetMode == "suggest") { //suggest the budget we see
@@ -993,15 +989,6 @@ void CBudgetManager::NewBlock()
     // remove expired/heavily downvoted budgets
     CheckAndRemove();
 
-    //remove invalid (from non-active masternode) votes once in a while
-    LogPrint(BCLog::MNBUDGET,"%s:  askedForSourceProposalOrBudget cleanup - size: %d\n", __func__, askedForSourceProposalOrBudget.size());
-    for (auto it = askedForSourceProposalOrBudget.begin(); it !=  askedForSourceProposalOrBudget.end(); ) {
-        if (it->second <= GetTime() - (60 * 60 * 24)) {
-            it = askedForSourceProposalOrBudget.erase(it);
-        } else {
-            it++;
-        }
-    }
     {
         LOCK(cs_proposals);
         LogPrint(BCLog::MNBUDGET,"%s:  mapProposals cleanup - size: %d\n", __func__, mapProposals.size());
@@ -1017,26 +1004,12 @@ void CBudgetManager::NewBlock()
         }
     }
 
-    {
-        // Clean peers who asked for budget votes sync after an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS)
-        LOCK2(cs_budgets, cs_proposals);
-        int64_t currentTime = GetTime();
-        auto itAskedBudSync = mAskedUsForBudgetSync.begin();
-        while (itAskedBudSync != mAskedUsForBudgetSync.end()) {
-            if ((*itAskedBudSync).second < currentTime) {
-                itAskedBudSync = mAskedUsForBudgetSync.erase(itAskedBudSync);
-            } else {
-                ++itAskedBudSync;
-            }
-        }
-    }
-
     int64_t now = GetTime();
     const auto cleanOrphans = [now](auto& mutex, auto& mapOrphans, auto& mapSeen) {
         LOCK(mutex);
         for (auto it = mapOrphans.begin() ; it != mapOrphans.end();) {
             int64_t lastReceivedVoteTime = it->second.second;
-            if (lastReceivedVoteTime + BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS < now) {
+            if (lastReceivedVoteTime + BUDGET_ORPHAN_VOTES_CLEANUP_SECONDS < now) {
                 // Clean seen votes
                 for (const auto& voteIt : it->second.first) {
                     mapSeen.erase(voteIt.GetHash());
@@ -1067,12 +1040,9 @@ int CBudgetManager::ProcessBudgetVoteSync(const uint256& nProp, CNode* pfrom)
     if (nProp.IsNull()) {
         LOCK2(cs_budgets, cs_proposals);
         if (!(pfrom->addr.IsRFC1918() || pfrom->addr.IsLocal())) {
-            auto itLastRequest = mAskedUsForBudgetSync.find(pfrom->addr);
-            if (itLastRequest != mAskedUsForBudgetSync.end() && GetTime() < (*itLastRequest).second) {
+            if (g_netfulfilledman.HasFulfilledRequest(pfrom->addr, BUDGET_SYNC_REQUEST_RECV)) {
                 LogPrint(BCLog::MASTERNODE, "budgetsync - peer %i already asked for budget sync\n", pfrom->GetId());
-                // The peers sync requests information is not stored on disk (for now), so
-                // the budget sync could be re-requested in less than the allowed time (due a node restart for example).
-                // So, for now, let's not be so hard with the node.
+                // let's not be so hard with the node for now.
                 return 10;
             }
         }
@@ -1475,11 +1445,9 @@ void CBudgetManager::Sync(CNode* pfrom, bool fPartial)
     relayInventoryItems<CFinalizedBudget>(pfrom, cs_budgets, mapFinalizedBudgets, fPartial, MSG_BUDGET_FINALIZED, MASTERNODE_SYNC_BUDGET_FIN);
 
     if (!fPartial) {
-        // Now that budget full sync request was handled, mark it as completed.
-        // We are not going to answer full budget sync requests for an hour (BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS).
+        // We are not going to answer full budget sync requests for an hour (chainparams.FulfilledRequestExpireTime()).
         // The remote peer can still do single prop and mnv sync requests if needed.
-        LOCK2(cs_budgets, cs_proposals);
-        mAskedUsForBudgetSync[pfrom->addr] = GetTime() + BUDGET_SYNC_REQUEST_ACCEPTANCE_SECONDS;
+        g_netfulfilledman.AddFulfilledRequest(pfrom->addr, BUDGET_SYNC_REQUEST_RECV);
     }
 }
 
@@ -1528,9 +1496,9 @@ bool CBudgetManager::UpdateProposal(const CBudgetVote& vote, CNode* pfrom, std::
                 TryAppendOrphanVoteMap<CBudgetVote>(vote, nProposalHash, mapOrphanProposalVotes, mapSeenProposalVotes);
             }
 
-            if (!askedForSourceProposalOrBudget.count(nProposalHash)) {
+            if (!g_netfulfilledman.HasItemRequest(pfrom->addr, nProposalHash)) {
                 g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, nProposalHash));
-                askedForSourceProposalOrBudget[nProposalHash] = GetTime();
+                g_netfulfilledman.AddItemRequest(pfrom->addr, nProposalHash);
             }
         }
 
@@ -1559,9 +1527,9 @@ bool CBudgetManager::UpdateFinalizedBudget(const CFinalizedBudgetVote& vote, CNo
                 TryAppendOrphanVoteMap<CFinalizedBudgetVote>(vote, nBudgetHash, mapOrphanFinalizedBudgetVotes, mapSeenFinalizedBudgetVotes);
             }
 
-            if (!askedForSourceProposalOrBudget.count(nBudgetHash)) {
+            if (!g_netfulfilledman.HasItemRequest(pfrom->addr, nBudgetHash)) {
                 g_connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::BUDGETVOTESYNC, nBudgetHash));
-                askedForSourceProposalOrBudget[nBudgetHash] = GetTime();
+                g_netfulfilledman.AddItemRequest(pfrom->addr, nBudgetHash);
             }
         }
 
