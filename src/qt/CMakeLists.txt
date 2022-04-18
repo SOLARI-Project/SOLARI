@@ -49,14 +49,6 @@ if (QRCODE_FOUND)
     link_directories ( ${QRCODE_LIBRARY_DIRS} )
 endif()
 
-find_program(MOC_BIN NAMES moc moc-qt5 qt5-moc
-        PATHS /usr/lib/qt5/bin /usr/lib/x86_64-linux-gnu/qt5/bin /usr/local/opt/qt/bin /usr/local/opt/qt5/bin /opt/homebrew/opt/qt5/bin
-        NO_DEFAULT_PATH
-        NO_SYSTEM_ENVIRONMENT_PATH)
-if (MOC_BIN)
-    MESSAGE(STATUS "FOUND MOC ${MOC_BIN}")
-endif ()
-
 add_compile_options("-DQT_NO_KEYWORDS")
 
 # Why isn't this done automatically??
@@ -165,10 +157,7 @@ SET(QT_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/pivx/governancemodel.cpp
         )
 
-execute_process(
-        COMMAND ${MOC_BIN} -o moc_pfborderimage.cpp pfborderimage.h
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pivx
-)
+qt5_generate_moc(pivx/pfborderimage.h ${CMAKE_CURRENT_SOURCE_DIR}/pivx/moc_pfborderimage.cpp)
 list(APPEND QT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/pivx/moc_pfborderimage.cpp)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
