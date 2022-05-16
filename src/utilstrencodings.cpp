@@ -53,7 +53,7 @@ bool validateURL(const std::string& strURL, std::string& strErr, unsigned int ma
     }
 
     // Validate URL
-    std::regex url_regex("^(https?)://[^\\s/$.?#][^\\s]*[^\\s/.]\\.[^\\s/.][^\\s]*[^\\s.]$");
+    std::regex url_regex(R"(^(https?)://[^\s/$.?#][^\s]*[^\s/.]\.[^\s/.][^\s]*[^\s.]$)");
     if (!std::regex_match(strURL, url_regex)) {
         strErr = "Invalid URL";
         return false;
