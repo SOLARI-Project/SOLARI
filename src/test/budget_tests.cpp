@@ -341,7 +341,8 @@ static CMutableTransaction NewCoinBase(int nHeight, CAmount cbaseAmt, const CScr
 
 BOOST_FIXTURE_TEST_CASE(IsCoinbaseValueValid_test, TestingSetup)
 {
-    const CAmount mnAmt = GetMasternodePayment();
+    int nHeight = 100;
+    const CAmount mnAmt = GetMasternodePayment(nHeight);
     const CScript& cbaseScript = GetRandomP2PKH();
     CValidationState state;
 

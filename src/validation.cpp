@@ -818,26 +818,32 @@ CAmount GetBlockValue(int nHeight)
         return 250000 * COIN;
     }
     // Mainnet/Testnet block reward reduction schedule
-    const int nLast = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_ZC_V2].nActivationHeight;
-    if (nHeight > nLast)   return 5    * COIN;
-    if (nHeight > 648000)  return 4.5  * COIN;
-    if (nHeight > 604800)  return 9    * COIN;
-    if (nHeight > 561600)  return 13.5 * COIN;
-    if (nHeight > 518400)  return 18   * COIN;
-    if (nHeight > 475200)  return 22.5 * COIN;
-    if (nHeight > 432000)  return 27   * COIN;
-    if (nHeight > 388800)  return 31.5 * COIN;
-    if (nHeight > 345600)  return 36   * COIN;
-    if (nHeight > 302400)  return 40.5 * COIN;
-    if (nHeight > 151200)  return 45   * COIN;
-    if (nHeight > 86400)   return 225  * COIN;
-    if (nHeight !=1)       return 250  * COIN;
+    const int nLast = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight;
+    const int nZerocoinV2 = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_ZC_V2].nActivationHeight;
+    if (nHeight > nLast) return 10 * COIN;
+    if (nHeight > nZerocoinV2) return 5 * COIN;
+    if (nHeight > 648000) return 4.5 * COIN;
+    if (nHeight > 604800) return 9 * COIN;
+    if (nHeight > 561600) return 13.5 * COIN;
+    if (nHeight > 518400) return 18 * COIN;
+    if (nHeight > 475200) return 22.5 * COIN;
+    if (nHeight > 432000) return 27 * COIN;
+    if (nHeight > 388800) return 31.5 * COIN;
+    if (nHeight > 345600) return 36 * COIN;
+    if (nHeight > 302400) return 40.5 * COIN;
+    if (nHeight > 151200) return 45 * COIN;
+    if (nHeight > 86400) return 225 * COIN;
+    if (nHeight != 1) return 250 * COIN;
     // Premine for 6 masternodes at block 1
     return 60001 * COIN;
 }
 
-int64_t GetMasternodePayment()
+int64_t GetMasternodePayment(int nHeight)
 {
+    if (nHeight >= Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight) {
+        return Params().GetConsensus().nNewMNBlockReward;
+    }
+
     // Future: refactor function callers to use this line directly.
     return Params().GetConsensus().nMNBlockReward;
 }
@@ -2623,7 +2629,7 @@ bool CheckColdStakeFreeOutput(const CTransaction& tx, const int nHeight)
             // after v6.0, masternode and budgets are paid in the coinbase. No more free outputs allowed.
             return false;
         }
-        if (lastOut.nValue == GetMasternodePayment())
+        if (lastOut.nValue == GetMasternodePayment(nHeight))
             return true;
 
         // if mnsync is incomplete, we cannot verify if this is a budget block.
