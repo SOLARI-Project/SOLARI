@@ -441,7 +441,7 @@ class PIVX_ColdStakingTest(PivxTestFramework):
         if not hasattr(self, 'DUMMY_KEY'):
             self.init_dummy_key()
         coinstake.vout.append(
-            CTxOut(value * COIN, CScript([self.DUMMY_KEY.get_pubkey(), OP_CHECKSIG])))
+            CTxOut(value * COIN, CScript([self.DUMMY_KEY.get_pubkey().get_bytes(), OP_CHECKSIG])))
         coinstake.vout[1].nValue -= value * COIN
         # re-sign coinstake
         prevout = COutPoint()
