@@ -595,7 +595,7 @@ public:
         consensus.vUpgrades[Consensus::UPGRADE_V5_0].nActivationHeight          = 300;
         consensus.vUpgrades[Consensus::UPGRADE_V5_2].nActivationHeight          = 300;
         consensus.vUpgrades[Consensus::UPGRADE_V5_3].nActivationHeight          = 251;
-        consensus.vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight          = 451;
+        consensus.vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight          = 576;
         consensus.vUpgrades[Consensus::UPGRADE_V6_0].nActivationHeight =
                 Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT;
 
