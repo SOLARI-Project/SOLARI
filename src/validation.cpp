@@ -808,8 +808,13 @@ double ConvertBitsToDouble(unsigned int nBits)
 
 CAmount GetBlockValue(int nHeight)
 {
-    // Fixed block value on regtest
+    // Set V5.5 upgrade block for regtest as well as testnet and mainnet
+    const int nLast = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight;
+
+    // Regtest block reward reduction schedule
     if (Params().IsRegTestNet()) {
+        // Reduce regtest block value after V5.5 upgrade
+        if (nHeight > nLast) return 10 * COIN;
         return 250 * COIN;
     }
     // Testnet high-inflation blocks [2, 200] with value 250k PIV
@@ -818,7 +823,6 @@ CAmount GetBlockValue(int nHeight)
         return 250000 * COIN;
     }
     // Mainnet/Testnet block reward reduction schedule
-    const int nLast = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight;
     const int nZerocoinV2 = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_ZC_V2].nActivationHeight;
     if (nHeight > nLast) return 10 * COIN;
     if (nHeight > nZerocoinV2) return 5 * COIN;
@@ -840,7 +844,7 @@ CAmount GetBlockValue(int nHeight)
 
 int64_t GetMasternodePayment(int nHeight)
 {
-    if (nHeight >= Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight) {
+    if (nHeight > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight) {
         return Params().GetConsensus().nNewMNBlockReward;
     }
 

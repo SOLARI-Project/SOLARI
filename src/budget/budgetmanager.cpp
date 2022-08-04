@@ -856,7 +856,7 @@ CAmount CBudgetManager::GetTotalBudget(int nHeight)
     CAmount nSubsidy = GetBlockValue(nHeight);
 
     // 20% of block reward prior to V5.5 upgrade
-    if (nHeight < Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight) {
+    if (nHeight <= Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight) {
         nSubsidy /= 5;
     }
 
