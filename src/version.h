@@ -17,8 +17,8 @@ static const int PROTOCOL_VERSION = 70925;
 static const int INIT_PROTO_VERSION = 209;
 
 //! disconnect from peers older than this proto version
-static const int MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT = 70922;
-static const int MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT = 70923;
+static const int MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT = 70923;
+static const int MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT = 70925;
 
 //! Version where BIP155 was introduced
 static const int MIN_BIP155_PROTOCOL_VERSION = 70923;
