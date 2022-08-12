@@ -42,6 +42,14 @@ void enableMnSyncAndSuperblocksPayment()
     BOOST_CHECK(sporkManager.IsSporkActive(SPORK_9_MASTERNODE_BUDGET_ENFORCEMENT));
 }
 
+BOOST_AUTO_TEST_CASE(masternode_value)
+{
+    SelectParams(CBaseChainParams::REGTEST);
+    int nHeightTest = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_V5_5].nActivationHeight + 1;
+    BOOST_CHECK_EQUAL(GetMasternodePayment(nHeightTest - 1), 3 * COIN);
+    BOOST_CHECK_EQUAL(GetMasternodePayment(nHeightTest), 6 * COIN);
+}
+
 BOOST_AUTO_TEST_CASE(budget_value)
 {
     SelectParams(CBaseChainParams::TESTNET);
