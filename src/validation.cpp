@@ -4185,7 +4185,7 @@ void static CheckBlockIndex()
 //       it was the one which was commented out
 int ActiveProtocol()
 {
-    // SPORK_14 is used for 70925 (v5.5.0), commented out now.
+    // SPORK_14 is used for 70926 (v5.5.0), commented out now.
     if (sporkManager.IsSporkActive(SPORK_14_NEW_PROTOCOL_ENFORCEMENT))
             return MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT;
 
