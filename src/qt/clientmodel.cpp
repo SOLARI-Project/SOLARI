@@ -50,6 +50,7 @@ ClientModel::ClientModel(OptionsModel* optionsModel, QObject* parent) : QObject(
 
     pollMnTimer = new QTimer(this);
     connect(pollMnTimer, &QTimer::timeout, this, &ClientModel::updateMnTimer);
+    startMasternodesTimer();
 
     subscribeToCoreSignals();
 }
