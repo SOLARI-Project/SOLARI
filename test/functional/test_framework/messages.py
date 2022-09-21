@@ -689,7 +689,7 @@ class CBlock(CBlockHeader):
         if self.nVersion >= 8:
             data += ser_uint256(self.hashFinalSaplingRoot)
         sha256NoSig = hash256(data)
-        self.vchBlockSig = key.sign(sha256NoSig, low_s=low_s)
+        self.vchBlockSig = key.sign_ecdsa(sha256NoSig, low_s=low_s)
         self.sig_key = key
         self.low_s = low_s
 

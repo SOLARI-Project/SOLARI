@@ -11,7 +11,6 @@ import optparse
 import os
 import pdb
 import shutil
-from struct import pack
 import sys
 import tempfile
 import time
@@ -24,14 +23,13 @@ from .blocktools import (
     create_coinbase_pos,
     create_transaction_from_outpoint,
 )
-from .key import CECKey
+from .key import ECKey
 from .messages import (
     COIN,
     COutPoint,
     CTransaction,
     CTxIn,
     CTxOut,
-    hash256,
 )
 from .script import (
     CScript,
@@ -622,8 +620,8 @@ class PivxTestFramework():
 
     # PIVX Specific TestFramework
     def init_dummy_key(self):
-        self.DUMMY_KEY = CECKey()
-        self.DUMMY_KEY.set_secretbytes(hash256(pack('<I', 0xffff)))
+        self.DUMMY_KEY = ECKey()
+        self.DUMMY_KEY.generate()
 
     def get_prevouts(self, node_id, utxo_list):
         """ get prevouts (map) for each utxo in a list
@@ -726,7 +724,7 @@ class PivxTestFramework():
         # Find valid kernel hash - iterates stakeableUtxos, then block.nTime
         block.solve_stake(stakeableUtxos, int(prevModifier, 16))
 
-        block_sig_key = CECKey()
+        block_sig_key = ECKey()
 
         coinstakeTx_unsigned = CTransaction()
         prevout = COutPoint()
@@ -742,7 +740,7 @@ class PivxTestFramework():
                 self.init_dummy_key()
             block_sig_key = self.DUMMY_KEY
             # replace coinstake output script
-            coinstakeTx_unsigned.vout[1].scriptPubKey = CScript([block_sig_key.get_pubkey(), OP_CHECKSIG])
+            coinstakeTx_unsigned.vout[1].scriptPubKey = CScript([block_sig_key.get_pubkey().get_bytes(), OP_CHECKSIG])
         else:
             if privKeyWIF is None:
                 # Use pk of the input. Ask sk from rpc_conn
@@ -751,8 +749,7 @@ class PivxTestFramework():
             # Use the provided privKeyWIF (cold staking).
             # export the corresponding private key to sign block
             privKey, compressed = wif_to_privkey(privKeyWIF)
-            block_sig_key.set_compressed(compressed)
-            block_sig_key.set_secretbytes(bytes.fromhex(privKey))
+            block_sig_key.set(bytes.fromhex(privKey), compressed)
 
         # Sign coinstake TX and add it to the block
         stake_tx_signed_raw_hex = rpc_conn.signrawtransaction(
