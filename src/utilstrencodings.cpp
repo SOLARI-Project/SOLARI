@@ -38,13 +38,13 @@ std::string SanitizeString(const std::string& str, int rule)
     return strResult;
 }
 
-bool validateURL(std::string strURL)
+bool validateURL(const std::string& strURL)
 {
     std::string strErr;
     return validateURL(strURL, strErr);
 }
 
-bool validateURL(std::string strURL, std::string& strErr, unsigned int maxSize)
+bool validateURL(const std::string& strURL, std::string& strErr, unsigned int maxSize)
 {
     // Check URL size
     if (strURL.size() > maxSize) {
@@ -53,7 +53,7 @@ bool validateURL(std::string strURL, std::string& strErr, unsigned int maxSize)
     }
 
     // Validate URL
-    std::regex url_regex("^(https?)://[^\\s/$.?#][^\\s]*[^\\s/.]\\.[^\\s/.][^\\s]*[^\\s.]$");
+    std::regex url_regex(R"(^(https?)://[^\s/$.?#][^\s]*[^\s/.]\.[^\s/.][^\s]*[^\s.]$)");
     if (!std::regex_match(strURL, url_regex)) {
         strErr = "Invalid URL";
         return false;

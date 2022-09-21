@@ -6,6 +6,7 @@
 #include "budget/budgetproposal.h"
 #include "chainparams.h"
 #include "script/standard.h"
+#include "utilstrencodings.h"
 
 CBudgetProposal::CBudgetProposal():
         nAllotted(0),
@@ -143,6 +144,20 @@ bool CBudgetProposal::CheckAddress()
     }
 
     return true;
+}
+
+/* TODO: Add this to IsWellFormed() for the next hard-fork
+ * This will networkly reject malformed proposal names and URLs
+ */
+bool CBudgetProposal::CheckStrings()
+{
+    if (strProposalName != SanitizeString(strProposalName)) {
+        strInvalid = "Proposal name contains illegal characters.";
+        return false;
+    }
+    if (strURL != SanitizeString(strURL)) {
+        strInvalid = "Proposal URL contains illegal characters.";
+    }
 }
 
 bool CBudgetProposal::IsWellFormed(const CAmount& nTotalBudget)

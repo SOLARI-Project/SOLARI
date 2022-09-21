@@ -42,6 +42,7 @@ private:
     bool CheckStartEnd();
     bool CheckAmount(const CAmount& nTotalBudget);
     bool CheckAddress();
+    bool CheckStrings();
 
 protected:
     std::map<COutPoint, CBudgetVote> mapVotes;

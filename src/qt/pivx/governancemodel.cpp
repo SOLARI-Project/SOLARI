@@ -182,16 +182,24 @@ std::vector<VoteInfo> GovernanceModel::getLocalMNsVotesForProposal(const Proposa
 
 OperationResult GovernanceModel::validatePropName(const QString& name) const
 {
-    if (name.toUtf8().size() > (int)PROP_NAME_MAX_SIZE) { // limit
-        return {false, _("Invalid name, maximum size exceeded")};
+    std::string strName = SanitizeString(name.toStdString());
+    if (strName != name.toStdString()) { // invalid characters
+        return {false, _("Invalid name, invalid characters")};
+    }
+    if (strName.size() > (int)PROP_NAME_MAX_SIZE) { // limit
+        return {false, strprintf(_("Invalid name, maximum size of %d exceeded"), PROP_NAME_MAX_SIZE)};
     }
     return {true};
 }
 
 OperationResult GovernanceModel::validatePropURL(const QString& url) const
 {
+    std::string strURL = SanitizeString(url.toStdString());
+    if (strURL != url.toStdString()) {
+        return {false, _("Invalid URL, invalid characters")};
+    }
     std::string strError;
-    return {validateURL(url.toStdString(), strError, PROP_URL_MAX_SIZE), strError};
+    return {validateURL(strURL, strError, PROP_URL_MAX_SIZE), strError};
 }
 
 OperationResult GovernanceModel::validatePropAmount(CAmount amount) const
