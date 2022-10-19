@@ -140,6 +140,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "rescanblockchain", 1, "stop_height"},
     { "sendmany", 1, "amounts" },
     { "sendmany", 2, "minconf" },
+    { "sendmany", 4, "include_delegated" },
     { "sendmany", 5, "subtract_fee_from" },
     { "sendrawtransaction", 1, "allowhighfees" },
     { "sendtoaddress", 1, "amount" },
