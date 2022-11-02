@@ -37,6 +37,7 @@ class BlockchainTest(PivxTestFramework):
         self._test_getblockchaininfo()
         self._test_gettxoutsetinfo()
         self._test_getblockheader()
+        self._test_getblock()
         #self._test_getdifficulty()
         self.nodes[0].verifychain(0)
 
@@ -107,6 +108,18 @@ class BlockchainTest(PivxTestFramework):
         # 1 hash in 2 should be valid, so difficulty should be 1/2**31
         # binary => decimal => binary math is why we do this check
         assert abs(difficulty * 2**31 - 1) < 0.0001
+
+    def _test_getblock(self):
+        node = self.nodes[0]
+
+        # Test getblock verbosity
+        besthash = node.getbestblockhash()
+        assert(isinstance(node.getblock(blockhash=besthash, verbose=False), str))
+        assert(isinstance(node.getblock(blockhash=besthash, verbosity=0), str))
+        assert(isinstance(node.getblock(besthash, 1)['tx'][0], str))
+        assert(isinstance(node.getblock(besthash, True)['tx'][0], str))
+        assert('vin' in node.getblock(besthash, 2)['tx'][0])
+
 
 if __name__ == '__main__':
     BlockchainTest().main()
