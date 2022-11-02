@@ -530,11 +530,14 @@ UniValue getblock(const JSONRPCRequest& request)
             "getblock \"blockhash\" ( verbosity )\n"
             "\nIf verbosity is 0, returns a string that is serialized, hex-encoded data for block 'hash'.\n"
             "If verbosity is 1, returns an Object with information about block <hash>.\n"
-            "If verbosity is 2, returns an Object with information about block <hash> and information about each transaction. \n"
+            "If verbosity is 2, returns an Object with information about block <hash> and information about each transaction.\n"
 
             "\nArguments:\n"
             "1. \"blockhash\"            (string, required) The block hash\n"
             "2. verbosity              (numeric, optional, default=1) 0 for hex encoded data, 1 for a json object, and 2 for json object with transaction data\n"
+
+            "\nResult (for verbosity = 0):\n"
+            "\"data\"             (string) A string that is serialized, hex-encoded data for block 'hash'.\n"
 
             "\nResult (for verbosity = 1):\n"
             "{\n"
@@ -561,8 +564,14 @@ UniValue getblock(const JSONRPCRequest& request)
             "  }\n"
             "}\n"
 
-            "\nResult (for verbose=false):\n"
-            "\"data\"             (string) A string that is serialized, hex-encoded data for block 'hash'.\n"
+            "\nResult (for verbosity = 2):\n"
+            "{\n"
+            "  ...,                     Same output as verbosity = 1.\n"
+            "  \"tx\" : [               (array of Objects) The transactions in the format of the getrawtransaction RPC. Different from verbosity = 1 \"tx\" result.\n"
+            "         ,...\n"
+            "  ],\n"
+            "  ,...                     Same output as verbosity = 1.\n"
+            "}\n"
 
             "\nExamples:\n" +
             HelpExampleCli("getblock", "\"00000000000fd08c2fb661d2fcb0d49abb3a91e5f27082ce64feed3b4dede2e2\"") +
@@ -1454,7 +1463,7 @@ static const CRPCCommand commands[] =
   //  --------------------- ------------------------  -----------------------  ------ --------
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {} },
     { "blockchain",         "getbestsaplinganchor",   &getbestsaplinganchor,   true,  {} },
-    { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbosity"} },
+    { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbose|verbosity"} },
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
     { "blockchain",         "getblockcount",          &getblockcount,          true,  {} },
     { "blockchain",         "getblockhash",           &getblockhash,           true,  {"height"} },
