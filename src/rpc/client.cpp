@@ -54,6 +54,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "getbalance", 2, "include_delegated" },
     { "getbalance", 3, "include_shield" },
     { "getblock", 1, "verbosity" },
+    { "getblock", 1, "verbose" },
     { "getblockhash", 0, "height" },
     { "getblockheader", 1, "verbose" },
     { "getblockindexstats", 0, "height" },

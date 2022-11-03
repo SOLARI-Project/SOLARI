@@ -119,7 +119,7 @@ class BlockchainTest(PivxTestFramework):
 
         assert_is_hash_string(node.getblock(besthash, 1)['tx'][0])
         assert_is_hash_string(node.getblock(besthash, True)['tx'][0])
-        assert_is_hex_string(node.getblock(besthash, 2)['tx'][0]['vin'][0]['coinbase']);
+        assert_is_hex_string(node.getblock(besthash, 2)['tx'][0]['vin'][0]['coinbase'])
 
 
 if __name__ == '__main__':
