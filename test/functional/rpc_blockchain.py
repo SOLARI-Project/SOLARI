@@ -114,11 +114,12 @@ class BlockchainTest(PivxTestFramework):
 
         # Test getblock verbosity
         besthash = node.getbestblockhash()
-        assert(isinstance(node.getblock(blockhash=besthash, verbose=False), str))
-        assert(isinstance(node.getblock(blockhash=besthash, verbosity=0), str))
-        assert(isinstance(node.getblock(besthash, 1)['tx'][0], str))
-        assert(isinstance(node.getblock(besthash, True)['tx'][0], str))
-        assert('vin' in node.getblock(besthash, 2)['tx'][0])
+        assert_is_hex_string(node.getblock(blockhash=besthash, verbose=False))
+        assert_is_hex_string(node.getblock(blockhash=besthash, verbosity=0))
+
+        assert_is_hash_string(node.getblock(besthash, 1)['tx'][0])
+        assert_is_hash_string(node.getblock(besthash, True)['tx'][0])
+        assert_is_hex_string(node.getblock(besthash, 2)['tx'][0]['vin'][0]['coinbase']);
 
 
 if __name__ == '__main__':
