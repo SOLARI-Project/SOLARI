@@ -73,6 +73,7 @@ BASE_SCRIPTS= [
     'wallet_import_rescan.py',                  # ~ 204 sec
     'p2p_invalid_block.py',                     # ~ 213 sec
     'feature_reindex.py',                       # ~ 205 sec
+    'rpc_scantxoutset.py',
     'feature_logging.py',                       # ~ 195 sec
     'wallet_multiwallet.py',                    # ~ 190 sec
     'rpc_bind.py --ipv6',                       # ~ 191 sec
