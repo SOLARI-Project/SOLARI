@@ -449,6 +449,7 @@ set(COMMON_SOURCES
         ./src/pubkey.cpp
         ./src/saltedhasher.cpp
         ./src/scheduler.cpp
+        ./src/script/descriptor.cpp
         ./src/script/interpreter.cpp
         ./src/script/script.cpp
         ./src/script/sign.cpp
