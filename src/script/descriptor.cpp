@@ -12,7 +12,6 @@
 
 #include <span.h>
 #include <util/system.h>
-//#include <util.h> //not PIVX
 #include <utilstrencodings.h>
 
 #include <memory>
@@ -232,7 +231,6 @@ public:
 
 CScript P2PKHGetScript(const CPubKey& pubkey) { return GetScriptForDestination(pubkey.GetID()); }
 CScript P2PKGetScript(const CPubKey& pubkey) { return GetScriptForRawPubKey(pubkey); }
-//CScript P2WPKHGetScript(const CPubKey& pubkey) { return GetScriptForDestination(WitnessV0KeyHash(pubkey.GetID())); } //not PIVX
 
 /** A parsed multi(...) descriptor. */
 class MultisigDescriptor : public Descriptor
@@ -323,7 +321,6 @@ public:
 };
 
 CScript ConvertP2SH(const CScript& script) { return GetScriptForDestination(CScriptID(script)); }
-//CScript ConvertP2WSH(const CScript& script) { return GetScriptForDestination(WitnessV0ScriptHash(script)); } //not PIVX
 
 /** A parsed combo(P) descriptor. */
 class ComboDescriptor final : public Descriptor
@@ -353,14 +350,6 @@ public:
             output_scripts = std::vector<CScript>{std::move(p2pk), std::move(p2pkh)};
             out.pubkeys.emplace(keyid, key);
         }
-        if (key.IsCompressed()) {
-/*            CScript p2wpkh = GetScriptForDestination(WitnessV0KeyHash(keyid)); //not PIVX
-            CScriptID p2wpkh_id(p2wpkh);
-            CScript p2sh_p2wpkh = GetScriptForDestination(p2wpkh_id);
-            out.scripts.emplace(p2wpkh_id, p2wpkh);
-            output_scripts.push_back(std::move(p2wpkh));
-            output_scripts.push_back(std::move(p2sh_p2wpkh));*/
-        }
         return true;
     }
 };
@@ -372,7 +361,6 @@ public:
 enum class ParseScriptContext {
     TOP,
     P2SH,
-//    P2WSH, //not PIVX
 };
 
 /** Parse a constant. If succesful, sp is updated to skip the constant and return true. */
@@ -491,12 +479,12 @@ std::unique_ptr<Descriptor> ParseScript(Span<const char>& sp, ParseScriptContext
 {
     auto expr = Expr(sp);
     if (Func("pk", expr)) {
-        auto pubkey = ParsePubkey(expr, true/*ctx != ParseScriptContext::P2WSH//not PIVX*/, out);
+        auto pubkey = ParsePubkey(expr, true, out);
         if (!pubkey) return nullptr;
         return std::make_unique<SingleKeyDescriptor>(std::move(pubkey), P2PKGetScript, "pk");
     }
     if (Func("pkh", expr)) {
-        auto pubkey = ParsePubkey(expr, true/*ctx != ParseScriptContext::P2WSH//not PIVX*/, out);
+        auto pubkey = ParsePubkey(expr, true, out);
         if (!pubkey) return nullptr;
         return std::make_unique<SingleKeyDescriptor>(std::move(pubkey), P2PKHGetScript, "pkh");
     }
@@ -514,7 +502,7 @@ std::unique_ptr<Descriptor> ParseScript(Span<const char>& sp, ParseScriptContext
         while (expr.size()) {
             if (!Const(",", expr)) return nullptr;
             auto arg = Expr(expr);
-            auto pk = ParsePubkey(arg, true/*ctx != ParseScriptContext::P2WSH//not PIVX*/, out);
+            auto pk = ParsePubkey(arg, true, out);
             if (!pk) return nullptr;
             script_size += pk->GetSize() + 1;
             providers.emplace_back(std::move(pk));
@@ -528,21 +516,11 @@ std::unique_ptr<Descriptor> ParseScript(Span<const char>& sp, ParseScriptContext
         }
         return std::make_unique<MultisigDescriptor>(thres, std::move(providers));
     }
-/*    if (ctx != ParseScriptContext::P2WSH && Func("wpkh", expr)) { //not PIVX
-        auto pubkey = ParsePubkey(expr, false, out);
-        if (!pubkey) return nullptr;
-        return std::make_unique<SingleKeyDescriptor>(std::move(pubkey), P2WPKHGetScript, "wpkh");
-    }*/
     if (ctx == ParseScriptContext::TOP && Func("sh", expr)) {
         auto desc = ParseScript(expr, ParseScriptContext::P2SH, out);
         if (!desc || expr.size()) return nullptr;
         return std::make_unique<ConvertorDescriptor>(std::move(desc), ConvertP2SH, "sh");
     }
-/*    if (ctx != ParseScriptContext::P2WSH && Func("wsh", expr)) { //not PIVX
-        auto desc = ParseScript(expr, ParseScriptContext::P2WSH, out);
-        if (!desc || expr.size()) return nullptr;
-        return std::make_unique<ConvertorDescriptor>(std::move(desc), ConvertP2WSH, "wsh");
-    }*/
     if (ctx == ParseScriptContext::TOP && Func("addr", expr)) {
         CTxDestination dest = DecodeDestination(std::string(expr.begin(), expr.end()));
         if (!IsValidDestination(dest)) return nullptr;
