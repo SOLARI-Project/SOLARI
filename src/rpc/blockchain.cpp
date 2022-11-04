@@ -1515,11 +1515,9 @@ UniValue scantxoutset(const JSONRPCRequest& request)
             "Examples of output descriptors are:\n"
             "    addr(<address>)                      Outputs whose scriptPubKey corresponds to the specified address (does not include P2PK)\n"
             "    raw(<hex script>)                    Outputs whose scriptPubKey equals the specified hex scripts\n"
-//original BitCoin            "    combo(<pubkey>)                      P2PK, P2PKH, P2WPKH, and P2SH-P2WPKH outputs for the given pubkey\n"
             "    combo(<pubkey>)                      P2PK and P2PKH outputs for the given pubkey\n"
             "    pkh(<pubkey>)                        P2PKH outputs for the given pubkey\n"
             "    sh(multi(<n>,<pubkey>,<pubkey>,...)) P2SH-multisig outputs for the given threshold and pubkeys\n"
-//original BitCoin            "\nIn the above, <pubkey> either refers to a fixed public key in hexadecimal notation, or to an xpub/xprv optionally followed by one\n"
             "\nIn the above, <pubkey> either refers to a fixed public key in hexadecimal notation, or to an DRKV/DRKP optionally followed by one\n"
             "or more path elements separated by \"/\", and optionally ending in \"/*\" (unhardened), or \"/*'\" or \"/*h\" (hardened) to specify all\n"
             "unhardened or hardened child keys.\n"
@@ -1644,7 +1642,6 @@ UniValue scantxoutset(const JSONRPCRequest& request)
             UniValue unspent(UniValue::VOBJ);
             unspent.pushKV("txid", outpoint.hash.GetHex());
             unspent.pushKV("vout", (int32_t)outpoint.n);
-//original BitCoin            unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey.begin(), txo.scriptPubKey.end()));
             unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey));
             unspent.pushKV("amount", ValueFromAmount(txo.nValue));
             unspent.pushKV("height", (int32_t)coin.nHeight);
