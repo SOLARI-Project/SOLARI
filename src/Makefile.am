@@ -269,6 +269,7 @@ BITCOIN_CORE_H = \
   rpc/server.h \
   saltedhasher.h \
   scheduler.h \
+  script/descriptor.h \
   script/interpreter.h \
   script/keyorigin.h \
   script/script.h \
@@ -564,6 +565,7 @@ libbitcoin_common_a_SOURCES = \
   pubkey.cpp \
   saltedhasher.cpp \
   scheduler.cpp \
+  script/descriptor.cpp \
   script/interpreter.cpp \
   script/script.cpp \
   script/sign.cpp \
