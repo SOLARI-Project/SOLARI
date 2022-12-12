@@ -1,7 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
-// Copyright (c) 2015-2020 The PIVX developers
+// Copyright (c) 2015-2022 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -53,6 +53,7 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "getbalance", 1, "include_watchonly" },
     { "getbalance", 2, "include_delegated" },
     { "getbalance", 3, "include_shield" },
+    { "getblock", 1, "verbosity" },
     { "getblock", 1, "verbose" },
     { "getblockhash", 0, "height" },
     { "getblockheader", 1, "verbose" },
@@ -140,7 +141,9 @@ static const CRPCConvertParam vRPCConvertParams[] = {
     { "rescanblockchain", 1, "stop_height"},
     { "sendmany", 1, "amounts" },
     { "sendmany", 2, "minconf" },
+    { "sendmany", 4, "include_delegated" },
     { "sendmany", 5, "subtract_fee_from" },
+    { "scantxoutset", 1, "scanobjects" },
     { "sendrawtransaction", 1, "allowhighfees" },
     { "sendtoaddress", 1, "amount" },
     { "sendtoaddress", 4, "subtract_fee" },
