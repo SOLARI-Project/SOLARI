@@ -17,7 +17,7 @@ PIVX is an open source community-driven cryptocurrency, focused on five main asp
 
 (4) Fast Transactions: Through the use of fast block times and the tier two network, PIVX is committed to continue researching new and better instant transactions mechanisms.
 
-(5) Ease of Use: PIVX is determined to offer the best possible graphical interface for a core node/wallet. A full featured graphical product for new and advanced users.
+(5) Ease of Use: PIVx is determined to offer the best possible graphical interface for a core node/wallet. A full featured graphical product for new and advanced users.
 
 A lot more information and specs at [PIVX.org](https://www.pivx.org/). Join the community at [PIVX Discord](https://discordapp.com/invite/jzqVsJd).
 
